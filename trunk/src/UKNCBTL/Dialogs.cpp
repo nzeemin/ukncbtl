@@ -1,0 +1,125 @@
+// Dialogs.cpp
+
+#include "stdafx.h"
+#include "Dialogs.h"
+#include "UKNCBTL.h"
+
+//////////////////////////////////////////////////////////////////////
+
+
+INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
+BOOL InputBoxValidate(HWND hDlg);
+
+LPCTSTR m_strInputBoxTitle = NULL;
+LPCTSTR m_strInputBoxPrompt = NULL;
+WORD* m_pInputBoxValueOctal = NULL;
+
+
+//////////////////////////////////////////////////////////////////////
+// About Box
+
+void ShowAboutBox()
+{
+    DialogBox(g_hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), g_hwnd, AboutBoxProc);
+}
+
+INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            TCHAR buf[64];
+            wsprintf(buf, _T("%S %S"), __DATE__, __TIME__);
+            ::SetWindowText(::GetDlgItem(hDlg, IDC_BUILDDATE), buf);
+            return (INT_PTR)TRUE;
+        }
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+
+
+BOOL InputBoxOctal(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strPrompt, WORD* pValue)
+{
+    m_strInputBoxTitle = strTitle;
+    m_strInputBoxPrompt = strPrompt;
+    m_pInputBoxValueOctal = pValue;
+    INT_PTR result = DialogBox(g_hInst, MAKEINTRESOURCE(IDD_INPUTBOX), hwndOwner, InputBoxProc);
+    if (result != IDOK)
+        return FALSE;
+
+    return TRUE;
+}
+
+
+INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            SetWindowText(hDlg, m_strInputBoxTitle);
+            HWND hStatic = GetDlgItem(hDlg, IDC_STATIC);
+            SetWindowText(hStatic, m_strInputBoxPrompt);
+            HWND hEdit = GetDlgItem(hDlg, IDC_EDIT1);
+
+            TCHAR buffer[8];
+            _snwprintf_s(buffer, 8, _T("%06o"), *m_pInputBoxValueOctal);
+            SetWindowText(hEdit, buffer);
+            SendMessage(hEdit, EM_SETSEL, 0, -1);
+
+            SetFocus(hEdit);
+            return (INT_PTR)FALSE;
+        }
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            if (! InputBoxValidate(hDlg))
+                return (INT_PTR) FALSE;
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        default:
+            return (INT_PTR) FALSE;
+        }
+        break;
+    }
+    return (INT_PTR) FALSE;
+}
+
+BOOL InputBoxValidate(HWND hDlg) {
+    HWND hEdit = GetDlgItem(hDlg, IDC_EDIT1);
+    TCHAR buffer[8];
+    GetWindowText(hEdit, buffer, 8);
+
+    WORD value;
+    if (! ParseOctalValue(buffer, &value))
+    {
+        MessageBox(NULL, _T("Please enter correct octal value."), _T("Input Box Validation"),
+                MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
+        return FALSE;
+    }
+
+    *m_pInputBoxValueOctal = value;
+
+    return TRUE;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////
