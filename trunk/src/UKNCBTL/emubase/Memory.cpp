@@ -557,27 +557,27 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOO
     }
 	else if (address < 0177000)  // 100000-176777 - Window
     {
-        if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
-        {
-            int bank = (m_Port177054 & 6) >> 1;
-            *pOffset = address - 0100000 + ((bank - 1) << 13);
-            if ((m_Port177054 & 8) == 0)
-	            return ADDRTYPE_ROMCART1;
-            else
-                return ADDRTYPE_ROMCART2;
-        }
-	    else if (address < 0120000)  // 100000-117777 - Window block 0
+		if (address < 0120000)  // 100000-117777 - Window block 0
 	    {
             if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
             {
                 *pOffset = address;
                 return ADDRTYPE_RAM0;
             }
-            if ((m_Port177054 & 1) != 0)  // ROM selected
+			else if ((m_Port177054 & 1) != 0)  // ROM selected
             {
                 *pOffset = address - 0100000;
                 return ADDRTYPE_ROM;
             }
+			else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
+			{
+				int bank = (m_Port177054 & 6) >> 1;
+				*pOffset = address - 0100000 + ((bank - 1) << 13);
+				if ((m_Port177054 & 8) == 0)
+					return ADDRTYPE_ROMCART1;
+				else
+					return ADDRTYPE_ROMCART2;
+			}
             return ADDRTYPE_NONE;
         }
 	    else if (address < 0140000)  // 120000-137777 - Window block 1
