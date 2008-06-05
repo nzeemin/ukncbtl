@@ -28,10 +28,10 @@
 
 //////////////////////////////////////////////////////////////////////
 
-CProcessor::CProcessor (TCHAR * name)
+CProcessor::CProcessor (LPCTSTR name)
 
 {
-    lstrcpy(NAME, name);
+    lstrcpy(m_name, name);
     m_psw = 0400;  // Start value of PSW is 340
     ZeroMemory(m_R, sizeof(m_R));
 	m_psw = 0400;  // Start value of PSW is 340
@@ -51,7 +51,7 @@ CProcessor::CProcessor (TCHAR * name)
 	memset(m_virq, 0, sizeof(m_virq));
 	m_evntrq=0;
 	m_ACLOrq = 0;
-	if(NAME[0]==_T('C'))
+	if(m_name[0]==_T('C'))
 		m_haltpin=0;
 	else
 		m_haltpin=0;
@@ -109,7 +109,7 @@ void CProcessor::Stop ()
 	m_waitmode=0;
 	m_userspace=0;
 	m_stepmode=0;
-	if(NAME[0]==_T('C'))
+	if(m_name[0]==_T('C'))
 		m_haltpin=0;
 	else
 		m_haltpin=0;

@@ -86,20 +86,20 @@ BOOL MainWindow_InitStatusbar()
     int statusbarParts[7];
     statusbarParts[0] = 350;
     statusbarParts[1] = statusbarParts[0] + 70;
-    statusbarParts[2] = statusbarParts[1] + 16 + 8;
-    statusbarParts[3] = statusbarParts[2] + 16 + 8;
-    statusbarParts[4] = statusbarParts[3] + 16 + 8;
-    statusbarParts[5] = statusbarParts[4] + 16 + 8;
+    statusbarParts[2] = statusbarParts[1] + 16 + 16;
+    statusbarParts[3] = statusbarParts[2] + 16 + 16;
+    statusbarParts[4] = statusbarParts[3] + 16 + 16;
+    statusbarParts[5] = statusbarParts[4] + 16 + 16;
     statusbarParts[6] = -1;
     SendMessage(m_hwndStatusbar, SB_SETPARTS, sizeof(statusbarParts)/sizeof(int), (LPARAM) statusbarParts);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ0, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ1, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ2, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ3, 0);
-    MainWindow_SetStatusbarText(StatusbarPartMZ0, _T("MZ0:"));
-    MainWindow_SetStatusbarText(StatusbarPartMZ1, _T("MZ1:"));
-    MainWindow_SetStatusbarText(StatusbarPartMZ2, _T("MZ2:"));
-    MainWindow_SetStatusbarText(StatusbarPartMZ3, _T("MZ3:"));
+    //MainWindow_SetStatusbarText(StatusbarPartMZ0, _T("MZ0:"));
+    //MainWindow_SetStatusbarText(StatusbarPartMZ1, _T("MZ1:"));
+    //MainWindow_SetStatusbarText(StatusbarPartMZ2, _T("MZ2:"));
+    //MainWindow_SetStatusbarText(StatusbarPartMZ3, _T("MZ3:"));
 
     return TRUE;
 }
@@ -687,16 +687,16 @@ void MainWindow_DoEmulatorCartridge(int slot)
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm)
 {
     int nSection = (int) (lpnm->dwItemSpec);
-    if (nSection >= 2 && nSection <= 5)
+    if (nSection >= StatusbarPartMZ0 && nSection <= StatusbarPartMZ3)
     {
-        int nFloppy = nSection - 2;
+        int nFloppy = nSection - StatusbarPartMZ0;
         UINT nCmd = 0;
         switch (nFloppy)
         {
-        case 0: nCmd = ID_EMULATOR_FLOPPY0; break;
-        case 1: nCmd = ID_EMULATOR_FLOPPY1; break;
-        case 2: nCmd = ID_EMULATOR_FLOPPY2; break;
-        case 3: nCmd = ID_EMULATOR_FLOPPY3; break;
+        case StatusbarPartMZ0: nCmd = ID_EMULATOR_FLOPPY0; break;
+        case StatusbarPartMZ1: nCmd = ID_EMULATOR_FLOPPY1; break;
+        case StatusbarPartMZ2: nCmd = ID_EMULATOR_FLOPPY2; break;
+        case StatusbarPartMZ3: nCmd = ID_EMULATOR_FLOPPY3; break;
         }
         ::PostMessage(g_hwnd, WM_COMMAND, (WPARAM) nCmd, 0);
     }
@@ -704,15 +704,24 @@ void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm)
 
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT lpDrawItem)
 {
-    UINT resourceId = (UINT) lpDrawItem->itemData;
-    if (resourceId == 0) return;
-
     HDC hdc = lpDrawItem->hDC;
-    HICON hicon = ::LoadIcon(g_hInst, MAKEINTRESOURCE(resourceId));
-    int left = lpDrawItem->rcItem.left + (lpDrawItem->rcItem.right - lpDrawItem->rcItem.left - 16) / 2;
-    int top = lpDrawItem->rcItem.top + (lpDrawItem->rcItem.bottom - lpDrawItem->rcItem.top - 16) / 2;
-    ::DrawIconEx(hdc, left, top, hicon, 16, 16, 0, NULL, DI_NORMAL);
-    ::DeleteObject(hicon);
+
+    // Номер привода дисковода
+    TCHAR text[2];
+    text[0] = _T('0') + lpDrawItem->itemID - StatusbarPartMZ0;
+    text[1] = 0;
+    ::DrawStatusText(hdc, &lpDrawItem->rcItem, text, SBT_NOBORDERS);
+
+    // Иконка диска
+    UINT resourceId = (UINT) lpDrawItem->itemData;
+    if (resourceId != 0)
+    {
+        HICON hicon = ::LoadIcon(g_hInst, MAKEINTRESOURCE(resourceId));
+        int left = lpDrawItem->rcItem.right - 16 - 2; // lpDrawItem->rcItem.left + (lpDrawItem->rcItem.right - lpDrawItem->rcItem.left - 16) / 2;
+        int top = lpDrawItem->rcItem.top + (lpDrawItem->rcItem.bottom - lpDrawItem->rcItem.top - 16) / 2;
+        ::DrawIconEx(hdc, left, top, hicon, 16, 16, 0, NULL, DI_NORMAL);
+        ::DeleteObject(hicon);
+    }
 }
 
 void MainWindow_UpdateAllViews()

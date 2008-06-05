@@ -17,16 +17,16 @@ class CProcessor  // KM1801VM2 processor
 {
 
 public:  // Constructor / initialization
-                CProcessor(TCHAR * name);
+                CProcessor(LPCTSTR name);
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
     void        AssertHALT();
 	void		DeassertHALT();
 	void		MemoryError();
-    LPCTSTR     GetName() const { return NAME; }
-	void        SetInternalTick (WORD tick) {m_internalTick = tick; }
+    LPCTSTR     GetName() const { return m_name; }
+	void        SetInternalTick (WORD tick) { m_internalTick = tick; }
 
 protected:  // Processor state
-	TCHAR       NAME[5];            // Processor name
+	TCHAR       m_name[5];            // Processor name
     WORD        m_internalTick;     // How many ticks waiting to the end of current instruction
     WORD        m_psw;              // Processor Status Word (PSW)
     WORD        m_R[8];             // Registers (R0..R5, R6=SP, R7=PC)
@@ -80,7 +80,7 @@ public:  // Register control
 //		{
 //			TCHAR buffer[40];
 //
-//			wsprintf(buffer,_T("%s "),NAME);
+//			wsprintf(buffer,_T("%s "),m_name);
 //			//DebugLog(buffer);
 //			PrintOctalValue(buffer, GetPC()-2);
 //			//DebugLog(buffer);
