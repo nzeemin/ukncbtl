@@ -107,10 +107,10 @@ void Emulator_Stop()
     m_wEmulatorPPUBreakpoint = 0177777;
 
     // Reset title bar message
-    SetWindowText(g_hwnd, _T("UKNC Back to Life"));
+    SetWindowText(g_hwnd, _T("UKNC Back to Life [stop]"));
     MainWindow_UpdateMenu();
     // Reset FPS indicator
-    MainWindow_SetStatusbarText(1, _T(""));
+    MainWindow_SetStatusbarText(StatusbarPartFPS, _T(""));
 
     MainWindow_UpdateAllViews();
 }
@@ -165,7 +165,7 @@ int Emulator_SystemFrame()
 		double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
 		TCHAR buffer[16];
 		swprintf_s(buffer, 16, _T("FPS: %05.2f"), dFramesPerSecond);
-		MainWindow_SetStatusbarText(1, buffer);
+		MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
 		m_nFrameCount = 0;
 		m_dwTickCount = dwCurrentTicks;
@@ -184,7 +184,7 @@ int Emulator_SystemFrame()
 
 		TCHAR buffer[20];
 		swprintf_s(buffer, 20, _T("Uptime: %02d:%02d:%02d"), hours, minutes, seconds);
-		MainWindow_SetStatusbarText(6, buffer);
+		MainWindow_SetStatusbarText(StatusbarPartUptime, buffer);
 	}
 
     return 1;
