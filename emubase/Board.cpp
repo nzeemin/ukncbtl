@@ -37,8 +37,7 @@ CMotherboard::CMotherboard ()
     m_pPPU = new CProcessor(_T("PPU"));
     m_pFirstMemCtl = new CFirstMemoryController();
     m_pSecondMemCtl = new CSecondMemoryController();
-    for (int i = 0; i < 4; i++)
-        m_pFloppy[i] = new CFloppy();
+    m_pFloppyCtl = new CFloppyController();
 
     // Connect devices
     m_pCPU->AttachMemoryController(m_pFirstMemCtl);
@@ -46,8 +45,8 @@ CMotherboard::CMotherboard ()
     m_pPPU->AttachMemoryController(m_pSecondMemCtl);
     m_pSecondMemCtl->Attach(this, m_pPPU);
 
-	m_floppyaddr=0;
-	m_floppystate=FLOPPY_FSM_WAITFORLSB;
+	//m_floppyaddr=0;
+	//m_floppystate=FLOPPY_FSM_WAITFORLSB;
 
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) ::LocalAlloc(LPTR, 65536);
@@ -65,8 +64,7 @@ CMotherboard::~CMotherboard ()
     delete m_pPPU;
     delete m_pFirstMemCtl;
     delete m_pSecondMemCtl;
-    for (int i = 0; i < 4; i++)
-        delete m_pFloppy[i];
+    delete m_pFloppyCtl;
 
     // Free memory
     ::LocalFree(m_pRAM[0]);
@@ -84,9 +82,7 @@ void CMotherboard::Reset ()
 
     m_pFirstMemCtl->Reset();
     m_pSecondMemCtl->Reset();
-
-    for (int i = 0; i < 4; i++)
-        m_pFloppy[i]->Reset();
+    m_pFloppyCtl->Reset();
 
     m_cputicks = 0;
     m_pputicks = 0;
@@ -96,8 +92,8 @@ void CMotherboard::Reset ()
     m_timerflags = 0;
     m_timerdivider = 0;
 
-	m_floppyaddr=0;
-	m_floppystate=FLOPPY_FSM_WAITFORLSB;
+	//m_floppyaddr=0;
+	//m_floppystate=FLOPPY_FSM_WAITFORLSB;
 
     ::ZeroMemory(m_chancpurx, sizeof(m_chancpurx));
     ::ZeroMemory(m_chanppurx, sizeof(m_chanppurx));
@@ -109,9 +105,8 @@ void CMotherboard::Reset ()
 	m_chanpputx[0].ready=1;
 	m_chanpputx[1].ready=1;
 
-
     m_chan0disabled = 0;
-    m_currentdrive = 0;
+    //m_currentdrive = 0;
 
     //m_CPUbp = 0177777;
     //m_PPUbp = 0177777;
@@ -148,25 +143,25 @@ void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM ima
 BOOL CMotherboard::IsFloppyImageAttached(int slot)
 {
     ASSERT(slot >= 0 && slot < 4);
-    return m_pFloppy[slot]->IsAttached();
+    return m_pFloppyCtl->IsAttached(slot);
 }
 
 BOOL CMotherboard::IsFloppyReadOnly(int slot)
 {
     ASSERT(slot >= 0 && slot < 4);
-    return m_pFloppy[slot]->IsReadOnly();
+    return m_pFloppyCtl->IsReadOnly(slot);
 }
 
 BOOL CMotherboard::AttachFloppyImage(int slot, LPCTSTR sFileName)
 {
     ASSERT(slot >= 0 && slot < 4);
-    return m_pFloppy[slot]->AttachImage(sFileName);
+    return m_pFloppyCtl->AttachImage(slot, sFileName);
 }
 
 void CMotherboard::DetachFloppyImage(int slot)
 {
     ASSERT(slot >= 0 && slot < 4);
-    m_pFloppy[slot]->DetachImage();
+    m_pFloppyCtl->DetachImage(slot);
 }
 
 
@@ -378,10 +373,7 @@ void CMotherboard::DebugTicks()
 	m_pPPU->Execute();
 	m_pCPU->SetInternalTick(0);
 	m_pCPU->Execute();
-	m_pFloppy[0]->Periodic();
-	m_pFloppy[1]->Periodic();
-	m_pFloppy[2]->Periodic();
-	m_pFloppy[3]->Periodic();
+	m_pFloppyCtl->Periodic();
 }
 
 
@@ -433,10 +425,7 @@ BOOL CMotherboard::SystemFrame()
 
         if (frameticks % 32 == 0)  // FDD tick
         {
-            m_pFloppy[0]->Periodic();
-            m_pFloppy[1]->Periodic();
-            m_pFloppy[2]->Periodic();
-            m_pFloppy[3]->Periodic();
+            m_pFloppyCtl->Periodic();
         }
 
         frameticks++;
@@ -550,7 +539,7 @@ void		CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 //		wsprintf(txt,_T("CPU WR Chan %d, %x\r\n"),chan,data);
 //		DebugPrint(txt);
 //#endif
-		FloppyDebug(data);
+		//FloppyDebug(data);
 	}
 
 	if((chan==0)&&(m_chan0disabled))
@@ -788,102 +777,104 @@ void		CMotherboard::ChanTxStateSetPPU(BYTE state)
 
 
 }
-void CMotherboard::FloppyDebug(BYTE val)
-{
-//#if !defined(PRODUCT)
-//    TCHAR buffer[512];
-//#endif
-/*
-m_floppyaddr=0;
-m_floppystate=FLOPPY_FSM_WAITFORLSB;
-#define FLOPPY_FSM_WAITFORLSB	0
-#define FLOPPY_FSM_WAITFORMSB	1
-#define FLOPPY_FSM_WAITFORTERM1	2
-#define FLOPPY_FSM_WAITFORTERM2	3
 
-*/
-	switch(m_floppystate)
-	{
-		case FLOPPY_FSM_WAITFORLSB:
-			if(val!=0xff)
-			{
-				m_floppyaddr=val;
-				m_floppystate=FLOPPY_FSM_WAITFORMSB;
-			}
-			break;
-		case FLOPPY_FSM_WAITFORMSB:
-			if(val!=0xff)
-			{
-				m_floppyaddr|=val<<8;
-				m_floppystate=FLOPPY_FSM_WAITFORTERM1;
-			}
-			else
-			{
-				m_floppystate=FLOPPY_FSM_WAITFORLSB;
-			}
-			break;
-		case FLOPPY_FSM_WAITFORTERM1:
-			if(val==0xff)
-			{ //done
-				WORD par;
-				BYTE trk,sector,side;
-
-				par=m_pFirstMemCtl->GetWord(m_floppyaddr,0);
-
-//#if !defined(PRODUCT)
-//				wsprintf(buffer,_T(">>>>FDD Cmd %d "),(par>>8)&0xff);
-//				DebugPrint(buffer);
-//#endif
-                par=m_pFirstMemCtl->GetWord(m_floppyaddr+2,0);
-				side=par&0x8000?1:0;
-//#if !defined(PRODUCT)
-//				wsprintf(buffer,_T("Side %d Drv %d, Type %d "),par&0x8000?1:0,(par>>8)&0x7f,par&0xff);
-//				DebugPrint(buffer);
-//#endif
-				par=m_pFirstMemCtl->GetWord(m_floppyaddr+4,0);
-				sector=(par>>8)&0xff;
-				trk=par&0xff;
-//#if !defined(PRODUCT)
-//				wsprintf(buffer,_T("Sect %d, Trk %d "),(par>>8)&0xff,par&0xff);
-//				DebugPrint(buffer);
-//				PrintOctalValue(buffer,m_pFirstMemCtl->GetWord(m_floppyaddr+6,0));
-//				DebugPrint(_T("Addr "));
-//				DebugPrint(buffer);
-//#endif
-				par=m_pFirstMemCtl->GetWord(m_floppyaddr+8,0);
-//#if !defined(PRODUCT)
-//				wsprintf(buffer,_T(" Block %d Len %d\n"),trk*20+side*10+sector-1,par);
-//				DebugPrint(buffer);
-//#endif
-				
-				m_floppystate=FLOPPY_FSM_WAITFORLSB;
-			}
-			break;
-	
-	}
-}
+//void CMotherboard::FloppyDebug(BYTE val)
+//{
+////#if !defined(PRODUCT)
+////    TCHAR buffer[512];
+////#endif
+///*
+//m_floppyaddr=0;
+//m_floppystate=FLOPPY_FSM_WAITFORLSB;
+//#define FLOPPY_FSM_WAITFORLSB	0
+//#define FLOPPY_FSM_WAITFORMSB	1
+//#define FLOPPY_FSM_WAITFORTERM1	2
+//#define FLOPPY_FSM_WAITFORTERM2	3
+//
+//*/
+//	switch(m_floppystate)
+//	{
+//		case FLOPPY_FSM_WAITFORLSB:
+//			if(val!=0xff)
+//			{
+//				m_floppyaddr=val;
+//				m_floppystate=FLOPPY_FSM_WAITFORMSB;
+//			}
+//			break;
+//		case FLOPPY_FSM_WAITFORMSB:
+//			if(val!=0xff)
+//			{
+//				m_floppyaddr|=val<<8;
+//				m_floppystate=FLOPPY_FSM_WAITFORTERM1;
+//			}
+//			else
+//			{
+//				m_floppystate=FLOPPY_FSM_WAITFORLSB;
+//			}
+//			break;
+//		case FLOPPY_FSM_WAITFORTERM1:
+//			if(val==0xff)
+//			{ //done
+//				WORD par;
+//				BYTE trk,sector,side;
+//
+//				par=m_pFirstMemCtl->GetWord(m_floppyaddr,0);
+//
+////#if !defined(PRODUCT)
+////				wsprintf(buffer,_T(">>>>FDD Cmd %d "),(par>>8)&0xff);
+////				DebugPrint(buffer);
+////#endif
+//                par=m_pFirstMemCtl->GetWord(m_floppyaddr+2,0);
+//				side=par&0x8000?1:0;
+////#if !defined(PRODUCT)
+////				wsprintf(buffer,_T("Side %d Drv %d, Type %d "),par&0x8000?1:0,(par>>8)&0x7f,par&0xff);
+////				DebugPrint(buffer);
+////#endif
+//				par=m_pFirstMemCtl->GetWord(m_floppyaddr+4,0);
+//				sector=(par>>8)&0xff;
+//				trk=par&0xff;
+////#if !defined(PRODUCT)
+////				wsprintf(buffer,_T("Sect %d, Trk %d "),(par>>8)&0xff,par&0xff);
+////				DebugPrint(buffer);
+////				PrintOctalValue(buffer,m_pFirstMemCtl->GetWord(m_floppyaddr+6,0));
+////				DebugPrint(_T("Addr "));
+////				DebugPrint(buffer);
+////#endif
+//				par=m_pFirstMemCtl->GetWord(m_floppyaddr+8,0);
+////#if !defined(PRODUCT)
+////				wsprintf(buffer,_T(" Block %d Len %d\n"),trk*20+side*10+sector-1,par);
+////				DebugPrint(buffer);
+////#endif
+//				
+//				m_floppystate=FLOPPY_FSM_WAITFORLSB;
+//			}
+//			break;
+//	
+//	}
+//}
 
 
 WORD	CMotherboard::GetFloppyState()
 {
-	return m_pFloppy[m_currentdrive]->GetState();
+	return m_pFloppyCtl->GetState();
 }
 WORD	CMotherboard::GetFloppyData()
 {
-	return m_pFloppy[m_currentdrive]->GetData();
+	return m_pFloppyCtl->GetData();
 }
 void	CMotherboard::SetFloppyState(WORD val)
 {
-	if(val&02000)
-	{
-		m_currentdrive=(val&3)^3;
-	}
-	//m_currentdrive=0;
-	m_pFloppy[m_currentdrive]->SetCommand(val&~3); // it should not get select :)
+	//if(val&02000)
+	//{
+	//	m_currentdrive=(val&3)^3;
+	//}
+	////m_currentdrive=0;
+	//m_pFloppyCtl[m_currentdrive]->SetCommand(val&~3); // it should not get select :)
+    m_pFloppyCtl->SetCommand(val);
 }
 void	CMotherboard::SetFloppyData(WORD val)
 {
-    m_pFloppy[m_currentdrive]->WriteData(val);
+    m_pFloppyCtl->WriteData(val);
 }
 
 

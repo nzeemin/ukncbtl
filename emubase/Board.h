@@ -34,7 +34,7 @@ typedef struct chan_tag{
 	BYTE	irq;
 }chan_stc;
 
-class CFloppy;
+class CFloppyController;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -51,7 +51,7 @@ protected:  // Devices
     CProcessor*     m_pPPU;  // PPU device
     CMemoryController*  m_pFirstMemCtl;  // CPU memory control
     CMemoryController*  m_pSecondMemCtl;  // PPU memory control
-    CFloppy* m_pFloppy[4];
+    CFloppyController*  m_pFloppyCtl;  // FDD control
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU; }
     CProcessor*     GetPPU() { return m_pPPU; }
@@ -120,7 +120,7 @@ public:  // System control
 	void		ChanRxStateSetPPU(BYTE state);
 	void		ChanTxStateSetPPU(BYTE state);
 
-	void		FloppyDebug(BYTE val);
+	//void		FloppyDebug(BYTE val);
 
 	void		SetTimerReload(WORD val);	//sets timer reload value
 	void		SetTimerState(WORD val);	//sets timer state
@@ -166,9 +166,9 @@ private:
 	chan_stc	m_chanppurx[3];
 
 	BYTE		m_chan0disabled;
-	BYTE		m_currentdrive;
-	BYTE		m_floppystate;
-	WORD		m_floppyaddr;
+	//BYTE		m_currentdrive;
+	//BYTE		m_floppystate;
+	//WORD		m_floppyaddr;
 	WORD GetKeyboardRegister(void);
 	void DoSound(void);
 	
