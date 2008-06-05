@@ -730,9 +730,9 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 			return value;
 		case 0177704:
 			//fdd related
-#if !defined(PRODUCT)
-			DebugLogFormat(_T("FDD 177704 R %s, %s\r\n"), oct2, oct1);
-#endif
+//#if !defined(PRODUCT)
+//			DebugLogFormat(_T("FDD 177704 R %s, %s\r\n"), oct2, oct1);
+//#endif
 			return 010000; //!!!
 		default:
 //			ASSERT(0);

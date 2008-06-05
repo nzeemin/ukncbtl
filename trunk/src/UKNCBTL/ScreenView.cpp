@@ -259,6 +259,7 @@ void ScreenView_PrepareScreen()
     if (m_bits == NULL) return;
 
     // Choose color palette depending of screen mode
+    //TODO: Вынести switch в ScreenView_SetMode()
     const DWORD* colors;
     switch (m_ScreenMode)
     {

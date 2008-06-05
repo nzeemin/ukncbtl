@@ -46,42 +46,32 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg)
 #define FLOPPY_RAWMARKERSIZE            (FLOPPY_RAWTRACKSIZE / 2)
 #define FLOPPY_INDEXLENGTH              150
 
-class CFloppy
+struct CFloppyDrive
+{
+    HANDLE hFile;
+    BOOL okNetRT11Image;  // TRUE - .rtd image, FALSE - .dsk image
+    BOOL okReadOnly;    // Write protection flag
+	WORD track;         // Track number: from 0 to 79
+	WORD side;          // Disk side: 0 or 1
+	WORD dataptr;       // Data offset within m_data - "head" position
+	BYTE data[FLOPPY_RAWTRACKSIZE];  // Raw track image for the current track
+    BYTE marker[FLOPPY_RAWMARKERSIZE];  // Marker positions
+    WORD datatrack;     // Track number of data in m_data array
+    WORD dataside;      // Disk side of data in m_data array
+
+public:
+    CFloppyDrive();
+    void Reset();
+};
+
+class CFloppyController
 {
 protected:
-    HANDLE m_hFile;
-    BOOL m_okNetRT11Image;  // TRUE - .rtd image, FALSE - .dsk image
-    BOOL m_okReadOnly;  // Write protection flag
-
-public:
-    CFloppy();
-    ~CFloppy();
-    void Reset();
-
-public:
-    BOOL AttachImage(LPCTSTR sFileName);
-    void DetachImage();
-    BOOL IsAttached() { return (m_hFile != INVALID_HANDLE_VALUE); }
-    BOOL IsReadOnly() { return (m_status & FLOPPY_STATUS_WRITEPROTECT) != 0; }
-    BOOL IsEngineOn() { return IsAttached() && (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
-	WORD GetData(void);         // Reading port 177132 - data
-	WORD GetState(void);        // Reading port 177130 - device status
-	void SetCommand(WORD cmd);  // Writing to port 177130 - commands
-	void WriteData(WORD Data);  // Writing to port 177132 - data
-	void Periodic();            // Rotate disk; call it each 64 us - 15625 times per second
-
-private:
-	void PrepareTrack();
-    void FlushChanges();  // If current track was changed - save it
-
-protected:
+    CFloppyDrive m_drivedata[4];
+    WORD m_drive;       // Drive number: from 0 to 3
+    CFloppyDrive* m_pDrive;  // Current drive
 	WORD m_track;       // Track number: from 0 to 79
 	WORD m_side;        // Disk side: 0 or 1
-	WORD m_dataptr;     // Data offset within m_data - "head" position
-	BYTE m_data[FLOPPY_RAWTRACKSIZE];  // Raw track image for the current track
-    BYTE m_marker[FLOPPY_RAWMARKERSIZE];  // Marker positions
-    WORD m_datatrack;   // Track number of data in m_data array
-    WORD m_dataside;    // Disk side of data in m_data array
 	WORD m_status;      // See FLOPPY_STATUS_XXX defines
 	WORD m_flags;       // See FLOPPY_CMD_XXX defines
 	WORD m_datareg;     // Read mode data register
@@ -95,6 +85,27 @@ protected:
     BOOL m_searchsync;  // Read sub-mode: TRUE = search for sync, FALSE = just read
     BOOL m_crccalculus; // TRUE = CRC is calculated now
     BOOL m_trackchanged;  // TRUE = m_data was changed - need to save it into the file
+
+public:
+    CFloppyController();
+    ~CFloppyController();
+    void Reset();
+
+public:
+    BOOL AttachImage(int drive, LPCTSTR sFileName);
+    void DetachImage(int drive);
+    BOOL IsAttached(int drive) { return (m_drivedata[drive].hFile != INVALID_HANDLE_VALUE); }
+    BOOL IsReadOnly(int drive) { return m_drivedata[drive].okReadOnly; } // return (m_status & FLOPPY_STATUS_WRITEPROTECT) != 0; }
+    BOOL IsEngineOn() { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
+	WORD GetData(void);         // Reading port 177132 - data
+	WORD GetState(void);        // Reading port 177130 - device status
+	void SetCommand(WORD cmd);  // Writing to port 177130 - commands
+	void WriteData(WORD Data);  // Writing to port 177132 - data
+	void Periodic();            // Rotate disk; call it each 64 us - 15625 times per second
+
+private:
+	void PrepareTrack();
+    void FlushChanges();  // If current track was changed - save it
 
 };
 
