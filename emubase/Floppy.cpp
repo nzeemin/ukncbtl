@@ -448,6 +448,7 @@ void CFloppyController::FlushChanges()
         ::SetFilePointer(m_pDrive->hFile, foffset, NULL, FILE_BEGIN);
         DWORD dwBytesWritten;
         ::WriteFile(m_pDrive->hFile, &data, 5120, &dwBytesWritten, NULL);
+        //TODO: Проверка на ошибки записи
     }
     else {
 //#if !defined(PRODUCT)
