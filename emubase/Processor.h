@@ -7,11 +7,10 @@
 #include "Memory.h"
 
 
-#define MAXEVTQUEUE 2000
-
 class CMemoryController;
 
 //////////////////////////////////////////////////////////////////////
+
 
 class CProcessor  // KM1801VM2 processor
 {
@@ -24,6 +23,14 @@ public:  // Constructor / initialization
 	void		MemoryError();
     LPCTSTR     GetName() const { return m_name; }
 	void        SetInternalTick (WORD tick) { m_internalTick = tick; }
+
+public:
+    static void Init();  // Инициализация статических таблиц
+    static void Done();  // Освобождение памяти статических таблиц
+protected:  // Statics
+    typedef void ( CProcessor::*ExecuteMethodRef )();
+    static ExecuteMethodRef* m_pExecuteMethodMap;
+    static void RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMethodRef methodref);
 
 protected:  // Processor state
 	TCHAR       m_name[5];            // Processor name
@@ -42,7 +49,6 @@ protected:  // Current instruction processing
     int         m_regdest;          // Destination register number
     int         m_methdest;         // Destination address mode
     WORD        m_addrdest;         // Destination address
-    WORD        m_eventqueue[MAXEVTQUEUE];  // Event queue
     int         m_eqreadptr;        // Event queue read pointer
     int         m_eqwriteptr;       // Event queue write pointer
     int         m_eqcount;          // Event queue count
@@ -67,51 +73,14 @@ public:  // Register control
     WORD        GetPSW() { return m_psw; }
     WORD        GetCPSW() { return m_savepsw; }
     void        SetPSW(WORD word) { m_psw = word; }
-	//{ 
-	//	ASSERT(word<0777);
-	//	m_psw = word; 
-	//
-	//}
     WORD        GetReg(int regno) { return m_R[regno]; }
     void        SetReg(int regno, WORD word) { m_R[regno] = word; }
-//	{
-//		
-//		if(regno==7)
-//		{
-//			TCHAR buffer[40];
-//
-//			wsprintf(buffer,_T("%s "),m_name);
-//			//DebugLog(buffer);
-//			PrintOctalValue(buffer, GetPC()-2);
-//			//DebugLog(buffer);
-//		}
-//		ASSERT((regno!=7)||((word&1)==0)); // it have to be word alined
-////		ASSERT((regno!=7)||(word>=0400));  // catch PC=0 or something rediculus
-////		ASSERT((regno!=7)||(word!=0133526));// catch the bug
-//		m_R[regno] = word;
-//		if(regno==7)
-//		{
-//			TCHAR buffer[40];
-//			//DebugLog(_T(":="));
-//			PrintOctalValue(buffer, GetPC());
-//			//DebugLog(buffer);
-//			//DebugLog(_T("\r\n"));
-//		}
-//
-//	
-//	}
     WORD        GetSP() const { return m_R[6]; }
     void        SetSP(WORD word) { m_R[6] = word; }
     WORD        GetPC() const { return m_R[7]; }
     WORD        GetCPC() const { return m_savepc; }
     void        SetPC(WORD word) { m_R[7] = word; }
-	//{ 
-	//	ASSERT(!(word&1));
-	//	//ASSERT((word!=0163016)||(m_R[4]!=0145512));
-	//	//ASSERT(word!=0133526);// catch the bug //corrupting PSW
-	//	/*ASSERT(word>0400);*/ m_R[7] = word; 
-	//
-	//}
+
 public:  // PSW bits control
     void        SetC(BOOL bFlag);
     WORD        GetC() const { return (m_psw & PSW_C) != 0; }
@@ -201,6 +170,9 @@ protected:  // Implementation - instruction execution
     void        ExecuteIOT ();
     void        ExecuteRESET ();
 	void		ExecuteSTEP	();
+    void        ExecuteRSEL ();
+    void        Execute000030 ();
+    void        ExecuteFIS ();
 	void		ExecuteRUN	();
     void        ExecuteRTT ();
     void        ExecuteNOP ();
@@ -421,3 +393,5 @@ inline BOOL CProcessor::CheckSubForCarry (WORD a, WORD b)
 	return HIWORD (sum) != 0;
 }
 
+
+//////////////////////////////////////////////////////////////////////
