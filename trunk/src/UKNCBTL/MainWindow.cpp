@@ -689,9 +689,8 @@ void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm)
     int nSection = (int) (lpnm->dwItemSpec);
     if (nSection >= StatusbarPartMZ0 && nSection <= StatusbarPartMZ3)
     {
-        int nFloppy = nSection - StatusbarPartMZ0;
         UINT nCmd = 0;
-        switch (nFloppy)
+        switch (nSection)
         {
         case StatusbarPartMZ0: nCmd = ID_EMULATOR_FLOPPY0; break;
         case StatusbarPartMZ1: nCmd = ID_EMULATOR_FLOPPY1; break;

@@ -39,6 +39,8 @@ BOOL InitEmulator()
 {
     ASSERT(g_pBoard == NULL);
 
+    CProcessor::Init();
+
     g_pBoard = new CMotherboard();
 
     BYTE buffer[32768];
