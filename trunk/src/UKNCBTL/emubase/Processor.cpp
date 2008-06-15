@@ -55,13 +55,41 @@ void CProcessor::Init()
 	RegisterMethodRef( 0000034, 0000037, &CProcessor::ExecuteWCPS );
 
 	RegisterMethodRef( 0000100, 0000177, &CProcessor::ExecuteJMP );
-	RegisterMethodRef( 0000200, 0000207, &CProcessor::ExecuteRTS );
+	RegisterMethodRef( 0000200, 0000207, &CProcessor::ExecuteRTS );  // RTS / RETURN
 
 	RegisterMethodRef( 0000240, 0000240, &CProcessor::ExecuteNOP );
+	RegisterMethodRef( 0000241, 0000241, &CProcessor::ExecuteCLC );
+	RegisterMethodRef( 0000242, 0000242, &CProcessor::ExecuteCLV );
+	RegisterMethodRef( 0000243, 0000243, &CProcessor::ExecuteCLVC );
+	RegisterMethodRef( 0000244, 0000244, &CProcessor::ExecuteCLZ );
+	RegisterMethodRef( 0000245, 0000245, &CProcessor::ExecuteCLZC );
+	RegisterMethodRef( 0000246, 0000246, &CProcessor::ExecuteCLZV );
+	RegisterMethodRef( 0000247, 0000247, &CProcessor::ExecuteCLZVC );
+	RegisterMethodRef( 0000250, 0000250, &CProcessor::ExecuteCLN );
+	RegisterMethodRef( 0000251, 0000251, &CProcessor::ExecuteCLNC );
+	RegisterMethodRef( 0000252, 0000252, &CProcessor::ExecuteCLNV );
+	RegisterMethodRef( 0000253, 0000253, &CProcessor::ExecuteCLNVC );
+	RegisterMethodRef( 0000254, 0000254, &CProcessor::ExecuteCLNZ );
+	RegisterMethodRef( 0000255, 0000255, &CProcessor::ExecuteCLNZC );
+	RegisterMethodRef( 0000256, 0000256, &CProcessor::ExecuteCLNZV );
+	RegisterMethodRef( 0000257, 0000257, &CProcessor::ExecuteCCC );
 
-	RegisterMethodRef( 0000241, 0000257, &CProcessor::ExecuteCLC );
-
-	RegisterMethodRef( 0000261, 0000277, &CProcessor::ExecuteSEC );
+    RegisterMethodRef( 0000260, 0000260, &CProcessor::ExecuteNOP );
+	RegisterMethodRef( 0000261, 0000261, &CProcessor::ExecuteSEC );
+	RegisterMethodRef( 0000262, 0000262, &CProcessor::ExecuteSEV );
+	RegisterMethodRef( 0000263, 0000263, &CProcessor::ExecuteSEVC );
+	RegisterMethodRef( 0000264, 0000264, &CProcessor::ExecuteSEZ );
+	RegisterMethodRef( 0000265, 0000265, &CProcessor::ExecuteSEZC );
+	RegisterMethodRef( 0000266, 0000266, &CProcessor::ExecuteSEZV );
+	RegisterMethodRef( 0000267, 0000267, &CProcessor::ExecuteSEZVC );
+	RegisterMethodRef( 0000270, 0000270, &CProcessor::ExecuteSEN );
+	RegisterMethodRef( 0000271, 0000271, &CProcessor::ExecuteSENC );
+	RegisterMethodRef( 0000272, 0000272, &CProcessor::ExecuteSENV );
+	RegisterMethodRef( 0000273, 0000273, &CProcessor::ExecuteSENVC );
+	RegisterMethodRef( 0000274, 0000274, &CProcessor::ExecuteSENZ );
+	RegisterMethodRef( 0000275, 0000275, &CProcessor::ExecuteSENZC );
+	RegisterMethodRef( 0000276, 0000276, &CProcessor::ExecuteSENZV );
+	RegisterMethodRef( 0000277, 0000277, &CProcessor::ExecuteSCC );
 
 	RegisterMethodRef( 0000300, 0000377, &CProcessor::ExecuteSWAB );
 
@@ -73,7 +101,7 @@ void CProcessor::Init()
 	RegisterMethodRef( 0003000, 0003377, &CProcessor::ExecuteBGT );
 	RegisterMethodRef( 0003400, 0003777, &CProcessor::ExecuteBLE );
 	
-	RegisterMethodRef( 0004000, 0004777, &CProcessor::ExecuteJSR );
+	RegisterMethodRef( 0004000, 0004777, &CProcessor::ExecuteJSR );  // JSR / CALL
 
 	RegisterMethodRef( 0005000, 0005077, &CProcessor::ExecuteCLR );
 	RegisterMethodRef( 0005100, 0005177, &CProcessor::ExecuteCOM );
@@ -103,7 +131,7 @@ void CProcessor::Init()
 	RegisterMethodRef( 0072000, 0072777, &CProcessor::ExecuteASH );
 	RegisterMethodRef( 0073000, 0073777, &CProcessor::ExecuteASHC );
 	RegisterMethodRef( 0074000, 0074777, &CProcessor::ExecuteXOR );
-	RegisterMethodRef( 0075000, 0075377, &CProcessor::ExecuteFIS );
+	RegisterMethodRef( 0075000, 0075037, &CProcessor::ExecuteFIS );
 	RegisterMethodRef( 0077000, 0077777, &CProcessor::ExecuteSOB );
 
 	RegisterMethodRef( 0100000, 0100377, &CProcessor::ExecuteBPL );
@@ -112,33 +140,33 @@ void CProcessor::Init()
 	RegisterMethodRef( 0101400, 0101777, &CProcessor::ExecuteBLOS );
 	RegisterMethodRef( 0102000, 0102377, &CProcessor::ExecuteBVC );
 	RegisterMethodRef( 0102400, 0102777, &CProcessor::ExecuteBVS );
-	RegisterMethodRef( 0103000, 0103377, &CProcessor::ExecuteBHIS );
-	RegisterMethodRef( 0103400, 0103777, &CProcessor::ExecuteBLO );
+	RegisterMethodRef( 0103000, 0103377, &CProcessor::ExecuteBHIS );  // BCC
+	RegisterMethodRef( 0103400, 0103777, &CProcessor::ExecuteBLO );   // BCS
 	
 	RegisterMethodRef( 0104000, 0104377, &CProcessor::ExecuteEMT );
 	RegisterMethodRef( 0104400, 0104777, &CProcessor::ExecuteTRAP );
 	
-	RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLR );
-	RegisterMethodRef( 0105100, 0105177, &CProcessor::ExecuteCOM );
-	RegisterMethodRef( 0105200, 0105277, &CProcessor::ExecuteINC );
-	RegisterMethodRef( 0105300, 0105377, &CProcessor::ExecuteDEC );
-	RegisterMethodRef( 0105400, 0105477, &CProcessor::ExecuteNEG );
-	RegisterMethodRef( 0105500, 0105577, &CProcessor::ExecuteADC );
-	RegisterMethodRef( 0105600, 0105677, &CProcessor::ExecuteSBC );
-	RegisterMethodRef( 0105700, 0105777, &CProcessor::ExecuteTST );
-	RegisterMethodRef( 0106000, 0106077, &CProcessor::ExecuteROR );
-	RegisterMethodRef( 0106100, 0106177, &CProcessor::ExecuteROL );
-	RegisterMethodRef( 0106200, 0106277, &CProcessor::ExecuteASR );
-	RegisterMethodRef( 0106300, 0106377, &CProcessor::ExecuteASL );
+	RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLR );  // CLRB
+	RegisterMethodRef( 0105100, 0105177, &CProcessor::ExecuteCOM );  // COMB
+	RegisterMethodRef( 0105200, 0105277, &CProcessor::ExecuteINC );  // INCB
+	RegisterMethodRef( 0105300, 0105377, &CProcessor::ExecuteDEC );  // DECB
+	RegisterMethodRef( 0105400, 0105477, &CProcessor::ExecuteNEG );  // NEGB
+	RegisterMethodRef( 0105500, 0105577, &CProcessor::ExecuteADC );  // ADCB
+	RegisterMethodRef( 0105600, 0105677, &CProcessor::ExecuteSBC );  // SBCB
+	RegisterMethodRef( 0105700, 0105777, &CProcessor::ExecuteTST );  // TSTB
+	RegisterMethodRef( 0106000, 0106077, &CProcessor::ExecuteROR );  // RORB
+	RegisterMethodRef( 0106100, 0106177, &CProcessor::ExecuteROL );  // ROLB
+	RegisterMethodRef( 0106200, 0106277, &CProcessor::ExecuteASR );  // ASRB
+	RegisterMethodRef( 0106300, 0106377, &CProcessor::ExecuteASL );  // ASLB
 	
 	RegisterMethodRef( 0106400, 0106477, &CProcessor::ExecuteMTPS );
 	RegisterMethodRef( 0106700, 0106777, &CProcessor::ExecuteMFPS );
 
-	RegisterMethodRef( 0110000, 0117777, &CProcessor::ExecuteMOV );
-	RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMP );
-	RegisterMethodRef( 0130000, 0137777, &CProcessor::ExecuteBIT );
-	RegisterMethodRef( 0140000, 0147777, &CProcessor::ExecuteBIC );
-	RegisterMethodRef( 0150000, 0157777, &CProcessor::ExecuteBIS );
+	RegisterMethodRef( 0110000, 0117777, &CProcessor::ExecuteMOV );  // MOVB
+	RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMP );  // CMPB
+	RegisterMethodRef( 0130000, 0137777, &CProcessor::ExecuteBIT );  // BITB
+	RegisterMethodRef( 0140000, 0147777, &CProcessor::ExecuteBIC );  // BICB
+	RegisterMethodRef( 0150000, 0157777, &CProcessor::ExecuteBIS );  // BISB
 	RegisterMethodRef( 0160000, 0167777, &CProcessor::ExecuteSUB );
 }
 
@@ -652,529 +680,31 @@ WORD CProcessor::GetDstWordArgAsBranch ()
 
 void CProcessor::TranslateInstruction ()
 {
-//#ifdef _DEBUG
+#if !defined(PRODUCT)
     TCHAR buffer[20];
-	WORD pc;
+#endif // !_PRODUCT
+	
+    // Считываем очередную инструкцию
+    WORD pc = GetPC();
+	ASSERT((pc&1)==0); // it have to be word alined
+//#ifdef _DEBUG
 //    PrintOctalValue(buffer, GetPC());
 //    DebugLog(buffer);
 //#endif // _DEBUG
-	//if(GetPC()==0116632)
-	//{
-	//	SetWord(022550,4);
-	//}
-	/*if(GetPC()==0104156)
-	{
-		DebugPrint(_T("key return ="));
-		PrintOctalValue(buffer,GetReg(0));
-		DebugPrint(buffer);
-		DebugPrint(_T("\r\n"));
-	}
-	else
-	if(GetPC()==0133306)
-	{
-		DebugPrint(_T(">>>FDD RQ sect ="));
-		PrintOctalValue(buffer,GetByte(023341));
-		DebugPrint(buffer);
-		DebugPrint(_T(" AQ sect ="));
-		PrintOctalValue(buffer,GetReg(0)&0xff);
-		DebugPrint(buffer);
-		DebugPrint(_T("\r\n"));	
-	}*/
-		
-	
-    // Считываем очередную инструкцию
-	 pc = GetPC();
-	
-	ASSERT((pc&1)==0); // it have to be word alined
-//	ASSERT(pc > 0140000 && pc < 0160000); //stop here
+
     m_instruction = GetWordExec(pc);
     SetPC(GetPC() + 2);
 	
-	m_regdest=GetDigit(m_instruction,0);
-	m_methdest=GetDigit(m_instruction,1);
-	m_regsrc=GetDigit(m_instruction,2);
-	m_methsrc=GetDigit(m_instruction,3);
+    m_regdest  = GetDigit(m_instruction,0);
+    m_methdest = GetDigit(m_instruction,1);
+    m_regsrc   = GetDigit(m_instruction,2);
+    m_methsrc  = GetDigit(m_instruction,3);
 
-
-    // No fields
-    switch (m_instruction)
+    // Вызов метода, выполняющего обработку команды, по карте команд
+    ExecuteMethodRef methodref = m_pExecuteMethodMap[m_instruction];
+    if (methodref != NULL)
     {
-    case PI_HALT:
-        ExecuteHALT (); //HALT timing
-        //m_internalTick = PI_TIME_HALT;
-		return;
-    // case PI_HALT10:
-    // case PI_HALT11:
-    // case PI_HALT13:
-    // case PI_HALT14:
-    // case PI_HALT15:
-    // case PI_HALT17:
-	//	ASSERT(0);
-    //    ExecuteHALT (); //HALT timing
-        //m_internalTick = PI_TIME_HALT;
-    //    return;
-    case PI_WAIT:
-        ExecuteWAIT ();
-        return;
-
-    case PI_RTI:        // RTI timing
-		//wsprintf(buffer,_T("RTI: "));
-		//DebugLog(buffer);
-        ExecuteRTI ();
-        //m_internalTick = PI_TIME_RTI;
-        return;
-    case PI_BPT:
-        ExecuteBPT ();  // EMT timing
-        //m_internalTick = PI_TIME_EMT;
-        return;
-    case PI_IOT:
-        ExecuteIOT ();  // EMT timing
-        //m_internalTick = PI_TIME_EMT;
-        return;
-    case PI_RESET:      // Reset timing
-        ExecuteRESET ();
-        //m_internalTick = PI_TIME_RESET;
-        return;
-    case PI_RTT:        // RTI timing
-		//wsprintf(buffer,_T("RTT: "));
-		//DebugLog(buffer);
-
-        ExecuteRTT ();
-        //m_internalTick = PI_TIME_RTI;
-        return;
-    case PI_NOP:        
-        ExecuteNOP ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLC:
-        ExecuteCLC ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLV:
-        ExecuteCLV ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLVC:
-        ExecuteCLVC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLZ:
-        ExecuteCLZ ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLZC:
-        ExecuteCLZC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLZV:
-        ExecuteCLZV (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLZVC:
-        ExecuteCLZVC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLN:
-        ExecuteCLN ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNC:
-        ExecuteCLNC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNV:
-        ExecuteCLNV (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNVC:
-        ExecuteCLNVC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNZ:
-        ExecuteCLNZ (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNZC:
-        ExecuteCLNZC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CLNZV:
-        ExecuteCLNZV ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_CCC:
-        ExecuteCCC ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_NOP260:
-        ExecuteNOP ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEC:
-        ExecuteSEC ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEV:
-        ExecuteSEV ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEVC:
-        ExecuteSEVC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEZ:
-        ExecuteSEZ ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEZC:
-        ExecuteSEZC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEZV:
-        ExecuteSEZV (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEZVC:
-        ExecuteSEZVC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SEN:
-        ExecuteSEN ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENC:
-        ExecuteSENC (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENV:
-        ExecuteSENV (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENVC:
-        ExecuteSENVC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENZ:
-        ExecuteSENZ (); // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENZC:
-        ExecuteSENZC ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SENZV:
-        ExecuteSENZV ();// Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-    case PI_SCC:
-        ExecuteSCC ();  // Base timing
-        //m_internalTick = PI_TIME_BASE;
-        return;
-       // Спецкоманды режима HALT ВМ2
-	case 010:
-	case 011:
-	case PI_GO:
-	case 013:
-		ExecuteRUN();
-		//m_internalTick = PI_TIME_BASE;     
-		return;
-	case 014:
-	case 015:
-	case PI_STEP:   
-	case 017:
-		ExecuteSTEP();
-		//m_internalTick = PI_TIME_BASE;   
-		return;
-    case PI_RSEL: 
-		ExecuteRSEL();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case 030:
-        Execute000030();
-        return;
-    case PI_MFUS:
-		ExecuteMFUS();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case PI_RCPC: 
-	case 023:
-		ExecuteRCPC();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case PI_RCPS: 
-	case 025:
-	case 026:
-	case 027:
-		ExecuteRCPS();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case PI_MTUS:   
-		ExecuteMTUS();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case PI_WCPC: 
-	case 033:
-		ExecuteWCPC();
-		//m_internalTick = PI_TIME_BASE;
-		return;
-    case PI_WCPS:
-	case 035:
-	case 036:
-	case 037:
-		ExecuteWCPS();
-		//m_internalTick = PI_TIME_BASE;   
-		return;
-	}
-
-    // Branchs & interrupts
-    switch (m_instruction & ~(WORD)0377)
-    {
-    case PI_BR:
-        ExecuteBR ();   // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BNE:
-        ExecuteBNE ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BEQ:
-        ExecuteBEQ ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BGE:
-        ExecuteBGE ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BLT:
-        ExecuteBLT ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BGT:
-        ExecuteBGT ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BLE:
-        ExecuteBLE ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BPL:
-        ExecuteBPL ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BMI:
-        ExecuteBMI ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BHI:
-        ExecuteBHI ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BLOS:
-        ExecuteBLOS (); // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BVC:
-        ExecuteBVC ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BVS:
-        ExecuteBVS ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BHIS:
-        ExecuteBHIS (); // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-    case PI_BLO:
-        ExecuteBLO ();  // Base Branch timing
-        //m_internalTick = PI_TIME_BR_BASE;
-        return;
-
-    case PI_EMT:
-        ExecuteEMT();   // EMT timing
-        //m_internalTick = PI_TIME_EMT;
-        return;
-    case PI_TRAP:
-        ExecuteTRAP (); // EMT timing
-        //m_internalTick = PI_TIME_EMT;
-        return;
-    }
-
-    // One field
-    if ((m_instruction & ~(WORD)7) == PI_RTS)
-    {
-		wsprintf(buffer,_T("RTS: "));
-		//DebugLog(buffer);
-
-        ExecuteRTS (); // RTS timing
-        //m_internalTick = PI_TIME_RTS;
-        return;
-    }
-	switch (m_instruction & ~(WORD)7)
-	{
-		case PI_FADD: 
-		case PI_FSUB:         
-		case PI_FMUL:         
-		case PI_FDIV:         
-				ExecuteFIS();
-				return;
-		break;
-	}
-
-
-    int meth = GetDigit (m_instruction, 1);
-
-    // Two fields
-    switch (m_instruction & ~(WORD)077)
-    {
-    case PI_JMP:    // Nj timing
-        ExecuteJMP ();
-        //m_internalTick = timing_A2_Nj[meth];
-        return;
-    case PI_SWAB:   // AB timing
-        ExecuteSWAB ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_MARK:   // MARK timing
-        ExecuteMARK ();
-        //m_internalTick = PI_TIME_MARK;
-        return;
-    case PI_SXT:    // AB timing
-        ExecuteSXT ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_MTPS:   // AB timing
-        ExecuteMTPS ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_MFPS:   // AB timing
-        ExecuteMFPS ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    }
-    
-    switch (m_instruction & ~(WORD)0100077)
-    {
-    case PI_CLR:    // AB timing
-        ExecuteCLR ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_COM:    // AB timing
-        ExecuteCOM ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_INC:    // AB timing
-        ExecuteINC ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_DEC:    // AB timing
-        ExecuteDEC ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_NEG:    // AB timing
-        ExecuteNEG ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_ADC:    // AB timing
-        ExecuteADC ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_SBC:    // AB timing
-        ExecuteSBC ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_TST:    // A1 timing
-        ExecuteTST ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[meth];
-        return;
-    case PI_ROR:    // AB timing
-        ExecuteROR ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_ROL:    // AB timing
-        ExecuteROL ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_ASR:    // AB timing
-        ExecuteASR ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    case PI_ASL:    // AB timing
-        ExecuteASL ();
-        //m_internalTick = PI_TIME_BASE + timing_AB[meth];
-        return;
-    }
-    
-    // Three fields
-    switch(m_instruction & ~(WORD)0777)
-    {
-    case PI_JSR:    // Ns timing
-        ExecuteJSR ();
-        //m_internalTick = timing_A2_Nj[meth];
-        return;
-	case PI_MUL:
-		ExecuteMUL ();
-		//m_internalTick = PI_TIME_BASE + timing_A2_Nj[meth]; // TODO: исправить время!!!
-		return;
-	case PI_DIV:
-		ExecuteDIV ();
-		//m_internalTick = PI_TIME_BASE + timing_A2_Nj[meth]; // TODO: исправить время!!!
-		return;
-	case PI_ASH:
-		ExecuteASH ();
-		//m_internalTick = PI_TIME_BASE + timing_A2_Nj[meth]; // TODO: исправить время!!!
-		return;
-	case PI_ASHC:
-		ExecuteASHC ();
-		//m_internalTick = PI_TIME_BASE + timing_A2_Nj[meth]; // TODO: исправить время!!!
-		return;
-    case PI_XOR:    // A2 timing
-        ExecuteXOR ();
-        //m_internalTick = PI_TIME_BASE + timing_A2_Nj[meth];
-        return;
-    case PI_SOB:    // SOB timing
-        ExecuteSOB ();
-        //m_internalTick = PI_TIME_SOB;
-        return;
-    }
-
-    int methA = GetDigit (m_instruction, 3);
-    int methB = GetDigit (m_instruction, 1);
-
-    // Four fields
-    switch(m_instruction & ~(WORD)0107777)
-    {
-    case PI_MOV:    // A + B timing
-        ExecuteMOV ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_B[methB];
-        return;
-    case PI_CMP:    // A1 + A2 timing
-        ExecuteCMP ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_A2_Nj[methB];
-        return;
-    case PI_BIT:    // A1 + A2 timing
-        ExecuteBIT ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_A2_Nj[methB];
-        return;
-    case PI_BIC:    // A + B timing
-        ExecuteBIC ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_B[methB];
-        return;
-    case PI_BIS:    // A + B timing
-        ExecuteBIS ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_B[methB];
-        return;
-    }
-
-    switch (m_instruction & ~(WORD)0007777)
-    {
-    case PI_ADD:    // A + B timing
-        ExecuteADD ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_B[methB];
-        return;
-    case PI_SUB:    // A + B timing
-        ExecuteSUB ();
-        //m_internalTick = PI_TIME_BASE + timing_A_A1[methA] + timing_B[methB];
+        (this->*methodref)();  // Собственно вызов
         return;
     }
 
