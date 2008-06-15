@@ -80,6 +80,8 @@ void DoneEmulator()
 {
     ASSERT(g_pBoard != NULL);
 
+    CProcessor::Done();
+
     delete g_pBoard;
     g_pBoard = NULL;
 

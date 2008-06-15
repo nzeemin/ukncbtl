@@ -157,6 +157,7 @@ protected:  // Implementation - instruction execution
 	WORD		GetWordAddr (BYTE meth, BYTE reg);
 	WORD		GetByteAddr (BYTE meth, BYTE reg);
 
+    void        ExecuteUNKNOWN ();  // Нет такой инструкции - просто вызывается TRAP 10
     void        ExecuteHALT ();
     void        ExecuteWAIT ();
 	void		ExecuteRCPC	();

@@ -35,6 +35,9 @@ void CProcessor::Init()
 {
     m_pExecuteMethodMap = (CProcessor::ExecuteMethodRef*) ::malloc(sizeof(CProcessor::ExecuteMethodRef) * 65536);
 
+    // Сначала заполняем таблицу ссылками на метод ExecuteUNKNOWN, выполняющий TRAP 10
+	RegisterMethodRef( 0000000, 0177777, &CProcessor::ExecuteUNKNOWN );
+
 	RegisterMethodRef( 0000000, 0000000, &CProcessor::ExecuteHALT );
 	RegisterMethodRef( 0000001, 0000001, &CProcessor::ExecuteWAIT );
 	RegisterMethodRef( 0000002, 0000002, &CProcessor::ExecuteRTI );
@@ -680,17 +683,9 @@ WORD CProcessor::GetDstWordArgAsBranch ()
 
 void CProcessor::TranslateInstruction ()
 {
-#if !defined(PRODUCT)
-    TCHAR buffer[20];
-#endif // !_PRODUCT
-	
     // Считываем очередную инструкцию
     WORD pc = GetPC();
-	ASSERT((pc&1)==0); // it have to be word alined
-//#ifdef _DEBUG
-//    PrintOctalValue(buffer, GetPC());
-//    DebugLog(buffer);
-//#endif // _DEBUG
+	ASSERT((pc & 1) == 0); // it have to be word aligned
 
     m_instruction = GetWordExec(pc);
     SetPC(GetPC() + 2);
@@ -702,24 +697,20 @@ void CProcessor::TranslateInstruction ()
 
     // Вызов метода, выполняющего обработку команды, по карте команд
     ExecuteMethodRef methodref = m_pExecuteMethodMap[m_instruction];
-    if (methodref != NULL)
-    {
-        (this->*methodref)();  // Собственно вызов
-        return;
-    }
+    (this->*methodref)();  // Собственно переход к обработке команды
+}
 
+void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается TRAP 10
+{
 #if !defined(PRODUCT)
-	DebugPrint(_T(">>Invalid OPCODE ="));
-	PrintOctalValue(buffer,m_instruction);
-	DebugPrint(buffer);
-	DebugPrint(_T("@ "));
-	PrintOctalValue(buffer,GetPC()-2);
-	DebugPrint(buffer);
-	DebugPrint(_T("\r\n"));
+    TCHAR oct1[10], oct2[10];
+	PrintOctalValue(oct1, m_instruction);
+	PrintOctalValue(oct2, GetPC()-2);
+	DebugPrintFormat(_T(">>Invalid OPCODE = %s @ %s\r\n"), oct1, oct2);
 #endif
 
-	m_traprq=1;
-	m_trap=010;
+    m_traprq = 1;
+    m_trap = 010;
 }
 
 
