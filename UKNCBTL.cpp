@@ -134,7 +134,9 @@ endprog:
 //
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
-    InitCommonControls();
+    INITCOMMONCONTROLSEX ics;  ics.dwSize = sizeof(ics);
+    ics.dwICC = ICC_WIN95_CLASSES;
+    InitCommonControlsEx(&ics);
 
     Settings_Init();
     if (!InitEmulator()) return FALSE;

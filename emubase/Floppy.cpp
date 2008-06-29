@@ -21,8 +21,7 @@ static BOOL DecodeTrackData(BYTE* pRaw, BYTE* pDest);
 CFloppyDrive::CFloppyDrive()
 {
     hFile = INVALID_HANDLE_VALUE;
-    okNetRT11Image = FALSE;
-    okReadOnly = TRUE;
+    okNetRT11Image = okReadOnly = FALSE;
     datatrack = dataside = 0;
     dataptr = 0;
 }
@@ -123,6 +122,8 @@ void CFloppyController::DetachImage(int drive)
 
     ::CloseHandle(m_drivedata[drive].hFile);
     m_drivedata[drive].hFile = INVALID_HANDLE_VALUE;
+    m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = FALSE;
+    m_drivedata[drive].Reset();
 }
 
 //////////////////////////////////////////////////////////////////////

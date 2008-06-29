@@ -33,6 +33,7 @@ CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = NULL;
 
 void CProcessor::Init()
 {
+    ASSERT(m_pExecuteMethodMap == NULL);
     m_pExecuteMethodMap = (CProcessor::ExecuteMethodRef*) ::malloc(sizeof(CProcessor::ExecuteMethodRef) * 65536);
 
     // —начала заполн€ем таблицу ссылками на метод ExecuteUNKNOWN, выполн€ющий TRAP 10
@@ -175,7 +176,7 @@ void CProcessor::Init()
 
 void CProcessor::Done()
 {
-    ::free(m_pExecuteMethodMap);
+    ::free(m_pExecuteMethodMap);  m_pExecuteMethodMap = NULL;
 }
 
 void CProcessor::RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMethodRef methodref)
