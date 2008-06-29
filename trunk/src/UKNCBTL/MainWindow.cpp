@@ -370,14 +370,22 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_VIEW_DEBUG, (Settings_GetDebug() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_KEYBOARD, (Settings_GetKeyboard() ? MF_CHECKED : MF_UNCHECKED));
     // View|Color and View|Grayscale radio
-    ScreenViewMode scrmode = ScreenView_GetMode();
-    CheckMenuItem(hMenu, ID_VIEW_RGBSCREEN, (scrmode == RGBScreen ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hMenu, ID_VIEW_GRBSCREEN, (scrmode == GRBScreen ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hMenu, ID_VIEW_GRAYSCREEN, (scrmode == GrayScreen ? MF_CHECKED : MF_UNCHECKED));
+    UINT scrmodecmd = 0;
+    switch (ScreenView_GetMode())
+    {
+    case RGBScreen: scrmodecmd = ID_VIEW_RGBSCREEN; break;
+    case GRBScreen: scrmodecmd = ID_VIEW_GRBSCREEN; break;
+    case GrayScreen: scrmodecmd = ID_VIEW_GRAYSCREEN; break;
+    }
+    CheckMenuRadioItem(hMenu, ID_VIEW_RGBSCREEN, ID_VIEW_GRAYSCREEN, scrmodecmd, MF_BYCOMMAND);
     // View|Normal Height and View|Double Height radio
-    int scrheimode = ScreenView_GetHeightMode();
-    CheckMenuItem(hMenu, ID_VIEW_NORMALHEIGHT, (scrheimode == 1 ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hMenu, ID_VIEW_DOUBLEHEIGHT, (scrheimode == 2 ? MF_CHECKED : MF_UNCHECKED));
+    UINT scrheimodecmd = 0;
+    switch (ScreenView_GetHeightMode())
+    {
+    case 1: scrheimodecmd = ID_VIEW_NORMALHEIGHT; break;
+    case 2: scrheimodecmd = ID_VIEW_DOUBLEHEIGHT; break;
+    }
+    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_DOUBLEHEIGHT, scrheimodecmd, MF_BYCOMMAND);
 
     // Emulator|Autostart
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
