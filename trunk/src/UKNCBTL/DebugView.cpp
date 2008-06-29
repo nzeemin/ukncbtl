@@ -9,6 +9,10 @@
 
 //////////////////////////////////////////////////////////////////////
 
+// Colors
+#define COLOR_RED   RGB(255,0,0)
+#define COLOR_BLUE  RGB(0,0,255)
+
 
 HWND g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // Debug View window handle
 

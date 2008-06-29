@@ -18,6 +18,7 @@ int m_nPageSize = 0;  // Page size in lines
 void MemoryView_OnDraw(HDC hdc);
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 BOOL MemoryView_OnMouseWheel(WPARAM wParam, LPARAM lParam);
+BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam);
 void MemoryView_ScrollTo(WORD wAddress);
 void MemoryView_Scroll(int nDeltaLines);
 void MemoryView_UpdateScrollPos();
@@ -98,6 +99,8 @@ LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         return (LRESULT) MemoryView_OnKeyDown(wParam, lParam);
     case WM_MOUSEWHEEL:
         return (LRESULT) MemoryView_OnMouseWheel(wParam, lParam);
+    case WM_VSCROLL:
+        return (LRESULT) MemoryView_OnVScroll(wParam, lParam);
     case WM_DESTROY:
         g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         break;
@@ -274,6 +277,32 @@ BOOL MemoryView_OnMouseWheel(WPARAM wParam, LPARAM lParam)
     return FALSE;
 }
 
+BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam)
+{
+    WORD scrollpos = HIWORD(wParam);
+    WORD scrollcmd = LOWORD(wParam);
+    switch (scrollcmd)
+    {
+    case SB_LINEDOWN:
+        MemoryView_Scroll(1);
+        break;
+    case SB_LINEUP:
+        MemoryView_Scroll(-1);
+        break;
+    case SB_PAGEDOWN:
+        MemoryView_Scroll(m_nPageSize);
+        break;
+    case SB_PAGEUP:
+        MemoryView_Scroll(-m_nPageSize);
+        break;
+    case SB_THUMBPOSITION:
+        MemoryView_ScrollTo(scrollpos * 16);
+        break;
+    }
+
+    return FALSE;
+}
+
 // Scroll window to given base address
 void MemoryView_ScrollTo(WORD wAddress)
 {
@@ -301,7 +330,7 @@ void MemoryView_UpdateScrollPos()
     si.nPage = m_nPageSize;
     si.nPos = m_wBaseAddress / 16;
     si.nMin = 0;
-    si.nMax = 0x10000 / 16;
+    si.nMax = 0x10000 / 16 - 1;
     SetScrollInfo(g_hwndMemory, SB_VERT, &si, TRUE);
 }
 
