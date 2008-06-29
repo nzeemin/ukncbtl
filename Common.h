@@ -48,11 +48,6 @@ const TCHAR* REGISTER_NAME[];
 const int UKNC_SCREEN_WIDTH = 640;
 const int UKNC_SCREEN_HEIGHT = 288;
 
-// Colors
-#define COLOR_BLACK RGB(0,0,0)
-#define COLOR_RED   RGB(255,0,0)
-#define COLOR_BLUE  RGB(0,0,255)
-
 
 HFONT CreateMonospacedFont();
 void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight);
