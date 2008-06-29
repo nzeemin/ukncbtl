@@ -72,7 +72,9 @@ BEGIN
         MENUITEM "Reset",                       ID_EMULATOR_RESET
         MENUITEM SEPARATOR
         MENUITEM "Real Speed",                  ID_EMULATOR_REALSPEED
-        MENUITEM SEPARATOR
+    END
+    POPUP "&Drives"
+    BEGIN
         MENUITEM "Floppy MZ0:",                 ID_EMULATOR_FLOPPY0
         MENUITEM "Floppy MZ1:",                 ID_EMULATOR_FLOPPY1
         MENUITEM "Floppy MZ2:",                 ID_EMULATOR_FLOPPY2
