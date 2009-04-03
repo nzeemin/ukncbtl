@@ -97,7 +97,7 @@ int APIENTRY _tWinMain(
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
         }
-
+#if 0
         if (g_okEmulatorRunning && Settings_GetRealSpeed())
         {
             // Slow down to 25 frames per second
@@ -108,6 +108,7 @@ int APIENTRY _tWinMain(
             if (nTimeElapsed > 0 && nTimeElapsed < 38)  // 1000 millisec / 25 = 40 millisec
                 ::Sleep((DWORD)(38 - nTimeElapsed));
         }
+#endif
     }
 endprog:
 
