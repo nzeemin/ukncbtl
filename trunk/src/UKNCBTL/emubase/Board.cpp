@@ -7,6 +7,7 @@
 #include "Board.h"
 
 
+
 //////////////////////////////////////////////////////////////////////
 
 CMotherboard::CMotherboard ()
@@ -30,6 +31,8 @@ CMotherboard::CMotherboard ()
 	freq_enable[3]=0;
 	freq_enable[4]=0;
 	freq_enable[5]=0;
+
+	m_multiply=1;
 
 
 	m_Sound= new CSoundGen();
@@ -365,6 +368,25 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
 
     m_timerflags &= 0250;  // Clear everything but bits 7,5,3
     m_timerflags |= (val & (~0250));  // Preserve bits 753
+
+
+    switch((m_timerflags >> 1) & 3)
+    {
+        case 0: //2uS
+			m_multiply=8;
+            break;
+        case 1: //4uS
+			m_multiply=4;
+            break;
+        case 2: //8uS
+			m_multiply=2;
+            break;
+        case 3:
+			m_multiply=1;
+            break;
+    }
+
+
 }
 
 void CMotherboard::DebugTicks()
@@ -379,6 +401,8 @@ void CMotherboard::DebugTicks()
 
 /*
 Каждый фрейм равен 1/25 секунды = 40 мс = 20000 тиков, 1 тик = 2 мкс.
+
+
 * 20000 тиков системного таймера - на каждый 1-й тик
 * 2 сигнала EVNT, в 0-й и 10000-й тик фрейма
 * 320000 тиков ЦП - 16 раз за один тик
@@ -387,11 +411,16 @@ void CMotherboard::DebugTicks()
 ** Первая невидимая строка (#0) начинает рисоваться на 96-ой тик
 ** Первая видимая строка (#18) начинает рисоваться на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
+
 */
 //TODO: DoSound() call
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
+	
+	int audioticks = 20000/(SAMPLERATE/25);
+	
+
     do
     {
         TimerTick();  // System timer tick
@@ -428,7 +457,13 @@ BOOL CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();
         }
 
+		if (frameticks % audioticks == 0) //AUDIO tick
+			DoSound();
+
         frameticks++;
+
+	
+	//	DoSound();
     }
     while (frameticks < 20000);
 
@@ -920,47 +955,57 @@ void CMotherboard::DoSound(void)
 
 
 	freq_per[0]++; 
-	if(freq_per[0]>=(44100/8000))
+	if(freq_per[0]>=(SAMPLERATE/(16000*m_multiply)))
 	{
 		freq_per[0]=0;
 		freq_out[0]=!freq_out[0];
 	}
 
 	freq_per[1]++; 
-	if(freq_per[1]>=(44100/1000))
+	if(freq_per[1]>=(SAMPLERATE/(2000*m_multiply)))
 	{
 		freq_per[1]=0;
 		freq_out[1]=!freq_out[1];
 	}
 
 	freq_per[2]++; 
-	if(freq_per[2]>=(44100/500))
+	if(freq_per[2]>=(SAMPLERATE/(1000*m_multiply)))
 	{
 		freq_per[2]=0;
 		freq_out[2]=!freq_out[2];
 	}
 
 	freq_per[3]++; 
-	if(freq_per[3]>=(44100/250))
+	if(freq_per[3]>=(SAMPLERATE/(500*m_multiply)))
 	{
 		freq_per[3]=0;
 		freq_out[3]=!freq_out[3];
 	}
 
 	freq_per[4]++; 
-	if(freq_per[4]>=(44100/60))
+	if(freq_per[4]>=(SAMPLERATE/(120*m_multiply)))
 	{
 		freq_per[4]=0;
 		freq_out[4]=!freq_out[4];
 	}
 
-	
-	global=(freq_out[0]&freq_enable[0]);
-	global|=(freq_out[1]&freq_enable[1]);
-	global|=(freq_out[2]&freq_enable[2]);
-	global|=(freq_out[3]&freq_enable[3]);
-	global|=(freq_out[4]&freq_enable[4]);
-	global&=freq_enable[5];
+	global=0;
+	global= !(freq_out[0]&freq_enable[0]) & ! (freq_out[1]&freq_enable[1]) & !(freq_out[2]&freq_enable[2]) & !(freq_out[3]&freq_enable[3]) & !(freq_out[4]&freq_enable[4]);
+	if(freq_enable[5]==0)
+		global=0;
+	else
+	{
+		if( (!freq_enable[0]) && (!freq_enable[1]) && (!freq_enable[2]) && (!freq_enable[3]) && (!freq_enable[4]))
+			global=1;
+	}
+
+//	global=(freq_out[0]);
+//	global=(freq_out[4]);
+	//global|=(freq_out[2]&freq_enable[2]);
+//	global|=(freq_out[3]&freq_enable[3]);
+//	global|=(freq_out[4]&freq_enable[4]);
+//	global&=freq_enable[5];
+
 
 	if(global)
 		m_Sound->FeedDAC(0x7fff,0x7fff);

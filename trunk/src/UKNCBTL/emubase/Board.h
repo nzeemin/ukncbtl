@@ -146,6 +146,7 @@ public:  // Saving/loading emulator status
     void        LoadFromImage(const BYTE* pImage);
 	void		SetSound(WORD val);
 private: // Timing
+	int m_multiply;
 	int freq_per[6];
 	int freq_out[6];
 	int freq_enable[6];
