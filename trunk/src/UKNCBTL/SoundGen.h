@@ -1,8 +1,8 @@
 #pragma once
 
-#define BUFSIZE	1024
+#define BUFSIZE	((SAMPLERATE/25)*4)
 #define BLOCK_COUNT	8
-#define BLOCK_SIZE  (2048*1)
+#define BLOCK_SIZE  BUFSIZE
 
 
 class CSoundGen

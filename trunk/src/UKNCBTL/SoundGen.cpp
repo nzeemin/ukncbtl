@@ -1,6 +1,8 @@
 #include "StdAfx.h"
+#include "emubase\Emubase.h"
 #include "SoundGen.h"
 #include "Mmsystem.h"
+
 
 
 static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
@@ -39,14 +41,14 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWO
 
 CSoundGen::CSoundGen(void)
 {
-    unsigned char* buffer;
+    unsigned char* mbuffer;
     int i;
 
 	SoundInitialized=false;
 	//return;
      DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
     
-      if((buffer = (unsigned char*)HeapAlloc(
+      if((mbuffer = (unsigned char*)HeapAlloc(
         GetProcessHeap(), 
         HEAP_ZERO_MEMORY, 
         totalBufferSize
@@ -55,19 +57,19 @@ CSoundGen::CSoundGen(void)
 		return;
     }
 
-    waveBlocks = (WAVEHDR*)buffer;
-    buffer += sizeof(WAVEHDR) * BLOCK_COUNT;
+    waveBlocks = (WAVEHDR*)mbuffer;
+    mbuffer += sizeof(WAVEHDR) * BLOCK_COUNT;
     for(i = 0; i < BLOCK_COUNT; i++) {
         waveBlocks[i].dwBufferLength = BLOCK_SIZE;
-        waveBlocks[i].lpData = (LPSTR)buffer;
-        buffer += BLOCK_SIZE;
+        waveBlocks[i].lpData = (LPSTR)mbuffer;
+        mbuffer += BLOCK_SIZE;
     }
   	
 	
 	waveFreeBlockCount = BLOCK_COUNT;
     waveCurrentBlock   = 0;
     
-	wfx.nSamplesPerSec  = 44100;  
+	wfx.nSamplesPerSec  = SAMPLERATE;  
     wfx.wBitsPerSample  = 16;     
     wfx.nChannels       = 2;      
     wfx.cbSize          = 0;      
@@ -82,7 +84,7 @@ CSoundGen::CSoundGen(void)
 	bufcurpos=0;
 
 	SoundInitialized=true;
-	waveOutSetPlaybackRate(hWaveOut,0x00008000);
+	//waveOutSetPlaybackRate(hWaveOut,0x00008000);
 
 }
 
@@ -105,76 +107,41 @@ void CSoundGen::FeedDAC(unsigned short L, unsigned short R)
 {
 	unsigned int word;
 	WAVEHDR* current;
-	int remains;
-	unsigned int flag;
-	int size;
-	char * data;
 
 //return;
 	if(!SoundInitialized)
 		return;
 
-	flag=1;
 
-	if(bufcurpos<BUFSIZE)// buffer still has place to put some info
-	{
-		word=((unsigned int)R<<16)+L;
-		memcpy(&buffer[bufcurpos],&word,4);
-		bufcurpos+=4;
-		flag=0;
-	}
-	
+	word=((unsigned int)R<<16)+L;
+	memcpy(&buffer[bufcurpos],&word,4);
+	bufcurpos+=4;
+
 
 	if(bufcurpos>=BUFSIZE)
 	{
 		current = &waveBlocks[waveCurrentBlock];
-		size=sizeof(buffer);
-		data=buffer;
-		while(size > 0) {
-			if(current->dwFlags & WHDR_PREPARED) 
-				waveOutUnprepareHeader(hWaveOut, current, size);
 
-			if(size < (int)(BLOCK_SIZE - current->dwUser)) {
-				memcpy(current->lpData + current->dwUser, data, size);
-				current->dwUser += size;
-				break;
-			}
-
-			remains = BLOCK_SIZE - current->dwUser;
-			memcpy(current->lpData + current->dwUser, data, remains);
-			size -= remains;
-			data += remains;
-			current->dwBufferLength = BLOCK_SIZE;
+		if(current->dwFlags & WHDR_PREPARED) 
+			waveOutUnprepareHeader(hWaveOut, current, sizeof(WAVEHDR));
+		
+		memcpy(current->lpData, buffer, BUFSIZE);
+		current->dwBufferLength = BLOCK_SIZE;
        
-			waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR));
-			waveOutWrite(hWaveOut, current, sizeof(WAVEHDR));
+		waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR));
+		waveOutWrite(hWaveOut, current, sizeof(WAVEHDR));
         
-			EnterCriticalSection(&waveCriticalSection);
-			waveFreeBlockCount--;
-			LeaveCriticalSection(&waveCriticalSection);
+		EnterCriticalSection(&waveCriticalSection);
+		waveFreeBlockCount--;
+		LeaveCriticalSection(&waveCriticalSection);
         
-			while(!waveFreeBlockCount)
-				Sleep(1);
-				//return;
-			//newfel
+		while(!waveFreeBlockCount)
+			Sleep(1);
 
-			waveCurrentBlock++;
-			if(waveCurrentBlock >= BLOCK_COUNT)
-				waveCurrentBlock=0;
-
-			current = &waveBlocks[waveCurrentBlock];
-			current->dwUser = 0;
-		}
-
+		waveCurrentBlock++;
+		if(waveCurrentBlock >= BLOCK_COUNT)
+			waveCurrentBlock=0;
 
 		bufcurpos=0;
-		if(flag)
-		{
-			word=((unsigned int)R<<16)+L;
-			memcpy(&buffer[bufcurpos],&word,4);
-			bufcurpos+=4;
-		}
-
-
 	}
 }
