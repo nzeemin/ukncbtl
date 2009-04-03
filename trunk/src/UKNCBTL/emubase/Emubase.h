@@ -22,6 +22,9 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg)
 //////////////////////////////////////////////////////////////////////
 // CFloppy
 
+#define SAMPLERATE			64000
+
+
 #define FLOPPY_FSM_IDLE			0
 
 #define FLOPPY_CMD_CORRECTION250		04
