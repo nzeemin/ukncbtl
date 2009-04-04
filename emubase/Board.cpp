@@ -421,7 +421,7 @@ BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
 	
-	int audioticks = 20000/(SAMPLERATE/25);
+	int audioticks = 20286/(SAMPLERATE/25);
 	
 
     do
@@ -958,6 +958,8 @@ void CMotherboard::DoSound(void)
 
 
 	freq_out[0]=(m_timer>>3)&1; //8000
+	if(m_multiply>=4)
+		freq_out[0]=0;
 
 	freq_out[1]=(m_timer>>6)&1;//1000
 
