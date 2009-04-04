@@ -291,21 +291,21 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
             m_timerdivider = 0;
             break;
         case 1: //4uS
-            if (m_timerdivider >= 1)
+            if (m_timerdivider >= 2)
             {
                 flag = 1;
                 m_timerdivider = 0;
             }
             break;
         case 2: //8uS
-            if (m_timerdivider >= 3)
+            if (m_timerdivider >= 4)
             {
                 flag = 1;
                 m_timerdivider = 0;
             }
             break;
         case 3:
-            if (m_timerdivider >= 7)
+            if (m_timerdivider >= 8)
             {
                 flag = 1;
                 m_timerdivider = 0;
