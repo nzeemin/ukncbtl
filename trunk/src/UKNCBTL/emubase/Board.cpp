@@ -984,7 +984,7 @@ void CMotherboard::DoSound(void)
 //	global&=freq_enable[5];
 
 
-	if(global)
+	if(!global)
 		m_Sound->FeedDAC(0x7fff,0x7fff);
 	else
 		m_Sound->FeedDAC(0x8000,0x8000);
