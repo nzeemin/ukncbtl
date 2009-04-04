@@ -276,6 +276,9 @@ void CMotherboard::ExecutePPU ()
 void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer routine
 {
     int flag;
+	
+	
+	
     if ((m_timerflags & 1) == 0)  // Nothing to do
         return;
 
@@ -288,21 +291,21 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
             m_timerdivider = 0;
             break;
         case 1: //4uS
-            if (m_timerdivider >= 2)
+            if (m_timerdivider >= 1)
             {
                 flag = 1;
                 m_timerdivider = 0;
             }
             break;
         case 2: //8uS
-            if (m_timerdivider >= 4)
+            if (m_timerdivider >= 3)
             {
                 flag = 1;
                 m_timerdivider = 0;
             }
             break;
         case 3:
-            if (m_timerdivider >= 8)
+            if (m_timerdivider >= 7)
             {
                 flag = 1;
                 m_timerdivider = 0;
@@ -954,40 +957,14 @@ void CMotherboard::DoSound(void)
 	int global;
 
 
-	freq_per[0]++; 
-	if(freq_per[0]>=(SAMPLERATE/(16000*m_multiply)))
-	{
-		freq_per[0]=0;
-		freq_out[0]=!freq_out[0];
-	}
+	freq_out[0]=(m_timer>>3)&1; //8000
 
-	freq_per[1]++; 
-	if(freq_per[1]>=(SAMPLERATE/(2000*m_multiply)))
-	{
-		freq_per[1]=0;
-		freq_out[1]=!freq_out[1];
-	}
+	freq_out[1]=(m_timer>>6)&1;//1000
 
-	freq_per[2]++; 
-	if(freq_per[2]>=(SAMPLERATE/(1000*m_multiply)))
-	{
-		freq_per[2]=0;
-		freq_out[2]=!freq_out[2];
-	}
-
-	freq_per[3]++; 
-	if(freq_per[3]>=(SAMPLERATE/(500*m_multiply)))
-	{
-		freq_per[3]=0;
-		freq_out[3]=!freq_out[3];
-	}
-
-	freq_per[4]++; 
-	if(freq_per[4]>=(SAMPLERATE/(120*m_multiply)))
-	{
-		freq_per[4]=0;
-		freq_out[4]=!freq_out[4];
-	}
+	freq_out[2]=(m_timer>>7)&1;//500
+	freq_out[3]=(m_timer>>8)&1;//250
+	freq_out[4]=(m_timer>>10)&1;//60
+	
 
 	global=0;
 	global= !(freq_out[0]&freq_enable[0]) & ! (freq_out[1]&freq_enable[1]) & !(freq_out[2]&freq_enable[2]) & !(freq_out[3]&freq_enable[3]) & !(freq_out[4]&freq_enable[4]);
