@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "UKNCBTL.h"
 #include "Views.h"
+#include "ToolWindow.h"
 #include "Emulator.h"
 #include "emubase\Emubase.h"
 
@@ -11,6 +12,7 @@
 
 
 HWND g_hwndConsole = (HWND) INVALID_HANDLE_VALUE;  // Console View window handle
+WNDPROC m_wndprocConsoleToolWindow = NULL;  // Old window proc address of the ToolWindow
 
 HWND m_hwndConsoleLog = (HWND) INVALID_HANDLE_VALUE;  // Console log window - read-only edit control
 HWND m_hwndConsoleEdit = (HWND) INVALID_HANDLE_VALUE;  // Console prompt - edit control
@@ -63,10 +65,15 @@ void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height)
     ASSERT(hwndParent != NULL);
 
     g_hwndConsole = CreateWindow(
-            CLASSNAME_CONSOLEVIEW, NULL,
-            WS_CHILD,
+            CLASSNAME_TOOLWINDOW, NULL,
+            WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
+	SetWindowText(g_hwndConsole, _T("Debug Console"));
+
+    // ToolWindow subclassing
+    m_wndprocConsoleToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
+            g_hwndConsole, GWLP_WNDPROC, PtrToLong(ConsoleViewWndProc)) );
 
     RECT rcConsole;  GetClientRect(g_hwndConsole, &rcConsole);
 
@@ -116,21 +123,23 @@ void ConsoleView_AdjustWindowLayout()
 LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
+	LRESULT lResult;
     switch (message)
     {
     case WM_DESTROY:
         g_hwndConsole = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
-        break;
+        return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
     case WM_CTLCOLORSTATIC:
         if (((HWND)lParam) != m_hwndConsoleLog)
-            return DefWindowProc(hWnd, message, wParam, lParam);
+            return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
         SetBkColor((HDC)wParam, ::GetSysColor(COLOR_WINDOW));
         return (LRESULT) ::GetSysColorBrush(COLOR_WINDOW);
     case WM_SIZE:
+        lResult = CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
         ConsoleView_AdjustWindowLayout();
-        break;
+		return lResult;
     default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
 }

@@ -4,6 +4,7 @@
 #include <commdlg.h>
 #include "UKNCBTL.h"
 #include "Views.h"
+#include "ToolWindow.h"
 #include "util\\WavPcmFile.h"
 
 
@@ -11,8 +12,8 @@
 
 
 HWND g_hwndTape = (HWND) INVALID_HANDLE_VALUE;  // Tape View window handle
+WNDPROC m_wndprocTapeToolWindow = NULL;  // Old window proc address of the ToolWindow
 
-HWND m_hwndTapeGroup = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeFile = (HWND) INVALID_HANDLE_VALUE;  // Tape file name - read-only edit control
 HWND m_hwndTapeTotal = (HWND) INVALID_HANDLE_VALUE;  // Tape total time - static control
 HWND m_hwndTapeCurrent = (HWND) INVALID_HANDLE_VALUE;  // Tape current time - static control
@@ -67,50 +68,48 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
     ASSERT(hwndParent != NULL);
 
     g_hwndTape = CreateWindow(
-        CLASSNAME_TAPEVIEW, NULL,
+        CLASSNAME_TOOLWINDOW, NULL,
         WS_CHILD | WS_VISIBLE,
         x, y, width, height,
         hwndParent, NULL, g_hInst, NULL);
+	SetWindowText(g_hwndTape, _T("Tape"));
+
+    // ToolWindow subclassing
+    m_wndprocTapeToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
+            g_hwndTape, GWLP_WNDPROC, PtrToLong(TapeViewWndProc)) );
 
     RECT rcClient;  GetClientRect(g_hwndTape, &rcClient);
 
-	m_hwndTapeGroup = CreateWindow(
-            _T("BUTTON"), NULL,
-            WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
-            0, 0, rcClient.right, rcClient.bottom,
-            g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeFile = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_PATHELLIPSIS,
-            12, 20, rcClient.right - 24, 20,
+            12, 4, rcClient.right - 24, 20,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeCurrent = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE,
-            12, 44, 100, 20,
+            12, 28, 100, 20,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeTotal = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
-            rcClient.right - 212, 44, 200, 20,
+            rcClient.right - 350 - 12, 28, 350, 20,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapePlay = CreateWindow(
             _T("BUTTON"), NULL,
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
-            8, 68, 120, 24,
+            8, 52, 100, 24,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeEject = CreateWindow(
             _T("BUTTON"), NULL,
             WS_CHILD | WS_VISIBLE,
-            rcClient.right - 128, 68, 120, 24,
+            rcClient.right - 100 - 8, 52, 100, 24,
             g_hwndTape, NULL, g_hInst, NULL);
 
-	SetWindowText(m_hwndTapeGroup, _T("Tape"));
-	SetWindowText(m_hwndTapePlay, _T("Play / Stop"));
+	SetWindowText(m_hwndTapePlay, _T("Play"));
 	SetWindowText(m_hwndTapeEject, _T("Eject"));
 
 	m_hfontTape = CreateDialogFont();
-	SendMessage(m_hwndTapeGroup, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeCurrent, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeTotal, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeFile, WM_SETFONT, (WPARAM) m_hfontTape, 0);
@@ -123,16 +122,6 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
-    //case WM_PAINT:
-    //    {
-    //        PAINTSTRUCT ps;
-    //        HDC hdc = BeginPaint(hWnd, &ps);
-
-    //        TapeView_OnDraw(hdc);
-
-    //        EndPaint(hWnd, &ps);
-    //    }
-    //    break;
 	case WM_COMMAND:
 		{
 			HWND hwndCtl = (HWND)lParam;
@@ -140,10 +129,15 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 				TapeView_DoEject();
 			else if (hwndCtl == m_hwndTapePlay)
 				TapeView_DoPlayStop();
+			else
+	            return CallWindowProc(m_wndprocTapeToolWindow, hWnd, message, wParam, lParam);
 		}
 		break;
+    case WM_DESTROY:
+        g_hwndTape = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
+        return CallWindowProc(m_wndprocTapeToolWindow, hWnd, message, wParam, lParam);
     default:
-        return DefWindowProc(hWnd, message, wParam, lParam);
+        return CallWindowProc(m_wndprocTapeToolWindow, hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
 }
