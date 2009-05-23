@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "UKNCBTL.h"
 #include "Views.h"
+#include "ToolWindow.h"
 #include "Dialogs.h"
 #include "Emulator.h"
 #include "emubase\Emubase.h"
@@ -12,8 +13,12 @@
 
 
 HWND g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // Memory view window handler
+WNDPROC m_wndprocMemoryToolWindow = NULL;  // Old window proc address of the ToolWindow
+
 int m_cyLineMemory = 0;  // Line height in pixels
 int m_nPageSize = 0;  // Page size in lines
+
+HWND m_hwndMemoryViewer = (HWND) INVALID_HANDLE_VALUE;
 
 void MemoryView_OnDraw(HDC hdc);
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -22,6 +27,8 @@ BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam);
 void MemoryView_ScrollTo(WORD wAddress);
 void MemoryView_Scroll(int nDeltaLines);
 void MemoryView_UpdateScrollPos();
+void MemoryView_UpdateWindowText();
+LPCTSTR MemoryView_GetMemoryModeName();
 
 enum MemoryViewMode {
     MEMMODE_RAM0 = 0,  // RAM plane 0
@@ -46,7 +53,7 @@ void MemoryView_RegisterClass()
     wcex.cbSize = sizeof(WNDCLASSEX);
 
     wcex.style			= CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc	= MemoryViewWndProc;
+    wcex.lpfnWndProc	= MemoryViewViewerWndProc;
     wcex.cbClsExtra		= 0;
     wcex.cbWndExtra		= 0;
     wcex.hInstance		= g_hInst;
@@ -64,20 +71,44 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
-    g_hwndMemory = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
-            CLASSNAME_MEMORYVIEW, _T("Memory View"),
-            WS_CHILD | WS_VSCROLL | WS_TABSTOP,
+    g_hwndMemory = CreateWindow(
+            CLASSNAME_TOOLWINDOW, NULL,
+            WS_CHILD | WS_VISIBLE,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
+	MemoryView_UpdateWindowText();
 
-    ShowWindow(g_hwndMemory, SW_SHOW);
-    UpdateWindow(g_hwndMemory);
+    // ToolWindow subclassing
+    m_wndprocMemoryToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
+            g_hwndMemory, GWLP_WNDPROC, PtrToLong(MemoryViewWndProc)) );
+
+    RECT rcClient;  GetClientRect(g_hwndMemory, &rcClient);
+
+	m_hwndMemoryViewer = CreateWindowEx(
+            WS_EX_CLIENTEDGE,
+            CLASSNAME_MEMORYVIEW, NULL,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
+            0, 0, rcClient.right, rcClient.bottom,
+            g_hwndMemory, NULL, g_hInst, NULL);
 
     MemoryView_ScrollTo(0);
 }
 
 LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_DESTROY:
+        g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
+        return CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
+    default:
+        return CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
+    }
+    return (LRESULT)FALSE;
+}
+
+LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
@@ -101,14 +132,12 @@ LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         return (LRESULT) MemoryView_OnMouseWheel(wParam, lParam);
     case WM_VSCROLL:
         return (LRESULT) MemoryView_OnVScroll(wParam, lParam);
-    case WM_DESTROY:
-        g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
-        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
 }
+
 
 void MemoryView_OnDraw(HDC hdc)
 {
@@ -124,29 +153,17 @@ void MemoryView_OnDraw(HDC hdc)
 
     m_cyLineMemory = cyLine;
 
-    // Memory View mode name
-    LPCTSTR pszModeName = NULL;
-    switch (m_Mode) {
-        case MEMMODE_RAM0:  pszModeName = _T("RAM0");  break;
-        case MEMMODE_RAM1:  pszModeName = _T("RAM1");  break;
-        case MEMMODE_RAM2:  pszModeName = _T("RAM2");  break;
-        case MEMMODE_ROM:   pszModeName = _T("ROM");   break;
-        case MEMMODE_CPU:   pszModeName = _T("CPU");   break;
-        case MEMMODE_PPU:   pszModeName = _T("PPU");   break;
-    }
-    TextOut(hdc, 0, 0, pszModeName, (int) wcslen(pszModeName));
-
     const TCHAR* ADDRESS_LINE = _T(" address  0      2      4      6      10     12     14     16");
-    TextOut(hdc, 0, cyLine, ADDRESS_LINE, (int) wcslen(ADDRESS_LINE));
+    TextOut(hdc, 0, 0, ADDRESS_LINE, (int) wcslen(ADDRESS_LINE));
 
     RECT rcClip;
     GetClipBox(hdc, &rcClip);
     RECT rcClient;
-    GetClientRect(g_hwndMemory, &rcClient);
-    m_nPageSize = rcClient.bottom / cyLine - 2;
+    GetClientRect(m_hwndMemoryViewer, &rcClient);
+    m_nPageSize = rcClient.bottom / cyLine - 1;
 
     WORD address = m_wBaseAddress;
-    int y = 2 * cyLine;
+    int y = 1 * cyLine;
     for (;;) {  // Draw lines
         DrawOctalValue(hdc, 2 * cxChar, y, address);
 
@@ -222,6 +239,27 @@ void MemoryView_OnDraw(HDC hdc)
     DeleteObject(hFont);
 }
 
+LPCTSTR MemoryView_GetMemoryModeName()
+{
+    switch (m_Mode) {
+        case MEMMODE_RAM0:  return _T("RAM0");
+        case MEMMODE_RAM1:  return _T("RAM1");
+        case MEMMODE_RAM2:  return _T("RAM2");
+        case MEMMODE_ROM:   return _T("ROM");
+        case MEMMODE_CPU:   return _T("CPU");
+        case MEMMODE_PPU:   return _T("PPU");
+		default:
+			return _T("UKWN");  // Unknown mode
+    }
+}
+
+void MemoryView_UpdateWindowText()
+{
+	TCHAR buffer[64];
+	swprintf_s(buffer, 64, _T("Memory - %s"), MemoryView_GetMemoryModeName());
+	::SetWindowText(g_hwndMemory, buffer);
+}
+
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
 {
     switch (vkey)
@@ -243,7 +281,8 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
             m_Mode = 0;
         else
             m_Mode++;
-        InvalidateRect(g_hwndMemory, NULL, TRUE);
+        InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+		MemoryView_UpdateWindowText();
         break;
     case VK_PRIOR:
         MemoryView_Scroll(-m_nPageSize);
@@ -254,7 +293,7 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
     case 0x47:  // G - Go To Address
         {
             WORD value = m_wBaseAddress;
-            if (InputBoxOctal(g_hwndMemory, _T("Go To Address"), _T("Address (octal):"), &value))
+            if (InputBoxOctal(m_hwndMemoryViewer, _T("Go To Address"), _T("Address (octal):"), &value))
                 MemoryView_ScrollTo(value);
             break;
         }
@@ -307,7 +346,7 @@ BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam)
 void MemoryView_ScrollTo(WORD wAddress)
 {
     m_wBaseAddress = wAddress & ((WORD)~15);
-    InvalidateRect(g_hwndMemory, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
 
     MemoryView_UpdateScrollPos();
 }
@@ -317,7 +356,7 @@ void MemoryView_Scroll(int nDelta)
     if (nDelta == 0) return;
 
     m_wBaseAddress += nDelta * 16;
-    InvalidateRect(g_hwndMemory, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
     
     MemoryView_UpdateScrollPos();
 }
@@ -331,7 +370,7 @@ void MemoryView_UpdateScrollPos()
     si.nPos = m_wBaseAddress / 16;
     si.nMin = 0;
     si.nMax = 0x10000 / 16 - 1;
-    SetScrollInfo(g_hwndMemory, SB_VERT, &si, TRUE);
+    SetScrollInfo(m_hwndMemoryViewer, SB_VERT, &si, TRUE);
 }
 
 //////////////////////////////////////////////////////////////////////

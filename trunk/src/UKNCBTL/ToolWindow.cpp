@@ -70,13 +70,24 @@ LRESULT CALLBACK ToolWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 			HGDIOBJ hOldFont = ::SelectObject(hdc, hfont);
 			::SetTextColor(hdc, ::GetSysColor(COLOR_CAPTIONTEXT));
 			::SetBkMode(hdc, TRANSPARENT);
-			::DrawText(hdc, buffer, wcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+			::DrawText(hdc, buffer, (int) wcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 			::SelectObject(hdc, hOldFont);
 			::DeleteObject(hfont);
 
             ReleaseDC(hWnd, hdc);
         }
         break;
+	case WM_SETTEXT:
+		{
+	        LRESULT lResult = DefWindowProc(hWnd, message, wParam, lParam);
+
+			// Invalidate non-client area
+			RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
+			MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
+			::RedrawWindow(hWnd, &rcWindow, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+			return lResult;
+		}
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
