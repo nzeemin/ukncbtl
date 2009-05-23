@@ -160,6 +160,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     MainWindow_RestoreSettings();
 
     MainWindow_ShowHideKeyboard();
+	MainWindow_ShowHideTape();
     MainWindow_ShowHideDebug();
     MainWindow_AdjustWindowSize();
 

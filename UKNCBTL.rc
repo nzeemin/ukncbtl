@@ -54,8 +54,8 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "Debug",                       ID_VIEW_DEBUG
-        MENUITEM SEPARATOR
         MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD
+        MENUITEM "Tape",                        32803
         MENUITEM SEPARATOR
         MENUITEM "RGB Screen",                  ID_VIEW_RGBSCREEN
         MENUITEM "GRB Screen",                  ID_VIEW_GRBSCREEN

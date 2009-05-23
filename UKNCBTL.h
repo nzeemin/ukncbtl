@@ -27,6 +27,7 @@ void MainWindow_UpdateAllViews();
 BOOL MainWindow_InitStatusbar();
 void MainWindow_ShowHideDebug();
 void MainWindow_ShowHideKeyboard();
+void MainWindow_ShowHideTape();
 void MainWindow_AdjustWindowSize();
 
 void MainWindow_SetStatusbarText(int part, LPCTSTR message);
@@ -66,6 +67,8 @@ void Settings_SetRealSpeed(BOOL flag);
 BOOL Settings_GetRealSpeed();
 void Settings_SetKeyboard(BOOL flag);
 BOOL Settings_GetKeyboard();
+void Settings_SetTape(BOOL flag);
+BOOL Settings_GetTape();
 
 
 //////////////////////////////////////////////////////////////////////
