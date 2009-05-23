@@ -83,27 +83,27 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
 	m_hwndTapeFile = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_PATHELLIPSIS,
-            12, 4, rcClient.right - 24, 20,
+            8, 4, 500, 18,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeCurrent = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE,
-            12, 28, 100, 20,
+            8, 26, 100, 18,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeTotal = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
-            rcClient.right - 350 - 12, 28, 350, 20,
+            500 + 8 + 4, 4, rcClient.right - 8*2 - 500 - 4, 18,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapePlay = CreateWindow(
             _T("BUTTON"), NULL,
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
-            8, 52, 100, 24,
+            8 + 100 + 16, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeEject = CreateWindow(
             _T("BUTTON"), NULL,
             WS_CHILD | WS_VISIBLE,
-            rcClient.right - 100 - 8, 52, 100, 24,
+            rcClient.right - 96 - 8, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 
 	SetWindowText(m_hwndTapePlay, _T("Play"));

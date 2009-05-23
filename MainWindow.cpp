@@ -374,7 +374,7 @@ void MainWindow_ShowHideKeyboard()
         RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
         int yKeyboardTop = rcScreen.bottom - rcScreen.top + 8;
         int cxKeyboardWidth = rcScreen.right - rcScreen.left;
-        int cyKeyboardHeight = 210;
+        int cyKeyboardHeight = 204;
 
         if (g_hwndKeyboard == INVALID_HANDLE_VALUE)
             CreateKeyboardView(g_hwnd, 4, yKeyboardTop, cxKeyboardWidth, cyKeyboardHeight);
@@ -407,7 +407,7 @@ void MainWindow_ShowHideTape()
         RECT rc;  GetClientRect(g_hwnd, &rc);
         int yTapeTop = rcPrev.bottom + 4;
         int cxTapeWidth = rcPrev.right - rcPrev.left;
-        int cyTapeHeight = 100;
+        int cyTapeHeight = 64;
 
         if (g_hwndTape == INVALID_HANDLE_VALUE)
             CreateTapeView(g_hwnd, 4, yTapeTop, cxTapeWidth, cyTapeHeight);
