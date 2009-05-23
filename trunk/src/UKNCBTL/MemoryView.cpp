@@ -85,7 +85,7 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
     RECT rcClient;  GetClientRect(g_hwndMemory, &rcClient);
 
 	m_hwndMemoryViewer = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
+            WS_EX_STATICEDGE,
             CLASSNAME_MEMORYVIEW, NULL,
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
             0, 0, rcClient.right, rcClient.bottom,

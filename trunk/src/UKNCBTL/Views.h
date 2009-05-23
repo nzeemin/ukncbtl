@@ -61,6 +61,7 @@ extern HWND g_hwndDebug;  // Debug View window handle
 void DebugView_RegisterClass();
 void CreateDebugView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DebugView_OnUpdate();
 void DebugView_SetCurrentProc(BOOL okCPU);
 

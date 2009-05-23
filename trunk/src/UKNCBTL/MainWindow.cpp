@@ -374,7 +374,7 @@ void MainWindow_ShowHideKeyboard()
         RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
         int yKeyboardTop = rcScreen.bottom - rcScreen.top + 8;
         int cxKeyboardWidth = rcScreen.right - rcScreen.left;
-        int cyKeyboardHeight = 219;
+        int cyKeyboardHeight = 210;
 
         if (g_hwndKeyboard == INVALID_HANDLE_VALUE)
             CreateKeyboardView(g_hwnd, 4, yKeyboardTop, cxKeyboardWidth, cyKeyboardHeight);
