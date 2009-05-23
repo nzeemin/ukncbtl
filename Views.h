@@ -73,6 +73,7 @@ extern HWND g_hwndMemory;  // Memory view window handler
 void MemoryView_RegisterClass();
 void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
 //////////////////////////////////////////////////////////////////////
