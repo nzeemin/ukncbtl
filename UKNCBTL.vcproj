@@ -446,6 +446,14 @@
 			>
 		</File>
 		<File
+			RelativePath=".\ToolWindow.cpp"
+			>
+		</File>
+		<File
+			RelativePath=".\ToolWindow.h"
+			>
+		</File>
+		<File
 			RelativePath=".\UKNCBTL.cpp"
 			>
 		</File>

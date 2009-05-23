@@ -12,6 +12,7 @@
 #include "Emulator.h"
 #include "Dialogs.h"
 #include "Views.h"
+#include "ToolWindow.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -68,6 +69,8 @@ void MainWindow_RegisterClass()
     wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     RegisterClassEx(&wcex);
+
+	ToolWindow_RegisterClass();
 
     // Register view classes
     ScreenView_RegisterClass();
@@ -394,11 +397,16 @@ void MainWindow_ShowHideTape()
     }
     else
     {
+		RECT rcPrev;
+		if (Settings_GetKeyboard())
+			GetWindowRect(g_hwndKeyboard, &rcPrev);
+		else
+			GetWindowRect(g_hwndScreen, &rcPrev);
+
         // Calculate children positions
         RECT rc;  GetClientRect(g_hwnd, &rc);
-        RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
-        int yTapeTop = rcKeyboard.bottom + 4;
-        int cxTapeWidth = rcKeyboard.right - rcKeyboard.left;
+        int yTapeTop = rcPrev.bottom + 4;
+        int cxTapeWidth = rcPrev.right - rcPrev.left;
         int cyTapeHeight = 100;
 
         if (g_hwndTape == INVALID_HANDLE_VALUE)
