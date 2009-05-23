@@ -337,6 +337,18 @@
 				>
 			</File>
 		</Filter>
+		<Filter
+			Name="util"
+			>
+			<File
+				RelativePath=".\util\WavPcmFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\util\WavPcmFile.h"
+				>
+			</File>
+		</Filter>
 		<File
 			RelativePath=".\Common.cpp"
 			>
@@ -427,6 +439,10 @@
 		</File>
 		<File
 			RelativePath=".\stdafx.h"
+			>
+		</File>
+		<File
+			RelativePath=".\TapeView.cpp"
 			>
 		</File>
 		<File

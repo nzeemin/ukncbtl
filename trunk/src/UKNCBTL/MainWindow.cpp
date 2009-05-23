@@ -31,6 +31,7 @@ void MainWindow_AdjustWindowLayout();
 bool MainWindow_DoCommand(int commandId);
 void MainWindow_DoViewDebug();
 void MainWindow_DoViewKeyboard();
+void MainWindow_DoViewTape();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
 void MainWindow_DoViewHeightMode(int newMode);
 void MainWindow_DoEmulatorRun();
@@ -74,6 +75,7 @@ void MainWindow_RegisterClass()
     MemoryView_RegisterClass();
     DebugView_RegisterClass();
     ConsoleView_RegisterClass();
+	TapeView_RegisterClass();
 }
 
 BOOL MainWindow_InitStatusbar()
@@ -96,10 +98,10 @@ BOOL MainWindow_InitStatusbar()
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ1, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ2, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ3, 0);
-    //MainWindow_SetStatusbarText(StatusbarPartMZ0, _T("MZ0:"));
-    //MainWindow_SetStatusbarText(StatusbarPartMZ1, _T("MZ1:"));
-    //MainWindow_SetStatusbarText(StatusbarPartMZ2, _T("MZ2:"));
-    //MainWindow_SetStatusbarText(StatusbarPartMZ3, _T("MZ3:"));
+    //MainWindow_SetStatusbarTip(StatusbarPartMZ0, _T("MZ0:"));
+    //MainWindow_SetStatusbarTip(StatusbarPartMZ1, _T("MZ1:"));
+    //MainWindow_SetStatusbarTip(StatusbarPartMZ2, _T("MZ2:"));
+    //MainWindow_SetStatusbarTip(StatusbarPartMZ3, _T("MZ3:"));
 
     return TRUE;
 }
@@ -227,11 +229,18 @@ void MainWindow_AdjustWindowSize()
     RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
     int cyStatus = rcStatus.bottom - rcStatus.top;
     int cyKeyboard = 0;
-    if (Settings_GetKeyboard())
+	int cyTape = 0;
+
+	if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
+	if (Settings_GetTape())
+	{
+		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
+        cyTape = rcTape.bottom - rcTape.top;
+	}
 
     // Adjust main window size
     int xLeft = rcWorkArea.left;
@@ -248,6 +257,8 @@ void MainWindow_AdjustWindowSize()
         cyHeight = cyCaption + cyMenu + cyScreen + cyStatus + cyFrame * 2 + 8;
         if (Settings_GetKeyboard())
             cyHeight += cyKeyboard + 4;
+		if (Settings_GetTape())
+			cyHeight += cyTape + 4;
     }
  
     SetWindowPos(g_hwnd, NULL, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER);
@@ -261,11 +272,18 @@ void MainWindow_AdjustWindowLayout()
     RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
     int cyStatus = rcStatus.bottom - rcStatus.top;
     int cyKeyboard = 0;
-    if (Settings_GetKeyboard())
+	int cyTape = 0;
+
+	if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
+	if (Settings_GetTape())
+	{
+		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
+        cyTape = rcTape.bottom - rcTape.top;
+	}
 
     RECT rc;  GetClientRect(g_hwnd, &rc);
     SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
@@ -273,10 +291,15 @@ void MainWindow_AdjustWindowLayout()
     {
         SetWindowPos(g_hwndKeyboard, NULL, 4, cyScreen + 8, 0,0, SWP_NOZORDER|SWP_NOSIZE);
     }
+    if (Settings_GetTape())
+    {
+        SetWindowPos(g_hwndTape, NULL, 4, cyScreen + cyKeyboard + 12, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+    }
     if (Settings_GetDebug())
     {
         int yConsole = cyScreen + 8;
         if (Settings_GetKeyboard()) yConsole += cyKeyboard + 4;
+        if (Settings_GetTape()) yConsole += cyTape + 4;
         int cyConsole = rc.bottom - cyStatus - yConsole - 4;
         SetWindowPos(g_hwndConsole, NULL, 4, yConsole, cxScreen, cyConsole, SWP_NOZORDER);
     }
@@ -359,6 +382,34 @@ void MainWindow_ShowHideKeyboard()
     MainWindow_UpdateMenu();
 }
 
+void MainWindow_ShowHideTape()
+{
+    if (!Settings_GetTape())
+    {
+        if (g_hwndTape != INVALID_HANDLE_VALUE)
+        {
+            ::DestroyWindow(g_hwndTape);
+            g_hwndTape = (HWND) INVALID_HANDLE_VALUE;
+        }
+    }
+    else
+    {
+        // Calculate children positions
+        RECT rc;  GetClientRect(g_hwnd, &rc);
+        RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
+        int yTapeTop = rcKeyboard.bottom + 4;
+        int cxTapeWidth = rcKeyboard.right - rcKeyboard.left;
+        int cyTapeHeight = 100;
+
+        if (g_hwndTape == INVALID_HANDLE_VALUE)
+            CreateTapeView(g_hwnd, 4, yTapeTop, cxTapeWidth, cyTapeHeight);
+    }
+
+    MainWindow_AdjustWindowSize();
+    MainWindow_AdjustWindowLayout();
+    MainWindow_UpdateMenu();
+}
+
 void MainWindow_UpdateMenu()
 {
     // Get main menu
@@ -369,6 +420,7 @@ void MainWindow_UpdateMenu()
     // View|Debug check
     CheckMenuItem(hMenu, ID_VIEW_DEBUG, (Settings_GetDebug() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_KEYBOARD, (Settings_GetKeyboard() ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hMenu, ID_VIEW_TAPE, (Settings_GetTape() ? MF_CHECKED : MF_UNCHECKED));
     // View|Color and View|Grayscale radio
     UINT scrmodecmd = 0;
     switch (ScreenView_GetMode())
@@ -427,6 +479,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_KEYBOARD:
         MainWindow_DoViewKeyboard();
+        break;
+    case ID_VIEW_TAPE:
+        MainWindow_DoViewTape();
         break;
     case ID_VIEW_RGBSCREEN:
         MainWindow_DoViewScreenMode(RGBScreen);
@@ -503,6 +558,11 @@ void MainWindow_DoViewKeyboard()
 {
     Settings_SetKeyboard(!Settings_GetKeyboard());
     MainWindow_ShowHideKeyboard();
+}
+void MainWindow_DoViewTape()
+{
+    Settings_SetTape(!Settings_GetTape());
+    MainWindow_ShowHideTape();
 }
 
 void MainWindow_DoViewScreenMode(ScreenViewMode newMode)

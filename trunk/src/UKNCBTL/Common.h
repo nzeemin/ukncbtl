@@ -50,6 +50,7 @@ const int UKNC_SCREEN_HEIGHT = 288;
 
 
 HFONT CreateMonospacedFont();
+HFONT CreateDialogFont();
 void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight);
 void PrintOctalValue(TCHAR* buffer, WORD value);
 void PrintBinaryValue(TCHAR* buffer, WORD value);

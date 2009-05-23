@@ -11,6 +11,7 @@ const LPCTSTR CLASSNAME_KEYBOARDVIEW = _T("UKNCBTLKEYBOARD");
 const LPCTSTR CLASSNAME_DEBUGVIEW   = _T("UKNCBTLDEBUG");
 const LPCTSTR CLASSNAME_MEMORYVIEW  = _T("UKNCBTLMEMORY");
 const LPCTSTR CLASSNAME_CONSOLEVIEW = _T("UKNCBTLCONSOLE");
+const LPCTSTR CLASSNAME_TAPEVIEW = _T("UKNCBTLTAPE");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -85,6 +86,16 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
 void ConsoleView_Print(LPCTSTR message);
 void ConsoleView_Activate();
 void ConsoleView_Step();
+
+
+//////////////////////////////////////////////////////////////////////
+// TapeView
+
+extern HWND g_hwndTape;  // Tape View window handle
+
+void TapeView_RegisterClass();
+void CreateTapeView(HWND hwndParent, int x, int y, int width, int height);
+LRESULT CALLBACK TapeViewWndProc(HWND, UINT, WPARAM, LPARAM);
 
 
 //////////////////////////////////////////////////////////////////////

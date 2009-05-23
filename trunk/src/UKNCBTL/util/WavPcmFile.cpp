@@ -197,6 +197,7 @@ int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
 
+	// Read one sample
 	DWORD bytesToRead = pWavPcm->nBlockAlign;
 	DWORD bytesRead;
 	BYTE data[16];

@@ -128,6 +128,18 @@ HFONT CreateMonospacedFont()
     return font;
 }
 
+HFONT CreateDialogFont()
+{
+    HFONT font = NULL;
+    font = CreateFont(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+            DEFAULT_CHARSET,
+            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
+            VARIABLE_PITCH,
+            _T("MS Shell Dlg 2"));
+
+	return font;
+}
+
 void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight)
 {
     TEXTMETRIC tm;

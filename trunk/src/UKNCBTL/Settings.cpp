@@ -16,6 +16,8 @@ BOOL m_Settings_RealSpeed = FALSE;
 BOOL m_Settings_RealSpeed_Valid = FALSE;
 BOOL m_Settings_Keyboard = FALSE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
+BOOL m_Settings_Tape = FALSE;
+BOOL m_Settings_Tape_Valid = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -193,5 +195,24 @@ BOOL Settings_GetKeyboard()
     }
     return m_Settings_Keyboard;
 }
+
+void Settings_SetTape(BOOL flag)
+{
+    m_Settings_Tape = flag;
+    m_Settings_Tape_Valid = TRUE;
+    Settings_SaveDwordValue(_T("Tape"), (DWORD) flag);
+}
+BOOL Settings_GetTape()
+{
+    if (!m_Settings_Tape_Valid)
+    {
+        DWORD dwValue = (DWORD) FALSE;
+        Settings_LoadDwordValue(_T("Tape"), &dwValue);
+        m_Settings_Tape = (BOOL) dwValue;
+        m_Settings_Tape_Valid = TRUE;
+    }
+    return m_Settings_Tape;
+}
+
 
 //////////////////////////////////////////////////////////////////////
