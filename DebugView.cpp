@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "UKNCBTL.h"
 #include "Views.h"
+#include "ToolWindow.h"
 #include "Emulator.h"
 #include "emubase\Emubase.h"
 
@@ -15,6 +16,9 @@
 
 
 HWND g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // Debug View window handle
+WNDPROC m_wndprocDebugToolWindow = NULL;  // Old window proc address of the ToolWindow
+
+HWND m_hwndDebugViewer = (HWND) INVALID_HANDLE_VALUE;
 
 BOOL m_okDebugProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDebugCpuR[9];  // Old register values - R0..R7, PSW
@@ -29,6 +33,7 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y);
 void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y);
 void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, int x, int y);
 void DrawChannels(HDC hdc, int x, int y);
+void DebugView_UpdateWindowText();
 
 
 //////////////////////////////////////////////////////////////////////
@@ -40,7 +45,7 @@ void DebugView_RegisterClass()
     wcex.cbSize = sizeof(WNDCLASSEX);
 
     wcex.style			= CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc	= DebugViewWndProc;
+    wcex.lpfnWndProc	= DebugViewViewerWndProc;
     wcex.cbClsExtra		= 0;
     wcex.cbWndExtra		= 0;
     wcex.hInstance		= g_hInst;
@@ -58,18 +63,42 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
-    g_hwndDebug = CreateWindowEx(
-            WS_EX_CLIENTEDGE,
-            CLASSNAME_DEBUGVIEW, NULL,
-            WS_CHILD,
+    g_hwndDebug = CreateWindow(
+            CLASSNAME_TOOLWINDOW, NULL,
+            WS_CHILD | WS_VISIBLE,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
+	DebugView_UpdateWindowText();
 
-    ShowWindow(g_hwndDebug, SW_SHOW);
-    UpdateWindow(g_hwndDebug);
+    // ToolWindow subclassing
+    m_wndprocDebugToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
+            g_hwndDebug, GWLP_WNDPROC, PtrToLong(DebugViewWndProc)) );
+
+    RECT rcClient;  GetClientRect(g_hwndDebug, &rcClient);
+
+	m_hwndDebugViewer = CreateWindowEx(
+            WS_EX_STATICEDGE,
+            CLASSNAME_DEBUGVIEW, NULL,
+            WS_CHILD | WS_VISIBLE,
+            0, 0, rcClient.right, rcClient.bottom,
+            g_hwndDebug, NULL, g_hInst, NULL);
 }
 
 LRESULT CALLBACK DebugViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_DESTROY:
+        g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
+        return CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
+    default:
+        return CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
+    }
+    return (LRESULT)FALSE;
+}
+
+LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
@@ -89,9 +118,6 @@ LRESULT CALLBACK DebugViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
         break;
     case WM_KEYDOWN:
         return (LRESULT) DebugView_OnKeyDown(wParam, lParam);
-    case WM_DESTROY:
-        g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
-        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -104,7 +130,8 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam)
     {
     case VK_SPACE:
         m_okDebugProcessor = ! m_okDebugProcessor;
-        InvalidateRect(g_hwndDebug, NULL, TRUE);
+        InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
+		DebugView_UpdateWindowText();
         break;
     case VK_ESCAPE:
         ConsoleView_Activate();
@@ -113,6 +140,17 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam)
         return TRUE;
     }
     return FALSE;
+}
+
+void DebugView_UpdateWindowText()
+{
+    CProcessor* pDebugPU = (m_okDebugProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    ASSERT(pDebugPU != NULL);
+    LPCTSTR sProcName = pDebugPU->GetName();
+
+	TCHAR buffer[64];
+	swprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
+	::SetWindowText(g_hwndDebug, buffer);
 }
 
 
@@ -151,7 +189,8 @@ void DebugView_OnUpdate()
 void DebugView_SetCurrentProc(BOOL okCPU)
 {
     m_okDebugProcessor = okCPU;
-    InvalidateRect(g_hwndDebug, NULL, TRUE);
+    InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
+	DebugView_UpdateWindowText();
 }
 
 
