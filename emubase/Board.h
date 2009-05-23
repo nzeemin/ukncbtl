@@ -34,6 +34,13 @@ typedef struct chan_tag{
 	BYTE	irq;
 }chan_stc;
 
+// Tape emulator callback used to read a tape recorded data.
+// Input:
+//   samples    Number of samples to play.
+// Output:
+//   result     Bit to put in tape input port.
+typedef BOOL (CALLBACK* TAPEREADCALLBACK)(UINT samples);
+
 class CFloppyController;
 
 //////////////////////////////////////////////////////////////////////
@@ -141,6 +148,8 @@ public:  // System control
     BOOL        IsROMCartridgeLoaded(int cartno);
     void        UnloadROMCartridge(int cartno);
 
+	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
     void        LoadFromImage(const BYTE* pImage);
@@ -170,6 +179,9 @@ private:
 	//BYTE		m_currentdrive;
 	//BYTE		m_floppystate;
 	//WORD		m_floppyaddr;
+	TAPEREADCALLBACK m_TapeReadCallback;
+	int			m_nTapeReadSampleRate;
+
 	WORD GetKeyboardRegister(void);
 	void DoSound(void);
 	
