@@ -51,6 +51,9 @@ CMotherboard::CMotherboard ()
 	//m_floppyaddr=0;
 	//m_floppystate=FLOPPY_FSM_WAITFORLSB;
 
+	m_TapeReadCallback = NULL;
+	m_nTapeReadSampleRate = 0;
+
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) ::LocalAlloc(LPTR, 65536);
     m_pRAM[1] = (BYTE*) ::LocalAlloc(LPTR, 65536);
@@ -416,13 +419,11 @@ void CMotherboard::DebugTicks()
 * 625 тиков FDD - каждый 32-й тик
 
 */
-//TODO: DoSound() call
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
 	
 	int audioticks = 20286/(SAMPLERATE/25);
-	
 
     do
     {
@@ -463,8 +464,12 @@ BOOL CMotherboard::SystemFrame()
 		if (frameticks % audioticks == 0) //AUDIO tick
 			DoSound();
 
-        frameticks++;
+		if (frameticks % 200 == 0 && m_TapeReadCallback != NULL)
+		{
+			(*m_TapeReadCallback)(10);  //DEBUG
+		}
 
+        frameticks++;
 	
 	//	DoSound();
     }
@@ -1027,4 +1032,18 @@ void CMotherboard::SetSound(WORD val)
 	else
 		freq_enable[4]=0;
 
+}
+
+void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate)
+{
+	if (callback == NULL)  // Reset callback
+	{
+		m_TapeReadCallback = NULL;
+		m_nTapeReadSampleRate = 0;
+	}
+	else
+	{
+		m_TapeReadCallback = callback;
+		m_nTapeReadSampleRate = sampleRate;
+	}
 }
