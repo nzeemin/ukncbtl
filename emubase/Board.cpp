@@ -490,6 +490,7 @@ BOOL CMotherboard::SystemFrame()
 			//tapeReadSamples += tapeSamplesToRead;  // For statistics only
 			CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
 			pMemCtl->TapeInput(tapeBit);
+			m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
 		}
 
         frameticks++;
