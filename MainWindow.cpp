@@ -339,7 +339,7 @@ void MainWindow_ShowHideDebug()
         int cyConsoleHeight = rc.bottom - cyStatus - yConsoleTop - 4;
         int xDebugLeft = (rcScreen.right - rcScreen.left) + 8;
         int cxDebugWidth = rc.right - xDebugLeft - 4;
-        int cyDebugHeight = 590;
+        int cyDebugHeight = 594;
         int yMemoryTop = cyDebugHeight + 8;
         int cyMemoryHeight = rc.bottom - cyStatus - yMemoryTop - 4;
 
