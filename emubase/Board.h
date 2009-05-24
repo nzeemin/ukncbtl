@@ -110,8 +110,11 @@ public:  // System control
     void        Tick50();    // Tick 50 Hz - goes to CPU/PPU EVNT line
 	void		TimerTick();		// Timer Tick, 2uS -- dividers are within timer routine
 	WORD		GetTimerValue();	// returns current timer value
+	WORD		GetTimerValueView() { return m_timer; }	// Returns current timer value for debugger
 	WORD		GetTimerReload();	// returns timer reload value
+	WORD		GetTimerReloadView() { return m_timerreload; }	// Returns timer reload value for debugger
 	WORD		GetTimerState();	// returns timer state
+	WORD		GetTimerStateView() { return m_timerflags; } // Returns timer state for debugger
 
 	void		ChanWriteByCPU(BYTE chan, BYTE data);
 	void		ChanWriteByPPU(BYTE chan, BYTE data);
