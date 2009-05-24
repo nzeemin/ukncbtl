@@ -1035,6 +1035,26 @@ void CSecondMemoryController::KeyboardEvent(BYTE scancode, BOOL okPressed)
     }
 }
 
+void CSecondMemoryController::TapeInput(BOOL inputBit)
+{
+	// Check port 177716 bit 2
+	if ((m_Port177716 & 4) != 0)
+	{
+		// Check port 177716 bit 0 old state
+		WORD tapeBitOld = (m_Port177716 & 1);
+		WORD tapeBitNew = inputBit ? 0 : 1;
+		if (tapeBitNew != tapeBitOld)
+		{
+			m_Port177716 = (m_Port177716 & 0177776) | tapeBitNew;
+			if ((m_Port177716 & 8) == 0)
+			{
+				m_pProcessor->InterruptVIRQ(3, 0310);
+			}
+		}
+	}
+}
+
+
 //////////////////////////////////////////////////////////////////////
 //
 // PPU memory/IO controller image format (64 bytes):

@@ -279,12 +279,23 @@ void TapeView_DoRewind()
 }
 
 
+// Tape emulator callback used to read a tape recorded data.
+// Input:
+//   samples    Number of samples to play.
+// Output:
+//   result     Bit to put in tape input port.
 BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 {
+	if (samples == 0) return 0;
+
+	int value = 0;
 	for (UINT i = 0; i < samples; i++)  //STUB
 	{
-		WavPcmFile_ReadOne(m_hTapeWavPcmFile);
+		value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
+		if (value < 0) value = -value;  // Absolute value
 	}
+	value = (value >> 16);
+	BOOL result = (value >= 0x6000);
 	
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
@@ -297,7 +308,7 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 		TapeView_UpdatePosition();
 	}
 
-	return 0;  //TODO
+	return result;
 }
 
 

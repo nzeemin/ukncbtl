@@ -486,8 +486,10 @@ BOOL CMotherboard::SystemFrame()
 			}
 
 			// Reading the tape
-			(*m_TapeReadCallback)(tapeSamplesToRead);
+			BOOL tapeBit = (*m_TapeReadCallback)(tapeSamplesToRead);
 			//tapeReadSamples += tapeSamplesToRead;  // For statistics only
+			CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+			pMemCtl->TapeInput(tapeBit);
 		}
 
         frameticks++;
@@ -1068,3 +1070,5 @@ void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate
 		m_nTapeReadSampleRate = sampleRate;
 	}
 }
+
+//////////////////////////////////////////////////////////////////////
