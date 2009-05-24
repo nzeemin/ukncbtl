@@ -408,7 +408,6 @@ void CMotherboard::DebugTicks()
 /*
 Каждый фрейм равен 1/25 секунды = 40 мс = 20000 тиков, 1 тик = 2 мкс.
 
-
 * 20000 тиков системного таймера - на каждый 1-й тик
 * 2 сигнала EVNT, в 0-й и 10000-й тик фрейма
 * 320000 тиков ЦП - 16 раз за один тик
@@ -417,13 +416,20 @@ void CMotherboard::DebugTicks()
 ** Первая невидимая строка (#0) начинает рисоваться на 96-ой тик
 ** Первая видимая строка (#18) начинает рисоваться на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
-
+* 200 тиков чтения с магнитофона - каждый 100-й тик
 */
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
 	
 	int audioticks = 20286/(SAMPLERATE/25);
+
+	const int tapeReadTicks = 100;
+	int tapeReadSamplesPerFrame = 0;
+	//int tapeReadSamples = 0;  // For statistics only
+	int tapeReadError = 0;
+	if (m_TapeReadCallback != NULL)
+		tapeReadSamplesPerFrame = m_nTapeReadSampleRate / 25;
 
     do
     {
@@ -464,9 +470,24 @@ BOOL CMotherboard::SystemFrame()
 		if (frameticks % audioticks == 0) //AUDIO tick
 			DoSound();
 
-		if (frameticks % 200 == 0 && m_TapeReadCallback != NULL)
+		if (m_TapeReadCallback != NULL && frameticks % tapeReadTicks == 0)
 		{
-			(*m_TapeReadCallback)(10);  //DEBUG
+			int tapeSamplesToRead = 0;
+			const int readsTotal = 20000 / tapeReadTicks;
+			while (true)
+			{
+				tapeSamplesToRead++;
+				tapeReadError += readsTotal;
+				if (2 * tapeReadError >= tapeReadSamplesPerFrame)
+				{
+					tapeReadError -= tapeReadSamplesPerFrame;
+					break;
+				}
+			}
+
+			// Reading the tape
+			(*m_TapeReadCallback)(tapeSamplesToRead);
+			//tapeReadSamples += tapeSamplesToRead;  // For statistics only
 		}
 
         frameticks++;

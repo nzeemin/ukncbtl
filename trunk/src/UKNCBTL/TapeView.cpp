@@ -117,7 +117,7 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
             8 + 100 + 16 + 4 + 96, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeEject = CreateWindow(
-            _T("BUTTON"), _T("Eject"),
+            _T("BUTTON"), _T("Select WAV"),
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 8, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
@@ -176,15 +176,13 @@ void TapeView_InsertTape(LPCTSTR lpszFile)
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
 	double wavLengthSeconds = double(wavLength) / wavFreq;
-	int wavMinutes = int(wavLengthSeconds / 60);
-	wavLengthSeconds -= wavMinutes * 60;
-	int wavSeconds = int(wavLengthSeconds);
-	wavLengthSeconds -= wavSeconds;
-	int wavPrec = int(wavLengthSeconds * 100);
 
 	TCHAR buffer[64];
-	wsprintf(buffer, _T("%d:%02d.%02d, %d Hz"), wavMinutes, wavSeconds, wavPrec, wavFreq);
+	wsprintf(buffer, _T("%d:%02d.%02d, %d Hz"),
+		int(wavLengthSeconds) / 60, int(wavLengthSeconds) % 60, int(wavLengthSeconds * 100) % 100, wavFreq);
 	SetWindowText(m_hwndTapeTotal, buffer);
+
+	SetWindowText(m_hwndTapeEject, _T("Eject"));
 }
 void TapeView_RemoveTape()
 {
@@ -201,6 +199,7 @@ void TapeView_RemoveTape()
 	SetWindowText(m_hwndTapeFile, NULL);
 	SetWindowText(m_hwndTapeTotal, NULL);
 	SetWindowText(m_hwndTapeCurrent, NULL);
+	SetWindowText(m_hwndTapeEject, _T("Select WAV"));
 }
 void TapeView_PlayTape()
 {
