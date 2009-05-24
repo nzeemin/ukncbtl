@@ -289,13 +289,11 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 	if (samples == 0) return 0;
 
 	int value = 0;
-	for (UINT i = 0; i < samples; i++)  //STUB
+	for (UINT i = 0; i < samples; i++)
 	{
 		value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
-		if (value < 0) value = -value;  // Absolute value
 	}
-	value = (value >> 16);
-	BOOL result = (value >= 0x6000);
+	BOOL result = (value > 0);
 	
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
