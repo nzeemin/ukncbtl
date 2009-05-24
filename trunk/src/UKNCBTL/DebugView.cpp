@@ -31,7 +31,7 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged);
 void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y);
 void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y);
-void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, int x, int y);
+void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
 void DrawChannels(HDC hdc, int x, int y);
 void DebugView_UpdateWindowText();
 
@@ -223,7 +223,7 @@ void DoDrawDebugView(HDC hdc)
     DrawDisassemble(hdc, pDebugPU, prevPC, 0, 18 * cyLine);
     DrawMemoryForRegister(hdc, 6, pDebugPU, 36 * cxChar, 1 * cyLine);
     CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
-    DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, 58 * cxChar, 1 * cyLine);
+    DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 58 * cxChar, 1 * cyLine);
 
     DrawChannels(hdc, 58 * cxChar, 24 * cyLine);
 
@@ -391,7 +391,7 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
 
 }
 
-void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, int x, int y)
+void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
@@ -440,10 +440,20 @@ void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, int x, int
         WORD value177700 = pMemCtl->GetPortView(0177700);
         DrawOctalValue(hdc, x + 1 * cxChar, y + 10 * cyLine, 0177700);
         DrawOctalValue(hdc, x + 9 * cxChar, y + 10 * cyLine, value177700);
-        WORD value177716 = pMemCtl->GetPortView(0177716);
+		WORD value177716 = pMemCtl->GetPortView(0177716);
         DrawOctalValue(hdc, x + 1 * cxChar, y + 11 * cyLine, 0177716);
         DrawOctalValue(hdc, x + 9 * cxChar, y + 11 * cyLine, value177716);
-    }
+
+        WORD value177710 = pBoard->GetTimerStateView();
+        DrawOctalValue(hdc, x + 1 * cxChar, y + 13 * cyLine, 0177710);
+        DrawOctalValue(hdc, x + 9 * cxChar, y + 13 * cyLine, value177710);
+        WORD value177712 = pBoard->GetTimerReloadView();
+        DrawOctalValue(hdc, x + 1 * cxChar, y + 14 * cyLine, 0177712);
+        DrawOctalValue(hdc, x + 9 * cxChar, y + 14 * cyLine, value177712);
+        WORD value177714 = pBoard->GetTimerValueView();
+        DrawOctalValue(hdc, x + 1 * cxChar, y + 15 * cyLine, 0177714);
+        DrawOctalValue(hdc, x + 9 * cxChar, y + 15 * cyLine, value177714);
+	}
 }
 
 void DrawChannels(HDC hdc, int x, int y)
