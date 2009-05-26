@@ -69,6 +69,23 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position)
 	pWavPcm->dwCurrentPosition = position;
 }
 
+HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename)
+{
+	//TODO
+	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::LocalAlloc(LPTR, sizeof(WAVPCMFILE));
+	pWavPcm->hFile = INVALID_HANDLE_VALUE;  //hFileOpen;
+	//pWavPcm->nChannels = channels;
+	//pWavPcm->nSampleFrequency = sampleFrequency;
+	//pWavPcm->nBitsPerSample = bitsPerSample;
+	//pWavPcm->nBlockAlign = blockAlign;
+	//pWavPcm->dwDataOffset = dataOffset;
+	//pWavPcm->dwDataSize = dataSize;
+
+	//WavPcmFile_SetPosition((HWAVPCMFILE) pWavPcm, 0);
+
+	return (HWAVPCMFILE) pWavPcm;
+}
+
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 {
 	HANDLE hFileOpen = ::CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);

@@ -6,6 +6,7 @@
 
 DECLARE_HANDLE(HWAVPCMFILE);
 
+HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename);
 // Prepare WAV file of PCM format for reading
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename);
 // Close WAV file

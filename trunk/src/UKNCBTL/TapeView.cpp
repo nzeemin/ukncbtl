@@ -20,23 +20,27 @@ HWND m_hwndTapeTotal = (HWND) INVALID_HANDLE_VALUE;  // Tape total time - static
 HWND m_hwndTapeCurrent = (HWND) INVALID_HANDLE_VALUE;  // Tape current time - static control
 HWND m_hwndTapePlay = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeRewind = (HWND) INVALID_HANDLE_VALUE;
-HWND m_hwndTapeEject = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndTapeOpen = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndTapeSave = (HWND) INVALID_HANDLE_VALUE;
 
 HFONT m_hfontTape = NULL;
 BOOL m_okTapeInserted = FALSE;
+BOOL m_okTapeRecording = FALSE;
 TCHAR m_szTapeFile[MAX_PATH];
 HWAVPCMFILE m_hTapeWavPcmFile = (HWAVPCMFILE) INVALID_HANDLE_VALUE;
 BOOL m_okTapePlaying = FALSE;
 DWORD m_dwTapePositionShown = 0;  // What we show (in seconds) in the m_hwndTapeCurrent control
 
-void TapeView_InsertTape(LPCTSTR lpszFile);
-void TapeView_RemoveTape();
+void TapeView_CreateTape(LPCTSTR lpszFile);
+void TapeView_OpenTape(LPCTSTR lpszFile);
+void TapeView_CloseTape();
 void TapeView_PlayTape();
 void TapeView_StopTape();
 void TapeView_UpdatePosition();
 
 void TapeView_OnDraw(HDC hdc);
-void TapeView_DoEject();
+void TapeView_DoOpenWav();
+void TapeView_DoSaveWav();
 void TapeView_DoPlayStop();
 void TapeView_DoRewind();
 
@@ -116,8 +120,13 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
             8 + 100 + 16 + 4 + 96, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
-	m_hwndTapeEject = CreateWindow(
-            _T("BUTTON"), _T("Select WAV"),
+	m_hwndTapeOpen = CreateWindow(
+            _T("BUTTON"), _T("Open WAV"),
+            WS_CHILD | WS_VISIBLE,
+            rcClient.right - 96 - 4 - 96 - 8, 24, 96, 22,
+            g_hwndTape, NULL, g_hInst, NULL);
+	m_hwndTapeSave = CreateWindow(
+            _T("BUTTON"), _T("Save WAV"),
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 8, 24, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
@@ -128,7 +137,8 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
 	SendMessage(m_hwndTapeFile, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapePlay, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeRewind, WM_SETFONT, (WPARAM) m_hfontTape, 0);
-	SendMessage(m_hwndTapeEject, WM_SETFONT, (WPARAM) m_hfontTape, 0);
+	SendMessage(m_hwndTapeOpen, WM_SETFONT, (WPARAM) m_hfontTape, 0);
+	SendMessage(m_hwndTapeSave, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 }
 
 LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -139,8 +149,10 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 	case WM_COMMAND:
 		{
 			HWND hwndCtl = (HWND)lParam;
-			if (hwndCtl == m_hwndTapeEject)
-				TapeView_DoEject();
+			if (hwndCtl == m_hwndTapeOpen)
+				TapeView_DoOpenWav();
+			else if (hwndCtl == m_hwndTapeSave)
+				TapeView_DoSaveWav();
 			else if (hwndCtl == m_hwndTapePlay)
 				TapeView_DoPlayStop();
 			else if (hwndCtl == m_hwndTapeRewind)
@@ -158,7 +170,27 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     return (LRESULT)FALSE;
 }
 
-void TapeView_InsertTape(LPCTSTR lpszFile)
+void TapeView_CreateTape(LPCTSTR lpszFile)
+{
+	m_hTapeWavPcmFile = WavPcmFile_Create(lpszFile);
+	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
+		return;  //TODO: Report error
+
+	wcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
+	m_okTapeInserted = TRUE;
+	m_okTapeRecording = TRUE;
+
+	EnableWindow(m_hwndTapePlay, TRUE);
+	SetWindowText(m_hwndTapePlay, _T("Record"));
+	EnableWindow(m_hwndTapeRewind, TRUE);
+	SetWindowText(m_hwndTapeFile, lpszFile);
+
+	//TapeView_UpdatePosition();
+
+	SetWindowText(m_hwndTapeSave, _T("Close WAV"));
+	EnableWindow(m_hwndTapeOpen, FALSE);
+}
+void TapeView_OpenTape(LPCTSTR lpszFile)
 {
 	m_hTapeWavPcmFile = WavPcmFile_Open(lpszFile);
 	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
@@ -166,8 +198,10 @@ void TapeView_InsertTape(LPCTSTR lpszFile)
 
 	wcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
+	m_okTapeRecording = FALSE;
 
 	EnableWindow(m_hwndTapePlay, TRUE);
+	SetWindowText(m_hwndTapePlay, _T("Play"));
 	EnableWindow(m_hwndTapeRewind, TRUE);
 	SetWindowText(m_hwndTapeFile, lpszFile);
 
@@ -182,9 +216,10 @@ void TapeView_InsertTape(LPCTSTR lpszFile)
 		int(wavLengthSeconds) / 60, int(wavLengthSeconds) % 60, int(wavLengthSeconds * 100) % 100, wavFreq);
 	SetWindowText(m_hwndTapeTotal, buffer);
 
-	SetWindowText(m_hwndTapeEject, _T("Eject"));
+	SetWindowText(m_hwndTapeOpen, _T("Close WAV"));
+	EnableWindow(m_hwndTapeSave, FALSE);
 }
-void TapeView_RemoveTape()
+void TapeView_CloseTape()
 {
 	// Stop tape playback
 	TapeView_StopTape();
@@ -196,10 +231,13 @@ void TapeView_RemoveTape()
 
 	EnableWindow(m_hwndTapePlay, FALSE);
 	EnableWindow(m_hwndTapeRewind, FALSE);
+	EnableWindow(m_hwndTapeOpen, TRUE);
+	EnableWindow(m_hwndTapeSave, TRUE);
 	SetWindowText(m_hwndTapeFile, NULL);
 	SetWindowText(m_hwndTapeTotal, NULL);
 	SetWindowText(m_hwndTapeCurrent, NULL);
-	SetWindowText(m_hwndTapeEject, _T("Select WAV"));
+	SetWindowText(m_hwndTapeOpen, _T("Open WAV"));
+	SetWindowText(m_hwndTapeSave, _T("Save WAV"));
 }
 void TapeView_PlayTape()
 {
@@ -217,7 +255,7 @@ void TapeView_StopTape()
 
 	g_pBoard->SetTapeReadCallback(NULL, 0);
 	m_okTapePlaying = FALSE;
-	SetWindowText(m_hwndTapePlay, _T("Play"));
+	SetWindowText(m_hwndTapePlay, m_okTapeRecording ? _T("Record") : _T("Play"));
 }
 
 void TapeView_UpdatePosition()
@@ -233,11 +271,11 @@ void TapeView_UpdatePosition()
 	m_dwTapePositionShown = wavPos;
 }
 
-void TapeView_DoEject()
+void TapeView_DoOpenWav()
 {
 	if (m_okTapeInserted)
 	{
-		TapeView_RemoveTape();
+		TapeView_CloseTape();
 		return;
 	}
 
@@ -258,7 +296,34 @@ void TapeView_DoEject()
     BOOL okResult = GetOpenFileName(&ofn);
     if (! okResult) return;
 
-	TapeView_InsertTape(bufFileName);
+	TapeView_OpenTape(bufFileName);
+}
+void TapeView_DoSaveWav()
+{
+	if (m_okTapeInserted)
+	{
+		TapeView_CloseTape();
+		return;
+	}
+
+	// File Save dialog
+    TCHAR bufFileName[MAX_PATH];
+    *bufFileName = 0;
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = g_hwnd;
+    ofn.hInstance = g_hInst;
+    ofn.lpstrTitle = _T("Save WAV file");
+    ofn.lpstrFilter = _T("WAV files (*.wav)\0*.wav\0All Files (*.*)\0*.*\0\0");
+    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrFile = bufFileName;
+    ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
+
+    BOOL okResult = GetSaveFileName(&ofn);
+    if (! okResult) return;
+
+	TapeView_CreateTape(bufFileName);
 }
 
 void TapeView_DoPlayStop()
