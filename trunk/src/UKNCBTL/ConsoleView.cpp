@@ -394,6 +394,7 @@ void DoConsoleCommand()
     case _T('p'):  // Switch CPU/PPU
         m_okCurrentProc = ! m_okCurrentProc;
         DebugView_SetCurrentProc(m_okCurrentProc);   // Switch DebugView to current processor
+        DisasmView_SetCurrentProc(m_okCurrentProc);   // Switch DisasmView to current processor
         break;
     case _T('r'):  // Register operations
         if (command[1] == 0)  // Print all registers

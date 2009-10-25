@@ -29,7 +29,6 @@ BOOL m_okDebugPpuRChanged[9];  // Register change flags
 void DoDrawDebugView(HDC hdc);
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged);
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y);
 void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y);
 void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
 void DrawChannels(HDC hdc, int x, int y);
@@ -132,6 +131,7 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam)
         m_okDebugProcessor = ! m_okDebugProcessor;
         InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
 		DebugView_UpdateWindowText();
+        DisasmView_SetCurrentProc(m_okDebugProcessor);   // Switch DisasmView to current processor
         break;
     case VK_ESCAPE:
         ConsoleView_Activate();
@@ -212,21 +212,19 @@ void DoDrawDebugView(HDC hdc)
     ASSERT(pDebugPU != NULL);
     WORD* arrR = (m_okDebugProcessor) ? m_wDebugCpuR : m_wDebugPpuR;
     BOOL* arrRChanged = (m_okDebugProcessor) ? m_okDebugCpuRChanged : m_okDebugPpuRChanged;
-    WORD prevPC = (m_okDebugProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
 
     LPCTSTR sProcName = pDebugPU->GetName();
+    TextOut(hdc, cxChar * 1, 2 + 1 * cyLine, sProcName, 3);
 
-    TextOut(hdc, cxChar * 1, 2 * cyLine, sProcName, 3);
-    DrawProcessor(hdc, pDebugPU, cxChar * 6, 2 * cyLine, arrR, arrRChanged);
+	DrawProcessor(hdc, pDebugPU, cxChar * 6, 2 + 1 * cyLine, arrR, arrRChanged);
 
-    // Draw disasseble and stack for the current processor
-    DrawDisassemble(hdc, pDebugPU, prevPC, 0, 18 * cyLine);
+    // Draw stack for the current processor
     DrawMemoryForRegister(hdc, 6, pDebugPU, 35 * cxChar, 1 * cyLine);
 
 	CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
-    DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 57 * cxChar, 1 * cyLine);
+    DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 57 * cxChar, 2 + 0 * cyLine);
 
-    DrawChannels(hdc, 75 * cxChar, 1 * cyLine);
+    DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -295,64 +293,6 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     if (okStopped)
         TextOut(hdc, x + 6 * cxChar, y + 11 * cyLine, _T("STOP"), 4);
 
-}
-
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y)
-{
-    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
-    COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
-
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
-    WORD current = pProc->GetPC();
-
-    // Читаем из памяти процессора в буфер
-    const int nWindowSize = 30;
-    WORD memory[nWindowSize + 2];
-    for (int idx = 0; idx < nWindowSize; idx++) {
-        BOOL okValidAddress;
-        memory[idx] = pMemCtl->GetWordView(
-                current + idx * 2 - 10, pProc->IsHaltMode(), TRUE, &okValidAddress);
-    }
-
-    //TextOut(hdc, x, y, _T(" address  value   instruction"), 29);
-    //y += cyLine;
-
-    WORD address = current - 10;
-    WORD disasmfrom = current;
-    if (previous >= address && previous < current)
-        disasmfrom = previous;
-
-    int length = 0;
-    for (int index = 0; index < nWindowSize; index++) {  // Рисуем строки
-        DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
-        // Value at the address
-        WORD value = memory[index];
-        DrawOctalValue(hdc, x + 13 * cxChar, y, value);
-        // Current position
-        if (address == current)
-            TextOut(hdc, x + 1 * cxChar, y, _T("PC>>"), 4);
-        else if (address == previous)
-        {
-            ::SetTextColor(hdc, COLOR_BLUE);
-            TextOut(hdc, x + 1 * cxChar, y, _T("  > "), 4);
-        }
-
-        if (address >= disasmfrom && length == 0) {
-            TCHAR strInstr[8];
-            TCHAR strArg[32];
-            length = DisassembleInstruction(memory + index, address, strInstr, strArg);
-            if (index + length <= nWindowSize)
-            {
-                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
-                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
-            }
-            ::SetTextColor(hdc, colorText);
-        }
-        if (length > 0) length--;
-
-        address += 2;
-        y += cyLine;
-    }
 }
 
 void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)

@@ -9,9 +9,10 @@
 const LPCTSTR CLASSNAME_SCREENVIEW  = _T("UKNCBTLSCREEN");
 const LPCTSTR CLASSNAME_KEYBOARDVIEW = _T("UKNCBTLKEYBOARD");
 const LPCTSTR CLASSNAME_DEBUGVIEW   = _T("UKNCBTLDEBUG");
+const LPCTSTR CLASSNAME_DISASMVIEW  = _T("UKNCBTLDISASM");
 const LPCTSTR CLASSNAME_MEMORYVIEW  = _T("UKNCBTLMEMORY");
 const LPCTSTR CLASSNAME_CONSOLEVIEW = _T("UKNCBTLCONSOLE");
-const LPCTSTR CLASSNAME_TAPEVIEW = _T("UKNCBTLTAPE");
+const LPCTSTR CLASSNAME_TAPEVIEW    = _T("UKNCBTLTAPE");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -64,6 +65,19 @@ LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DebugViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DebugView_OnUpdate();
 void DebugView_SetCurrentProc(BOOL okCPU);
+
+
+//////////////////////////////////////////////////////////////////////
+// DisasmView
+
+extern HWND g_hwndDisasm;  // Disasm View window handle
+
+void DisasmView_RegisterClass();
+void CreateDisasmView(HWND hwndParent, int x, int y, int width, int height);
+LRESULT CALLBACK DisasmViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DisasmViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+void DisasmView_OnUpdate();
+void DisasmView_SetCurrentProc(BOOL okCPU);
 
 
 //////////////////////////////////////////////////////////////////////

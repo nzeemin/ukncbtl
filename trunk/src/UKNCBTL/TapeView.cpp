@@ -172,7 +172,7 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 void TapeView_CreateTape(LPCTSTR lpszFile)
 {
-	m_hTapeWavPcmFile = WavPcmFile_Create(lpszFile);
+	m_hTapeWavPcmFile = WavPcmFile_Create(lpszFile, 22050);
 	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
 		return;  //TODO: Report error
 
@@ -370,6 +370,10 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 	{
 		TapeView_UpdatePosition();
 	}
+
+//#if !defined(PRODUCT)
+//    DebugPrintFormat(_T("Tape: %d\r\n"), result);
+//#endif
 
 	return result;
 }
