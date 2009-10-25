@@ -818,6 +818,8 @@ void MainWindow_UpdateAllViews()
     // Update debug windows
     if (g_hwndDebug != NULL)
         InvalidateRect(g_hwndDebug, NULL, TRUE);
+    if (g_hwndDisasm != NULL)
+        InvalidateRect(g_hwndDisasm, NULL, TRUE);
     if (g_hwndMemory != NULL)
         InvalidateRect(g_hwndMemory, NULL, TRUE);
 }
