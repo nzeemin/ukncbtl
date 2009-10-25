@@ -374,6 +374,10 @@
 			>
 		</File>
 		<File
+			RelativePath=".\DisasmView.cpp"
+			>
+		</File>
+		<File
 			RelativePath=".\Emulator.cpp"
 			>
 		</File>

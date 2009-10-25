@@ -77,6 +77,7 @@ void MainWindow_RegisterClass()
     KeyboardView_RegisterClass();
     MemoryView_RegisterClass();
     DebugView_RegisterClass();
+    DisasmView_RegisterClass();
     ConsoleView_RegisterClass();
 	TapeView_RegisterClass();
 }
@@ -317,6 +318,8 @@ void MainWindow_ShowHideDebug()
             DestroyWindow(g_hwndConsole);
         if (g_hwndDebug != INVALID_HANDLE_VALUE)
             DestroyWindow(g_hwndDebug);
+        if (g_hwndDisasm != INVALID_HANDLE_VALUE)
+            DestroyWindow(g_hwndDisasm);
         if (g_hwndMemory != INVALID_HANDLE_VALUE)
             DestroyWindow(g_hwndMemory);
 
@@ -339,8 +342,10 @@ void MainWindow_ShowHideDebug()
         int cyConsoleHeight = rc.bottom - cyStatus - yConsoleTop - 4;
         int xDebugLeft = (rcScreen.right - rcScreen.left) + 8;
         int cxDebugWidth = rc.right - xDebugLeft - 4;
-        int cyDebugHeight = 594;
-        int yMemoryTop = cyDebugHeight + 8;
+        int cyDebugHeight = 222;
+		int yDisasmTop = 4 + cyDebugHeight + 4;
+		int cyDisasmHeight = 380;
+        int yMemoryTop = cyDebugHeight + 4 + cyDisasmHeight + 8;
         int cyMemoryHeight = rc.bottom - cyStatus - yMemoryTop - 4;
 
         // Create debug views
@@ -348,6 +353,8 @@ void MainWindow_ShowHideDebug()
             CreateConsoleView(g_hwnd, 4, yConsoleTop, cxConsoleWidth, cyConsoleHeight);
         if (g_hwndDebug == INVALID_HANDLE_VALUE)
             CreateDebugView(g_hwnd, xDebugLeft, 4, cxDebugWidth, cyDebugHeight);
+        if (g_hwndDisasm == INVALID_HANDLE_VALUE)
+            CreateDisasmView(g_hwnd, xDebugLeft, yDisasmTop, cxDebugWidth, cyDisasmHeight);
         if (g_hwndMemory == INVALID_HANDLE_VALUE)
             CreateMemoryView(g_hwnd, xDebugLeft, yMemoryTop, cxDebugWidth, cyMemoryHeight);
 
