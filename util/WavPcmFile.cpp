@@ -69,17 +69,30 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position)
 	pWavPcm->dwCurrentPosition = position;
 }
 
-HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename)
+HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 {
+	const int bitsPerSample = 8;
+	const int channels = 1;
+
+	HANDLE hFileNew = ::CreateFile(filename,
+		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFileNew == INVALID_HANDLE_VALUE)
+		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to create file
+
+	// Prepare and write file header
+	BYTE consolidated_header[12 + 8 + 16 + 8];
+	DWORD bytesWritten;
+	
 	//TODO
+
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::LocalAlloc(LPTR, sizeof(WAVPCMFILE));
-	pWavPcm->hFile = INVALID_HANDLE_VALUE;  //hFileOpen;
-	//pWavPcm->nChannels = channels;
-	//pWavPcm->nSampleFrequency = sampleFrequency;
-	//pWavPcm->nBitsPerSample = bitsPerSample;
+	pWavPcm->hFile = hFileNew;
+	pWavPcm->nChannels = channels;
+	pWavPcm->nSampleFrequency = sampleRate;
+	pWavPcm->nBitsPerSample = bitsPerSample;
 	//pWavPcm->nBlockAlign = blockAlign;
 	//pWavPcm->dwDataOffset = dataOffset;
-	//pWavPcm->dwDataSize = dataSize;
+	pWavPcm->dwDataSize = 0;
 
 	//WavPcmFile_SetPosition((HWAVPCMFILE) pWavPcm, 0);
 
@@ -88,7 +101,8 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename)
 
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 {
-	HANDLE hFileOpen = ::CreateFile(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+	HANDLE hFileOpen = ::CreateFile(filename,
+		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFileOpen == INVALID_HANDLE_VALUE)
 		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to open file
 
