@@ -811,6 +811,7 @@ void MainWindow_UpdateAllViews()
     // Update cached values in views
     Emulator_OnUpdate();
     DebugView_OnUpdate();
+    DisasmView_OnUpdate();
 
     // Update screen
     InvalidateRect(g_hwndScreen, NULL, TRUE);

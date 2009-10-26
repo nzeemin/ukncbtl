@@ -291,7 +291,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     // "Stopped" flag
     BOOL okStopped = pProc->IsStopped();
     if (okStopped)
-        TextOut(hdc, x + 6 * cxChar, y + 11 * cyLine, _T("STOP"), 4);
+        TextOut(hdc, x + 6 * cxChar, y + 13 * cyLine, _T("STOP"), 4);
 
 }
 

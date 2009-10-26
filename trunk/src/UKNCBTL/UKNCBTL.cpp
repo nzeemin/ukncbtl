@@ -170,6 +170,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     ShowWindow(g_hwnd, nCmdShow);
     UpdateWindow(g_hwnd);
+    MainWindow_UpdateAllViews();
 
     // Autostart
     if (Settings_GetAutostart())

@@ -1035,6 +1035,7 @@ void CSecondMemoryController::KeyboardEvent(BYTE scancode, BOOL okPressed)
     }
 }
 
+// A new bit from the tape input received
 void CSecondMemoryController::TapeInput(BOOL inputBit)
 {
 	// Check port 177716 bit 2
