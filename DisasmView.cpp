@@ -4,6 +4,7 @@
 #include "UKNCBTL.h"
 #include "Views.h"
 #include "ToolWindow.h"
+#include "Dialogs.h"
 #include "Emulator.h"
 #include "emubase\Emubase.h"
 
@@ -21,11 +22,14 @@ HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
 
 
 BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
+WORD m_wDisasmBaseAddr = 0;
+WORD m_wDisasmNextBaseAddr = 0;
 
 void DoDrawDisasmView(HDC hdc);
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y);
+void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
+void DisasmView_SetBaseAddr(WORD base);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -121,11 +125,19 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam)
     switch (vkey)
     {
     case VK_SPACE:
-        m_okDisasmProcessor = ! m_okDisasmProcessor;
-        InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
-		DisasmView_UpdateWindowText();
+        DisasmView_SetCurrentProc(!m_okDisasmProcessor);
         DebugView_SetCurrentProc(m_okDisasmProcessor);   // Switch DebugView to current processor
         break;
+    case VK_DOWN:
+        DisasmView_SetBaseAddr(m_wDisasmNextBaseAddr);
+        break;
+    case 0x47:  // G - Go To Address
+        {
+            WORD value = m_wDisasmBaseAddr;
+            if (InputBoxOctal(m_hwndDisasmViewer, _T("Go To Address"), _T("Address (octal):"), &value))
+                DisasmView_SetBaseAddr(value);
+            break;
+        }
     case VK_ESCAPE:
         ConsoleView_Activate();
         break;
@@ -150,11 +162,28 @@ void DisasmView_UpdateWindowText()
 //////////////////////////////////////////////////////////////////////
 
 
+// Update after Run or Step
+void DisasmView_OnUpdate()
+{
+    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    ASSERT(pDisasmPU != NULL);
+	m_wDisasmBaseAddr = pDisasmPU->GetPC();
+}
+
 void DisasmView_SetCurrentProc(BOOL okCPU)
 {
     m_okDisasmProcessor = okCPU;
+    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    ASSERT(pDisasmPU != NULL);
+    m_wDisasmBaseAddr = pDisasmPU->GetPC();
     InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
 	DisasmView_UpdateWindowText();
+}
+
+void DisasmView_SetBaseAddr(WORD base)
+{
+    m_wDisasmBaseAddr = base;
+    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
 }
 
 
@@ -176,7 +205,7 @@ void DoDrawDisasmView(HDC hdc)
 
     // Draw disasseble for the current processor
     WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
-    DrawDisassemble(hdc, pDisasmPU, prevPC, 0, 2 + 0 * cyLine);
+    DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
 
 	SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -184,13 +213,14 @@ void DoDrawDisasmView(HDC hdc)
     DeleteObject(hFont);
 }
 
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y)
+void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
 
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    WORD current = pProc->GetPC();
+    WORD proccurrent = pProc->GetPC();
+    WORD current = base;
 
     // Читаем из памяти процессора в буфер
     const int nWindowSize = 30;
@@ -210,6 +240,7 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y)
         disasmfrom = previous;
 
     int length = 0;
+    WORD wNextBaseAddr = 0;
     for (int index = 0; index < nWindowSize; index++) {  // Рисуем строки
         DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
         // Value at the address
@@ -217,6 +248,8 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y)
         DrawOctalValue(hdc, x + 13 * cxChar, y, value);
         // Current position
         if (address == current)
+            TextOut(hdc, x + 1 * cxChar, y, _T("  >"), 3);
+        if (address == proccurrent)
             TextOut(hdc, x + 1 * cxChar, y, _T("PC>>"), 4);
         else if (address == previous)
         {
@@ -234,12 +267,17 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD previous, int x, int y)
                 TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
             }
             ::SetTextColor(hdc, colorText);
+
+            if (wNextBaseAddr == 0)
+                wNextBaseAddr = address + length * 2;
         }
         if (length > 0) length--;
 
         address += 2;
         y += cyLine;
     }
+
+    m_wDisasmNextBaseAddr = wNextBaseAddr;
 }
 
 
