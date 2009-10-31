@@ -1,9 +1,13 @@
+// SoundGen.cpp
+//
+
 #include "StdAfx.h"
 #include "emubase\Emubase.h"
 #include "SoundGen.h"
 #include "Mmsystem.h"
 
 
+//////////////////////////////////////////////////////////////////////
 
 static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
 
@@ -19,52 +23,51 @@ HWAVEOUT hWaveOut;
 
 WAVEFORMATEX wfx;  
 char buffer[BUFSIZE]; 
-int i;
 
 int bufcurpos;
 
-static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
+
+//////////////////////////////////////////////////////////////////////
+
+
+static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
     int* freeBlockCounter = (int*)dwInstance;
-     if(uMsg != WOM_DONE)
+    if (uMsg != WOM_DONE)
         return;
 
     EnterCriticalSection(&waveCriticalSection);
     (*freeBlockCounter)++;
 	
-
     LeaveCriticalSection(&waveCriticalSection);
-
-	
 }
 
 
 CSoundGen::CSoundGen(void)
 {
     unsigned char* mbuffer;
-    int i;
 
-	SoundInitialized=false;
+	SoundInitialized = false;
 	//return;
-     DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
+    DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
     
-      if((mbuffer = (unsigned char*)HeapAlloc(
+    mbuffer = (unsigned char*) HeapAlloc(
         GetProcessHeap(), 
         HEAP_ZERO_MEMORY, 
-        totalBufferSize
-    )) == NULL) {
+        totalBufferSize);
+    if (mbuffer == NULL)
+    {
         //ExitProcess(1);
 		return;
     }
 
     waveBlocks = (WAVEHDR*)mbuffer;
     mbuffer += sizeof(WAVEHDR) * BLOCK_COUNT;
-    for(i = 0; i < BLOCK_COUNT; i++) {
+    for (int i = 0; i < BLOCK_COUNT; i++) {
         waveBlocks[i].dwBufferLength = BLOCK_SIZE;
         waveBlocks[i].lpData = (LPSTR)mbuffer;
         mbuffer += BLOCK_SIZE;
     }
-  	
 	
 	waveFreeBlockCount = BLOCK_COUNT;
     waveCurrentBlock   = 0;
@@ -76,26 +79,30 @@ CSoundGen::CSoundGen(void)
     wfx.wFormatTag      = WAVE_FORMAT_PCM;
     wfx.nBlockAlign     = (wfx.wBitsPerSample * wfx.nChannels) >> 3;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
-	if((waveOutOpen(&hWaveOut,WAVE_MAPPER,&wfx,(DWORD)WaveCallback,(DWORD)&waveFreeBlockCount,CALLBACK_FUNCTION)) != MMSYSERR_NOERROR) 
+
+    MMRESULT result = waveOutOpen(
+        &hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)WaveCallback, (DWORD_PTR)&waveFreeBlockCount, CALLBACK_FUNCTION);
+	if (result != MMSYSERR_NOERROR) 
 	{
  		return;
     }
 	InitializeCriticalSection(&waveCriticalSection);
-	bufcurpos=0;
+	bufcurpos = 0;
 
-	SoundInitialized=true;
+	SoundInitialized = true;
 	//waveOutSetPlaybackRate(hWaveOut,0x00008000);
-
 }
 
 CSoundGen::~CSoundGen(void)
 {
-    while(waveFreeBlockCount < BLOCK_COUNT)
+    while (waveFreeBlockCount < BLOCK_COUNT)
         Sleep(10);
 
-	for(i = 0; i < waveFreeBlockCount; i++) 
-        if(waveBlocks[i].dwFlags & WHDR_PREPARED)
+	for (int i = 0; i < waveFreeBlockCount; i++)
+    {
+        if (waveBlocks[i].dwFlags & WHDR_PREPARED)
             waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
+    }
 
 	DeleteCriticalSection(&waveCriticalSection);
 	HeapFree(GetProcessHeap(), 0, waveBlocks);
@@ -112,17 +119,16 @@ void CSoundGen::FeedDAC(unsigned short L, unsigned short R)
 	if(!SoundInitialized)
 		return;
 
+	word = ((unsigned int)R<<16)+L;
+	memcpy(&buffer[bufcurpos], &word, 4);
+	bufcurpos += 4;
 
-	word=((unsigned int)R<<16)+L;
-	memcpy(&buffer[bufcurpos],&word,4);
-	bufcurpos+=4;
 
-
-	if(bufcurpos>=BUFSIZE)
+	if (bufcurpos >= BUFSIZE)
 	{
 		current = &waveBlocks[waveCurrentBlock];
 
-		if(current->dwFlags & WHDR_PREPARED) 
+		if (current->dwFlags & WHDR_PREPARED) 
 			waveOutUnprepareHeader(hWaveOut, current, sizeof(WAVEHDR));
 		
 		memcpy(current->lpData, buffer, BUFSIZE);
@@ -139,9 +145,12 @@ void CSoundGen::FeedDAC(unsigned short L, unsigned short R)
 			Sleep(1);
 
 		waveCurrentBlock++;
-		if(waveCurrentBlock >= BLOCK_COUNT)
+		if (waveCurrentBlock >= BLOCK_COUNT)
 			waveCurrentBlock=0;
 
-		bufcurpos=0;
+		bufcurpos = 0;
 	}
 }
+
+
+//////////////////////////////////////////////////////////////////////

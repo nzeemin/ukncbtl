@@ -15,6 +15,8 @@ BOOL m_Settings_Debug = FALSE;
 BOOL m_Settings_Debug_Valid = FALSE;
 BOOL m_Settings_RealSpeed = FALSE;
 BOOL m_Settings_RealSpeed_Valid = FALSE;
+BOOL m_Settings_Sound = FALSE;
+BOOL m_Settings_Sound_Valid = FALSE;
 BOOL m_Settings_Keyboard = FALSE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
 BOOL m_Settings_Tape = FALSE;
@@ -188,6 +190,24 @@ BOOL Settings_GetRealSpeed()
         m_Settings_RealSpeed_Valid = TRUE;
     }
     return m_Settings_RealSpeed;
+}
+
+void Settings_SetSound(BOOL flag)
+{
+    m_Settings_Sound = flag;
+    m_Settings_Sound_Valid = TRUE;
+    Settings_SaveDwordValue(_T("Sound"), (DWORD) flag);
+}
+BOOL Settings_GetSound()
+{
+    if (!m_Settings_Sound_Valid)
+    {
+        DWORD dwValue = (DWORD) FALSE;
+        Settings_LoadDwordValue(_T("Sound"), &dwValue);
+        m_Settings_Sound = (BOOL) dwValue;
+        m_Settings_Sound_Valid = TRUE;
+    }
+    return m_Settings_Sound;
 }
 
 void Settings_SetKeyboard(BOOL flag)

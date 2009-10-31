@@ -68,10 +68,11 @@ BEGIN
     POPUP "&Emulator"
     BEGIN
         MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN
-        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
         MENUITEM "Step\tF8",                    ID_EMULATOR_STEP
         MENUITEM "Reset",                       ID_EMULATOR_RESET
         MENUITEM SEPARATOR
+        MENUITEM "Sound",                       ID_EMULATOR_SOUND
+        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
         MENUITEM "Real Speed",                  ID_EMULATOR_REALSPEED
     END
     POPUP "&Drives"
