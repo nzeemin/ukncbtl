@@ -10,6 +10,7 @@
 const TCHAR m_Settings_RegKeyName[] = _T("Software\\UKNCBTL");
 HKEY m_Settings_RegKey = (HKEY) INVALID_HANDLE_VALUE;
 
+BOOL m_Settings_Toolbar = TRUE;
 BOOL m_Settings_Debug = FALSE;
 BOOL m_Settings_Debug_Valid = FALSE;
 BOOL m_Settings_RealSpeed = FALSE;
@@ -126,6 +127,17 @@ int Settings_GetScreenHeightMode()
     DWORD dwValue;
     Settings_LoadDwordValue(_T("ScreenHeightMode"), &dwValue);
     return (int) dwValue;
+}
+
+void Settings_SetToolbar(BOOL flag)
+{
+    Settings_SaveDwordValue(_T("Toolbar"), (DWORD) flag);
+}
+BOOL Settings_GetToolbar()
+{
+    DWORD dwValue = (DWORD) TRUE;
+    Settings_LoadDwordValue(_T("Toolbar"), &dwValue);
+    return (BOOL) dwValue;
 }
 
 void Settings_SetDebug(BOOL flag)

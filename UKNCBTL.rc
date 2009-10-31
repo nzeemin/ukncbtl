@@ -53,6 +53,7 @@ BEGIN
     END
     POPUP "&View"
     BEGIN
+        MENUITEM "Toolbar",                     ID_VIEW_TOOLBAR
         MENUITEM "Debug",                       ID_VIEW_DEBUG
         MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD
         MENUITEM "Tape",                        32803
