@@ -61,5 +61,7 @@ BOOL ParseOctalValue(LPCTSTR text, WORD* pValue);
 TCHAR Translate_KOI8R_Unicode(BYTE ch);
 void DrawCharKOI8R(HDC hdc, int x, int y, BYTE ch);
 
+LPCTSTR GetFileNameFromFilePath(LPCTSTR lpfilepath);
+
 
 //////////////////////////////////////////////////////////////////////

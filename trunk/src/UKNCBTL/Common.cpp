@@ -231,3 +231,19 @@ void DrawCharKOI8R(HDC hdc, int x, int y, BYTE ch)
 
     TextOut(hdc, x, y, &wch, 1);
 }
+
+
+//////////////////////////////////////////////////////////////////////
+// Path funcations
+
+LPCTSTR GetFileNameFromFilePath(LPCTSTR lpfilepath)
+{
+    LPCTSTR lpfilename = _tcsrchr(lpfilepath, _T('\\'));
+    if (lpfilename == NULL)
+        return lpfilepath;
+    else
+        return lpfilename + 1;
+}
+
+
+//////////////////////////////////////////////////////////////////////
