@@ -150,7 +150,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     if (! g_hwnd)
         return FALSE;
 
-    // Create and set up the statusbar
+    // Create and set up the toolbar and the statusbar
+    if (!MainWindow_InitToolbar())
+        return FALSE;
     if (!MainWindow_InitStatusbar())
         return FALSE;
 
@@ -166,11 +168,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     ScreenView_Init();
 
-    MainWindow_UpdateMenu();
-
     ShowWindow(g_hwnd, nCmdShow);
     UpdateWindow(g_hwnd);
     MainWindow_UpdateAllViews();
+    MainWindow_UpdateMenu();
 
     // Autostart
     if (Settings_GetAutostart())

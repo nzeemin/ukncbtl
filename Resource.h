@@ -18,6 +18,8 @@
 #define IDB_UKNC                        140
 #define IDI_DISKETTEWP                  141
 #define IDB_KEYBOARD                    142
+#define IDB_BITMAP1                     143
+#define IDB_TOOLBAR                     143
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define ID_VIEW                         32771
@@ -52,7 +54,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_RESOURCE_VALUE        144
 #define _APS_NEXT_COMMAND_VALUE         32804
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           110
