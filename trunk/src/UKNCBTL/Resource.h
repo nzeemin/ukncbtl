@@ -18,7 +18,6 @@
 #define IDB_UKNC                        140
 #define IDI_DISKETTEWP                  141
 #define IDB_KEYBOARD                    142
-#define IDB_BITMAP1                     143
 #define IDB_TOOLBAR                     143
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
@@ -47,6 +46,7 @@
 #define ID_EMULATOR_REALSPEED           32801
 #define ID_VIEW_KEYBOARD                32802
 #define ID_VIEW_TAPE                    32803
+#define ID_VIEW_TOOLBAR                 32804
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -55,7 +55,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        144
-#define _APS_NEXT_COMMAND_VALUE         32804
+#define _APS_NEXT_COMMAND_VALUE         32805
 #define _APS_NEXT_CONTROL_VALUE         1002
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

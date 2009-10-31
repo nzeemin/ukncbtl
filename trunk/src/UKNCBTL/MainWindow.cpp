@@ -32,6 +32,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
 void MainWindow_AdjustWindowLayout();
 bool MainWindow_DoCommand(int commandId);
 void MainWindow_DoViewDebug();
+void MainWindow_DoViewToolbar();
 void MainWindow_DoViewKeyboard();
 void MainWindow_DoViewTape();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
@@ -146,7 +147,8 @@ BOOL MainWindow_InitToolbar()
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 
-    ShowWindow(m_hwndToolbar, SW_SHOW);
+    if (Settings_GetToolbar())
+        ShowWindow(m_hwndToolbar, SW_SHOW);
 
     return TRUE;
 }
@@ -326,7 +328,9 @@ void MainWindow_AdjustWindowSize()
     else
     {
         cxWidth = cxScreen + cxFrame * 2 + 8;
-        cyHeight = cyCaption + cyMenu + 4 + cyToolbar + 4 + cyScreen + 4 + cyStatus + cyFrame * 2;
+        cyHeight = cyCaption + cyMenu + 4 + cyScreen + 4 + cyStatus + cyFrame * 2;
+        if (Settings_GetToolbar())
+            cyHeight += cyToolbar + 4;
         if (Settings_GetKeyboard())
             cyHeight += cyKeyboard + 4;
 		if (Settings_GetTape())
@@ -341,13 +345,12 @@ void MainWindow_AdjustWindowLayout()
     RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
     int cyStatus = rcStatus.bottom - rcStatus.top;
 
-    RECT rcToolbar;  GetWindowRect(m_hwndToolbar, &rcToolbar);
-    int cyToolbar = rcToolbar.bottom - rcToolbar.top;
-
-    int yScreen = 4 + cyToolbar + 4;
     RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
     int cxScreen = rcScreen.right - rcScreen.left;
     int cyScreen = rcScreen.bottom - rcScreen.top;
+
+    RECT rcToolbar;  GetWindowRect(m_hwndToolbar, &rcToolbar);
+    int cyToolbar = rcToolbar.bottom - rcToolbar.top;
 
     int cyKeyboard = 0;
 	if (Settings_GetKeyboard())
@@ -361,21 +364,30 @@ void MainWindow_AdjustWindowLayout()
 		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
         cyTape = rcTape.bottom - rcTape.top;
 	}
+    int yScreen = 4;
     int yConsole = yScreen + cyScreen + 4;
     int yKeyboard = yConsole;
     int yTape = yConsole;
 
     RECT rc;  GetClientRect(g_hwnd, &rc);
 
+    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
+
     SetWindowPos(m_hwndToolbar, NULL, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
+
+    if (Settings_GetToolbar())
+    {
+        yScreen += cyToolbar + 4;
+        yKeyboard += cyToolbar + 4;
+        yTape += cyToolbar + 4;
+        yConsole += cyToolbar + 4;
+    }
 
     SetWindowPos(g_hwndScreen, NULL, 4, yScreen, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 
-    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
-
     if (Settings_GetKeyboard())
     {
-        SetWindowPos(g_hwndKeyboard, NULL, 4, yScreen + cyScreen + 8, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+        SetWindowPos(g_hwndKeyboard, NULL, 4, yKeyboard, 0,0, SWP_NOZORDER|SWP_NOSIZE);
         yTape += cyKeyboard + 4;
         yConsole += cyKeyboard + 4;
     }
@@ -443,6 +455,15 @@ void MainWindow_ShowHideDebug()
         MainWindow_AdjustWindowLayout();
     }
 
+    MainWindow_UpdateMenu();
+}
+
+void MainWindow_ShowHideToolbar()
+{
+    ShowWindow(m_hwndToolbar, Settings_GetToolbar() ? SW_SHOW : SW_HIDE);
+
+    MainWindow_AdjustWindowSize();
+    MainWindow_AdjustWindowLayout();
     MainWindow_UpdateMenu();
 }
 
@@ -516,6 +537,7 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_EMULATOR_RUN, (g_okEmulatorRunning ? MF_CHECKED : MF_UNCHECKED));
     SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_RUN, (g_okEmulatorRunning ? 1 : 0));
     // View|Debug check
+    CheckMenuItem(hMenu, ID_VIEW_TOOLBAR, (Settings_GetToolbar() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_DEBUG, (Settings_GetDebug() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_KEYBOARD, (Settings_GetKeyboard() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_TAPE, (Settings_GetTape() ? MF_CHECKED : MF_UNCHECKED));
@@ -586,6 +608,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_DEBUG:
         MainWindow_DoViewDebug();
+        break;
+    case ID_VIEW_TOOLBAR:
+        MainWindow_DoViewToolbar();
         break;
     case ID_VIEW_KEYBOARD:
         MainWindow_DoViewKeyboard();
@@ -663,6 +688,11 @@ void MainWindow_DoViewDebug()
 
     Settings_SetDebug(!Settings_GetDebug());
     MainWindow_ShowHideDebug();
+}
+void MainWindow_DoViewToolbar()
+{
+    Settings_SetToolbar(!Settings_GetToolbar());
+    MainWindow_ShowHideToolbar();
 }
 void MainWindow_DoViewKeyboard()
 {
