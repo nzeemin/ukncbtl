@@ -21,6 +21,7 @@
 TCHAR g_szTitle[MAX_LOADSTRING];            // The title bar text
 TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 
+HWND m_hwndToolbar = NULL;
 HWND m_hwndStatusbar = NULL;
 
 
@@ -82,11 +83,79 @@ void MainWindow_RegisterClass()
 	TapeView_RegisterClass();
 }
 
+BOOL MainWindow_InitToolbar()
+{
+    m_hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, 
+        WS_CHILD | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_LIST | CCS_NOPARENTALIGN | CCS_NODIVIDER,
+        4, 4, 0, 0, g_hwnd,
+        (HMENU) 102,
+        g_hInst, NULL); 
+    if (! m_hwndToolbar)
+        return FALSE;
+
+    SendMessage(m_hwndToolbar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) (DWORD) TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(m_hwndToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
+    SendMessage(m_hwndToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26)); 
+
+    TBADDBITMAP addbitmap;
+    addbitmap.hInst = g_hInst;
+    addbitmap.nID = IDB_TOOLBAR;
+    SendMessage(m_hwndToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
+
+    TBBUTTON buttons[10];
+    ZeroMemory(buttons, sizeof(buttons));
+    for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
+    {
+        buttons[i].fsState = TBSTATE_ENABLED;
+        buttons[i].iString = -1;
+    }
+    buttons[0].idCommand = ID_EMULATOR_RUN;
+    buttons[0].iBitmap = 0;
+    buttons[0].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[0].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Run"));
+    buttons[1].idCommand = ID_EMULATOR_RESET;
+    buttons[1].iBitmap = 2;
+    buttons[1].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[1].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Reset"));
+    buttons[2].fsStyle = BTNS_SEP;
+    buttons[3].idCommand = ID_EMULATOR_FLOPPY0;
+    buttons[3].iBitmap = 4;
+    buttons[3].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[3].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("0"));
+    buttons[4].idCommand = ID_EMULATOR_FLOPPY1;
+    buttons[4].iBitmap = 4;
+    buttons[4].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[4].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("1"));
+    buttons[5].idCommand = ID_EMULATOR_FLOPPY2;
+    buttons[5].iBitmap = 4;
+    buttons[5].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[5].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("2"));
+    buttons[6].idCommand = ID_EMULATOR_FLOPPY3;
+    buttons[6].iBitmap = 4;
+    buttons[6].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[6].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("3"));
+    buttons[7].fsStyle = BTNS_SEP;
+    buttons[8].idCommand = ID_EMULATOR_CARTRIDGE1;
+    buttons[8].iBitmap = 6;
+    buttons[8].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[8].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("1"));
+    buttons[9].idCommand = ID_EMULATOR_CARTRIDGE2;
+    buttons[9].iBitmap = 6;
+    buttons[9].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[9].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("2"));
+
+    SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
+
+    ShowWindow(m_hwndToolbar, SW_SHOW);
+
+    return TRUE;
+}
+
 BOOL MainWindow_InitStatusbar()
 {
     m_hwndStatusbar = CreateStatusWindow(WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS,
             _T("Welcome to UKNC Back to Life emulator!"),
-            g_hwnd, 1);
+            g_hwnd, 101);
     if (! m_hwndStatusbar)
         return FALSE;
     int statusbarParts[7];
@@ -102,10 +171,6 @@ BOOL MainWindow_InitStatusbar()
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ1, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ2, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ3, 0);
-    //MainWindow_SetStatusbarTip(StatusbarPartMZ0, _T("MZ0:"));
-    //MainWindow_SetStatusbarTip(StatusbarPartMZ1, _T("MZ1:"));
-    //MainWindow_SetStatusbarTip(StatusbarPartMZ2, _T("MZ2:"));
-    //MainWindow_SetStatusbarTip(StatusbarPartMZ3, _T("MZ3:"));
 
     return TRUE;
 }
@@ -227,6 +292,9 @@ void MainWindow_AdjustWindowSize()
     int cyFrame   = ::GetSystemMetrics(SM_CYDLGFRAME);
     int cyCaption = ::GetSystemMetrics(SM_CYCAPTION);
     int cyMenu    = ::GetSystemMetrics(SM_CYMENU);
+
+    RECT rcToolbar;  GetWindowRect(m_hwndToolbar, &rcToolbar);
+    int cyToolbar = rcToolbar.bottom - rcToolbar.top;
     RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
     int cxScreen = rcScreen.right - rcScreen.left;
     int cyScreen = rcScreen.bottom - rcScreen.top;
@@ -258,7 +326,7 @@ void MainWindow_AdjustWindowSize()
     else
     {
         cxWidth = cxScreen + cxFrame * 2 + 8;
-        cyHeight = cyCaption + cyMenu + cyScreen + cyStatus + cyFrame * 2 + 8;
+        cyHeight = cyCaption + cyMenu + 4 + cyToolbar + 4 + cyScreen + 4 + cyStatus + cyFrame * 2;
         if (Settings_GetKeyboard())
             cyHeight += cyKeyboard + 4;
 		if (Settings_GetTape())
@@ -270,40 +338,54 @@ void MainWindow_AdjustWindowSize()
 
 void MainWindow_AdjustWindowLayout()
 {
+    RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
+    int cyStatus = rcStatus.bottom - rcStatus.top;
+
+    RECT rcToolbar;  GetWindowRect(m_hwndToolbar, &rcToolbar);
+    int cyToolbar = rcToolbar.bottom - rcToolbar.top;
+
+    int yScreen = 4 + cyToolbar + 4;
     RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
     int cxScreen = rcScreen.right - rcScreen.left;
     int cyScreen = rcScreen.bottom - rcScreen.top;
-    RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
-    int cyStatus = rcStatus.bottom - rcStatus.top;
-    int cyKeyboard = 0;
-	int cyTape = 0;
 
+    int cyKeyboard = 0;
 	if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
+	int cyTape = 0;
 	if (Settings_GetTape())
 	{
 		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
         cyTape = rcTape.bottom - rcTape.top;
 	}
+    int yConsole = yScreen + cyScreen + 4;
+    int yKeyboard = yConsole;
+    int yTape = yConsole;
 
     RECT rc;  GetClientRect(g_hwnd, &rc);
+
+    SetWindowPos(m_hwndToolbar, NULL, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
+
+    SetWindowPos(g_hwndScreen, NULL, 4, yScreen, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+
     SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
+
     if (Settings_GetKeyboard())
     {
-        SetWindowPos(g_hwndKeyboard, NULL, 4, cyScreen + 8, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+        SetWindowPos(g_hwndKeyboard, NULL, 4, yScreen + cyScreen + 8, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+        yTape += cyKeyboard + 4;
+        yConsole += cyKeyboard + 4;
     }
     if (Settings_GetTape())
     {
-        SetWindowPos(g_hwndTape, NULL, 4, cyScreen + cyKeyboard + 12, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+        SetWindowPos(g_hwndTape, NULL, 4, yTape, 0,0, SWP_NOZORDER|SWP_NOSIZE);
+        yConsole += cyTape + 4;
     }
     if (Settings_GetDebug())
     {
-        int yConsole = cyScreen + 8;
-        if (Settings_GetKeyboard()) yConsole += cyKeyboard + 4;
-        if (Settings_GetTape()) yConsole += cyTape + 4;
         int cyConsole = rc.bottom - cyStatus - yConsole - 4;
         SetWindowPos(g_hwndConsole, NULL, 4, yConsole, cxScreen, cyConsole, SWP_NOZORDER);
     }
@@ -432,6 +514,7 @@ void MainWindow_UpdateMenu()
 
     // Emulator|Run check
     CheckMenuItem(hMenu, ID_EMULATOR_RUN, (g_okEmulatorRunning ? MF_CHECKED : MF_UNCHECKED));
+    SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_RUN, (g_okEmulatorRunning ? 1 : 0));
     // View|Debug check
     CheckMenuItem(hMenu, ID_VIEW_DEBUG, (Settings_GetDebug() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_KEYBOARD, (Settings_GetKeyboard() ? MF_CHECKED : MF_UNCHECKED));
@@ -471,10 +554,22 @@ void MainWindow_UpdateMenu()
         g_pBoard->IsFloppyImageAttached(2) ? ((g_pBoard->IsFloppyReadOnly(2)) ? IDI_DISKETTEWP : IDI_DISKETTE) : 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ3,
         g_pBoard->IsFloppyImageAttached(3) ? ((g_pBoard->IsFloppyReadOnly(3)) ? IDI_DISKETTEWP : IDI_DISKETTE) : 0);
+    MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY0,
+        g_pBoard->IsFloppyImageAttached(0) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+    MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY1,
+        g_pBoard->IsFloppyImageAttached(1) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+    MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY2,
+        g_pBoard->IsFloppyImageAttached(2) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+    MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY3,
+        g_pBoard->IsFloppyImageAttached(3) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
 
     // Emulator|CartridgeX
     CheckMenuItem(hMenu, ID_EMULATOR_CARTRIDGE1, (g_pBoard->IsROMCartridgeLoaded(1) ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_CARTRIDGE2, (g_pBoard->IsROMCartridgeLoaded(2) ? MF_CHECKED : MF_UNCHECKED));
+    MainWindow_SetToolbarImage(ID_EMULATOR_CARTRIDGE1,
+        g_pBoard->IsROMCartridgeLoaded(1) ? ToolbarImageCartridge : ToolbarImageCartSlot);
+    MainWindow_SetToolbarImage(ID_EMULATOR_CARTRIDGE2,
+        g_pBoard->IsROMCartridgeLoaded(2) ? ToolbarImageCartridge : ToolbarImageCartSlot);
 }
 
 // Process menu command
@@ -823,6 +918,15 @@ void MainWindow_UpdateAllViews()
         InvalidateRect(g_hwndDisasm, NULL, TRUE);
     if (g_hwndMemory != NULL)
         InvalidateRect(g_hwndMemory, NULL, TRUE);
+}
+
+void MainWindow_SetToolbarImage(int commandId, int imageIndex)
+{
+    TBBUTTONINFO info;
+    info.cbSize = sizeof(info);
+    info.iImage = imageIndex;
+    info.dwMask = TBIF_IMAGE;
+    SendMessage(m_hwndToolbar, TB_SETBUTTONINFO, commandId, (LPARAM) &info);
 }
 
 void MainWindow_SetStatusbarText(int part, LPCTSTR message)
