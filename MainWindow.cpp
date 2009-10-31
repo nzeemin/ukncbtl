@@ -41,6 +41,7 @@ void MainWindow_DoEmulatorRun();
 void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
 void MainWindow_DoEmulatorRealSpeed();
+void MainWindow_DoEmulatorSound();
 void MainWindow_DoFileSaveState();
 void MainWindow_DoFileLoadState();
 void MainWindow_DoEmulatorFloppy(int slot);
@@ -643,6 +644,9 @@ bool MainWindow_DoCommand(int commandId)
     case ID_EMULATOR_REALSPEED:
         MainWindow_DoEmulatorRealSpeed();
         break;
+    case ID_EMULATOR_SOUND:
+        MainWindow_DoEmulatorSound();
+        break;
     case ID_EMULATOR_FLOPPY0:
         MainWindow_DoEmulatorFloppy(0);
         break;
@@ -745,6 +749,12 @@ void MainWindow_DoEmulatorReset()
 void MainWindow_DoEmulatorRealSpeed()
 {
     Settings_SetRealSpeed(!Settings_GetRealSpeed());
+
+    MainWindow_UpdateMenu();
+}
+void MainWindow_DoEmulatorSound()
+{
+    Settings_SetSound(!Settings_GetSound());
 
     MainWindow_UpdateMenu();
 }
