@@ -48,6 +48,7 @@ void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoFileScreenshot();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
+void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -87,7 +88,7 @@ void MainWindow_RegisterClass()
 BOOL MainWindow_InitToolbar()
 {
     m_hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, 
-        WS_CHILD | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_LIST | CCS_NOPARENTALIGN | CCS_NODIVIDER,
+        WS_CHILD | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
         4, 4, 0, 0, g_hwnd,
         (HMENU) 102,
         g_hInst, NULL); 
@@ -241,29 +242,22 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
-    //case WM_KEYDOWN:
-    //    switch (wParam)
-    //    {
-    //    case VK_ESCAPE:
-    //        PostMessage(hWnd, WM_COMMAND, ID_VIEW_DEBUG, 0);
-    //        break;
-    //    default:
-    //        return (LRESULT) TRUE;
-    //    }
-    //    break;
     case WM_NOTIFY:
         {
             int idCtrl = (int) wParam;
             HWND hwndFrom = ((LPNMHDR) lParam)->hwndFrom;
             UINT code = ((LPNMHDR) lParam)->code;
-            if (hwndFrom == m_hwndStatusbar)
+            if (hwndFrom == m_hwndStatusbar && code == NM_CLICK)
             {
-                switch (code)
-                {
-                case NM_CLICK: MainWindow_OnStatusbarClick((LPNMMOUSE) lParam); break;
-                default:
-                    return DefWindowProc(hWnd, message, wParam, lParam);
-                }
+                MainWindow_OnStatusbarClick((LPNMMOUSE) lParam);
+            }
+            else if (code == TTN_SHOW)
+            {
+                return 0;
+            }
+            else if (hwndFrom == m_hwndToolbar && code == TBN_GETINFOTIP)
+            {
+                MainWindow_OnToolbarGetInfoTip((LPNMTBGETINFOTIP) lParam);
             }
             else
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -890,6 +884,51 @@ void MainWindow_DoEmulatorCartridge(int slot)
         Settings_SetCartridgeFilePath(slot, bufFileName);
     }
     MainWindow_UpdateMenu();
+}
+
+void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP lpnm)
+{
+    int commandId = lpnm->iItem;
+
+    if (commandId == ID_EMULATOR_FLOPPY0 || commandId == ID_EMULATOR_FLOPPY1 ||
+        commandId == ID_EMULATOR_FLOPPY2 || commandId == ID_EMULATOR_FLOPPY3)
+    {
+        int floppyslot = 0;
+        switch (commandId)
+        {
+        case ID_EMULATOR_FLOPPY0: floppyslot = 0; break;
+        case ID_EMULATOR_FLOPPY1: floppyslot = 1; break;
+        case ID_EMULATOR_FLOPPY2: floppyslot = 2; break;
+        case ID_EMULATOR_FLOPPY3: floppyslot = 3; break;
+        }
+
+        if (g_pBoard->IsFloppyImageAttached(floppyslot))
+        {
+            TCHAR buffilepath[MAX_PATH];
+            Settings_GetFloppyFilePath(floppyslot, buffilepath);
+
+            LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
+            _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);
+        }
+    }
+    else if (commandId == ID_EMULATOR_CARTRIDGE1 || commandId == ID_EMULATOR_CARTRIDGE2)
+    {
+        int cartslot = 0;
+        switch (commandId)
+        {
+        case ID_EMULATOR_CARTRIDGE1: cartslot = 1; break;
+        case ID_EMULATOR_CARTRIDGE2: cartslot = 2; break;
+        }
+
+        if (g_pBoard->IsROMCartridgeLoaded(cartslot))
+        {
+            TCHAR buffilepath[MAX_PATH];
+            Settings_GetCartridgeFilePath(cartslot, buffilepath);
+
+            LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
+            _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);
+        }
+    }
 }
 
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm)
