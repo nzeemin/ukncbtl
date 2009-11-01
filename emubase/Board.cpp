@@ -3,9 +3,7 @@
 
 #include "StdAfx.h"
 #include "Emubase.h"
-#include "..\SoundGen.h"
 #include "Board.h"
-
 
 
 //////////////////////////////////////////////////////////////////////
@@ -34,8 +32,6 @@ CMotherboard::CMotherboard ()
 
 	m_multiply=1;
 
-
-	m_Sound= new CSoundGen();
     m_pCPU = new CProcessor(_T("CPU"));
     m_pPPU = new CProcessor(_T("PPU"));
     m_pFirstMemCtl = new CFirstMemoryController();
@@ -48,11 +44,9 @@ CMotherboard::CMotherboard ()
     m_pPPU->AttachMemoryController(m_pSecondMemCtl);
     m_pSecondMemCtl->Attach(this, m_pPPU);
 
-	//m_floppyaddr=0;
-	//m_floppystate=FLOPPY_FSM_WAITFORLSB;
-
 	m_TapeReadCallback = NULL;
 	m_nTapeReadSampleRate = 0;
+    m_SoundGenCallback = NULL;
 
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) ::LocalAlloc(LPTR, 65536);
@@ -98,9 +92,6 @@ void CMotherboard::Reset ()
     m_timerflags = 0;
     m_timerdivider = 0;
 
-	//m_floppyaddr=0;
-	//m_floppystate=FLOPPY_FSM_WAITFORLSB;
-
     ::ZeroMemory(m_chancpurx, sizeof(m_chancpurx));
     ::ZeroMemory(m_chanppurx, sizeof(m_chanppurx));
     ::ZeroMemory(m_chancputx, sizeof(m_chancputx));
@@ -112,7 +103,6 @@ void CMotherboard::Reset ()
 	m_chanpputx[1].ready=1;
 
     m_chan0disabled = 0;
-    //m_currentdrive = 0;
 
     //m_CPUbp = 0177777;
     //m_PPUbp = 0177777;
@@ -143,6 +133,7 @@ void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM ima
     ASSERT(plan >= 0 && plan <= 2);
     ::CopyMemory(m_pRAM[plan], pBuffer, 32768);
 }
+
 
 // Floppy ////////////////////////////////////////////////////////////
 
@@ -280,8 +271,6 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
 {
     int flag;
 	
-	
-	
     if ((m_timerflags & 1) == 0)  // Nothing to do
         return;
 
@@ -334,7 +323,6 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
             m_pPPU->InterruptVIRQ(2, 0304); 
         }
     }
-    
 }
 WORD CMotherboard::GetTimerValue()  // Returns current timer value
 {
@@ -375,7 +363,6 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
     m_timerflags &= 0250;  // Clear everything but bits 7,5,3
     m_timerflags |= (val & (~0250));  // Preserve bits 753
 
-
     switch((m_timerflags >> 1) & 3)
     {
         case 0: //2uS
@@ -391,8 +378,6 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
 			m_multiply=1;
             break;
     }
-
-
 }
 
 void CMotherboard::DebugTicks()
@@ -416,7 +401,7 @@ void CMotherboard::DebugTicks()
 ** ѕерва€ невидима€ строка (#0) начинает рисоватьс€ на 96-ой тик
 ** ѕерва€ видима€ строка (#18) начинает рисоватьс€ на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
-* 200 тиков чтени€ с магнитофона - каждый 100-й тик
+* 800 тиков чтени€ с магнитофона - каждый 25-й тик
 */
 BOOL CMotherboard::SystemFrame()
 {
@@ -424,7 +409,7 @@ BOOL CMotherboard::SystemFrame()
 	
 	int audioticks = 20286/(SAMPLERATE/25);
 
-	const int tapeReadTicks = 100;
+	const int tapeReadTicks = 25;
 	int tapeReadSamplesPerFrame = 0;
 	//int tapeReadSamples = 0;  // For statistics only
 	int tapeReadError = 0;
@@ -555,7 +540,6 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     CopyMemory(pImageRam, m_pRAM[1], 64 * 1024);
     pImageRam += 64 * 1024;
     CopyMemory(pImageRam, m_pRAM[2], 64 * 1024);
-
 }
 void CMotherboard::LoadFromImage(const BYTE* pImage)
 {
@@ -611,7 +595,6 @@ void		CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 
 	if((chan==0)&&(m_chan0disabled))
 		return;
-	
 
 	m_chanppurx[chan].data=data;
 	m_chanppurx[chan].ready=1;
@@ -648,7 +631,6 @@ BYTE		CMotherboard::ChanReadByCPU(BYTE chan)
 
 	if((chan==0)&&(m_chan0disabled))
 		return 0;
-
 
 	res=m_chancpurx[chan].data;
 	m_chancpurx[chan].ready=0;
@@ -693,7 +675,6 @@ BYTE		CMotherboard::ChanReadByPPU(BYTE chan)
 	}
 
 	return res;
-
 }
 
 BYTE		CMotherboard::ChanRxStateGetCPU(BYTE chan)
@@ -701,8 +682,6 @@ BYTE		CMotherboard::ChanRxStateGetCPU(BYTE chan)
 	//TCHAR txt[1024];
 	chan&=3;
 	ASSERT(chan<2);
-
-
 	
 	return (m_chancpurx[chan].ready<<7)|(m_chancpurx[chan].irq<<6);
 }
@@ -762,8 +741,6 @@ void		CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
 
 	if((m_chancpurx[chan].irq)&&(m_chancpurx[chan].ready))
 		m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
-
-
 }
 void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 {
@@ -802,8 +779,6 @@ void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 			break;
 		}
 	}
-
-
 }
 
 void		CMotherboard::ChanRxStateSetPPU(BYTE state)
@@ -840,9 +815,6 @@ void		CMotherboard::ChanTxStateSetPPU(BYTE state)
 	else
 	if((m_chanpputx[1].irq)&&(m_chanpputx[1].ready))
 		m_pPPU->InterruptVIRQ(8, 0334);
-
-
-
 }
 
 //void CMotherboard::FloppyDebug(BYTE val)
@@ -1014,13 +986,13 @@ void CMotherboard::DoSound(void)
 //	global|=(freq_out[4]&freq_enable[4]);
 //	global&=freq_enable[5];
 
-
-	if(global)
-		m_Sound->FeedDAC(0x7fff,0x7fff);
-	else
-		m_Sound->FeedDAC(0x0000,0x0000);
-
-
+    if (m_SoundGenCallback != NULL)
+    {
+	    if (global)
+		    (*m_SoundGenCallback)(0x7fff,0x7fff);
+	    else
+		    (*m_SoundGenCallback)(0x0000,0x0000);
+    }
 }
 
 void CMotherboard::SetSound(WORD val)
@@ -1055,7 +1027,6 @@ void CMotherboard::SetSound(WORD val)
 		freq_enable[4]=1;
 	else
 		freq_enable[4]=0;
-
 }
 
 void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate)
@@ -1071,5 +1042,18 @@ void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate
 		m_nTapeReadSampleRate = sampleRate;
 	}
 }
+
+void CMotherboard::SetSoundGenCallback(SOUNDGENCALLBACK callback)
+{
+	if (callback == NULL)  // Reset callback
+	{
+		m_SoundGenCallback = NULL;
+	}
+	else
+	{
+		m_SoundGenCallback = callback;
+	}
+}
+
 
 //////////////////////////////////////////////////////////////////////

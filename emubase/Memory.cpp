@@ -5,7 +5,6 @@
 #include "Memory.h"
 #include "Board.h"
 #include "Processor.h"
-#include "..\Views.h"
 
 
 //////////////////////////////////////////////////////////////////////
