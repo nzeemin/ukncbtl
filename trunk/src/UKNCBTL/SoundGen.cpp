@@ -16,7 +16,7 @@ static WAVEHDR*         waveBlocks;
 static volatile int     waveFreeBlockCount;
 static int              waveCurrentBlock;
 
-static bool m_SoundGenInitialized;
+static bool m_SoundGenInitialized = FALSE;
 
 
 HWAVEOUT hWaveOut; 
@@ -44,10 +44,12 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
 
 void SoundGen_Initialize()
 {
+    DebugLog(_T("SoundGen_Initialize"));
+    if (m_SoundGenInitialized)
+        return;
+
     unsigned char* mbuffer;
 
-	m_SoundGenInitialized = false;
-	//return;
     DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
     
     mbuffer = (unsigned char*) HeapAlloc(
@@ -94,6 +96,10 @@ void SoundGen_Initialize()
 
 void SoundGen_Finalize()
 {
+    DebugLog(_T("SoundGen_Finalize"));
+    if (!m_SoundGenInitialized)
+        return;
+
     while (waveFreeBlockCount < BLOCK_COUNT)
         Sleep(10);
 
@@ -104,9 +110,12 @@ void SoundGen_Finalize()
     }
 
 	DeleteCriticalSection(&waveCriticalSection);
-	HeapFree(GetProcessHeap(), 0, waveBlocks);
     waveOutClose(hWaveOut);
 
+    HeapFree(GetProcessHeap(), 0, waveBlocks);
+    waveBlocks = NULL;
+
+    m_SoundGenInitialized = FALSE;
 }
 
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)

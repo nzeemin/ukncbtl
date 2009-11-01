@@ -18,6 +18,8 @@ BOOL g_okEmulatorRunning = FALSE;
 WORD m_wEmulatorCPUBreakpoint = 0177777;
 WORD m_wEmulatorPPUBreakpoint = 0177777;
 
+BOOL m_okEmulatorSound = FALSE;
+
 long m_nFrameCount = 0;
 DWORD m_dwTickCount = 0;
 DWORD m_dwEmulatorUptime = 0;  // UKNC uptime, seconds, from turn on or reset, increments every 25 frames
@@ -64,8 +66,11 @@ BOOL InitEmulator()
 
     g_pBoard->Reset();
 
-	SoundGen_Initialize();
-    g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
+    if (m_okEmulatorSound)
+    {
+	    SoundGen_Initialize();
+        g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
+    }
 
     m_nUptimeFrameCount = 0;
     m_dwEmulatorUptime = 0;
@@ -86,6 +91,7 @@ void DoneEmulator()
 
     CProcessor::Done();
 
+    g_pBoard->SetSoundGenCallback(NULL);
     SoundGen_Finalize();
 
     delete g_pBoard;
@@ -154,6 +160,25 @@ BOOL Emulator_IsBreakpoint()
     if (wPPUAddr == m_wEmulatorPPUBreakpoint)
         return TRUE;
     return FALSE;
+}
+
+void Emulator_SetSound(BOOL soundOnOff)
+{
+    if (m_okEmulatorSound != soundOnOff)
+    {
+        if (soundOnOff)
+        {
+            SoundGen_Initialize();
+            g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
+        }
+        else
+        {
+            g_pBoard->SetSoundGenCallback(NULL);
+            SoundGen_Finalize();
+        }
+    }
+
+    m_okEmulatorSound = soundOnOff;
 }
 
 int Emulator_SystemFrame()

@@ -554,9 +554,10 @@ void MainWindow_UpdateMenu()
     }
     CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_DOUBLEHEIGHT, scrheimodecmd, MF_BYCOMMAND);
 
-    // Emulator|Autostart
+    // Emulator menu options
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_REALSPEED, (Settings_GetRealSpeed() ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
 
     // Emulator|FloppyX
     CheckMenuItem(hMenu, ID_EMULATOR_FLOPPY0, (g_pBoard->IsFloppyImageAttached(0) ? MF_CHECKED : MF_UNCHECKED));
@@ -755,6 +756,8 @@ void MainWindow_DoEmulatorRealSpeed()
 void MainWindow_DoEmulatorSound()
 {
     Settings_SetSound(!Settings_GetSound());
+
+    Emulator_SetSound(Settings_GetSound());
 
     MainWindow_UpdateMenu();
 }
