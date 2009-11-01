@@ -360,9 +360,9 @@ void MainWindow_AdjustWindowLayout()
         cyTape = rcTape.bottom - rcTape.top;
 	}
     int yScreen = 4;
+    int yKeyboard = yScreen + cyScreen + 4;
+    int yTape = yScreen + cyScreen + 4;
     int yConsole = yScreen + cyScreen + 4;
-    int yKeyboard = yConsole;
-    int yTape = yConsole;
 
     RECT rc;  GetClientRect(g_hwnd, &rc);
 
@@ -372,24 +372,24 @@ void MainWindow_AdjustWindowLayout()
 
     if (Settings_GetToolbar())
     {
-        yScreen += cyToolbar + 4;
+        yScreen   += cyToolbar + 4;
         yKeyboard += cyToolbar + 4;
-        yTape += cyToolbar + 4;
-        yConsole += cyToolbar + 4;
+        yTape     += cyToolbar + 4;
+        yConsole  += cyToolbar + 4;
     }
 
-    SetWindowPos(g_hwndScreen, NULL, 4, yScreen, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+    SetWindowPos(g_hwndScreen, NULL, 4, yScreen, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
 
     if (Settings_GetKeyboard())
     {
-        SetWindowPos(g_hwndKeyboard, NULL, 4, yKeyboard, 0,0, SWP_NOZORDER|SWP_NOSIZE);
-        yTape += cyKeyboard + 4;
-        yConsole += cyKeyboard + 4;
+        SetWindowPos(g_hwndKeyboard, NULL, 4, yKeyboard, 0,0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
+        yTape     += cyKeyboard + 4;
+        yConsole  += cyKeyboard + 4;
     }
     if (Settings_GetTape())
     {
-        SetWindowPos(g_hwndTape, NULL, 4, yTape, 0,0, SWP_NOZORDER|SWP_NOSIZE);
-        yConsole += cyTape + 4;
+        SetWindowPos(g_hwndTape, NULL, 4, yTape, 0,0, SWP_NOZORDER | SWP_NOSIZE);
+        yConsole  += cyTape + 4;
     }
     if (Settings_GetDebug())
     {
