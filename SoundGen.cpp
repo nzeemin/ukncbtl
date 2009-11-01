@@ -44,7 +44,6 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
 
 void SoundGen_Initialize()
 {
-    DebugLog(_T("SoundGen_Initialize"));
     if (m_SoundGenInitialized)
         return;
 
@@ -96,7 +95,6 @@ void SoundGen_Initialize()
 
 void SoundGen_Finalize()
 {
-    DebugLog(_T("SoundGen_Finalize"));
     if (!m_SoundGenInitialized)
         return;
 
