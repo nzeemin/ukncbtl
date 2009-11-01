@@ -7,7 +7,6 @@
 
 class CProcessor;
 class CMemoryController;
-class CSoundGen;
 
 //floppy debug
 #define FLOPPY_FSM_WAITFORLSB	0
@@ -41,6 +40,9 @@ typedef struct chan_tag{
 //   result     Bit to put in tape input port.
 typedef BOOL (CALLBACK* TAPEREADCALLBACK)(UINT samples);
 
+// Sound generator callback function type
+typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
+
 class CFloppyController;
 
 //////////////////////////////////////////////////////////////////////
@@ -53,7 +55,6 @@ public:  // Construct / destruct
     ~CMotherboard();
 
 protected:  // Devices
-	CSoundGen*		m_Sound;
     CProcessor*     m_pCPU;  // CPU device
     CProcessor*     m_pPPU;  // PPU device
     CMemoryController*  m_pFirstMemCtl;  // CPU memory control
@@ -152,6 +153,7 @@ public:  // System control
     void        UnloadROMCartridge(int cartno);
 
 	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+	void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
 
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
@@ -179,11 +181,10 @@ private:
 	chan_stc	m_chanppurx[3];
 
 	BYTE		m_chan0disabled;
-	//BYTE		m_currentdrive;
-	//BYTE		m_floppystate;
-	//WORD		m_floppyaddr;
-	TAPEREADCALLBACK m_TapeReadCallback;
+
+    TAPEREADCALLBACK m_TapeReadCallback;
 	int			m_nTapeReadSampleRate;
+    SOUNDGENCALLBACK m_SoundGenCallback;
 
 	WORD GetKeyboardRegister(void);
 	void DoSound(void);

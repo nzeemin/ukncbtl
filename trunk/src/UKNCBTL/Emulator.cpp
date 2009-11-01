@@ -5,6 +5,7 @@
 #include "Emulator.h"
 #include "Views.h"
 #include "emubase\Emubase.h"
+#include "SoundGen.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -63,6 +64,9 @@ BOOL InitEmulator()
 
     g_pBoard->Reset();
 
+	SoundGen_Initialize();
+    g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
+
     m_nUptimeFrameCount = 0;
     m_dwEmulatorUptime = 0;
 
@@ -81,6 +85,8 @@ void DoneEmulator()
     ASSERT(g_pBoard != NULL);
 
     CProcessor::Done();
+
+    SoundGen_Finalize();
 
     delete g_pBoard;
     g_pBoard = NULL;

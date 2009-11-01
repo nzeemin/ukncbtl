@@ -16,7 +16,7 @@ static WAVEHDR*         waveBlocks;
 static volatile int     waveFreeBlockCount;
 static int              waveCurrentBlock;
 
-static bool SoundInitialized;
+static bool m_SoundGenInitialized;
 
 
 HWAVEOUT hWaveOut; 
@@ -42,12 +42,11 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     LeaveCriticalSection(&waveCriticalSection);
 }
 
-
-CSoundGen::CSoundGen(void)
+void SoundGen_Initialize()
 {
     unsigned char* mbuffer;
 
-	SoundInitialized = false;
+	m_SoundGenInitialized = false;
 	//return;
     DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
     
@@ -89,11 +88,11 @@ CSoundGen::CSoundGen(void)
 	InitializeCriticalSection(&waveCriticalSection);
 	bufcurpos = 0;
 
-	SoundInitialized = true;
+	m_SoundGenInitialized = true;
 	//waveOutSetPlaybackRate(hWaveOut,0x00008000);
 }
 
-CSoundGen::~CSoundGen(void)
+void SoundGen_Finalize()
 {
     while (waveFreeBlockCount < BLOCK_COUNT)
         Sleep(10);
@@ -110,19 +109,18 @@ CSoundGen::~CSoundGen(void)
 
 }
 
-void CSoundGen::FeedDAC(unsigned short L, unsigned short R)
+void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
 {
 	unsigned int word;
 	WAVEHDR* current;
 
 //return;
-	if(!SoundInitialized)
+	if(!m_SoundGenInitialized)
 		return;
 
 	word = ((unsigned int)R<<16)+L;
 	memcpy(&buffer[bufcurpos], &word, 4);
 	bufcurpos += 4;
-
 
 	if (bufcurpos >= BUFSIZE)
 	{

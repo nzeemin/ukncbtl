@@ -2,7 +2,6 @@
 //
 
 #include "StdAfx.h"
-#include "..\Emulator.h"
 #include "Processor.h"
 
 
@@ -1771,10 +1770,10 @@ void CProcessor::ExecuteBNE ()
 
 void CProcessor::ExecuteBEQ ()
 {
-	m_internalTick=BRANCH_FALSE_TIMING;
+	m_internalTick = BRANCH_FALSE_TIMING;
     if (GetZ())
 	{
-		m_internalTick=BRANCH_TRUE_TIMING;
+		m_internalTick = BRANCH_TRUE_TIMING;
         SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
@@ -2193,16 +2192,15 @@ void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 		BYTE src2;
 		BYTE dst;
 		
-		src=m_methsrc?GetByte(GetByteAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		src = m_methsrc ? GetByte(GetByteAddr(m_methsrc, m_regsrc)) : GetReg(m_regsrc);
+		src2 = m_methdest ? GetByte(ea = GetByteAddr(m_methdest, m_regdest)) : GetReg(m_regdest);
 
-		dst=src2 & src;
+		dst = src2 & src;
 
-		SetN(dst>>7);
+		SetN(dst >> 7);
 		SetZ(!dst);
 		SetV(0);
-		m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
-
+		m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 	}
 	else
 	{
@@ -2210,15 +2208,15 @@ void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 		WORD src2;
 		WORD dst;
 		
-		src=m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		src  = m_methsrc  ? GetWord(GetWordAddr(m_methsrc, m_regsrc)) : GetReg(m_regsrc);
+		src2 = m_methdest ? GetWord(ea = GetWordAddr(m_methdest, m_regdest)) : GetReg(m_regdest);
 
-		dst=src2 & src;
+		dst = src2 & src;
 
-		SetN(dst>>15);
+		SetN(dst >> 15);
 		SetZ(!dst);
 		SetV(0);
-		m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
+		m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 	}
 
 }
