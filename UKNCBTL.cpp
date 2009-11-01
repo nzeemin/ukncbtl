@@ -141,6 +141,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
     Settings_Init();
     if (!InitEmulator()) return FALSE;
+    Emulator_SetSound(Settings_GetSound());
 
     // Create main window    
     g_hwnd = CreateWindow(g_szWindowClass, g_szTitle,
