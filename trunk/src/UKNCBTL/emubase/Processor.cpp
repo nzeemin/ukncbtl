@@ -7,25 +7,7 @@
 
 // Timings ///////////////////////////////////////////////////////////
 
-//#define PI_TIME_BASE      40
-//#define PI_TIME_HALT     280
-//#define PI_TIME_RTI      134
-//#define PI_TIME_RESET   3800
-//#define PI_TIME_BR_BASE   54
-//#define PI_TIME_RTS      108
-//#define PI_TIME_MARK     118
-//#define PI_TIME_EMT      228
-//#define PI_TIME_SOB       68
-//#define PI_TIME_INT      200
-//
-//WORD timing_A_A1[8]     ={0,  40,  40,  68,  40,  68,  68, 94}; 
-//WORD timing_AB[8]       ={0,  54,  54,  80,  54,  80,  80, 108};
-//WORD timing_B[8]        ={0,  68,  68, 108,  68, 108, 108, 134};
-//WORD timing_A2_Nj[8]    ={0,  68,  68,  94,  68,  94,  94, 120};
-//WORD timing_Ns[8]       ={0, 108, 108, 134, 108, 134, 134, 160};
-
-
-	//MOV -- 64 
+//MOV -- 64 
 WORD MOV_TIMING[8][8]=
 {	
 		{0x000C, 0x0021, 0x0027, 0x0033, 0x002B, 0x0037, 0x0033, 0x0043}, 
@@ -297,7 +279,6 @@ void CProcessor::RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMeth
 
 
 CProcessor::CProcessor (LPCTSTR name)
-
 {
     lstrcpy(m_name, name);
     m_psw = 0400;  // Start value of PSW is 340
@@ -319,10 +300,11 @@ CProcessor::CProcessor (LPCTSTR name)
 	memset(m_virq, 0, sizeof(m_virq));
 	m_evntrq=0;
 	m_ACLOrq = 0;
-	if(m_name[0]==_T('C'))
-		m_haltpin=0;
-	else
-		m_haltpin=0;
+    m_haltpin = 0;
+	//if(m_name[0]==_T('C'))
+	//	m_haltpin=0;
+	//else
+	//	m_haltpin=0;
 }
 
 void CProcessor::Start ()
@@ -377,13 +359,12 @@ void CProcessor::Stop ()
 	m_waitmode=0;
 	m_userspace=0;
 	m_stepmode=0;
-	if(m_name[0]==_T('C'))
-		m_haltpin=0;
-	else
-		m_haltpin=0;
-
+    m_haltpin = 0;
+	//if(m_name[0]==_T('C'))
+	//	m_haltpin=0;
+	//else
+	//	m_haltpin=0;
 }
-
 
 void CProcessor::Execute()
 {
@@ -504,7 +485,6 @@ void CProcessor::TickEVNT()
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
 	m_evntrq=1;
-
 }
 
 void CProcessor::PowerFail()
@@ -512,7 +492,6 @@ void CProcessor::PowerFail()
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
 	m_ACLOrq=1;
-
 }
 
 void CProcessor::InterruptVIRQ(int que, WORD interrupt)
@@ -537,8 +516,8 @@ void CProcessor::DeassertHALT()
 
 void CProcessor::MemoryError()
 {
-			m_traprq=1;
-			m_trap=4; //normal HALT
+	m_traprq=1;
+	m_trap=4; //normal HALT
 }
 
 void CProcessor::MakeInterrupt(WORD interrupt)
@@ -559,7 +538,6 @@ WORD CProcessor::CalculateOperAddrSrc (int meth, int reg)
 {
 	WORD arg;
 
-	
 		switch (meth) {
 			case 0:  // R0,     PC 
 				return GetReg(reg);
@@ -621,13 +599,10 @@ WORD CProcessor::CalculateOperAddrSrc (int meth, int reg)
 		}
 	
     return 0;
-
 }
 
 WORD CProcessor::CalculateOperAddr (int meth, int reg)
 {
-
-
 	WORD arg;
 		switch (meth) {
 			case 0:  // R0,     PC 
@@ -688,6 +663,7 @@ WORD CProcessor::CalculateOperAddr (int meth, int reg)
 				return arg;
 			}
 		}
+
     return 0;
 }
 
@@ -782,7 +758,6 @@ WORD CProcessor::GetDstWordArgAsBranch ()
             return GetWord( (WORD)(pc + GetReg(reg)) );
         }
     }
-
 
 	return 0;
 }
@@ -1167,14 +1142,14 @@ void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 {
 	//ASSERT(m_R[7]!=0174222);
 	
-    if (m_methdest == 0) {  // Неправильный метод адресации
+    if (m_methdest == 0)  // Неправильный метод адресации
+    {
         m_traprq=1;
 		m_trap=010;
 		m_internalTick=EMT_TIMING;
     }
     else 
 	{
-      
         SetPC(GetWordAddr(m_methdest,m_regdest));
 		m_internalTick=JMP_TIMING[m_methdest-1];
     }
@@ -1202,10 +1177,8 @@ void CProcessor::ExecuteSWAB ()
 
 void CProcessor::ExecuteCLR ()  // CLR
 {
-	
 	if(m_instruction&0100000)
 	{
-
 		SetN(0);
 		SetZ(1);
 		SetV(0);
@@ -1220,7 +1193,6 @@ void CProcessor::ExecuteCLR ()  // CLR
 	}
 	else
 	{
-		
 		SetN(0);
 		SetZ(1);
 		SetV(0);
@@ -1233,7 +1205,6 @@ void CProcessor::ExecuteCLR ()  // CLR
 
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
-	
 }
 
 void CProcessor::ExecuteCOM ()  // COM
@@ -1725,20 +1696,20 @@ void CProcessor::ExecuteSXT ()  // SXT - sign-extend
 
 void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
 {
-		BYTE dst;
+	BYTE dst;
 
-		dst=m_methdest?GetByte(GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		
-		if(GetPSW()&0400)//in halt?
-		{ //allow everything
-			SetPSW(GetPSW()&0400|dst);
-		}
-		else
-		{
-			SetPSW((GetPSW()&0420)|(dst&0357));//preserve T			
-		}
+	dst=m_methdest?GetByte(GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+	
+	if(GetPSW()&0400)//in halt?
+	{ //allow everything
+		SetPSW(GetPSW()&0400|dst);
+	}
+	else
+	{
+		SetPSW((GetPSW()&0420)|(dst&0357));//preserve T			
+	}
 
-		m_internalTick=MTPS_TIMING[m_methdest];
+	m_internalTick=MTPS_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
@@ -1924,7 +1895,6 @@ void CProcessor::ExecuteMUL ()  // MUL
 	WORD src = m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
 	int res;
 	
-	
 	if(dst>>15)
 		dst|=~077777; 
 	if(src>>15)
@@ -2085,15 +2055,11 @@ void CProcessor::ExecuteASHC ()  // ASHC
 		
 		SetN(i>>15);
 		SetZ(!dst & !i);
-
 }
-
 
 void CProcessor::ExecuteSOB ()  // SOB - subtract one: R = R - 1 ; if R != 0 : PC = PC - 2*nn
 {
-	
     WORD dst = GetReg(m_regsrc);
-	
 	
 	m_internalTick=SOB_LAST_TIMING;
     --dst;
@@ -2104,7 +2070,6 @@ void CProcessor::ExecuteSOB ()  // SOB - subtract one: R = R - 1 ; if R != 0 : P
 		m_internalTick=SOB_TIMING;
         SetPC(GetPC() - (m_instruction & (WORD)077) * 2 );
 	}
-
 }
 
 void CProcessor::ExecuteMOV ()
@@ -2218,7 +2183,6 @@ void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 		SetV(0);
 		m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 	}
-
 }
 
 void CProcessor::ExecuteBIC ()  // BIC{B} - bit clear
@@ -2315,7 +2279,6 @@ void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
 
 		m_internalTick=MOV_TIMING[m_methsrc][m_methdest];
 	}
-
 }
 
 void CProcessor::ExecuteADD ()  // ADD
@@ -2345,7 +2308,6 @@ void CProcessor::ExecuteADD ()  // ADD
 		SetReg(m_regdest,dst);
 
 	m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
-
 }
 
 void CProcessor::ExecuteSUB ()
@@ -2358,15 +2320,12 @@ void CProcessor::ExecuteSUB ()
 	src = m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
 	src2 = m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
 
-
 	SetN(CheckForNegative ((WORD)(src2 - src)));
     SetZ(CheckForZero ((WORD)(src2 - src)));
     SetV(CheckSubForOverflow (src2, src));
     SetC(CheckSubForCarry (src2, src));
 
-
 	dst = src2 - src;
-	
 
 	if(m_methdest)
 		SetWord(ea,dst);
@@ -2463,7 +2422,7 @@ void CProcessor::LoadFromImage(const BYTE* pImage)
     m_okStopped = (*pwImage++ != 0);
 }
 
-WORD	CProcessor::GetWordAddr (BYTE meth, BYTE reg)
+WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
 {
 	WORD addr;
 
@@ -2507,7 +2466,7 @@ WORD	CProcessor::GetWordAddr (BYTE meth, BYTE reg)
 	return addr;
 }
 
-WORD	CProcessor::GetByteAddr (BYTE meth, BYTE reg)
+WORD CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 {
 	WORD addr,delta;
 
@@ -2554,6 +2513,4 @@ WORD	CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 }
 
 
-
 //////////////////////////////////////////////////////////////////////
-
