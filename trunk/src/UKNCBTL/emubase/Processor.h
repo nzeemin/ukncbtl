@@ -25,21 +25,25 @@ public:  // Constructor / initialization
 	void        SetInternalTick (WORD tick) { m_internalTick = tick; }
 
 public:
-    static void Init();  // »нициализаци€ статических таблиц
-    static void Done();  // ќсвобождение пам€ти статических таблиц
+    static void Init();  // Initialize static tables
+    static void Done();  // Release memory used for static tables
 protected:  // Statics
     typedef void ( CProcessor::*ExecuteMethodRef )();
     static ExecuteMethodRef* m_pExecuteMethodMap;
     static void RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMethodRef methodref);
 
 protected:  // Processor state
-	TCHAR       m_name[5];            // Processor name
+	TCHAR       m_name[5];          // Processor name (DO NOT use it inside the processor code!!!)
     WORD        m_internalTick;     // How many ticks waiting to the end of current instruction
     WORD        m_psw;              // Processor Status Word (PSW)
     WORD        m_R[8];             // Registers (R0..R5, R6=SP, R7=PC)
     BOOL        m_okStopped;        // "Processor stopped" flag
-    WORD        m_savepc;
-    WORD        m_savepsw;
+    WORD        m_savepc;           // CPC register
+    WORD        m_savepsw;          // CPSW register
+    BOOL        m_userspace;        // Read TRUE if user space is used -- CPU is accessing I/O from HALT mode using user space
+    BOOL        m_stepmode;         // Read TRUE if it's step mode
+    BOOL        m_haltpin;			// HALT 
+    BOOL        m_waitmode;			// WAIT
 
 protected:  // Current instruction processing
     WORD        m_instruction;      // Curent instruction
@@ -49,20 +53,22 @@ protected:  // Current instruction processing
     int         m_regdest;          // Destination register number
     int         m_methdest;         // Destination address mode
     WORD        m_addrdest;         // Destination address
-    int         m_eqreadptr;        // Event queue read pointer
-    int         m_eqwriteptr;       // Event queue write pointer
-    int         m_eqcount;          // Event queue count
-    int         m_traprq;           // trap pending
-    WORD        m_trap;             // trap vector
-	int			m_virqrq;			// VIRQ pending
-	int			m_evntrq;
-	int			m_ACLOrq;
-	WORD		m_virq[16];				// VIRQ vector
-    int         m_userspace;        // Read 1 if user space is used -- cpu is accessing I/O from HALT mode using user space
-    int         m_stepmode;         // Read 1 if it's step mode
-	int			m_haltpin;			// HALT 
-	int			m_waitmode;			// WAIT
-    
+protected:  // Interrupt processing
+    BOOL        m_RPLYrq;           // Hangup interrupt pending
+    BOOL        m_RSVDrq;           // Reserved instruction interrupt pending
+    BOOL        m_TBITrq;           // T-bit interrupt pending
+	BOOL		m_ACLOrq;           // Power down interrupt pending
+    BOOL        m_HALTrq;           // HALT command or HALT signal
+    BOOL        m_RPL2rq;           // Double hangup interrupt pending
+	BOOL		m_EVNTrq;           // Timer event interrupt pending
+    BOOL        m_FIS_rq;           // FIS command interrupt pending
+    BOOL        m_IOT_rq;           // IOT command interrupt pending
+    BOOL        m_EMT_rq;           // EMT command interrupt pending
+    BOOL        m_TRAPrq;           // TRAP command interrupt pending
+    //BOOL        m_VIRQrq;           // VIRQ vector interrupt pending
+    //WORD        m_VIRQvector;       // VIRQ interrupt vector
+    int         m_virqrq;           // VIRQ pending
+    WORD        m_virq[16];         // VIRQ vector
 protected:
     CMemoryController* m_pMemoryController;
 
@@ -90,6 +96,7 @@ public:  // PSW bits control
     WORD        GetN() const { return (m_psw & PSW_N) != 0; }
     void        SetZ(BOOL bFlag);
     WORD        GetZ() const { return (m_psw & PSW_Z) != 0; }
+    WORD        GetHALT() const { return (m_psw & PSW_HALT) != 0; }
 
 public:  // Processor state
     // "Processor stopped" flag
@@ -97,12 +104,10 @@ public:  // Processor state
     // HALT flag (TRUE - HALT mode, FALSE - USER mode)
     BOOL        IsHaltMode() 
 	{ 
-			BOOL mode;
-			mode=((m_psw & 0x100) != 0); 
-			if(mode)
+			BOOL mode = ((m_psw & 0x100) != 0); 
+			if (mode)
 				if(m_userspace)
 					return 0;
-			
 			return mode;
 	}
 public:  // Processor control
@@ -119,8 +124,6 @@ public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
 
 protected:  // Implementation
     void        TranslateInstruction();  // Execute one instruction
-    void        QueueInterrupt(WORD interrupt, int priority);  // ѕоместить прерывание в очередь прерываний
-    void        MakeInterrupt (WORD interrupt);  // Process the interrupt
 protected:  // Implementation - instruction processing
     WORD        CalculateOperAddr (int meth, int reg);
 	WORD        CalculateOperAddrSrc (int meth, int reg);
