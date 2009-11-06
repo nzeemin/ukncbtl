@@ -281,30 +281,19 @@ void CProcessor::RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMeth
 CProcessor::CProcessor (LPCTSTR name)
 {
     lstrcpy(m_name, name);
-    m_psw = 0400;  // Start value of PSW is 340
     ZeroMemory(m_R, sizeof(m_R));
 	m_psw = 0400;  // Start value of PSW is 340
     m_savepc = m_savepsw = 0;
     m_okStopped = TRUE;
     m_internalTick = 0;
     m_pMemoryController = NULL;
-	m_eqreadptr=0;
-	m_eqwriteptr=0;
-	m_eqcount=0;
-	m_waitmode=0;
-	m_traprq=0;
-	m_trap=0;
-	m_userspace=0;
-	m_stepmode=0;
-	m_virqrq=0;
-	memset(m_virq, 0, sizeof(m_virq));
-	m_evntrq=0;
-	m_ACLOrq = 0;
-    m_haltpin = 0;
-	//if(m_name[0]==_T('C'))
-	//	m_haltpin=0;
-	//else
-	//	m_haltpin=0;
+	m_waitmode = FALSE;
+	m_userspace = FALSE;
+	m_stepmode = FALSE;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
+    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    //m_VIRQrq = FALSE;
+    m_haltpin = FALSE;
 }
 
 void CProcessor::Start ()
@@ -312,25 +301,21 @@ void CProcessor::Start ()
     m_okStopped = FALSE;
     m_internalTick = 0;
 
-	m_eqreadptr=0;
-	m_eqwriteptr=0;
-	m_eqcount=0;
-	m_userspace=0;
-	m_stepmode=0;
-	m_waitmode=0;
-	m_virqrq=0;
-	memset(m_virq, 0, sizeof(m_virq));
-	m_evntrq=0;
-	m_ACLOrq=0;
+	m_userspace = FALSE;
+	m_stepmode = FALSE;
+	m_waitmode = FALSE;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
+    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    //m_VIRQrq = FALSE;
+    m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
 
-    // Calculate start vector value
-    WORD startvec = m_pMemoryController->GetSelRegister() & 0177400;
     // "Turn On" interrupt processing
+    WORD startvec = m_pMemoryController->GetSelRegister() & 0177400;
     WORD pc = GetWord(startvec);
     SetPC( pc );
     WORD psw = GetWord(startvec + 2);
     SetPSW( psw );
-	if(m_haltpin)
+	if (m_haltpin)
 		m_psw |= 0400;
     //TODO: Make sure we implemented start process correctly
 }
@@ -338,38 +323,21 @@ void CProcessor::Stop ()
 {
     m_okStopped = TRUE;
 
-	m_eqreadptr=0;
-	m_eqwriteptr=0;
-	m_eqcount=0;
-	m_userspace=0;
-	m_stepmode=0;
+	m_userspace = FALSE;
+	m_stepmode = FALSE;
+	m_waitmode = FALSE;
 	m_psw = 0400;  // Start value of PSW is 340
     m_savepc = m_savepsw = 0;
-    m_okStopped = TRUE;
     m_internalTick = 0;
-	m_eqreadptr=0;
-	m_eqwriteptr=0;
-	m_eqcount=0;
-	m_traprq=0;
-	m_evntrq=0;
-	m_ACLOrq=0;
-	m_trap=0;
-	m_virqrq=0;
-	memset(m_virq, 0, sizeof(m_virq));
-	m_waitmode=0;
-	m_userspace=0;
-	m_stepmode=0;
-    m_haltpin = 0;
-	//if(m_name[0]==_T('C'))
-	//	m_haltpin=0;
-	//else
-	//	m_haltpin=0;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
+    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    //m_VIRQrq = FALSE;
+    m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
+    m_haltpin = FALSE;
 }
 
 void CProcessor::Execute()
 {
-	WORD	intr;
-
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
     if (m_internalTick > 0)
@@ -378,120 +346,241 @@ void CProcessor::Execute()
         return;
     }
     m_internalTick = EMT_TIMING;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
+
+    m_RPLYrq = FALSE;
 	
-	if(m_waitmode==0)
+	if (!m_waitmode)
 		TranslateInstruction();  // Execute next instruction
-
-	ASSERT(m_psw<0777);
+	//ASSERT(m_psw<0777);
 	
-	if(m_stepmode==0)
-	{
-		intr=0;
-		if(m_traprq)
-		{
-			if ((m_trap == INTERRUPT_4) && ((m_psw & 0400) != 0))
-				intr=0160004;
-			else
-				intr=m_trap;
-			m_traprq=0;
-		}
-		else
-		if(m_psw&020)
-		{
-			intr=014;
-		}
-		else
-		if ((m_ACLOrq) && ((m_psw&0600)!=0600))
-		{
-			m_ACLOrq=0;
-			intr=024;
-		}
-		else
-		if((m_haltpin)&&((m_psw&0400)==0))
-		{
-			intr=0160170;
-		}
-		else
-		if((m_evntrq)&&((m_psw&0200)==0))
-		{
-			m_evntrq=0;
-			intr=0100;
-		}
-		else
-		if((m_virqrq != 0)&&((m_psw&0200)==0))
-		{
-			// intr=m_virq;
-			// m_virqrq=0;
-		 int irq;
-		 for (irq = 0; irq<=15; irq++)
-		  {
-		   if (m_virq[irq] != 0)
-		    {
-		     intr = m_virq[irq];
-			 m_virq[irq] = 0;
-			 m_virqrq--;
-			 break;
-		    }
-		  }
-         if (intr == 0) m_virqrq = 0;
-		}
-		
-		if(intr)
-		{
-			m_waitmode=0;
-			if(intr>=0160000)
-			{
-				m_savepc=GetPC();
-				m_savepsw=GetPSW();
-                m_psw |= 0400;
-            }
-			else
-			{
-				SetSP(GetSP() - 2);
-				SetWord(GetSP(), m_psw);
-				SetSP(GetSP() - 2);
-				SetWord(GetSP(), GetPC());
-			}
-			SetPC(GetWord(intr));
-			if (intr >= 0160000)
-				m_psw = GetWord(intr + 2) & 0777;
-			else
-				m_psw = GetWord(intr + 2) & 0377;
-			/*	
-			switch(m_trap&0777)
-			{
-				case INTERRUPT_20: //IOT
-				case INTERRUPT_30: //EMT
-				case INTERRUPT_34: //TRAP
-					m_psw = GetWord(intr + 2) & 0177377; // Drop the HALT mode
-				break;
-				case INTERRUPT_4:
-					m_psw = GetWord(intr + 2);
-				break;
-				default:
-					m_psw = GetWord(intr + 2)&0777;
-				break;
-			}
-        */
-		}
-	}
-	else
-		m_stepmode=0;
+    if ((m_psw & 0600) != 0600)
+    {
+        m_savepc = GetPC();
+        m_savepsw = m_psw;
+    }
 
-	//	ASSERT((GetPC()!=0147002));
+	if (m_stepmode)
+		m_stepmode = FALSE;
+	else  // Processing interrupts
+	{
+        if (m_psw & 020)  // T-bit set
+            m_TBITrq = TRUE;
+
+        while (TRUE)
+        {
+            // Calculate interrupt vector and mode accoding to priority
+            WORD intrVector = 0;
+            BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
+            BOOL intrMode;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
+            if (m_HALTrq)  // HALT command
+            {
+                intrVector = 0170;  intrMode = TRUE;
+                m_HALTrq = FALSE;
+            }
+            else if (m_IOT_rq)  // IOT command
+            {
+                intrVector = 0000020;  intrMode = FALSE;
+                m_IOT_rq = FALSE;
+            }
+            else if (m_EMT_rq)  // EMT command
+            {
+                intrVector = 0000030;  intrMode = FALSE;
+                m_EMT_rq = FALSE;
+            }
+            else if (m_TRAPrq)  // TRAP command
+            {
+                intrVector = 0000034;  intrMode = FALSE;
+                m_TRAPrq = FALSE;
+            }
+            else if (m_FIS_rq)  // FIS commands -- Floating point Instruction Set
+            {
+                intrVector = 0010;  intrMode = TRUE;
+                m_FIS_rq = FALSE;
+            }
+            else if (m_RPLYrq && currMode)  // Зависание в HALT, priority 1
+            {
+                intrVector = 0004;  intrMode = TRUE;
+                m_RPLYrq = FALSE;
+            }
+            else if (m_RPLYrq && !currMode)  // Зависание в USER, priority 1
+            {
+                intrVector = 0000004;  intrMode = FALSE;
+                m_RPLYrq = FALSE;
+            }
+            else if (m_RPL2rq)  // Двойное зависание, priority 1
+            {
+                intrVector = 0174;  intrMode = TRUE;
+                m_RPL2rq = FALSE;
+            }
+            else if (m_RSVDrq)  // Reserved command, priority 2
+            {
+                intrVector = 000010;  intrMode = FALSE;
+                m_RSVDrq = FALSE;
+            }
+            else if (m_TBITrq && (!m_waitmode))  // T-bit, priority 3
+            {
+                intrVector = 000014;  intrMode = FALSE;
+                m_TBITrq = FALSE;
+            }
+            else if (m_ACLOrq && (m_psw & 0600) != 0600)  // ACLO, priority 4
+            {
+                intrVector = 000024;  intrMode = FALSE;
+                m_ACLOrq = FALSE;
+            }
+            else if (m_haltpin && (m_psw & 0400) != 0400)  // HALT signal in USER mode, priority 5
+            {
+                intrVector = 0170;  intrMode = TRUE;
+            }
+            else if (m_EVNTrq && (m_psw & 0200) != 0200)  // EVNT signal, priority 6
+            {
+                intrVector = 0000100;  intrMode = FALSE;
+                m_EVNTrq = FALSE;
+            }
+            //else if (m_VIRQrq && (m_psw & 0200) != 0200)  // VIRQ, priority 7
+            //{
+            //    intrVector = m_VIRQvector;  intrMode = FALSE;
+            //    m_VIRQrq = FALSE;
+            //}
+            else if (m_virqrq > 0 && (m_psw & 0200) != 0200)  // VIRQ, priority 7
+            {
+                intrMode = FALSE;
+                for (int irq = 0; irq <= 15; irq++)
+                {
+                    if (m_virq[irq] != 0)
+                    {
+                        intrVector = m_virq[irq];
+                        m_virq[irq] = 0;
+                        m_virqrq--;
+                        break;
+                    }
+                }
+                if (intrVector == 0) m_virqrq = 0;
+            }
+
+            if (intrVector == 0)
+                break;  // No more unmasked interrupts
+
+            m_waitmode = FALSE;
+
+            if (intrMode)  // HALT mode interrupt
+            {
+                WORD selVector = GetMemoryController()->GetSelRegister() & 0x0ff00;
+                intrVector |= selVector;
+
+                // Save PC/PSW to CPC/CPSW
+			    m_savepc = GetPC();
+			    m_savepsw = GetPSW();
+
+                m_psw |= 0400;
+
+		        SetPC(GetWord(intrVector));
+		        m_psw = GetWord(intrVector + 2) & 0777;
+            }
+            else  // USER mode interrupt
+            {
+                m_psw &= ~0400;
+
+                // Save PC/PSW to stack
+			    SetSP(GetSP() - 2);
+			    SetWord(GetSP(), m_psw);
+			    SetSP(GetSP() - 2);
+			    SetWord(GetSP(), GetPC());
+
+		        SetPC(GetWord(intrVector));
+		        m_psw = GetWord(intrVector + 2) & 0377;
+            }
+        }  // end while
+
+		//WORD intr = 0;
+		//if (m_traprq)
+		//{
+		//	if ((m_trap == INTERRUPT_4) && ((m_psw & 0400) != 0))
+		//		intr=0160004;
+		//	else
+		//		intr=m_trap;
+		//	m_traprq=0;
+		//}
+		//else
+		//if (m_TBITrq)
+		//{
+		//	intr = 014;
+		//}
+		//else
+		//if ((m_ACLOrq) && ((m_psw&0600)!=0600))
+		//{
+		//	m_ACLOrq = FALSE;
+		//	intr=024;
+		//}
+		//else
+		//if ((m_haltpin)&&((m_psw&0400)==0))
+		//{
+		//	intr=0160170;
+		//}
+		//else
+		//if ((m_EVNTrq)&&((m_psw&0200)==0))
+		//{
+		//	m_EVNTrq = FALSE;
+		//	intr=0100;
+		//}
+		//else
+		//if ((m_virqrq != 0)&&((m_psw&0200)==0))
+		//{
+		//	// intr=m_virq;
+		//	// m_virqrq=0;
+		// int irq;
+		// for (irq = 0; irq<=15; irq++)
+		//  {
+		//   if (m_virq[irq] != 0)
+		//    {
+		//     intr = m_virq[irq];
+		//	 m_virq[irq] = 0;
+		//	 m_virqrq--;
+		//	 break;
+		//    }
+		//  }
+  //       if (intr == 0) m_virqrq = 0;
+		//}
+		
+		//if(intr)
+		//{
+		//	m_waitmode=0;
+		//	if(intr>=0160000)
+		//	{
+		//		m_savepc=GetPC();
+		//		m_savepsw=GetPSW();
+  //              m_psw |= 0400;
+  //          }
+		//	else
+		//	{
+		//		SetSP(GetSP() - 2);
+		//		SetWord(GetSP(), m_psw);
+		//		SetSP(GetSP() - 2);
+		//		SetWord(GetSP(), GetPC());
+		//	}
+		//	SetPC(GetWord(intr));
+		//	if (intr >= 0160000)
+		//		m_psw = GetWord(intr + 2) & 0777;
+		//	else
+		//		m_psw = GetWord(intr + 2) & 0377;
+		//}
+
+        //m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
+        //m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = m_VIRQrq = FALSE;
+	}
 }
+
 void CProcessor::TickEVNT()
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
-	m_evntrq=1;
+	m_EVNTrq = TRUE;
 }
 
 void CProcessor::PowerFail()
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
-	m_ACLOrq=1;
+	m_ACLOrq = TRUE;
 }
 
 void CProcessor::InterruptVIRQ(int que, WORD interrupt)
@@ -503,28 +592,22 @@ void CProcessor::InterruptVIRQ(int que, WORD interrupt)
 	// }
 	m_virqrq += 1;
 	m_virq[que] = interrupt;
+    //m_VIRQrq = TRUE;
+    //m_VIRQvector = interrupt;
 }
 void CProcessor::AssertHALT()
 {
-	m_haltpin=1;
+	m_haltpin = TRUE;
 }
 
 void CProcessor::DeassertHALT()
 {
-	m_haltpin=0;
+	m_haltpin = FALSE;
 }
 
 void CProcessor::MemoryError()
 {
-	m_traprq=1;
-	m_trap=4; //normal HALT
-}
-
-void CProcessor::MakeInterrupt(WORD interrupt)
-{
-	m_traprq=1;
-	m_trap=interrupt;
-	//m_internalTick += PI_TIME_INT;
+    m_RPLYrq = TRUE;
 }
 
 
@@ -793,8 +876,7 @@ void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается 
 	DebugPrintFormat(_T(">>Invalid OPCODE = %s @ %s\r\n"), oct1, oct2);
 #endif
 
-    m_traprq = 1;
-    m_trap = 010;
+    m_RSVDrq = TRUE;
 }
 
 
@@ -802,74 +884,124 @@ void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается 
 
 void CProcessor::ExecuteWAIT ()  // WAIT - Wait for an interrupt
 {
-	m_waitmode=1;
+	m_waitmode = TRUE;
 }
 
 void CProcessor::ExecuteSTEP()
 {
-	m_stepmode=1;
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    m_stepmode = TRUE;
 	SetPC(m_savepc);
 	SetPSW(m_savepsw);
 }
 
 void CProcessor::ExecuteRSEL()
 {
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
     //SetReg(0, ???);  //TODO
     ASSERT(0);
 }
 
 void CProcessor::Execute000030()  // Unknown command
 {
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
     //TODO: Реализовать команду
+    m_RPLYrq = TRUE;
 }
 
 void CProcessor::ExecuteFIS()  // Floating point instruction set
 {
-	m_traprq = 1;
-	m_trap = 0160010;
-	//m_psw |= 0400;
+    m_FIS_rq = TRUE;
 }
 
 void CProcessor::ExecuteRUN()
 {
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
 	SetPC(m_savepc);
 	SetPSW(m_savepsw);
 }
 
 void CProcessor::ExecuteHALT ()  // HALT - Останов
 {
-    //TODO
-	// m_psw|=0400;
-    m_traprq=1;
-	m_trap=0160170;
+    m_HALTrq = TRUE;
 }
 void CProcessor::ExecuteRCPC	()
 {
-	SetReg(0,m_savepc);
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    SetReg(0,m_savepc);
 	m_internalTick=NOP_TIMING;
 }
 void CProcessor::ExecuteRCPS	()
 {
-	SetReg(0,m_savepsw);
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    SetReg(0,m_savepsw);
 	m_internalTick=NOP_TIMING;
 }
 void CProcessor::ExecuteWCPC	()
 {
-	m_savepc=GetReg(0);
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    m_savepc=GetReg(0);
 	m_internalTick=NOP_TIMING;
 }
 void CProcessor::ExecuteWCPS	()
 {
-	m_savepsw=GetReg(0);
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    m_savepsw=GetReg(0);
 	m_internalTick=NOP_TIMING;
 }
 
 void CProcessor::ExecuteMFUS () //move from user space
 {
-	//r0 = (r5)+
-	m_userspace=1;
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    //r0 = (r5)+
+	m_userspace = TRUE;
 	SetReg(0,GetWord(GetReg(5)));
-	m_userspace=0;
+	m_userspace = FALSE;
 	SetReg(5,GetReg(5)+2);
 
 	m_internalTick=MOV_TIMING[0][2];
@@ -877,11 +1009,17 @@ void CProcessor::ExecuteMFUS () //move from user space
 
 void CProcessor::ExecuteMTUS () //move to user space
 {
-	//-(r5)=r0
+    if ((m_psw & PSW_HALT) == 0)
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    //-(r5)=r0
 	SetReg(5,GetReg(5)-2);
-	m_userspace=1;
+	m_userspace = TRUE;
 	SetWord(GetReg(5),GetReg(0));
-	m_userspace=0;
+	m_userspace = FALSE;
 	m_internalTick=MOV_TIMING[0][2];
 }
 
@@ -904,15 +1042,13 @@ void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
 
 void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 {
-	m_traprq=1;
-	m_trap=014;
-	m_internalTick=BPT_TIMING;
+    m_TBITrq = TRUE;
+	m_internalTick = BPT_TIMING;
 }
 
 void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 {
-	m_traprq=1;
-	m_trap=020;
+    m_IOT_rq = TRUE;
 	m_internalTick=EMT_TIMING;
 }
 
@@ -1140,13 +1276,12 @@ void CProcessor::ExecuteSCC ()
 
 void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 {
-	//ASSERT(m_R[7]!=0174222);
-	
     if (m_methdest == 0)  // Неправильный метод адресации
     {
-        m_traprq=1;
-		m_trap=010;
-		m_internalTick=EMT_TIMING;
+  //      m_traprq = 1;
+		//m_trap = 010;
+        m_RPLYrq = TRUE;
+		m_internalTick = EMT_TIMING;
     }
     else 
 	{
@@ -2337,15 +2472,13 @@ void CProcessor::ExecuteSUB ()
 
 void CProcessor::ExecuteEMT ()  // EMT - emulator trap
 {
-	m_traprq=1;
-	m_trap=030;
+    m_EMT_rq = TRUE;
 	m_internalTick=EMT_TIMING;
 }
 
 void CProcessor::ExecuteTRAP ()
 {
-	m_traprq=1;
-	m_trap=034;
+    m_TRAPrq = TRUE;
 	m_internalTick=EMT_TIMING;
 }
 
@@ -2354,9 +2487,9 @@ void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC 
 	//int meth = GetDigit(m_instruction, DST + 1);
     if (m_methdest == 0) 
 	{  // Неправильный метод адресации
-        //QueueInterrupt(INTERRUPT_10, 2);
-		m_traprq=1;
-		m_trap=010;
+		//m_traprq = 1;
+		//m_trap = 010;
+        m_RPLYrq = TRUE;
 		m_internalTick=EMT_TIMING;
     }
     else 
