@@ -59,6 +59,8 @@ enum ToolbarButtonImages
     ToolbarImageFloppySlot = 4,
     ToolbarImageCartridge = 5,
     ToolbarImageCartSlot = 6,
+    ToolbarImageSoundOn = 7,
+    ToolbarImageSoundOff = 8,
 };
 
 enum StatusbarParts
