@@ -47,6 +47,7 @@ void MainWindow_DoFileLoadState();
 void MainWindow_DoEmulatorFloppy(int slot);
 void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoFileScreenshot();
+void MainWindow_DoFileCreateDisk();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
@@ -681,6 +682,8 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SCREENSHOT:
         MainWindow_DoFileScreenshot();
         break;
+    case ID_FILE_CREATEDISK:
+        MainWindow_DoFileCreateDisk();
     default:
         return false;
     }
@@ -792,21 +795,11 @@ void MainWindow_DoFileLoadState()
 
 void MainWindow_DoFileSaveState()
 {
-    // File Save As dialog
     TCHAR bufFileName[MAX_PATH];
-    *bufFileName = 0;
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = g_hwnd;
-    ofn.hInstance = g_hInst;
-    ofn.lpstrTitle = _T("Save state image as");
-    ofn.lpstrFilter = _T("UKNC state images (*.uknc)\0*.uknc\0All Files (*.*)\0*.*\0\0");
-    ofn.Flags = OFN_FILEMUSTEXIST;
-    ofn.lpstrFile = bufFileName;
-    ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
-
-    BOOL okResult = GetSaveFileName(&ofn);
+    BOOL okResult = ShowSaveDialog(g_hwnd,
+        _T("Save state image as"),
+        _T("UKNC state images (*.uknc)\0*.uknc\0All Files (*.*)\0*.*\0\0"),
+        bufFileName);
     if (! okResult) return;
 
     Emulator_SaveImage(bufFileName);
@@ -814,24 +807,19 @@ void MainWindow_DoFileSaveState()
 
 void MainWindow_DoFileScreenshot()
 {
-    // File Save As dialog
     TCHAR bufFileName[MAX_PATH];
-    *bufFileName = 0;
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = g_hwnd;
-    ofn.hInstance = g_hInst;
-    ofn.lpstrTitle = _T("Save screenshot as");
-    ofn.lpstrFilter = _T("Bitmaps (*.bmp)\0*.bmp\0All Files (*.*)\0*.*\0\0");
-    ofn.Flags = OFN_FILEMUSTEXIST;
-    ofn.lpstrFile = bufFileName;
-    ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
-
-    BOOL okResult = GetSaveFileName(&ofn);
+    BOOL okResult = ShowSaveDialog(g_hwnd,
+        _T("Save screenshot as"),
+        _T("Bitmaps (*.bmp)\0*.bmp\0All Files (*.*)\0*.*\0\0"),
+        bufFileName);
     if (! okResult) return;
 
     ScreenView_SaveScreenshot(bufFileName);
+}
+
+void MainWindow_DoFileCreateDisk()
+{
+    ShowCreateDiskDialog();
 }
 
 void MainWindow_DoEmulatorFloppy(int slot)

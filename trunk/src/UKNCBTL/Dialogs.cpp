@@ -1,6 +1,7 @@
 // Dialogs.cpp
 
 #include "stdafx.h"
+#include <commdlg.h>
 #include "Dialogs.h"
 #include "UKNCBTL.h"
 
@@ -9,6 +10,8 @@
 
 INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+void Dialogs_DoCreateDisk(int tracks);
 BOOL InputBoxValidate(HWND hDlg);
 
 LPCTSTR m_strInputBoxTitle = NULL;
@@ -120,6 +123,86 @@ BOOL InputBoxValidate(HWND hDlg) {
     return TRUE;
 }
 
+
+//////////////////////////////////////////////////////////////////////
+
+
+BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName)
+{
+    *bufFileName = 0;
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = hwndOwner;
+    ofn.hInstance = g_hInst;
+    ofn.lpstrTitle = strTitle;
+    ofn.lpstrFilter = strFilter;
+    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrFile = bufFileName;
+    ofn.nMaxFile = MAX_PATH;
+
+    BOOL okResult = GetSaveFileName(&ofn);
+    return okResult;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Create Disk Dialog
+
+void ShowCreateDiskDialog()
+{
+    DialogBox(g_hInst, MAKEINTRESOURCE(IDD_CREATEDISK), g_hwnd, CreateDiskProc);
+}
+
+INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            CheckRadioButton(hDlg, IDC_TRACKS40, IDC_TRACKS80, IDC_TRACKS80);
+            return (INT_PTR)FALSE;
+        }
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            Dialogs_DoCreateDisk(IsDlgButtonChecked(hDlg, IDC_TRACKS40) == BST_CHECKED ? 40 : 80);
+
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        default:
+            return (INT_PTR)FALSE;
+        }
+        break;
+    }
+    return (INT_PTR) FALSE;
+}
+
+void Dialogs_DoCreateDisk(int tracks)
+{
+    TCHAR bufFileName[MAX_PATH];
+    BOOL okResult = ShowSaveDialog(g_hwnd,
+        _T("Save new disk as"),
+        _T("Bitmaps (*.dsk)\0*.dsk\0All Files (*.*)\0*.*\0\0"),
+        bufFileName);
+    if (! okResult) return;
+
+    // Create zero-filled file
+    LONG fileSize = tracks * 10240;
+	HANDLE hFile = ::CreateFile(bufFileName,
+		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	//if (hFileNew == INVALID_HANDLE_VALUE)
+    ::SetFilePointer(hFile, fileSize, NULL, FILE_BEGIN);
+    ::SetEndOfFile(hFile);
+    ::CloseHandle(hFile);
+
+    ::MessageBox(g_hwnd, _T("New disk file created successfully.\nPlease initialize the disk using INIT command."),
+        _T("UKNCBTL"), MB_OK | MB_ICONINFORMATION);
+}
 
 
 //////////////////////////////////////////////////////////////////////
