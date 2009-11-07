@@ -19,8 +19,12 @@
 #define IDI_DISKETTEWP                  141
 #define IDB_KEYBOARD                    142
 #define IDB_TOOLBAR                     143
+#define IDD_CREATEDISK                  144
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
+#define IDC_TRACKS40                    1002
+#define IDC_RADIO2                      1003
+#define IDC_TRACKS80                    1003
 #define ID_VIEW                         32771
 #define ID_VIEW_MEMORY                  32772
 #define ID_EMULATOR                     32773
@@ -56,9 +60,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_RESOURCE_VALUE        145
 #define _APS_NEXT_COMMAND_VALUE         32807
-#define _APS_NEXT_CONTROL_VALUE         1002
+#define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

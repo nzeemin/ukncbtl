@@ -10,5 +10,9 @@ void ShowAboutBox();
 //   strPrompt - label text
 BOOL InputBoxOctal(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strPrompt, WORD* pValue);
 
+BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName);
+
+void ShowCreateDiskDialog();
+
 
 //////////////////////////////////////////////////////////////////////
