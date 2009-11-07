@@ -579,13 +579,13 @@ void MainWindow_UpdateMenu()
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ3,
         g_pBoard->IsFloppyImageAttached(3) ? ((g_pBoard->IsFloppyReadOnly(3)) ? IDI_DISKETTEWP : IDI_DISKETTE) : 0);
     MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY0,
-        g_pBoard->IsFloppyImageAttached(0) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+        g_pBoard->IsFloppyImageAttached(0) ? (g_pBoard->IsFloppyReadOnly(0) ? ToolbarImageFloppyDiskWP : ToolbarImageFloppyDisk) : ToolbarImageFloppySlot);
     MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY1,
-        g_pBoard->IsFloppyImageAttached(1) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+        g_pBoard->IsFloppyImageAttached(1) ? (g_pBoard->IsFloppyReadOnly(1) ? ToolbarImageFloppyDiskWP : ToolbarImageFloppyDisk) : ToolbarImageFloppySlot);
     MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY2,
-        g_pBoard->IsFloppyImageAttached(2) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+        g_pBoard->IsFloppyImageAttached(2) ? (g_pBoard->IsFloppyReadOnly(2) ? ToolbarImageFloppyDiskWP : ToolbarImageFloppyDisk) : ToolbarImageFloppySlot);
     MainWindow_SetToolbarImage(ID_EMULATOR_FLOPPY3,
-        g_pBoard->IsFloppyImageAttached(3) ? ToolbarImageFloppyDisk : ToolbarImageFloppySlot);
+        g_pBoard->IsFloppyImageAttached(3) ? (g_pBoard->IsFloppyReadOnly(3) ? ToolbarImageFloppyDiskWP : ToolbarImageFloppyDisk) : ToolbarImageFloppySlot);
 
     // Emulator|CartridgeX
     CheckMenuItem(hMenu, ID_EMULATOR_CARTRIDGE1, (g_pBoard->IsROMCartridgeLoaded(1) ? MF_CHECKED : MF_UNCHECKED));
