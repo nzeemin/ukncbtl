@@ -478,11 +478,12 @@ void CProcessor::Execute()
             }
             else  // USER mode interrupt
             {
+                WORD oldpsw = m_psw;
                 m_psw &= ~0400;
 
                 // Save PC/PSW to stack
 			    SetSP(GetSP() - 2);
-			    SetWord(GetSP(), m_psw);
+			    SetWord(GetSP(), oldpsw);
 			    SetSP(GetSP() - 2);
 			    SetWord(GetSP(), GetPC());
 
