@@ -5,6 +5,10 @@
 
 #pragma once
 
+// NOTE: This trick is needed to bind assembly manifest to the current version of the VC CRT
+// See also: http://msdn.microsoft.com/ru-ru/library/cc664727.aspx
+#define _BIND_TO_CURRENT_CRT_VERSION 1
+
 // Modify the following defines if you have to target a platform prior to the ones specified below.
 // Refer to MSDN for the latest info on corresponding values for different platforms.
 #ifndef WINVER				// Allow use of features specific to Windows XP or later.
