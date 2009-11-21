@@ -1,6 +1,7 @@
 // DisasmView.cpp
 
 #include "stdafx.h"
+#include <commdlg.h>
 #include "UKNCBTL.h"
 #include "Views.h"
 #include "ToolWindow.h"
@@ -13,13 +14,12 @@
 
 // Colors
 #define COLOR_BLUE  RGB(0,0,255)
-
+#define COLOR_SUBTITLE  RGB(0,128,0)
 
 HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
 WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
 
 HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
-
 
 BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDisasmBaseAddr = 0;
@@ -30,7 +30,19 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DisasmView_SetBaseAddr(WORD base);
+void DisasmView_DoSubtitles();
+BOOL DisasmView_ParseSubtitles();
 
+struct DisasmSubtitleItem
+{
+    WORD address;
+    LPCTSTR comment;
+};
+
+BOOL m_okDisasmSubtitles = FALSE;
+TCHAR* m_strDisasmSubtitles = NULL;
+DisasmSubtitleItem* m_pDisasmSubtitleItems = NULL;
+int m_nDisasmSubtitleCount = 0;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -138,6 +150,9 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam)
                 DisasmView_SetBaseAddr(value);
             break;
         }
+    case 0x53:  // S - Load/Unload Subtitles
+        DisasmView_DoSubtitles();
+        break;
     case VK_ESCAPE:
         ConsoleView_Activate();
         break;
@@ -154,8 +169,142 @@ void DisasmView_UpdateWindowText()
     LPCTSTR sProcName = pDisasmPU->GetName();
 
 	TCHAR buffer[64];
-	swprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
+    if (m_okDisasmSubtitles)
+	    swprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
+    else
+	    swprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
 	::SetWindowText(g_hwndDisasm, buffer);
+}
+
+void DisasmView_DoSubtitles()
+{
+    if (m_okDisasmSubtitles)  // Reset subtitles
+    {
+        ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
+        ::LocalFree(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
+        m_okDisasmSubtitles = FALSE;
+        DisasmView_UpdateWindowText();
+        return;
+    }
+
+    // File Open dialog
+    TCHAR bufFileName[MAX_PATH];
+    *bufFileName = 0;
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = g_hwnd;
+    ofn.hInstance = g_hInst;
+    ofn.lpstrTitle = _T("Open Disassemble Subtitles");
+    ofn.lpstrFilter = _T("Subtitles (*.lst)\0*.lst\0All Files (*.*)\0*.*\0\0");
+    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrFile = bufFileName;
+    ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
+
+    BOOL okResult = GetOpenFileName(&ofn);
+    if (! okResult) return;
+
+    // Load subtitles text from the file
+    HANDLE hSubFile = CreateFile(bufFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hSubFile == INVALID_HANDLE_VALUE)
+    {
+        AlertWarning(_T("Failed to load subtitles file."));
+        return;
+    }
+    DWORD dwSubFileSize = ::GetFileSize(hSubFile, NULL);
+    m_strDisasmSubtitles = (TCHAR*) ::LocalAlloc(LPTR, dwSubFileSize + 2);
+    DWORD dwBytesRead;
+    ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
+    ASSERT(dwBytesRead == dwSubFileSize);
+    ::CloseHandle(hSubFile);
+
+    // Parse subtitles
+    m_pDisasmSubtitleItems = (DisasmSubtitleItem*) ::LocalAlloc(LPTR, sizeof(DisasmSubtitleItem) * 256);
+    if (!DisasmView_ParseSubtitles())
+    {
+        ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
+        ::LocalFree(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
+        AlertWarning(_T("Failed to parse subtitles file."));
+        return;
+    }
+
+    m_okDisasmSubtitles = TRUE;
+    DisasmView_UpdateWindowText();
+}
+
+// Разбор текста "субтитров".
+// На входе -- текст в m_strDisasmSubtitles в формате UTF16 LE, заканчивается символом с кодом 0.
+// На выходе -- массив пар [адрес в памяти, адрес строки комментария] в m_pDisasmSubtitleItems.
+BOOL DisasmView_ParseSubtitles()
+{
+    ASSERT(m_strDisasmSubtitles != NULL);
+    TCHAR* pText = m_strDisasmSubtitles;
+    if (*pText == 0 || *pText == 0xFFFE)  // EOF or Unicode Big Endian
+        return FALSE;
+    if (*pText == 0xFEFF)
+        pText++;  // Skip Unicode LE mark
+
+    int nItemCount = 0;
+
+    for (;;)  // Text reading loop - line by line
+    {
+        // Line starts
+        if (*pText == 0) break;
+        if (*pText == _T('\n') || *pText == _T('\r')) 
+        {
+            pText++;
+            continue;
+        }
+
+        if (*pText >= _T('0') && *pText <= _T('9'))  //TODO: Цифра -- считаем что это адрес
+        {
+            // Парсим адрес
+            TCHAR* pAddrStart = pText;
+            while (*pText != 0 && *pText >= _T('0') && *pText <= _T('9')) pText++;
+            if (*pText == 0) break;
+            TCHAR chSave = *pText;
+            *pText++ = 0;
+            WORD address;
+            ParseOctalValue(pAddrStart, &address);
+            *pText = chSave;
+
+            // Ищем начало комментария и конец строки
+            while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
+            if (*pText == 0) break;
+            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, комментарий не обнаружен
+            {
+                pText++;
+                continue;
+            }
+
+            // Нашли начало комментария -- ищем конец строки или файла
+            TCHAR* pCommentStart = pText;
+            while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
+
+            m_pDisasmSubtitleItems[nItemCount].address = address;
+            m_pDisasmSubtitleItems[nItemCount].comment = pCommentStart;
+            nItemCount++;
+            if (nItemCount > 256) break;  //TODO: Расширить массив
+
+            if (*pText == 0) break;
+            *pText = 0;  // Обозначаем конец комментария
+            pText++;
+        }
+        else  // Не цифра -- пропускаем до конца строки
+        {
+            while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
+            if (*pText == 0) break;
+            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL
+            {
+                pText++;
+                continue;
+            }
+        }
+    }
+
+    m_nDisasmSubtitleCount = nItemCount;
+    return TRUE;
 }
 
 
@@ -213,6 +362,19 @@ void DoDrawDisasmView(HDC hdc)
     DeleteObject(hFont);
 }
 
+LPCTSTR Disasm_FindSubtitle(WORD address)
+{
+    DisasmSubtitleItem* pItem = m_pDisasmSubtitleItems;
+    while (pItem->comment != NULL)
+    {
+        if (pItem->address == address)
+            return pItem->comment;
+        pItem++;
+    }
+    
+    return NULL;
+}
+
 void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
@@ -230,9 +392,6 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
         memory[idx] = pMemCtl->GetWordView(
                 current + idx * 2 - 10, pProc->IsHaltMode(), TRUE, &okValidAddress);
     }
-
-    //TextOut(hdc, x, y, _T(" address  value   instruction"), 29);
-    //y += cyLine;
 
     WORD address = current - 10;
     WORD disasmfrom = current;
@@ -255,6 +414,16 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
         {
             ::SetTextColor(hdc, COLOR_BLUE);
             TextOut(hdc, x + 1 * cxChar, y, _T("  > "), 4);
+        }
+        if (m_okDisasmSubtitles)  // Show subtitle
+        {
+            LPCTSTR strSubtitle = Disasm_FindSubtitle(address);
+            if (strSubtitle != NULL)
+            {
+                ::SetTextColor(hdc, COLOR_SUBTITLE);
+                TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) wcslen(strSubtitle));
+                ::SetTextColor(hdc, colorText);
+            }
         }
 
         if (address >= disasmfrom && length == 0) {
