@@ -139,6 +139,7 @@ public:  // System control
     void        ExecutePPU();  // Execute one PPU instruction
     BOOL        SystemFrame();  // Do one frame -- use for normal run
     void        KeyboardEvent(BYTE scancode, BOOL okPressed);  // Key pressed or released
+	WORD        GetKeyboardRegister(void);
     
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
     void        DetachFloppyImage(int slot);
@@ -186,7 +187,6 @@ private:
 	int			m_nTapeReadSampleRate;
     SOUNDGENCALLBACK m_SoundGenCallback;
 
-	WORD GetKeyboardRegister(void);
 	void DoSound(void);
 	
 };
