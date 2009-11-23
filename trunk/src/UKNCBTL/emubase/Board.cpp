@@ -921,14 +921,11 @@ void	CMotherboard::SetFloppyData(WORD val)
 
 WORD CMotherboard::GetKeyboardRegister(void)
 {
-	WORD res;
-	WORD w7214;
-	BYTE b22556;
+	WORD w7214 = GetRAMWord(0,07214);
+	BYTE b22556 = GetRAMByte(0,022556);
 
-	w7214=GetRAMWord(0,07214);
-	b22556=GetRAMByte(0,022556);
-
-	switch(w7214)
+	WORD res = 0;
+	switch (w7214)
 	{
 		case 010534: //fix
 		case 07234:  //main
