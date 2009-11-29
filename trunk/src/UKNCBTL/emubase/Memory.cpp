@@ -1035,8 +1035,9 @@ void CSecondMemoryController::KeyboardEvent(BYTE scancode, BOOL okPressed)
 }
 
 // A new bit from the tape input received
-void CSecondMemoryController::TapeInput(BOOL inputBit)
+BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
 {
+    BOOL res = FALSE;
 	// Check port 177716 bit 2
 	if ((m_Port177716 & 4) != 0)
 	{
@@ -1045,6 +1046,7 @@ void CSecondMemoryController::TapeInput(BOOL inputBit)
 		WORD tapeBitNew = inputBit ? 0 : 1;
 		if (tapeBitNew != tapeBitOld)
 		{
+            res = TRUE;
 			m_Port177716 = (m_Port177716 & 0177776) | tapeBitNew;
 			if ((m_Port177716 & 8) == 0)
 			{
@@ -1052,6 +1054,7 @@ void CSecondMemoryController::TapeInput(BOOL inputBit)
 			}
 		}
 	}
+    return res;
 }
 
 

@@ -358,7 +358,7 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 	{
 		value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
 	}
-	BOOL result = (value > 0);
+	BOOL result = (value < 0);
 	
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
