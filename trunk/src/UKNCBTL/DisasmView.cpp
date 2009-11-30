@@ -13,8 +13,9 @@
 //////////////////////////////////////////////////////////////////////
 
 // Colors
-#define COLOR_BLUE  RGB(0,0,255)
+#define COLOR_BLUE      RGB(0,0,255)
 #define COLOR_SUBTITLE  RGB(0,128,0)
+#define COLOR_VALUE     RGB(128,128,128)
 
 HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
 WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
@@ -233,6 +234,15 @@ void DisasmView_DoSubtitles()
     DisasmView_UpdateWindowText();
 }
 
+void DisasmView_AddSubtitle(WORD address, LPCTSTR pCommentText)
+{
+    if (m_nDisasmSubtitleCount > 256)
+        return;  //TODO: Расширить массив
+    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].address = address;
+    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].comment = pCommentText;
+    m_nDisasmSubtitleCount++;
+}
+
 // Разбор текста "субтитров".
 // На входе -- текст в m_strDisasmSubtitles в формате UTF16 LE, заканчивается символом с кодом 0.
 // На выходе -- массив пар [адрес в памяти, адрес строки комментария] в m_pDisasmSubtitleItems.
@@ -245,7 +255,8 @@ BOOL DisasmView_ParseSubtitles()
     if (*pText == 0xFEFF)
         pText++;  // Skip Unicode LE mark
 
-    int nItemCount = 0;
+    m_nDisasmSubtitleCount = 0;
+    TCHAR* pBlockCommentStart = NULL;
 
     for (;;)  // Text reading loop - line by line
     {
@@ -257,7 +268,7 @@ BOOL DisasmView_ParseSubtitles()
             continue;
         }
 
-        if (*pText >= _T('0') && *pText <= _T('9'))  //TODO: Цифра -- считаем что это адрес
+        if (*pText >= _T('0') && *pText <= _T('9'))  // Цифра -- считаем что это адрес
         {
             // Парсим адрес
             TCHAR* pAddrStart = pText;
@@ -268,6 +279,13 @@ BOOL DisasmView_ParseSubtitles()
             WORD address;
             ParseOctalValue(pAddrStart, &address);
             *pText = chSave;
+
+            if (pBlockCommentStart != NULL)  // На предыдущей строке был комментарий к блоку
+            {
+                // Сохраняем комментарий к блоку в массиве
+                DisasmView_AddSubtitle(address - 1, pBlockCommentStart);
+                pBlockCommentStart = NULL;
+            }
 
             // Ищем начало комментария и конец строки
             while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
@@ -282,10 +300,8 @@ BOOL DisasmView_ParseSubtitles()
             TCHAR* pCommentStart = pText;
             while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
 
-            m_pDisasmSubtitleItems[nItemCount].address = address;
-            m_pDisasmSubtitleItems[nItemCount].comment = pCommentStart;
-            nItemCount++;
-            if (nItemCount > 256) break;  //TODO: Расширить массив
+            // Сохраняем комментарий в массиве
+            DisasmView_AddSubtitle(address, pCommentStart);
 
             if (*pText == 0) break;
             *pText = 0;  // Обозначаем конец комментария
@@ -293,17 +309,22 @@ BOOL DisasmView_ParseSubtitles()
         }
         else  // Не цифра -- пропускаем до конца строки
         {
+            if (*pText == _T(';'))  // Строка начинается с комментария - предположительно, комментарий к блоку
+                pBlockCommentStart = pText;
+            else
+                pBlockCommentStart = NULL;
+
             while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
             if (*pText == 0) break;
             if (*pText == _T('\n') || *pText == _T('\r'))  // EOL
             {
+                *pText = 0;  // Обозначаем конец комментария - для комментария к блоку
                 pText++;
                 continue;
             }
         }
     }
 
-    m_nDisasmSubtitleCount = nItemCount;
     return TRUE;
 }
 
@@ -400,11 +421,28 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
 
     int length = 0;
     WORD wNextBaseAddr = 0;
-    for (int index = 0; index < nWindowSize; index++) {  // Рисуем строки
+    for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
+    {
+        if (m_okDisasmSubtitles)  // Subtitles - комментарий к блоку
+        {
+            LPCTSTR strBlockSubtitle = Disasm_FindSubtitle(address - 1);
+            if (strBlockSubtitle != NULL)
+            {
+                ::SetTextColor(hdc, COLOR_SUBTITLE);
+                TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) wcslen(strBlockSubtitle));
+                ::SetTextColor(hdc, colorText);
+
+                y += cyLine;
+            }
+        }
+
         DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
         // Value at the address
         WORD value = memory[index];
+        ::SetTextColor(hdc, COLOR_VALUE);
         DrawOctalValue(hdc, x + 13 * cxChar, y, value);
+        ::SetTextColor(hdc, colorText);
+
         // Current position
         if (address == current)
             TextOut(hdc, x + 1 * cxChar, y, _T("  >"), 3);
@@ -423,6 +461,10 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
                 ::SetTextColor(hdc, COLOR_SUBTITLE);
                 TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) wcslen(strSubtitle));
                 ::SetTextColor(hdc, colorText);
+
+                // Строку с субтитром мы можем использовать как опорную для дизассемблера
+                if (disasmfrom > address)
+                    disasmfrom = address;
             }
         }
 

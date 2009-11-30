@@ -74,6 +74,11 @@ LRESULT CALLBACK ToolWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 			::SelectObject(hdc, hOldFont);
 			::DeleteObject(hfont);
 
+            //RECT rcClose;
+            //rcClose.right = rcWindow.right;  rcClose.top = 0;  rcClose.bottom = TOOLWINDOW_CAPTION_HEIGHT;
+            //rcClose.left = rcWindow.right - 18;
+            //::DrawFrameControl(hdc, &rcClose, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
+
             ReleaseDC(hWnd, hdc);
         }
         break;
