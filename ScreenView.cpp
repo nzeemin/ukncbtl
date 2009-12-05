@@ -456,41 +456,42 @@ const BYTE arrPcscan2UkncscanRus[256] = {  // РУС
 void ScreenView_ScanKeyboard()
 {
     if (! g_okEmulatorRunning) return;
-    if (::GetFocus() != g_hwndScreen) return;
-
-    // Read current keyboard state
-    BYTE keys[256];
-    VERIFY(::GetKeyboardState(keys));
-
-    // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
-    WORD ukncRegister = g_pBoard->GetKeyboardRegister();
-    const BYTE* pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-
-    // Check every key for state change
-    for (int scan = 0; scan < 256; scan++)
+    if (::GetFocus() == g_hwndScreen)
     {
-        BYTE newstate = keys[scan];
-        BYTE oldstate = m_ScreenKeyState[scan];
-        if ((newstate & 128) != (oldstate & 128))  // Key state changed - key pressed or released
+        // Read current keyboard state
+        BYTE keys[256];
+        VERIFY(::GetKeyboardState(keys));
+
+        // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
+        WORD ukncRegister = g_pBoard->GetKeyboardRegister();
+        const BYTE* pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+
+        // Check every key for state change
+        for (int scan = 0; scan < 256; scan++)
         {
-            BYTE pcscan = (BYTE) scan;
-            BYTE ukncscan = pTable[pcscan];
-            if (ukncscan != 0)
+            BYTE newstate = keys[scan];
+            BYTE oldstate = m_ScreenKeyState[scan];
+            if ((newstate & 128) != (oldstate & 128))  // Key state changed - key pressed or released
             {
-                BYTE pressed = newstate & 128;
-                WORD keyevent = MAKEWORD(ukncscan, pressed);
-                ScreenView_PutKeyEventToQueue(keyevent);
+                BYTE pcscan = (BYTE) scan;
+                BYTE ukncscan = pTable[pcscan];
+                if (ukncscan != 0)
+                {
+                    BYTE pressed = newstate & 128;
+                    WORD keyevent = MAKEWORD(ukncscan, pressed);
+                    ScreenView_PutKeyEventToQueue(keyevent);
+                }
+
+    #if !defined(PRODUCT)
+                    TCHAR bufoct[7];  PrintOctalValue(bufoct, ukncscan);
+                    DebugPrintFormat(_T("KeyEvent: pc:0x%02x uknc:%s %x\r\n"), scan, bufoct, (newstate & 128) != 0);
+    #endif
             }
-
-#if !defined(PRODUCT)
-                TCHAR bufoct[7];  PrintOctalValue(bufoct, ukncscan);
-                DebugPrintFormat(_T("KeyEvent: pc:0x%02x uknc:%s %x\r\n"), scan, bufoct, (newstate & 128) != 0);
-#endif
         }
-    }
 
-    // Save keyboard state
-    ::CopyMemory(m_ScreenKeyState, keys, 256);
+        // Save keyboard state
+        ::CopyMemory(m_ScreenKeyState, keys, 256);
+    }
 
     // Process next event in the keyboard queue
     WORD keyevent = ScreenView_GetKeyEventFromQueue();
