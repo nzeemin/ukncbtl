@@ -530,23 +530,24 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
 
         if (address >= disasmfrom && length == 0)
         {
+            TCHAR strInstr[8];
+            TCHAR strArg[32];
             if (okData)  // По этому адресу лежат данные -- нет смысла дизассемблировать
             {
-                TextOut(hdc, x + 21 * cxChar, y, _T("data"), 4);
+                lstrcpy(strInstr, _T("data"));
+                PrintOctalValue(strArg, *(memory + index));
                 length = 1;
             }
             else
             {
-                TCHAR strInstr[8];
-                TCHAR strArg[32];
                 length = DisassembleInstruction(memory + index, address, strInstr, strArg);
-                if (index + length <= nWindowSize)
-                {
-                    TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
-                    TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
-                }
-                ::SetTextColor(hdc, colorText);
             }
+            if (index + length <= nWindowSize)
+            {
+                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
+                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
+            }
+            ::SetTextColor(hdc, colorText);
             if (wNextBaseAddr == 0)
                 wNextBaseAddr = address + length * 2;
         }
