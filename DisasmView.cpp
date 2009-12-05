@@ -43,6 +43,7 @@ struct DisasmSubtitleItem
 BOOL m_okDisasmSubtitles = FALSE;
 TCHAR* m_strDisasmSubtitles = NULL;
 DisasmSubtitleItem* m_pDisasmSubtitleItems = NULL;
+int m_nDisasmSubtitleMax = 0;
 int m_nDisasmSubtitleCount = 0;
 
 //////////////////////////////////////////////////////////////////////
@@ -177,6 +178,32 @@ void DisasmView_UpdateWindowText()
 	::SetWindowText(g_hwndDisasm, buffer);
 }
 
+void DisasmView_ResizeSubtitleArray(int newSize)
+{
+    DisasmSubtitleItem* pNewMemory = (DisasmSubtitleItem*) ::LocalAlloc(LPTR, sizeof(DisasmSubtitleItem) * newSize);
+    if (m_pDisasmSubtitleItems != NULL)
+    {
+        ::CopyMemory(pNewMemory, m_pDisasmSubtitleItems, sizeof(DisasmSubtitleItem) * m_nDisasmSubtitleMax);
+        ::LocalFree(m_pDisasmSubtitleItems);
+    }
+
+    m_pDisasmSubtitleItems = pNewMemory;
+    m_nDisasmSubtitleMax = newSize;
+}
+void DisasmView_AddSubtitle(WORD address, LPCTSTR pCommentText)
+{
+    if (m_nDisasmSubtitleCount >= m_nDisasmSubtitleMax)
+    {
+        // Расширить массив
+        int newsize = m_nDisasmSubtitleMax + m_nDisasmSubtitleMax / 2;
+        DisasmView_ResizeSubtitleArray(newsize);
+    }
+
+    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].address = address;
+    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].comment = pCommentText;
+    m_nDisasmSubtitleCount++;
+}
+
 void DisasmView_DoSubtitles()
 {
     if (m_okDisasmSubtitles)  // Reset subtitles
@@ -214,14 +241,26 @@ void DisasmView_DoSubtitles()
         return;
     }
     DWORD dwSubFileSize = ::GetFileSize(hSubFile, NULL);
+    if (dwSubFileSize > 1024 * 1024)
+    {
+        ::CloseHandle(hSubFile);
+        AlertWarning(_T("Subtitles file is too big (over 1 MB)."));
+        return;
+    }
+
     m_strDisasmSubtitles = (TCHAR*) ::LocalAlloc(LPTR, dwSubFileSize + 2);
     DWORD dwBytesRead;
     ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
     ASSERT(dwBytesRead == dwSubFileSize);
     ::CloseHandle(hSubFile);
 
+    // Estimate comment count and allocate memory
+    int estimateSubtitleCount = dwSubFileSize / (75 * sizeof(TCHAR));
+    if (estimateSubtitleCount < 256)
+        estimateSubtitleCount = 256;
+    DisasmView_ResizeSubtitleArray(estimateSubtitleCount);
+
     // Parse subtitles
-    m_pDisasmSubtitleItems = (DisasmSubtitleItem*) ::LocalAlloc(LPTR, sizeof(DisasmSubtitleItem) * 256);
     if (!DisasmView_ParseSubtitles())
     {
         ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
@@ -232,15 +271,6 @@ void DisasmView_DoSubtitles()
 
     m_okDisasmSubtitles = TRUE;
     DisasmView_UpdateWindowText();
-}
-
-void DisasmView_AddSubtitle(WORD address, LPCTSTR pCommentText)
-{
-    if (m_nDisasmSubtitleCount > 256)
-        return;  //TODO: Расширить массив
-    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].address = address;
-    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].comment = pCommentText;
-    m_nDisasmSubtitleCount++;
 }
 
 // Разбор текста "субтитров".
