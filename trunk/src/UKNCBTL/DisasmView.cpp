@@ -210,6 +210,7 @@ void DisasmView_DoSubtitles()
     {
         ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
         ::LocalFree(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
+        m_nDisasmSubtitleMax = m_nDisasmSubtitleCount = 0;
         m_okDisasmSubtitles = FALSE;
         DisasmView_UpdateWindowText();
         return;
