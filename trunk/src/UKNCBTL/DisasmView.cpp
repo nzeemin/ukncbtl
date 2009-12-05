@@ -34,9 +34,18 @@ void DisasmView_SetBaseAddr(WORD base);
 void DisasmView_DoSubtitles();
 BOOL DisasmView_ParseSubtitles();
 
+enum DisasmSubtitleType
+{
+    SUBTYPE_NONE = 0,
+    SUBTYPE_COMMENT = 1,
+    SUBTYPE_BLOCKCOMMENT = 2,
+    SUBTYPE_DATA = 4,
+};
+
 struct DisasmSubtitleItem
 {
     WORD address;
+    DisasmSubtitleType type;
     LPCTSTR comment;
 };
 
@@ -190,7 +199,7 @@ void DisasmView_ResizeSubtitleArray(int newSize)
     m_pDisasmSubtitleItems = pNewMemory;
     m_nDisasmSubtitleMax = newSize;
 }
-void DisasmView_AddSubtitle(WORD address, LPCTSTR pCommentText)
+void DisasmView_AddSubtitle(WORD address, int type, LPCTSTR pCommentText)
 {
     if (m_nDisasmSubtitleCount >= m_nDisasmSubtitleMax)
     {
@@ -200,6 +209,7 @@ void DisasmView_AddSubtitle(WORD address, LPCTSTR pCommentText)
     }
 
     m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].address = address;
+    m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].type = (DisasmSubtitleType) type;
     m_pDisasmSubtitleItems[m_nDisasmSubtitleCount].comment = pCommentText;
     m_nDisasmSubtitleCount++;
 }
@@ -276,7 +286,7 @@ void DisasmView_DoSubtitles()
 
 // Разбор текста "субтитров".
 // На входе -- текст в m_strDisasmSubtitles в формате UTF16 LE, заканчивается символом с кодом 0.
-// На выходе -- массив пар [адрес в памяти, адрес строки комментария] в m_pDisasmSubtitleItems.
+// На выходе -- массив описаний [адрес в памяти, тип, адрес строки комментария] в m_pDisasmSubtitleItems.
 BOOL DisasmView_ParseSubtitles()
 {
     ASSERT(m_strDisasmSubtitles != NULL);
@@ -314,9 +324,15 @@ BOOL DisasmView_ParseSubtitles()
             if (pBlockCommentStart != NULL)  // На предыдущей строке был комментарий к блоку
             {
                 // Сохраняем комментарий к блоку в массиве
-                DisasmView_AddSubtitle(address - 1, pBlockCommentStart);
+                DisasmView_AddSubtitle(address, SUBTYPE_BLOCKCOMMENT, pBlockCommentStart);
                 pBlockCommentStart = NULL;
             }
+
+            // Пропускаем разделители
+            while (*pText != 0 &&
+                (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
+                pText++;
+            BOOL okDirective = (*pText == _T('.'));
 
             // Ищем начало комментария и конец строки
             while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
@@ -324,6 +340,9 @@ BOOL DisasmView_ParseSubtitles()
             if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, комментарий не обнаружен
             {
                 pText++;
+
+                if (okDirective)
+                    DisasmView_AddSubtitle(address, SUBTYPE_DATA, NULL);
                 continue;
             }
 
@@ -332,7 +351,9 @@ BOOL DisasmView_ParseSubtitles()
             while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
 
             // Сохраняем комментарий в массиве
-            DisasmView_AddSubtitle(address, pCommentStart);
+            DisasmView_AddSubtitle(address,
+                (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
+                pCommentStart);
 
             if (*pText == 0) break;
             *pText = 0;  // Обозначаем конец комментария
@@ -414,13 +435,13 @@ void DoDrawDisasmView(HDC hdc)
     DeleteObject(hFont);
 }
 
-LPCTSTR Disasm_FindSubtitle(WORD address)
+DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
 {
     DisasmSubtitleItem* pItem = m_pDisasmSubtitleItems;
-    while (pItem->comment != NULL)
+    while (pItem->type != 0)
     {
-        if (pItem->address == address)
-            return pItem->comment;
+        if (pItem->address == address && (pItem->type & typemask) != 0)
+            return pItem;
         pItem++;
     }
     
@@ -456,9 +477,11 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
     {
         if (m_okDisasmSubtitles)  // Subtitles - комментарий к блоку
         {
-            LPCTSTR strBlockSubtitle = Disasm_FindSubtitle(address - 1);
-            if (strBlockSubtitle != NULL)
+            DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_BLOCKCOMMENT);
+            if (pSubItem != NULL && pSubItem->comment != NULL)
             {
+                LPCTSTR strBlockSubtitle = pSubItem->comment;
+
                 ::SetTextColor(hdc, COLOR_SUBTITLE);
                 TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) wcslen(strBlockSubtitle));
                 ::SetTextColor(hdc, colorText);
@@ -484,11 +507,17 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
             ::SetTextColor(hdc, COLOR_BLUE);
             TextOut(hdc, x + 1 * cxChar, y, _T("  > "), 4);
         }
+
+        BOOL okData = FALSE;
         if (m_okDisasmSubtitles)  // Show subtitle
         {
-            LPCTSTR strSubtitle = Disasm_FindSubtitle(address);
-            if (strSubtitle != NULL)
+            DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_COMMENT | SUBTYPE_DATA);
+            if (pSubItem != NULL && (pSubItem->type & SUBTYPE_DATA) != 0)
+                okData = TRUE;
+            if (pSubItem != NULL && (pSubItem->type & SUBTYPE_COMMENT) != 0 && pSubItem->comment != NULL)
             {
+                LPCTSTR strSubtitle = pSubItem->comment;
+
                 ::SetTextColor(hdc, COLOR_SUBTITLE);
                 TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) wcslen(strSubtitle));
                 ::SetTextColor(hdc, colorText);
@@ -499,17 +528,25 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
             }
         }
 
-        if (address >= disasmfrom && length == 0) {
-            TCHAR strInstr[8];
-            TCHAR strArg[32];
-            length = DisassembleInstruction(memory + index, address, strInstr, strArg);
-            if (index + length <= nWindowSize)
+        if (address >= disasmfrom && length == 0)
+        {
+            if (okData)  // По этому адресу лежат данные -- нет смысла дизассемблировать
             {
-                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
-                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
+                TextOut(hdc, x + 21 * cxChar, y, _T("data"), 4);
+                length = 1;
             }
-            ::SetTextColor(hdc, colorText);
-
+            else
+            {
+                TCHAR strInstr[8];
+                TCHAR strArg[32];
+                length = DisassembleInstruction(memory + index, address, strInstr, strArg);
+                if (index + length <= nWindowSize)
+                {
+                    TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
+                    TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
+                }
+                ::SetTextColor(hdc, colorText);
+            }
             if (wNextBaseAddr == 0)
                 wNextBaseAddr = address + length * 2;
         }
