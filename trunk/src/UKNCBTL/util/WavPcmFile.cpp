@@ -6,6 +6,7 @@
 
 //////////////////////////////////////////////////////////////////////
 
+// WAV PCM format description: https://ccrma.stanford.edu/courses/422/projects/WaveFormat/
 
 static const char magic1[4] = { 'R', 'I', 'F', 'F' };
 static const char magic2[4] = { 'W', 'A', 'V', 'E' };
@@ -24,6 +25,7 @@ struct WAVPCMFILE
 	DWORD dwDataOffset;
 	DWORD dwDataSize;
 	DWORD dwCurrentPosition;
+    BOOL okWriting;
 };
 
 int WavPcmFile_GetFrequency(HWAVPCMFILE wavpcmfile)
@@ -73,6 +75,7 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 {
 	const int bitsPerSample = 8;
 	const int channels = 1;
+    const int blockAlign = channels * bitsPerSample / 8;
 
 	HANDLE hFileNew = ::CreateFile(filename,
 		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -81,20 +84,42 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 
 	// Prepare and write file header
 	BYTE consolidated_header[12 + 8 + 16 + 8];
+    ::ZeroMemory(consolidated_header, sizeof(consolidated_header));
 	DWORD bytesWritten;
-	
-	//TODO
+
+    memcpy(&consolidated_header[0], magic1, 4);  // RIFF
+    memcpy(&consolidated_header[8], magic2, 4);  // WAVE
+    
+    memcpy(&consolidated_header[12], format_tag_id, 4);  // fmt
+    *((DWORD*)(consolidated_header + 16)) = 16;  // Size of "fmt" chunk
+    *((WORD*)(consolidated_header + 20)) = WAV_FORMAT_PCM;  // AudioFormat = PCM
+    *((WORD*)(consolidated_header + 22)) = channels;  // NumChannels = mono
+    *((DWORD*)(consolidated_header + 24)) = sampleRate;  // SampleRate
+    *((DWORD*)(consolidated_header + 28)) = sampleRate * channels * bitsPerSample / 8;  // ByteRate
+    *((WORD*)(consolidated_header + 32)) = blockAlign;
+    *((WORD*)(consolidated_header + 34)) = bitsPerSample;
+
+    memcpy(&consolidated_header[36], data_tag_id, 4);  // data
+
+	// Write consolidated header
+    ::WriteFile(hFileNew, consolidated_header, sizeof(consolidated_header), &bytesWritten, NULL);
+	if (bytesWritten != sizeof(consolidated_header))
+	{
+		::CloseHandle(hFileNew);
+		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to write consolidated header
+	}
 
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::LocalAlloc(LPTR, sizeof(WAVPCMFILE));
 	pWavPcm->hFile = hFileNew;
 	pWavPcm->nChannels = channels;
 	pWavPcm->nSampleFrequency = sampleRate;
 	pWavPcm->nBitsPerSample = bitsPerSample;
-	//pWavPcm->nBlockAlign = blockAlign;
-	//pWavPcm->dwDataOffset = dataOffset;
+	pWavPcm->nBlockAlign = blockAlign;
+	pWavPcm->dwDataOffset = sizeof(consolidated_header);
 	pWavPcm->dwDataSize = 0;
+    pWavPcm->okWriting = TRUE;
 
-	//WavPcmFile_SetPosition((HWAVPCMFILE) pWavPcm, 0);
+	WavPcmFile_SetPosition((HWAVPCMFILE) pWavPcm, 0);
 
 	return (HWAVPCMFILE) pWavPcm;
 }
@@ -203,6 +228,7 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 	pWavPcm->nBlockAlign = blockAlign;
 	pWavPcm->dwDataOffset = dataOffset;
 	pWavPcm->dwDataSize = dataSize;
+    pWavPcm->okWriting = FALSE;
 
 	WavPcmFile_SetPosition((HWAVPCMFILE) pWavPcm, 0);
 
@@ -216,9 +242,41 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
 
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
 
+    if (pWavPcm->okWriting)
+    {
+        DWORD bytesWritten;
+        // Write data chunk size
+	    ::SetFilePointer(pWavPcm->hFile, 4, NULL, FILE_BEGIN);
+        DWORD chunkSize = 36 + pWavPcm->dwDataSize;
+        ::WriteFile(pWavPcm->hFile, &chunkSize, 4, &bytesWritten, NULL);
+        // Write data subchunk size
+	    ::SetFilePointer(pWavPcm->hFile, 40, NULL, FILE_BEGIN);
+        ::WriteFile(pWavPcm->hFile, &(pWavPcm->dwDataSize), 4, &bytesWritten, NULL);
+    }
+
 	::CloseHandle(pWavPcm->hFile);
 	pWavPcm->hFile = INVALID_HANDLE_VALUE;
 	::LocalFree((HLOCAL)pWavPcm);
+}
+
+void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, int value)
+{
+	if (wavpcmfile == INVALID_HANDLE_VALUE)
+		return;
+
+	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    if (!pWavPcm->okWriting)
+        return;
+    ASSERT(pWavPcm->nBitsPerSample == 8);
+    ASSERT(pWavPcm->nChannels == 1);
+
+    BYTE data = (value >> 24) & 0xff;
+
+    DWORD bytesWritten;
+    ::WriteFile(pWavPcm->hFile, &data, 1, &bytesWritten, NULL);
+
+    pWavPcm->dwCurrentPosition++;
+    pWavPcm->dwDataSize += pWavPcm->nBlockAlign;
 }
 
 int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
@@ -227,6 +285,8 @@ int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 		return 0;
 
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    if (pWavPcm->okWriting)
+        return 0;
 
 	// Read one sample
 	DWORD bytesToRead = pWavPcm->nBlockAlign;

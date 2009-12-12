@@ -26,7 +26,7 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position);
 // Read one sample scaled to int type range
 int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile);
 // Write one sample scaled to int type range
-//void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, int value);
+void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, int value);
 
 
 //////////////////////////////////////////////////////////////////////
