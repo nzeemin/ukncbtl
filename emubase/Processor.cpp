@@ -1850,13 +1850,16 @@ void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
 
 void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
 {
-	if(m_methdest)
-		SetByte(GetByteAddr(m_methdest,m_regdest), (BYTE) GetPSW());
+    BYTE psw = GetPSW() & 0377;
+	if (m_methdest)
+		SetByte(GetByteAddr(m_methdest, m_regdest), psw);
 	else
-		SetReg(m_regdest,(char)(GetPSW()&0377)); //sign extend
+		SetReg(m_regdest, (char)psw); //sign extend
+    SetN(psw & 0200);
+    SetZ(psw == 0);
+    SetV(0);
 
 	m_internalTick=CLR_TIMING[m_methdest];
-
 }
 
 void CProcessor::ExecuteBR ()
@@ -2513,10 +2516,12 @@ void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC 
 
 void CProcessor::ExecuteMARK ()  // MARK
 {
-    SetReg(7, GetReg(5) );
+    SetSP( GetPC() + (m_instruction & 0x003F) * 2 );
+    SetPC( GetReg(5) );
     SetReg(5, GetWord( GetSP() ));
-    SetSP( GetSP() + (m_instruction & 0x003F) * 2 + 2 );
-	m_internalTick=MARK_TIMING;
+    SetSP( GetSP() + 2 );
+
+    m_internalTick = MARK_TIMING;
 }
 
 //////////////////////////////////////////////////////////////////////
