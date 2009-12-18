@@ -115,14 +115,34 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
         case PI_NOP:    wcscpy_s(strInstr, 8, _T("NOP"));    return 1;
         case PI_CLC:    wcscpy_s(strInstr, 8, _T("CLC"));    return 1;
         case PI_CLV:    wcscpy_s(strInstr, 8, _T("CLV"));    return 1;
+        case PI_CLVC:   wcscpy_s(strInstr, 8, _T("CLVC"));   return 1;
         case PI_CLZ:    wcscpy_s(strInstr, 8, _T("CLZ"));    return 1;
+        case PI_CLZC:   wcscpy_s(strInstr, 8, _T("CLZC"));   return 1;
+        case PI_CLZV:   wcscpy_s(strInstr, 8, _T("CLZV"));   return 1;
+        case PI_CLZVC:  wcscpy_s(strInstr, 8, _T("CLZVC"));  return 1;
         case PI_CLN:    wcscpy_s(strInstr, 8, _T("CLN"));    return 1;
+        case PI_CLNC:   wcscpy_s(strInstr, 8, _T("CLNC"));   return 1;
+        case PI_CLNV:   wcscpy_s(strInstr, 8, _T("CLNV"));   return 1;
+        case PI_CLNVC:  wcscpy_s(strInstr, 8, _T("CLNVC"));  return 1;
+        case PI_CLNZ:   wcscpy_s(strInstr, 8, _T("CLNZ"));   return 1;
+        case PI_CLNZC:  wcscpy_s(strInstr, 8, _T("CLNZC"));  return 1;
+        case PI_CLNZV:  wcscpy_s(strInstr, 8, _T("CLNZV"));  return 1;
         case PI_CCC:    wcscpy_s(strInstr, 8, _T("CCC"));    return 1;
         case PI_NOP260: wcscpy_s(strInstr, 8, _T("NOP260")); return 1;
         case PI_SEC:    wcscpy_s(strInstr, 8, _T("SEC"));    return 1;
         case PI_SEV:    wcscpy_s(strInstr, 8, _T("SEV"));    return 1;
+        case PI_SEVC:   wcscpy_s(strInstr, 8, _T("SEVC"));   return 1;
         case PI_SEZ:    wcscpy_s(strInstr, 8, _T("SEZ"));    return 1;
+        case PI_SEZC:   wcscpy_s(strInstr, 8, _T("SEZC"));   return 1;
+        case PI_SEZV:   wcscpy_s(strInstr, 8, _T("SEZV"));   return 1;
+        case PI_SEZVC:  wcscpy_s(strInstr, 8, _T("SEZVC"));  return 1;
         case PI_SEN:    wcscpy_s(strInstr, 8, _T("SEN"));    return 1;
+        case PI_SENC:   wcscpy_s(strInstr, 8, _T("SENC"));   return 1;
+        case PI_SENV:   wcscpy_s(strInstr, 8, _T("SENV"));   return 1;
+        case PI_SENVC:  wcscpy_s(strInstr, 8, _T("SENVC"));  return 1;
+        case PI_SENZ:   wcscpy_s(strInstr, 8, _T("SENZ"));   return 1;
+        case PI_SENZC:  wcscpy_s(strInstr, 8, _T("SENZC"));  return 1;
+        case PI_SENZV:  wcscpy_s(strInstr, 8, _T("SENZV"));  return 1;
         case PI_SCC:    wcscpy_s(strInstr, 8, _T("SCC"));    return 1;
 
         // Спецкоманды режима HALT ВМ2
