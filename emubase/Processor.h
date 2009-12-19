@@ -62,6 +62,7 @@ protected:  // Interrupt processing
     BOOL        m_RPL2rq;           // Double hangup interrupt pending
 	BOOL		m_EVNTrq;           // Timer event interrupt pending
     BOOL        m_FIS_rq;           // FIS command interrupt pending
+    BOOL        m_BPT_rq;           // BPT command interrupt pending
     BOOL        m_IOT_rq;           // IOT command interrupt pending
     BOOL        m_EMT_rq;           // EMT command interrupt pending
     BOOL        m_TRAPrq;           // TRAP command interrupt pending
