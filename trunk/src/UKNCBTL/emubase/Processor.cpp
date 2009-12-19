@@ -291,7 +291,7 @@ CProcessor::CProcessor (LPCTSTR name)
 	m_userspace = FALSE;
 	m_stepmode = FALSE;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
     //m_VIRQrq = FALSE;
     m_haltpin = FALSE;
 }
@@ -305,7 +305,7 @@ void CProcessor::Start ()
 	m_stepmode = FALSE;
 	m_waitmode = FALSE;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
     //m_VIRQrq = FALSE;
     m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
 
@@ -330,7 +330,7 @@ void CProcessor::Stop ()
     m_savepc = m_savepsw = 0;
     m_internalTick = 0;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
     //m_VIRQrq = FALSE;
     m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
     m_haltpin = FALSE;
@@ -361,13 +361,16 @@ void CProcessor::Execute()
 
 	if (m_stepmode)
 		m_stepmode = FALSE;
+    else if (m_instruction == PI_RTT && (GetPSW() & PSW_T))
+    {
+        // Skip interrupt processing for RTT with T bit set
+    }
 	else  // Processing interrupts
 	{
-        if (m_psw & 020)  // T-bit set
-            m_TBITrq = TRUE;
-
         while (TRUE)
         {
+            m_TBITrq = (m_psw & 020);  // T-bit
+
             // Calculate interrupt vector and mode accoding to priority
             WORD intrVector = 0;
             BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
@@ -376,6 +379,11 @@ void CProcessor::Execute()
             {
                 intrVector = 0170;  intrMode = TRUE;
                 m_HALTrq = FALSE;
+            }
+            else if (m_BPT_rq)  // BPT command
+            {
+                intrVector = 0000014;  intrMode = FALSE;
+                m_BPT_rq = FALSE;
             }
             else if (m_IOT_rq)  // IOT command
             {
@@ -436,11 +444,6 @@ void CProcessor::Execute()
                 intrVector = 0000100;  intrMode = FALSE;
                 m_EVNTrq = FALSE;
             }
-            //else if (m_VIRQrq && (m_psw & 0200) != 0200)  // VIRQ, priority 7
-            //{
-            //    intrVector = m_VIRQvector;  intrMode = FALSE;
-            //    m_VIRQrq = FALSE;
-            //}
             else if (m_virqrq > 0 && (m_psw & 0200) != 0200)  // VIRQ, priority 7
             {
                 intrMode = FALSE;
@@ -1043,7 +1046,7 @@ void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
 
 void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 {
-    m_TBITrq = TRUE;
+    m_BPT_rq = TRUE;
 	m_internalTick = BPT_TIMING;
 }
 
@@ -1061,20 +1064,19 @@ void CProcessor::ExecuteRESET ()  // Reset input/output devices
 void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
 {
 	WORD new_psw;
-    SetReg(7, GetWord( GetSP() ) );  // Pop PC
+    SetPC( GetWord( GetSP() ) );  // Pop PC
     SetSP( GetSP() + 2 );
     
-	m_psw &= 0400;  // Store HALT
+	m_psw &= PSW_HALT;  // Store HALT
     new_psw = GetWord ( GetSP() );  // Pop PSW --- saving HALT
-	if(GetPC() < 0160000)
-		SetPSW((new_psw & 0377)|m_psw);  // Preserve HALT mode
+	if (GetPC() < 0160000)
+		SetPSW((new_psw & 0377) | m_psw);  // Preserve HALT mode
 	else
-		SetPSW(new_psw&0777); //load new mode
-
+		SetPSW(new_psw & 0777); // Load new mode
     SetSP( GetSP() + 2 );
 
-	m_psw|=PSW_T; // set the trap flag ???
-	m_internalTick=RTI_TIMING;
+	//m_psw |= PSW_T; // set the trap flag ???
+	m_internalTick = RTI_TIMING;
 }
 
 void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из процедуры
