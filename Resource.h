@@ -33,7 +33,7 @@
 #define ID_VIEW_DEBUG                   32776
 #define ID_FILE_SAVESTATE               32777
 #define ID_FILE_LOADSTATE               32778
-#define ID_EMULATOR_STEP                32779
+#define ID_DEBUG_STEPINTO               32779
 #define ID_EMULATOR_FLOPPY0             32780
 #define ID_EMULATOR_FLOPPY1             32781
 #define ID_EMULATOR_FLOPPY2             32782
@@ -53,6 +53,7 @@
 #define ID_VIEW_TOOLBAR                 32804
 #define ID_EMULATOR_SOUND               32805
 #define ID_FILE_CREATEDISK              32806
+#define ID_DEBUG_STEPOVER               32807
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -61,7 +62,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        145
-#define _APS_NEXT_COMMAND_VALUE         32807
+#define _APS_NEXT_COMMAND_VALUE         32808
 #define _APS_NEXT_CONTROL_VALUE         1004
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

@@ -103,8 +103,7 @@ void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height)
     ShowWindow(g_hwndConsole, SW_SHOW);
     UpdateWindow(g_hwndConsole);
 
-    ConsoleView_Print(_T("UKNC Back to Life\r\n\r\n")
-            _T("Debug console. Type 'h' to show help.\r\n\r\n"));
+    ConsoleView_Print(_T("Use 'h' command to show help.\r\n\r\n"));
     PrintConsolePrompt();
     SetFocus(m_hwndConsoleEdit);
 }
@@ -296,7 +295,8 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
     }
 }
 // Print disassembled instructions
-void PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr)
+// Return value: number of words in the last instruction
+int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okShort)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
     BOOL okHaltMode = pProc->IsHaltMode();
@@ -311,6 +311,7 @@ void PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr)
     TCHAR bufvalue[7];
     TCHAR buffer[64];
 
+    int lastLength = 0;
     int length = 0;
     for (int index = 0; index < nWindowSize; index++) {  // Рисуем строки
         PrintOctalValue(bufaddr, address);
@@ -319,8 +320,11 @@ void PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr)
 
         if (length > 0)
         {
-            wsprintf(buffer, _T("  %s  %s\r\n"), bufaddr, bufvalue);
-            ConsoleView_Print(buffer);
+            if (!okShort)
+            {
+                wsprintf(buffer, _T("  %s  %s\r\n"), bufaddr, bufvalue);
+                ConsoleView_Print(buffer);
+            }
         }
         else
         {
@@ -329,20 +333,33 @@ void PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr)
             TCHAR instr[8];
             TCHAR args[32];
             length = DisassembleInstruction(memory + index, address, instr, args);
+            lastLength = length;
             if (index + length > nWindowSize)
                 break;
-            wsprintf(buffer, _T("  %s  %s  %-7s %s\r\n"), bufaddr, bufvalue, instr, args);
+            if (okShort)
+                wsprintf(buffer, _T("  %s  %-7s %s\r\n"), bufaddr, instr, args);
+            else
+                wsprintf(buffer, _T("  %s  %s  %-7s %s\r\n"), bufaddr, bufvalue, instr, args);
             ConsoleView_Print(buffer);
         }
         length--;
         address += 2;
     }
+
+    return lastLength;
 }
 
-void ConsoleView_Step()
+void ConsoleView_StepInto()
 {
     // Put command to console prompt
     SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM) _T("s"));
+    // Execute command
+    DoConsoleCommand();
+}
+void ConsoleView_StepOver()
+{
+    // Put command to console prompt
+    SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM) _T("so"));
     // Execute command
     DoConsoleCommand();
 }
@@ -361,7 +378,8 @@ void ConsoleView_ShowHelp()
             _T("  r          Show register values\r\n") 
             _T("  rN         Show value of register N; N=0..7,ps\r\n") 
             _T("  rN XXXXXX  Set register N to value XXXXXX; N=0..7,ps\r\n") 
-            _T("  s          Step; executes one instruction (F8)\r\n") 
+            _T("  s          Step Into; executes one instruction\r\n") 
+            _T("  so         Step Over; executes and stops after the current instruction\r\n") 
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
         );
 }
@@ -455,29 +473,47 @@ void DoConsoleCommand()
         else
             ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         break;
-    case _T('s'):  // Step - execute one instruction
-        PrintDisassemble(pProc, pProc->GetPC(), TRUE);
-        //pProc->Execute();
-		
-		g_pBoard->DebugTicks();
+    case _T('s'):  // Step
+        if (command[1] == 0)  // "s" - Step Into, execute one instruction
+        {
+            PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
+            //pProc->Execute();
+    		
+		    g_pBoard->DebugTicks();
 
-        okUpdateAllViews = TRUE;
+            okUpdateAllViews = TRUE;
+        }
+        else if (command[1] == _T('o'))  // "so" - Step Over
+        {
+            int instrLength = PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
+            WORD bpaddress = pProc->GetPC() + instrLength * 2;
+
+            if (m_okCurrentProc)
+                Emulator_SetCPUBreakpoint(bpaddress);
+            else
+                Emulator_SetPPUBreakpoint(bpaddress);
+            Emulator_Start();
+        }
         break;
     case _T('d'):  // Disassemble
-        if (command[1] == 0)  // "d" - disassemble at current address
-            PrintDisassemble(pProc, pProc->GetPC(), FALSE);
-        else if (command[1] >= _T('0') && command[1] <= _T('7'))  // "dXXXXXX" - disassemble at address XXXXXX
+    case _T('D'):  // Disassemble, short format
         {
-            WORD value;
-            if (! ParseOctalValue(command + 1, &value))
-                ConsoleView_Print(MESSAGE_WRONG_VALUE);
-            else
+            BOOL okShort = (command[0] == _T('D'));
+            if (command[1] == 0)  // "d" - disassemble at current address
+                PrintDisassemble(pProc, pProc->GetPC(), FALSE, okShort);
+            else if (command[1] >= _T('0') && command[1] <= _T('7'))  // "dXXXXXX" - disassemble at address XXXXXX
             {
-                PrintDisassemble(pProc, value, FALSE);
+                WORD value;
+                if (! ParseOctalValue(command + 1, &value))
+                    ConsoleView_Print(MESSAGE_WRONG_VALUE);
+                else
+                {
+                    PrintDisassemble(pProc, value, FALSE, okShort);
+                }
             }
+            else
+                ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         }
-        else
-            ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         break;
 	case _T('u'):
 		SaveMemoryDump(pProc);

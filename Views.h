@@ -101,7 +101,8 @@ void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
 void ConsoleView_Print(LPCTSTR message);
 void ConsoleView_Activate();
-void ConsoleView_Step();
+void ConsoleView_StepInto();
+void ConsoleView_StepOver();
 
 
 //////////////////////////////////////////////////////////////////////
