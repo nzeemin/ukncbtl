@@ -45,7 +45,8 @@ CMotherboard::CMotherboard ()
     m_pSecondMemCtl->Attach(this, m_pPPU);
 
 	m_TapeReadCallback = NULL;
-	m_nTapeReadSampleRate = 0;
+    m_TapeWriteCallback = NULL;
+	m_nTapeSampleRate = 0;
     m_SoundGenCallback = NULL;
 
     // Allocate memory for RAM and ROM
@@ -410,10 +411,9 @@ BOOL CMotherboard::SystemFrame()
 	int audioticks = 20286/(SAMPLERATE/25);
 
 	int frameTapeTicks = 0, tapeSamplesPerFrame = 0, tapeReadError = 0;
-	//int tapeReadSamples = 0;  // For statistics only
-	if (m_TapeReadCallback != NULL)
+    if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
     {
-		tapeSamplesPerFrame = m_nTapeReadSampleRate / 25;
+		tapeSamplesPerFrame = m_nTapeSampleRate / 25;
         frameTapeTicks = 20000 / tapeSamplesPerFrame;
     }
 
@@ -456,13 +456,13 @@ BOOL CMotherboard::SystemFrame()
 		if (frameticks % audioticks == 0) //AUDIO tick
 			DoSound();
 
-		if (m_TapeReadCallback != NULL && frameticks % frameTapeTicks == 0)
+        if ((m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL) && frameticks % frameTapeTicks == 0)
 		{
-			int tapeSamplesToRead = 0;
+			int tapeSamples = 0;
 			const int readsTotal = 20000 / frameTapeTicks;
 			while (true)
 			{
-				tapeSamplesToRead++;
+				tapeSamples++;
 				tapeReadError += readsTotal;
 				if (2 * tapeReadError >= tapeSamplesPerFrame)
 				{
@@ -472,18 +472,23 @@ BOOL CMotherboard::SystemFrame()
 			}
 
 			// Reading the tape
-			BOOL tapeBit = (*m_TapeReadCallback)(tapeSamplesToRead);
-			//tapeReadSamples += tapeSamplesToRead;  // For statistics only
-			CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
-			if (pMemCtl->TapeInput(tapeBit))
+            if (m_TapeReadCallback != NULL)
             {
-			    m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
+			    BOOL tapeBit = (*m_TapeReadCallback)(tapeSamples);
+			    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+			    if (pMemCtl->TapeInput(tapeBit))
+                {
+			        m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
+                }
+            }
+            else if (m_TapeWriteCallback != NULL)
+            {
+                UINT value = 0;  //TODO
+                (*m_TapeWriteCallback)(value, tapeSamples);
             }
 		}
 
         frameticks++;
-	
-	//	DoSound();
     }
     while (frameticks < 20000);
 
@@ -1031,16 +1036,32 @@ void CMotherboard::SetSound(WORD val)
 
 void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate)
 {
-	if (callback == NULL)  // Reset callback
-	{
-		m_TapeReadCallback = NULL;
-		m_nTapeReadSampleRate = 0;
-	}
-	else
-	{
-		m_TapeReadCallback = callback;
-		m_nTapeReadSampleRate = sampleRate;
-	}
+    if (callback == NULL)  // Reset callback
+    {
+        m_TapeReadCallback = NULL;
+        m_nTapeSampleRate = 0;
+    }
+    else
+    {
+        m_TapeReadCallback = callback;
+        m_nTapeSampleRate = sampleRate;
+        m_TapeWriteCallback = NULL;
+    }
+}
+
+void CMotherboard::SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate)
+{
+    if (callback == NULL)  // Reset callback
+    {
+        m_TapeWriteCallback = NULL;
+        m_nTapeSampleRate = 0;
+    }
+    else
+    {
+        m_TapeWriteCallback = callback;
+        m_nTapeSampleRate = sampleRate;
+        m_TapeReadCallback = NULL;
+    }
 }
 
 void CMotherboard::SetSoundGenCallback(SOUNDGENCALLBACK callback)
