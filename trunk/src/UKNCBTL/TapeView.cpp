@@ -45,6 +45,7 @@ void TapeView_DoPlayStop();
 void TapeView_DoRewind();
 
 BOOL CALLBACK TapeView_TapeReadCallback(UINT samples);
+void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -172,7 +173,7 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 void TapeView_CreateTape(LPCTSTR lpszFile)
 {
-	m_hTapeWavPcmFile = WavPcmFile_Create(lpszFile, 22050);
+	m_hTapeWavPcmFile = WavPcmFile_Create(lpszFile, 44100);
 	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
 		return;  //TODO: Report error
 
@@ -185,7 +186,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	EnableWindow(m_hwndTapeRewind, TRUE);
 	SetWindowText(m_hwndTapeFile, lpszFile);
 
-	//TapeView_UpdatePosition();
+	TapeView_UpdatePosition();
 
 	SetWindowText(m_hwndTapeSave, _T("Close WAV"));
 	EnableWindow(m_hwndTapeOpen, FALSE);
@@ -245,8 +246,13 @@ void TapeView_PlayTape()
 	if (!m_okTapeInserted) return;
 
 	int sampleRate = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
-	g_pBoard->SetTapeReadCallback(TapeView_TapeReadCallback, sampleRate);
-	m_okTapePlaying = TRUE;
+	
+    if (m_okTapeRecording)
+        g_pBoard->SetTapeWriteCallback(TapeView_TapeWriteCallback, sampleRate);
+    else
+        g_pBoard->SetTapeReadCallback(TapeView_TapeReadCallback, sampleRate);
+	
+    m_okTapePlaying = TRUE;
 	SetWindowText(m_hwndTapePlay, _T("Stop"));
 }
 void TapeView_StopTape()
@@ -353,12 +359,12 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 {
 	if (samples == 0) return 0;
 
-	int value = 0;
+	UINT value = 0;
 	for (UINT i = 0; i < samples; i++)
 	{
 		value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
 	}
-	BOOL result = (value < 0);
+	BOOL result = (value > UINT_MAX / 2);
 	
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
@@ -376,6 +382,24 @@ BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
 //#endif
 
 	return result;
+}
+
+void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples)
+{
+    if (m_hTapeWavPcmFile == (HWAVPCMFILE)INVALID_HANDLE_VALUE) return;
+    if (!m_okTapeRecording) return;
+	if (samples == 0) return;
+
+    // Write samples to the file
+    for (UINT i = 0; i < samples; i++)
+        WavPcmFile_WriteOne(m_hTapeWavPcmFile, value);
+
+	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
+	int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
+	if (wavPos - m_dwTapePositionShown > (DWORD)(wavFreq / 6) || !m_okTapePlaying)
+	{
+		TapeView_UpdatePosition();
+	}
 }
 
 

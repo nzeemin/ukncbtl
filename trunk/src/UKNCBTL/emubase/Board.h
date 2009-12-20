@@ -40,6 +40,11 @@ typedef struct chan_tag{
 //   result     Bit to put in tape input port.
 typedef BOOL (CALLBACK* TAPEREADCALLBACK)(UINT samples);
 
+// Tape emulator callback used to write a data to tape.
+// Input:
+//   value      Sample value to write.
+typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, UINT samples);
+
 // Sound generator callback function type
 typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 
@@ -154,6 +159,7 @@ public:  // System control
     void        UnloadROMCartridge(int cartno);
 
 	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+    void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
 	void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
 
 public:  // Saving/loading emulator status
@@ -184,7 +190,8 @@ private:
 	BYTE		m_chan0disabled;
 
     TAPEREADCALLBACK m_TapeReadCallback;
-	int			m_nTapeReadSampleRate;
+    TAPEWRITECALLBACK m_TapeWriteCallback;
+	int			m_nTapeSampleRate;
     SOUNDGENCALLBACK m_SoundGenCallback;
 
 	void DoSound(void);

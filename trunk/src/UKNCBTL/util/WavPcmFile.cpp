@@ -259,7 +259,7 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
 	::LocalFree((HLOCAL)pWavPcm);
 }
 
-void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, int value)
+void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, UINT value)
 {
 	if (wavpcmfile == INVALID_HANDLE_VALUE)
 		return;
@@ -279,7 +279,7 @@ void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, int value)
     pWavPcm->dwDataSize += pWavPcm->nBlockAlign;
 }
 
-int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
+UINT WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 {
 	if (wavpcmfile == INVALID_HANDLE_VALUE)
 		return 0;
@@ -299,7 +299,7 @@ int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 	pWavPcm->dwCurrentPosition++;
 
 	// Decode first channel
-	DWORD value;
+	UINT value;
 	switch (pWavPcm->nBitsPerSample)
 	{
 	case 8:
@@ -315,7 +315,7 @@ int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 		break;
 	}
 
-	return *((INT32*)&value);
+	return value;
 }
 
 
