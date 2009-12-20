@@ -642,9 +642,13 @@ bool MainWindow_DoCommand(int commandId)
     case ID_EMULATOR_AUTOSTART:
         MainWindow_DoEmulatorAutostart();
         break;
-    case ID_EMULATOR_STEP:
+    case ID_DEBUG_STEPINTO:
         if (!g_okEmulatorRunning && Settings_GetDebug())
-            ConsoleView_Step();
+            ConsoleView_StepInto();
+        break;
+    case ID_DEBUG_STEPOVER:
+        if (!g_okEmulatorRunning && Settings_GetDebug())
+            ConsoleView_StepOver();
         break;
     case ID_EMULATOR_RESET:
         MainWindow_DoEmulatorReset();

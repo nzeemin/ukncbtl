@@ -95,7 +95,6 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "Toolbar",                     ID_VIEW_TOOLBAR
-        MENUITEM "Debug",                       ID_VIEW_DEBUG
         MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD
         MENUITEM "Tape",                        32803
         MENUITEM SEPARATOR
@@ -109,7 +108,6 @@ BEGIN
     POPUP "&Emulator"
     BEGIN
         MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN
-        MENUITEM "Step\tF8",                    ID_EMULATOR_STEP
         MENUITEM "Reset",                       ID_EMULATOR_RESET
         MENUITEM SEPARATOR
         MENUITEM "Sound",                       ID_EMULATOR_SOUND
@@ -124,6 +122,13 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Cartridge1",                  ID_EMULATOR_CARTRIDGE1
         MENUITEM "Cartridge2",                  ID_EMULATOR_CARTRIDGE2
+    END
+    POPUP "Debug"
+    BEGIN
+        MENUITEM "Debug Views",                 ID_VIEW_DEBUG
+        MENUITEM SEPARATOR
+        MENUITEM "Step Into\tF8",               ID_DEBUG_STEPINTO
+        MENUITEM "Step Over\tShift+F8",         ID_DEBUG_STEPOVER
     END
     POPUP "&Help"
     BEGIN
@@ -141,7 +146,8 @@ IDC_UKNCBTL ACCELERATORS
 BEGIN
     VK_MEDIA_STOP,  ID_EMULATOR_RESET,      VIRTKEY, NOINVERT
     VK_MEDIA_PLAY_PAUSE, ID_EMULATOR_RUN,   VIRTKEY, NOINVERT
-    VK_F8,          ID_EMULATOR_STEP,       VIRTKEY, NOINVERT
+    VK_F8,          ID_DEBUG_STEPINTO,      VIRTKEY, NOINVERT
+    VK_F8,          ID_DEBUG_STEPOVER,      VIRTKEY, SHIFT, NOINVERT
 END
 
 
