@@ -81,9 +81,9 @@ void CMotherboard::Reset ()
     m_pCPU->Stop();
     m_pPPU->Stop();
 
+    ResetFloppy();
     m_pFirstMemCtl->Reset();
     m_pSecondMemCtl->Reset();
-    m_pFloppyCtl->Reset();
 
     m_cputicks = 0;
     m_pputicks = 0;
@@ -241,6 +241,12 @@ BYTE CMotherboard::GetROMCartByte(int cartno, WORD offset)
 
 
 //////////////////////////////////////////////////////////////////////
+
+
+void CMotherboard::ResetFloppy()
+{
+    m_pFloppyCtl->Reset();
+}
 
 void CMotherboard::Tick8000 ()
 {

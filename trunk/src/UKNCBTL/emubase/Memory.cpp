@@ -251,6 +251,13 @@ void CFirstMemoryController::Reset()
     m_Port176664 = 0;
     m_Port176674 = 0;
     m_Port177570 = 0;
+
+    ResetDevices();
+}
+
+void CFirstMemoryController::ResetDevices()
+{
+    //TODO
 }
 
 int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset)
@@ -545,6 +552,13 @@ void CSecondMemoryController::Reset()
     m_Port177060 = m_Port177062 = m_Port177064 = 0;
 
 	m_Port177054 = 01401;
+
+    ResetDevices();
+}
+
+void CSecondMemoryController::ResetDevices()
+{
+    //TODO
 }
 
 int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset)
