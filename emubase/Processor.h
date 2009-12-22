@@ -124,7 +124,8 @@ public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        LoadFromImage(const BYTE* pImage);
 
 protected:  // Implementation
-    void        TranslateInstruction();  // Execute one instruction
+    void        FetchInstruction();      // Read next instruction
+    void        TranslateInstruction();  // Execute the instruction
 protected:  // Implementation - instruction processing
     WORD        CalculateOperAddr (int meth, int reg);
 	WORD        CalculateOperAddrSrc (int meth, int reg);

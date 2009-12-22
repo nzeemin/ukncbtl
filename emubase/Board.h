@@ -115,6 +115,7 @@ public:  // System control
     void        Tick6250();  // Tick 6.25 MHz
     void        Tick50();    // Tick 50 Hz - goes to CPU/PPU EVNT line
 	void		TimerTick();		// Timer Tick, 2uS -- dividers are within timer routine
+    void        ResetFloppy();     // INIT signal for FDD
 	WORD		GetTimerValue();	// returns current timer value
 	WORD		GetTimerValueView() { return m_timer; }	// Returns current timer value for debugger
 	WORD		GetTimerReload();	// returns timer reload value

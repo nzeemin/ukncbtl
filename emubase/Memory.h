@@ -40,6 +40,7 @@ public:
                     { m_pBoard = board;  m_pProcessor = processor; }
     // Reset to initial state
     virtual void Reset() = 0;
+    virtual void ResetDevices() = 0;  // INIT signal
 public:  // Access to memory
     // Read command for execution
     WORD GetWordExec(WORD address, BOOL okHaltMode) { return GetWord(address, okHaltMode, TRUE); }
@@ -84,6 +85,7 @@ class CFirstMemoryController : public CMemoryController  // CPU memory control d
 public:
     CFirstMemoryController();
     virtual void Reset();
+    virtual void ResetDevices();  // INIT signal
 public:
     void ResetAll();
     virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
@@ -117,6 +119,7 @@ class CSecondMemoryController : public CMemoryController  // PPU memory control 
 public:
     CSecondMemoryController();
     virtual void Reset();
+    virtual void ResetDevices();  // INIT signal
 public:
     virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
     virtual WORD GetSelRegister() { return 0160000; }

@@ -292,7 +292,6 @@ CProcessor::CProcessor (LPCTSTR name)
 	m_stepmode = FALSE;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
     m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    //m_VIRQrq = FALSE;
     m_haltpin = FALSE;
 }
 
@@ -306,7 +305,6 @@ void CProcessor::Start ()
 	m_waitmode = FALSE;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
     m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    //m_VIRQrq = FALSE;
     m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
 
     // "Turn On" interrupt processing
@@ -331,7 +329,6 @@ void CProcessor::Stop ()
     m_internalTick = 0;
 	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
     m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    //m_VIRQrq = FALSE;
     m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
     m_haltpin = FALSE;
 }
@@ -350,8 +347,12 @@ void CProcessor::Execute()
     m_RPLYrq = FALSE;
 	
 	if (!m_waitmode)
-		TranslateInstruction();  // Execute next instruction
-	//ASSERT(m_psw<0777);
+    {
+        FetchInstruction();  // Read next instruction from memory
+        if (!m_RPLYrq)
+		    TranslateInstruction();  // Execute next instruction
+	    //ASSERT(m_psw<0777);
+    }
 	
     if ((m_psw & 0600) != 0600)
     {
@@ -852,7 +853,8 @@ WORD CProcessor::GetDstWordArgAsBranch ()
 
 //////////////////////////////////////////////////////////////////////
 
-void CProcessor::TranslateInstruction ()
+
+void CProcessor::FetchInstruction()
 {
     // Считываем очередную инструкцию
     WORD pc = GetPC();
@@ -860,15 +862,19 @@ void CProcessor::TranslateInstruction ()
 
     m_instruction = GetWordExec(pc);
     SetPC(GetPC() + 2);
-	
-    m_regdest  = GetDigit(m_instruction,0);
-    m_methdest = GetDigit(m_instruction,1);
-    m_regsrc   = GetDigit(m_instruction,2);
-    m_methsrc  = GetDigit(m_instruction,3);
+}
 
-    // Вызов метода, выполняющего обработку команды, по карте команд
+void CProcessor::TranslateInstruction ()
+{
+    // Prepare values to help decode the command
+    m_regdest  = GetDigit(m_instruction, 0);
+    m_methdest = GetDigit(m_instruction, 1);
+    m_regsrc   = GetDigit(m_instruction, 2);
+    m_methsrc  = GetDigit(m_instruction, 3);
+
+    // Find command implementation using the command map
     ExecuteMethodRef methodref = m_pExecuteMethodMap[m_instruction];
-    (this->*methodref)();  // Собственно переход к обработке команды
+    (this->*methodref)();  // Call command implementation method
 }
 
 void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается TRAP 10
@@ -1058,7 +1064,9 @@ void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 
 void CProcessor::ExecuteRESET ()  // Reset input/output devices
 {
-	m_internalTick=RESET_TIMING;
+    m_pMemoryController->ResetDevices();  // INIT signal
+
+	m_internalTick = RESET_TIMING;
 }
 
 void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
