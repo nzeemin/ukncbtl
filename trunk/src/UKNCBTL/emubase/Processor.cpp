@@ -2084,12 +2084,14 @@ void CProcessor::ExecuteDIV ()  // DIV
 		SetC(TRUE); //если делят на 0 -- то устанавливаем V и C
 		return; 
 	}	
-//	if ((longsrc == 020000000000) && (src2 == 0177777))
-//	{
-//		SetV(TRUE);
-//		SetC(FALSE); // переполняемся, товарищи
-//		return;
-//	}
+	if ((longsrc == 020000000000) && (src2 == -1))
+	{
+		SetN(FALSE);
+		SetZ(FALSE);
+		SetV(TRUE);
+		SetC(FALSE); // переполняемся, товарищи
+		return;
+	}
     
 //	if(src2>>15)
 //		src2|=~077777;
