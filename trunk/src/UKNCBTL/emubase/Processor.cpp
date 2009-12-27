@@ -445,7 +445,7 @@ void CProcessor::Execute()
                 intrVector = 0000100;  intrMode = FALSE;
                 m_EVNTrq = FALSE;
             }
-            else if (m_virqrq > 0 && (m_psw & 0200) != 0200)  // VIRQ, priority 7
+            else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
             {
                 intrMode = FALSE;
                 for (int irq = 0; irq <= 15; irq++)
