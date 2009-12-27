@@ -837,7 +837,7 @@ void CMotherboard::ChanResetByCPU()
 	m_chancputx[2].ready = 1;
 	m_chancputx[2].irq = 0;
 	m_pCPU->InterruptVIRQ(5, 0);
-	m_chanppurx[1].ready = 0;
+	m_chanppurx[2].ready = 0;
 	m_pPPU->InterruptVIRQ(9, 0);
 
 	if (m_irq_cpureset)
@@ -884,6 +884,7 @@ void CMotherboard::ChanResetByPPU()
 	if (m_chancputx[2].irq && old_ready==0)
 		m_pCPU->InterruptVIRQ(5, 0474);
 
+	m_irq_cpureset = 0;
 	m_pPPU->InterruptVIRQ(4, 0);
 }
 
