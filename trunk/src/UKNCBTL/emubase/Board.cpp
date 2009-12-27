@@ -590,22 +590,12 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     CopyMemory(m_pRAM[2], pImageRam, 64 * 1024);
 }
 
-void		CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
+void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 {
-//#if !defined(PRODUCT)
-//	TCHAR	txt[1024];
-//#endif
+	BYTE oldp_ready = m_chanppurx[chan].ready;
 	chan&=3;
 	ASSERT(chan<3);
 
-	if(chan==2)
-	{
-//#if !defined(PRODUCT)
-//		wsprintf(txt,_T("CPU WR Chan %d, %x\r\n"),chan,data);
-//		DebugPrint(txt);
-//#endif
-		//FloppyDebug(data);
-	}
 
 	if((chan==0)&&(m_chan0disabled))
 		return;
@@ -613,32 +603,30 @@ void		CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 	m_chanppurx[chan].data=data;
 	m_chanppurx[chan].ready=1;
 	m_chancputx[chan].ready=0;
-
-	if(m_chanppurx[chan].irq)
+	m_pCPU->InterruptVIRQ(chan==2?5:2+chan*2,0);
+	if(m_chanppurx[chan].irq && oldp_ready==0)
 		m_pPPU->InterruptVIRQ(5+chan*2, 0320+(010*chan));
 }
-void		CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
+void CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
 {
-	//TCHAR	txt[1024];
+	BYTE oldc_ready = m_chancpurx[chan].ready;
 	chan&=3;
 	ASSERT(chan<2); 
 
-	//wsprintf(txt,_T("PPU WR Chan %d, %x\r\n"),chan,data);
-	//DebugPrint(txt);
 
-	if((chan==0)&&(m_chan0disabled))
-		return;
+//	if((chan==0)&&(m_chan0disabled))
+//		return;
 
 	m_chancpurx[chan].data=data;
 	m_chancpurx[chan].ready=1;
 	m_chanpputx[chan].ready=0;
-
-	if(m_chancpurx[chan].irq)
+	m_pPPU->InterruptVIRQ(chan==0?6:8,0);
+	if(m_chancpurx[chan].irq && oldc_ready==0)
 		m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
 }
-BYTE		CMotherboard::ChanReadByCPU(BYTE chan)
+BYTE CMotherboard::ChanReadByCPU(BYTE chan)
 {
-	BYTE res;
+	BYTE res,oldp_ready = m_chanpputx[chan].ready;
 
 	chan&=3;
 	ASSERT(chan<2); 
@@ -649,30 +637,28 @@ BYTE		CMotherboard::ChanReadByCPU(BYTE chan)
 	res=m_chancpurx[chan].data;
 	m_chancpurx[chan].ready=0;
 	m_chanpputx[chan].ready=1;
-	if(m_chanpputx[chan].irq)
+	m_pCPU->InterruptVIRQ(chan*2+1,0);
+	if(m_chanpputx[chan].irq && oldp_ready==0)
 		m_pPPU->InterruptVIRQ(chan?8:6, chan?0334:0324);
 	return res;
 }
-BYTE		CMotherboard::ChanReadByPPU(BYTE chan)
+BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 {
-	BYTE res;
+	BYTE res,oldc_ready = m_chancputx[chan].ready;
 
 	chan&=3;
 	ASSERT(chan<3); 
 
-	//TCHAR txt[1024];
 
-	if((chan==0)&&(m_chan0disabled))
-		return 0;
+	//if((chan==0)&&(m_chan0disabled))
+	//	return 0;
 
-	//wsprintf(txt,_T("PPU Read chan %d dis%d dat%d,rdy%d\r\n"),chan,m_chan0disabled,m_chanppurx[chan].data,m_chanppurx[chan].ready);
-	//DebugPrint(txt);
 
 	res=m_chanppurx[chan].data;
 	m_chanppurx[chan].ready=0;
 	m_chancputx[chan].ready=1;
-
-	if(m_chancputx[chan].irq)
+	m_pPPU->InterruptVIRQ(chan*2+5,0);
+	if(m_chancputx[chan].irq && oldc_ready==0)
 	{
 		switch(chan)
 		{
@@ -691,9 +677,8 @@ BYTE		CMotherboard::ChanReadByPPU(BYTE chan)
 	return res;
 }
 
-BYTE		CMotherboard::ChanRxStateGetCPU(BYTE chan)
+BYTE CMotherboard::ChanRxStateGetCPU(BYTE chan)
 {
-	//TCHAR txt[1024];
 	chan&=3;
 	ASSERT(chan<2);
 	
@@ -710,75 +695,53 @@ BYTE		CMotherboard::ChanTxStateGetCPU(BYTE chan)
 BYTE		CMotherboard::ChanRxStateGetPPU()
 {
 	BYTE res;
-	//TCHAR txt[1024];
 
 		res= (m_chanppurx[2].ready<<5) | (m_chanppurx[1].ready<<4) | (m_chanppurx[0].ready<<3) | 
 		   (m_chanppurx[2].irq<<2)   | (m_chanppurx[1].irq<<1)   | (m_chanppurx[0].irq);
 
-	//wsprintf(txt,_T("PPU RX Stateget =0x%2.2X\r\n"),res);
-	//DebugPrint(txt);
 
 	return res;
 }
 BYTE		CMotherboard::ChanTxStateGetPPU()
 {
 	BYTE res;
-	//TCHAR txt[1024];
 	res= (m_chanpputx[1].ready<<4) | (m_chanpputx[0].ready<<3) | (m_chan0disabled<<2)   |
 		    (m_chanpputx[1].irq<<1)   | (m_chanpputx[0].irq);
 
-	//wsprintf(txt,_T("PPU TX Stateget 0x%2.2X\r\n"),res);
-	//DebugPrint(txt);
 
 	return res;
 }
 void		CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
 {
+	BYTE oldc_irq = m_chancpurx[chan].irq;
 	chan&=3;
 	ASSERT(chan<2);
 
-/*	if(state&0200)
-	{
-		m_chancpurx[chan].ready=1;
-	//	m_chanpputx[chan].ready=0;
-	}
-	else
-	{
-		m_chancpurx[chan].ready=0;
-		//m_chanpputx[chan].ready=1;
-	}
-*/
 	if(state&0100) //irq
 		m_chancpurx[chan].irq=1;
 	else
+	{
 		m_chancpurx[chan].irq=0;
-
-	if((m_chancpurx[chan].irq)&&(m_chancpurx[chan].ready))
+		m_pCPU->InterruptVIRQ(chan?3:1, 0);
+	}
+	if((m_chancpurx[chan].irq)&&(m_chancpurx[chan].ready)&&oldc_irq==0)
 		m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
 }
 void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 {
+	BYTE oldc_irq = m_chancputx[chan].irq;
 	chan&=3;
 	ASSERT(chan<3);
-
-	if(state&0200)
-	{
-		m_chancputx[chan].ready=1;
-		///m_chanppurx[chan].ready=0;
-	}
-	/*else
-	{
-		m_chancputx[chan].ready=1;
-		//m_chanppurx[chan].ready=1;
-	}*/
 
 	if(state&0100) //irq
 		m_chancputx[chan].irq=1;
 	else
+	{
 		m_chancputx[chan].irq=0;
+		m_pCPU->InterruptVIRQ(chan==2?5:chan*2+2,0);
+	}
 
-
-	if((m_chancputx[chan].irq)&&(m_chancputx[chan].ready))
+	if((m_chancputx[chan].irq)&&(m_chancputx[chan].ready)&&oldc_irq==0)
 	{
 		switch(chan)
 		{
@@ -797,38 +760,41 @@ void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 
 void		CMotherboard::ChanRxStateSetPPU(BYTE state)
 {
-	//TCHAR txt[1024];
-	//wsprintf(txt,_T("PPU RX Stateset 0x%2.2X \r\n"),state);
-	//DebugPrint(txt);
+	BYTE oldp_irq0 = m_chancpurx[0].irq;
+	BYTE oldp_irq1 = m_chancpurx[1].irq;
+	BYTE oldp_irq2 = m_chancpurx[2].irq;
 
 	m_chanppurx[0].irq=state&1;
 	m_chanppurx[1].irq=(state>>1)&1;
 	m_chanppurx[2].irq=(state>>2)&1;
-	
-	//if(state&0x40)
-		//GetPPU()->InterruptVIRQ(0314);
-//what shoud we do with interrupts if interrupts are pending and we've just enabled them?
+	if (m_chanppurx[0].irq==0) m_pPPU->InterruptVIRQ(5, 0);
+	if (m_chanppurx[1].irq==0) m_pPPU->InterruptVIRQ(7, 0);
+	if (m_chanppurx[2].irq==0) m_pPPU->InterruptVIRQ(9, 0);
+	if((m_chanppurx[0].irq)&&(m_chanppurx[0].ready)&&oldp_irq0==0)
+		m_pCPU->InterruptVIRQ(5, 0320);
+	if((m_chanppurx[1].irq)&&(m_chanppurx[1].ready)&&oldp_irq1==0)
+		m_pCPU->InterruptVIRQ(7, 0330);
+	if((m_chanppurx[2].irq)&&(m_chanppurx[2].ready)&&oldp_irq2==0)
+		m_pCPU->InterruptVIRQ(9, 0340);
 
 }
 void		CMotherboard::ChanTxStateSetPPU(BYTE state)
 {
-	//TCHAR txt[1024];
-	//wsprintf(txt,_T("PPU TX Stateset 0x%2.2x \r\n"),state);
-	//DebugPrint(txt);
+	BYTE oldp_irq0 = m_chancputx[0].irq;
+	BYTE oldp_irq1 = m_chancputx[1].irq;
 
 	m_chanpputx[0].irq=state&1;
 	m_chanpputx[1].irq=(state>>1)&1;
 	m_chan0disabled=(state>>2)&1;
-	if((state>>3)&1)
-		m_chanpputx[0].ready=(state>>3)&1;
-	if((state>>4)&1)
-		m_chanpputx[1].ready=(state>>4)&1;
 
-	if((m_chanpputx[0].irq)&&(m_chanpputx[0].ready))
-		m_pPPU->InterruptVIRQ(6, 0324);
-	else
-	if((m_chanpputx[1].irq)&&(m_chanpputx[1].ready))
-		m_pPPU->InterruptVIRQ(8, 0334);
+	if (m_chanpputx[0].irq==0) m_pPPU->InterruptVIRQ(6, 0);
+	if (m_chanpputx[1].irq==0) m_pPPU->InterruptVIRQ(8, 0);
+
+	if((m_chanpputx[0].irq)&&(m_chanpputx[0].ready)&&oldp_irq0==0)
+		m_pCPU->InterruptVIRQ(6, 0324);
+	if((m_chanpputx[1].irq)&&(m_chanpputx[1].ready)&&oldp_irq1==0)
+		m_pCPU->InterruptVIRQ(8, 0334);
+
 }
 
 //void CMotherboard::FloppyDebug(BYTE val)

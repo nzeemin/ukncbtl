@@ -595,10 +595,11 @@ void CProcessor::InterruptVIRQ(int que, WORD interrupt)
 	// {
 	//  DebugPrintFormat(_T("Lost VIRQ %d %d\r\n"), m_virq, interrupt);
 	// }
-	m_virqrq += 1;
+	if (interrupt)
+		m_virqrq ++;
+	else
+		if (m_virqrq>0) m_virqrq--;
 	m_virq[que] = interrupt;
-    //m_VIRQrq = TRUE;
-    //m_VIRQvector = interrupt;
 }
 void CProcessor::AssertHALT()
 {
