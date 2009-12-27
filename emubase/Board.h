@@ -137,6 +137,9 @@ public:  // System control
 	void		ChanRxStateSetPPU(BYTE state);
 	void		ChanTxStateSetPPU(BYTE state);
 
+	void		ChanResetByCPU();
+	void		ChanResetByPPU();
+
 	//void		FloppyDebug(BYTE val);
 
 	void		SetTimerReload(WORD val);	//sets timer reload value
@@ -189,6 +192,7 @@ private:
 	chan_stc	m_chanppurx[3];
 
 	BYTE		m_chan0disabled;
+	BYTE		m_irq_cpureset;
 
     TAPEREADCALLBACK m_TapeReadCallback;
     TAPEWRITECALLBACK m_TapeWriteCallback;
