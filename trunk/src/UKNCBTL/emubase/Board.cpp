@@ -597,60 +597,72 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
 void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 {
 	BYTE oldp_ready = m_chanppurx[chan].ready;
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<3);
 
 
-	if((chan==0)&&(m_chan0disabled))
-		return;
+//	if((chan==0)&&(m_chan0disabled))
+//		return;
 
-	m_chanppurx[chan].data=data;
-	m_chanppurx[chan].ready=1;
-	m_chancputx[chan].ready=0;
-	m_pCPU->InterruptVIRQ(chan==2?5:2+chan*2,0);
-	if(m_chanppurx[chan].irq && oldp_ready==0)
+	m_chanppurx[chan].data = data;
+	m_chanppurx[chan].ready = 1;
+	m_chancputx[chan].ready = 0;
+	m_chancputx[chan].rdwr = 1;
+	m_pCPU->InterruptVIRQ((chan==2)?5:(2+chan*2),0);
+	if((m_chanppurx[chan].irq) && (oldp_ready==0))
+	{
+		m_chanppurx[chan].rdwr = 0;
 		m_pPPU->InterruptVIRQ(5+chan*2, 0320+(010*chan));
+	}
 }
 void CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
 {
 	BYTE oldc_ready = m_chancpurx[chan].ready;
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<2); 
 
 
 //	if((chan==0)&&(m_chan0disabled))
 //		return;
 
-	m_chancpurx[chan].data=data;
-	m_chancpurx[chan].ready=1;
-	m_chanpputx[chan].ready=0;
-	m_pPPU->InterruptVIRQ(chan==0?6:8,0);
-	if(m_chancpurx[chan].irq && oldc_ready==0)
+	m_chancpurx[chan].data = data;
+	m_chancpurx[chan].ready = 1;
+	m_chanpputx[chan].ready = 0;
+	m_chanpputx[chan].rdwr = 1;
+	m_pPPU->InterruptVIRQ((chan==0)?6:8,0);
+	if((m_chancpurx[chan].irq) && (oldc_ready==0))
+	{
+		m_chancpurx[chan].rdwr = 0;
 		m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
+	}
 }
 BYTE CMotherboard::ChanReadByCPU(BYTE chan)
 {
 	BYTE res,oldp_ready = m_chanpputx[chan].ready;
 
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<2); 
 
-	if((chan==0)&&(m_chan0disabled))
-		return 0;
+//	if((chan==0)&&(m_chan0disabled))
+//		return 0;
 
-	res=m_chancpurx[chan].data;
-	m_chancpurx[chan].ready=0;
-	m_chanpputx[chan].ready=1;
+	res = m_chancpurx[chan].data;
+	m_chancpurx[chan].ready = 0;
+	m_chancpurx[chan].rdwr = 1;
+	m_chanpputx[chan].ready = 1;
 	m_pCPU->InterruptVIRQ(chan*2+1,0);
-	if(m_chanpputx[chan].irq && oldp_ready==0)
+	if((m_chanpputx[chan].irq) && (oldp_ready==0))
+	{
+		m_chanpputx[chan].rdwr = 0;
 		m_pPPU->InterruptVIRQ(chan?8:6, chan?0334:0324);
+	}
 	return res;
 }
 BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 {
 	BYTE res,oldc_ready = m_chancputx[chan].ready;
 
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<3); 
 
 
@@ -658,12 +670,14 @@ BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 	//	return 0;
 
 
-	res=m_chanppurx[chan].data;
-	m_chanppurx[chan].ready=0;
-	m_chancputx[chan].ready=1;
+	res = m_chanppurx[chan].data;
+	m_chanppurx[chan].ready = 0;
+	m_chanppurx[chan].rdwr = 1;
+	m_chancputx[chan].ready = 1;
 	m_pPPU->InterruptVIRQ(chan*2+5,0);
-	if(m_chancputx[chan].irq && oldc_ready==0)
+	if((m_chancputx[chan].irq) && (oldc_ready==0))
 	{
+		m_chancputx[chan].rdwr = 0;
 		switch(chan)
 		{
 		case 0:
@@ -683,70 +697,76 @@ BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 
 BYTE CMotherboard::ChanRxStateGetCPU(BYTE chan)
 {
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<2);
 	
 	return (m_chancpurx[chan].ready<<7)|(m_chancpurx[chan].irq<<6);
 }
 
-BYTE		CMotherboard::ChanTxStateGetCPU(BYTE chan)
+BYTE CMotherboard::ChanTxStateGetCPU(BYTE chan)
 {
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<3);
 	return (m_chancputx[chan].ready<<7)|(m_chancputx[chan].irq<<6);
 }
 
-BYTE		CMotherboard::ChanRxStateGetPPU()
+BYTE CMotherboard::ChanRxStateGetPPU()
 {
 	BYTE res;
 
-		res= (m_irq_cpureset<<6) | (m_chanppurx[2].ready<<5) | (m_chanppurx[1].ready<<4) | (m_chanppurx[0].ready<<3) | 
+	res = (m_irq_cpureset<<6) | (m_chanppurx[2].ready<<5) | (m_chanppurx[1].ready<<4) | (m_chanppurx[0].ready<<3) | 
 		   (m_chanppurx[2].irq<<2)   | (m_chanppurx[1].irq<<1)   | (m_chanppurx[0].irq);
 
 
 	return res;
 }
-BYTE		CMotherboard::ChanTxStateGetPPU()
+BYTE CMotherboard::ChanTxStateGetPPU()
 {
 	BYTE res;
-	res= (m_chanpputx[1].ready<<4) | (m_chanpputx[0].ready<<3) | (m_chan0disabled<<2)   |
+	res = (m_chanpputx[1].ready<<4) | (m_chanpputx[0].ready<<3) | (m_chan0disabled<<2) |
 		    (m_chanpputx[1].irq<<1)   | (m_chanpputx[0].irq);
 
 
 	return res;
 }
-void		CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
+void CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
 {
 	BYTE oldc_irq = m_chancpurx[chan].irq;
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<2);
 
 	if(state&0100) //irq
-		m_chancpurx[chan].irq=1;
+		m_chancpurx[chan].irq = 1;
 	else
 	{
-		m_chancpurx[chan].irq=0;
+		m_chancpurx[chan].irq = 0;
+		if (m_pCPU->GetVIRQ(chan?3:1)) m_chancpurx[chan].rdwr = 1;
 		m_pCPU->InterruptVIRQ(chan?3:1, 0);
 	}
-	if((m_chancpurx[chan].irq)&&(m_chancpurx[chan].ready)&&oldc_irq==0)
+	if((m_chancpurx[chan].irq) && (m_chancpurx[chan].ready) && (oldc_irq==0) && (m_chancpurx[chan].rdwr))
+	{
+		m_chancpurx[chan].rdwr = 0;
 		m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
+	}
 }
-void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
+void CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 {
 	BYTE oldc_irq = m_chancputx[chan].irq;
-	chan&=3;
+	chan &= 3;
 	ASSERT(chan<3);
 
 	if(state&0100) //irq
-		m_chancputx[chan].irq=1;
+		m_chancputx[chan].irq = 1;
 	else
 	{
-		m_chancputx[chan].irq=0;
-		m_pCPU->InterruptVIRQ(chan==2?5:chan*2+2,0);
+		m_chancputx[chan].irq = 0;
+		if ((chan==0) || (m_pCPU->GetVIRQ((chan==2)?5:(chan*2+2)))) m_chancputx[chan].rdwr = 1;
+		m_pCPU->InterruptVIRQ((chan==2)?5:(chan*2+2),0);
 	}
 
-	if((m_chancputx[chan].irq)&&(m_chancputx[chan].ready)&&oldc_irq==0)
+	if((m_chancputx[chan].irq) && (m_chancputx[chan].ready) && (oldc_irq==0) && (m_chancputx[chan].rdwr))
 	{
+		m_chancputx[chan].rdwr = 0;
 		switch(chan)
 		{
 		case 0:
@@ -762,83 +782,129 @@ void		CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 	}
 }
 
-void		CMotherboard::ChanRxStateSetPPU(BYTE state)
+void CMotherboard::ChanRxStateSetPPU(BYTE state)
 {
 	BYTE oldp_irq0 = m_chanppurx[0].irq;
 	BYTE oldp_irq1 = m_chanppurx[1].irq;
 	BYTE oldp_irq2 = m_chanppurx[2].irq;
 
-	m_chanppurx[0].irq=state&1;
-	m_chanppurx[1].irq=(state>>1)&1;
-	m_chanppurx[2].irq=(state>>2)&1;
+	m_chanppurx[0].irq = state&1;
+	m_chanppurx[1].irq = (state>>1)&1;
+	m_chanppurx[2].irq = (state>>2)&1;
 	m_irq_cpureset = (state>>6)&1;
 
-	if (m_chanppurx[0].irq==0) m_pPPU->InterruptVIRQ(5, 0);
-	if (m_chanppurx[1].irq==0) m_pPPU->InterruptVIRQ(7, 0);
-	if (m_chanppurx[2].irq==0) m_pPPU->InterruptVIRQ(9, 0);
-	if((m_chanppurx[0].irq)&&(m_chanppurx[0].ready)&&oldp_irq0==0)
+	if (m_chanppurx[0].irq==0)
+	{
+		if (m_pPPU->GetVIRQ(5)) m_chanppurx[0].rdwr = 1;
+		m_pPPU->InterruptVIRQ(5, 0);
+	}
+	if (m_chanppurx[1].irq==0)
+	{
+		if (m_pPPU->GetVIRQ(7)) m_chanppurx[1].rdwr = 1;
+		m_pPPU->InterruptVIRQ(7, 0);
+	}
+	if (m_chanppurx[2].irq==0)
+	{
+		if (m_pPPU->GetVIRQ(9)) m_chanppurx[2].rdwr = 1;
+		m_pPPU->InterruptVIRQ(9, 0);
+	}
+	
+	if((m_chanppurx[0].irq) && (m_chanppurx[0].ready) && (oldp_irq0==0) && (m_chanppurx[0].rdwr))
+	{
+		m_chanppurx[0].rdwr = 0;
 		m_pPPU->InterruptVIRQ(5, 0320);
-	if((m_chanppurx[1].irq)&&(m_chanppurx[1].ready)&&oldp_irq1==0)
+	}
+	if((m_chanppurx[1].irq) && (m_chanppurx[1].ready) && (oldp_irq1==0) && (m_chanppurx[1].rdwr))
+	{
+		m_chanppurx[1].rdwr = 0;
 		m_pPPU->InterruptVIRQ(7, 0330);
-	if((m_chanppurx[2].irq)&&(m_chanppurx[2].ready)&&oldp_irq2==0)
+	}
+	if((m_chanppurx[2].irq) && (m_chanppurx[2].ready) && (oldp_irq2==0) && (m_chanppurx[2].rdwr))
+	{
+		m_chanppurx[2].rdwr = 0;
 		m_pPPU->InterruptVIRQ(9, 0340);
+	}
 
 }
-void		CMotherboard::ChanTxStateSetPPU(BYTE state)
+void CMotherboard::ChanTxStateSetPPU(BYTE state)
 {
 	BYTE oldp_irq0 = m_chanpputx[0].irq;
 	BYTE oldp_irq1 = m_chanpputx[1].irq;
 
-	m_chanpputx[0].irq=state&1;
-	m_chanpputx[1].irq=(state>>1)&1;
-	m_chan0disabled=(state>>2)&1;
+	m_chanpputx[0].irq = state&1;
+	m_chanpputx[1].irq = (state>>1)&1;
+	m_chan0disabled = (state>>2)&1;
 
-	if (m_chanpputx[0].irq==0) m_pPPU->InterruptVIRQ(6, 0);
-	if (m_chanpputx[1].irq==0) m_pPPU->InterruptVIRQ(8, 0);
+	if (m_chanpputx[0].irq==0)
+	{
+		if (m_pPPU->GetVIRQ(6)) m_chanpputx[0].rdwr = 1;
+		m_pPPU->InterruptVIRQ(6, 0);
+	}
+	if (m_chanpputx[1].irq==0)
+	{
+		if (m_pPPU->GetVIRQ(8)) m_chanpputx[1].rdwr = 1;
+		m_pPPU->InterruptVIRQ(8, 0);
+	}
 
-	if((m_chanpputx[0].irq)&&(m_chanpputx[0].ready)&&oldp_irq0==0)
+	if((m_chanpputx[0].irq) && (m_chanpputx[0].ready) && (oldp_irq0==0) && (m_chanpputx[0].rdwr))
+	{
+		m_chanpputx[0].rdwr = 0;
 		m_pPPU->InterruptVIRQ(6, 0324);
-	if((m_chanpputx[1].irq)&&(m_chanpputx[1].ready)&&oldp_irq1==0)
+	}
+	if((m_chanpputx[1].irq) && (m_chanpputx[1].ready) && (oldp_irq1==0) && (m_chanpputx[1].rdwr))
+	{
+		m_chanpputx[1].rdwr = 0;
 		m_pPPU->InterruptVIRQ(8, 0334);
+	}
 
 }
 
 void CMotherboard::ChanResetByCPU()
 {
-	BYTE old_ready;
-	
-	old_ready = m_chanpputx[0].ready;
 	m_chancpurx[0].ready = 0;
 	m_chancpurx[0].irq = 0;
+	m_chancpurx[0].rdwr = 1;
 	m_pCPU->InterruptVIRQ(1, 0);
 	m_chanpputx[0].ready = 1;
-	if (m_chanpputx[0].irq && old_ready==0)
+	if (m_chanpputx[0].irq)
+	{
+		m_chanpputx[0].rdwr = 0;
 		m_pPPU->InterruptVIRQ(6, 0324);
+	}
 
 	m_chancputx[0].ready = 1;
 	m_chancputx[0].irq = 0;
+	m_chancputx[0].rdwr = 1;
 	m_pCPU->InterruptVIRQ(2, 0);
 	m_chanppurx[0].ready = 0;
+	m_chanppurx[0].rdwr = 1;
 	m_pPPU->InterruptVIRQ(5, 0);
 
-	old_ready = m_chanpputx[1].ready;
 	m_chancpurx[1].ready = 0;
 	m_chancpurx[1].irq = 0;
+	m_chancpurx[1].rdwr = 1;
 	m_pCPU->InterruptVIRQ(3, 0);
 	m_chanpputx[1].ready = 1;
-	if (m_chanpputx[1].irq && old_ready==0)
+	if (m_chanpputx[1].irq)
+	{
+		m_chanpputx[1].rdwr = 0;
 		m_pPPU->InterruptVIRQ(8, 0334);
+	}
 
 	m_chancputx[1].ready = 1;
 	m_chancputx[1].irq = 0;
+	m_chancputx[1].rdwr = 1;
 	m_pCPU->InterruptVIRQ(4, 0);
 	m_chanppurx[1].ready = 0;
+	m_chanppurx[1].rdwr = 1;
 	m_pPPU->InterruptVIRQ(7, 0);
 
 	m_chancputx[2].ready = 1;
 	m_chancputx[2].irq = 0;
+	m_chancputx[2].rdwr = 1;
 	m_pCPU->InterruptVIRQ(5, 0);
 	m_chanppurx[2].ready = 0;
+	m_chanppurx[2].rdwr = 1;
 	m_pPPU->InterruptVIRQ(9, 0);
 
 	if (m_irq_cpureset)
@@ -847,43 +913,54 @@ void CMotherboard::ChanResetByCPU()
 
 void CMotherboard::ChanResetByPPU()
 {
-	BYTE old_ready;
-	
-	old_ready = m_chancputx[0].ready;
 	m_chanppurx[0].ready = 0;
 	m_chanppurx[0].irq = 0;
+	m_chanppurx[0].rdwr = 1;
 	m_pPPU->InterruptVIRQ(5, 0);
 	m_chancputx[0].ready = 1;
-	if (m_chancputx[0].irq && old_ready==0)
+	if (m_chancputx[0].irq)
+	{
+		m_chancputx[0].rdwr = 0;
 		m_pCPU->InterruptVIRQ(2, 064);
+	}
 
 	m_chanpputx[0].ready = 1;
 	m_chanpputx[0].irq = 0;
+	m_chanpputx[0].rdwr = 1;
 	m_pPPU->InterruptVIRQ(6, 0);
 	m_chancpurx[0].ready = 0;
+	m_chancpurx[0].rdwr = 1;
 	m_pCPU->InterruptVIRQ(1, 0);
 
-	old_ready = m_chancputx[1].ready;
 	m_chanppurx[1].ready = 0;
 	m_chanppurx[1].irq = 0;
+	m_chanppurx[1].rdwr = 1;
 	m_pPPU->InterruptVIRQ(7, 0);
 	m_chancputx[1].ready = 1;
-	if (m_chancputx[1].irq && old_ready==0)
+	if (m_chancputx[1].irq)
+	{
+		m_chancputx[1].rdwr = 0;
 		m_pCPU->InterruptVIRQ(4, 0464);
+	}
 
 	m_chanpputx[1].ready = 1;
 	m_chanpputx[1].irq = 0;
+	m_chanpputx[1].rdwr = 1;
 	m_pPPU->InterruptVIRQ(8, 0);
 	m_chancpurx[1].ready = 0;
+	m_chancpurx[1].rdwr = 1;
 	m_pCPU->InterruptVIRQ(3, 0);
 
-	old_ready = m_chancputx[2].ready;
 	m_chanppurx[2].ready = 0;
 	m_chanppurx[2].irq = 0;
+	m_chanppurx[2].rdwr = 1;
 	m_pPPU->InterruptVIRQ(9, 0);
 	m_chancputx[2].ready = 1;
-	if (m_chancputx[2].irq && old_ready==0)
+	if (m_chancputx[2].irq)
+	{
+		m_chancputx[2].rdwr = 0;
 		m_pCPU->InterruptVIRQ(5, 0474);
+	}
 
 	m_irq_cpureset = 0;
 	m_pPPU->InterruptVIRQ(4, 0);

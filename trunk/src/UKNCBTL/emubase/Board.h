@@ -31,6 +31,7 @@ typedef struct chan_tag{
 	BYTE	data;
 	BYTE	ready;
 	BYTE	irq;
+	BYTE	rdwr;
 }chan_stc;
 
 // Tape emulator callback used to read a tape recorded data.
