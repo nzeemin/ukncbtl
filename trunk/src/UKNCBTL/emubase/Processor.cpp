@@ -495,82 +495,6 @@ void CProcessor::Execute()
 		        m_psw = GetWord(intrVector + 2) & 0377;
             }
         }  // end while
-
-		//WORD intr = 0;
-		//if (m_traprq)
-		//{
-		//	if ((m_trap == INTERRUPT_4) && ((m_psw & 0400) != 0))
-		//		intr=0160004;
-		//	else
-		//		intr=m_trap;
-		//	m_traprq=0;
-		//}
-		//else
-		//if (m_TBITrq)
-		//{
-		//	intr = 014;
-		//}
-		//else
-		//if ((m_ACLOrq) && ((m_psw&0600)!=0600))
-		//{
-		//	m_ACLOrq = FALSE;
-		//	intr=024;
-		//}
-		//else
-		//if ((m_haltpin)&&((m_psw&0400)==0))
-		//{
-		//	intr=0160170;
-		//}
-		//else
-		//if ((m_EVNTrq)&&((m_psw&0200)==0))
-		//{
-		//	m_EVNTrq = FALSE;
-		//	intr=0100;
-		//}
-		//else
-		//if ((m_virqrq != 0)&&((m_psw&0200)==0))
-		//{
-		//	// intr=m_virq;
-		//	// m_virqrq=0;
-		// int irq;
-		// for (irq = 0; irq<=15; irq++)
-		//  {
-		//   if (m_virq[irq] != 0)
-		//    {
-		//     intr = m_virq[irq];
-		//	 m_virq[irq] = 0;
-		//	 m_virqrq--;
-		//	 break;
-		//    }
-		//  }
-  //       if (intr == 0) m_virqrq = 0;
-		//}
-		
-		//if(intr)
-		//{
-		//	m_waitmode=0;
-		//	if(intr>=0160000)
-		//	{
-		//		m_savepc=GetPC();
-		//		m_savepsw=GetPSW();
-  //              m_psw |= 0400;
-  //          }
-		//	else
-		//	{
-		//		SetSP(GetSP() - 2);
-		//		SetWord(GetSP(), m_psw);
-		//		SetSP(GetSP() - 2);
-		//		SetWord(GetSP(), GetPC());
-		//	}
-		//	SetPC(GetWord(intr));
-		//	if (intr >= 0160000)
-		//		m_psw = GetWord(intr + 2) & 0777;
-		//	else
-		//		m_psw = GetWord(intr + 2) & 0377;
-		//}
-
-        //m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-        //m_FIS_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = m_VIRQrq = FALSE;
 	}
 }
 
@@ -1290,8 +1214,6 @@ void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 {
     if (m_methdest == 0)  // Неправильный метод адресации
     {
-  //      m_traprq = 1;
-		//m_trap = 010;
         m_RPLYrq = TRUE;
 		m_internalTick = EMT_TIMING;
     }
@@ -2547,8 +2469,6 @@ void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC 
 	//int meth = GetDigit(m_instruction, DST + 1);
     if (m_methdest == 0) 
 	{  // Неправильный метод адресации
-		//m_traprq = 1;
-		//m_trap = 010;
         m_RPLYrq = TRUE;
 		m_internalTick=EMT_TIMING;
     }

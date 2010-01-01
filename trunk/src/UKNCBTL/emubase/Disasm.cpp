@@ -159,8 +159,15 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
 
     // One field
     if ((instr & ~(WORD)7) == PI_RTS) {
-        wcscpy_s(strInstr, 8, _T("RTS"));
-        wcscpy_s(strArg, 32, REGISTER_NAME[GetDigit(instr, 0)]);
+        if (GetDigit(instr, 0) == 7)
+        {
+            wcscpy_s(strInstr, 8, _T("RETURN"));
+        }
+        else
+        {
+            wcscpy_s(strInstr, 8, _T("RTS"));
+            wcscpy_s(strArg, 32, REGISTER_NAME[GetDigit(instr, 0)]);
+        }
         return 1;
     }
 
@@ -225,10 +232,19 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     // Three fields
     switch(instr & ~(WORD)0777) {
     case PI_JSR:
-        wcscpy_s(strInstr, 8, _T("JSR"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _snwprintf_s(strArg, 32,32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        if (GetDigit(instr, 2) == 7)
+        {
+            wcscpy_s(strInstr, 8, _T("CALL"));
+            length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
+            _snwprintf_s(strArg, 32,32, _T("%s"), strDst);  // strArg = strDst;
+        }
+        else
+        {
+            wcscpy_s(strInstr, 8, _T("JSR"));
+            strReg = REGISTER_NAME[GetDigit(instr, 2)];
+            length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
+            _snwprintf_s(strArg, 32,32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        }
         return length;
 	case PI_MUL:
         wcscpy_s(strInstr, 8, _T("MUL"));
