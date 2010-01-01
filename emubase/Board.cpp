@@ -480,11 +480,11 @@ BOOL CMotherboard::SystemFrame()
 				}
 			}
 
-			// Reading the tape
+			// Tape reading/writing
             if (m_TapeReadCallback != NULL)
             {
 			    BOOL tapeBit = (*m_TapeReadCallback)(tapeSamples);
-			    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+                CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
 			    if (pMemCtl->TapeInput(tapeBit))
                 {
 			        m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
@@ -492,7 +492,8 @@ BOOL CMotherboard::SystemFrame()
             }
             else if (m_TapeWriteCallback != NULL)
             {
-                UINT value = 0;  //TODO
+                CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+                UINT value = pMemCtl->TapeOutput() ? UINT_MAX : 0;
                 (*m_TapeWriteCallback)(value, tapeSamples);
             }
 		}

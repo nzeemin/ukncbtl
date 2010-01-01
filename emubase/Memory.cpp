@@ -1073,6 +1073,11 @@ BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
     return res;
 }
 
+BOOL CSecondMemoryController::TapeOutput()
+{
+    return (BOOL)(m_Port177716 & 2);
+}
+
 
 //////////////////////////////////////////////////////////////////////
 //

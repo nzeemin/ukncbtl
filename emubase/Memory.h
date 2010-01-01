@@ -136,6 +136,7 @@ public:  // Saving/loading emulator status (64 bytes)
 public:  // PPU specifics
     void KeyboardEvent(BYTE scancode, BOOL okPressed);  // Keyboard key pressed or released
 	BOOL TapeInput(BOOL inputBit);
+    BOOL TapeOutput();
 protected:  // Implementation
     WORD        m_Port177010;  // Plane address register
     WORD        m_Port177012;  // Plane 0 data register

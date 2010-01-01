@@ -259,9 +259,14 @@ void TapeView_StopTape()
 {
 	if (!m_okTapePlaying) return;
 
-	g_pBoard->SetTapeReadCallback(NULL, 0);
-	m_okTapePlaying = FALSE;
-	SetWindowText(m_hwndTapePlay, m_okTapeRecording ? _T("Record") : _T("Play"));
+    if (m_okTapeRecording)
+        g_pBoard->SetTapeWriteCallback(NULL, 0);
+    else
+	    g_pBoard->SetTapeReadCallback(NULL, 0);
+
+    m_okTapePlaying = FALSE;
+
+    SetWindowText(m_hwndTapePlay, m_okTapeRecording ? _T("Record") : _T("Play"));
 }
 
 void TapeView_UpdatePosition()
