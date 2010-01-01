@@ -525,6 +525,10 @@ void CProcessor::InterruptVIRQ(int que, WORD interrupt)
 		if (m_virqrq>0) m_virqrq--;
 	m_virq[que] = interrupt;
 }
+WORD CProcessor::GetVIRQ(int que)
+{
+	return m_virq[que];
+}
 void CProcessor::AssertHALT()
 {
 	m_haltpin = TRUE;
@@ -989,7 +993,8 @@ void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 
 void CProcessor::ExecuteRESET ()  // Reset input/output devices
 {
-    m_pMemoryController->ResetDevices();  // INIT signal
+	m_EVNTrq = FALSE;
+	m_pMemoryController->ResetDevices();  // INIT signal
 
 	m_internalTick = RESET_TIMING;
 }

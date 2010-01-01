@@ -117,6 +117,7 @@ public:  // Processor control
     void        TickEVNT();  // EVNT signal
 	void		PowerFail();
     void        InterruptVIRQ(int que, WORD interrupt);  // External interrupt via VIRQ signal
+    WORD		GetVIRQ(int que);
     void        Execute();   // Execute one instruction - for debugger only
     
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
