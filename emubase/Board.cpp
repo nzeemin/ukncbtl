@@ -740,7 +740,7 @@ void CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
 	else
 	{
 		m_chancpurx[chan].irq = 0;
-		if (m_pCPU->GetVIRQ(chan?3:1)) m_chancpurx[chan].rdwr = 1;
+		if ((chan==0) || (m_pCPU->GetVIRQ(chan?3:1))) m_chancpurx[chan].rdwr = 1;
 		m_pCPU->InterruptVIRQ(chan?3:1, 0);
 	}
 	if((m_chancpurx[chan].irq) && (m_chancpurx[chan].ready) && (oldc_irq==0) && (m_chancpurx[chan].rdwr))
