@@ -333,7 +333,7 @@ void CProcessor::Stop ()
     m_haltpin = FALSE;
 }
 
-void CProcessor::Execute()
+/* void CProcessor::Execute()
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
@@ -362,10 +362,6 @@ void CProcessor::Execute()
 
 	if (m_stepmode)
 		m_stepmode = FALSE;
-    else if (m_instruction == PI_RTT && (GetPSW() & PSW_T))
-    {
-        // Skip interrupt processing for RTT with T bit set
-    }
 	else  // Processing interrupts
 	{
         while (TRUE)
@@ -496,6 +492,324 @@ void CProcessor::Execute()
             }
         }  // end while
 	}
+} */
+
+/* void CProcessor::Execute()
+{
+    WORD intrVector = 0;
+    BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
+    BOOL intrMode;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
+    if (m_okStopped) return;  // Processor is stopped - nothing to do
+
+    if (m_internalTick > 0)
+    {
+        m_internalTick--;
+        return;
+    }
+
+	m_internalTick = 0;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
+
+	do {
+		if (m_stepmode)
+			m_stepmode = FALSE;
+		else
+		{
+            m_TBITrq = (m_psw & 020);  // T-bit
+
+			if (m_HALTrq)  // HALT command
+		    {
+				intrVector = 0170;  intrMode = TRUE;
+				m_HALTrq = FALSE;
+			}
+			else if (m_BPT_rq)  // BPT command
+			{
+				intrVector = 0000014;  intrMode = FALSE;
+				m_BPT_rq = FALSE;
+	        }
+		    else if (m_IOT_rq)  // IOT command
+			{
+				intrVector = 0000020;  intrMode = FALSE;
+	            m_IOT_rq = FALSE;
+		    }
+			else if (m_EMT_rq)  // EMT command
+	        {
+		        intrVector = 0000030;  intrMode = FALSE;
+			    m_EMT_rq = FALSE;
+	        }
+		    else if (m_TRAPrq)  // TRAP command
+			{
+				intrVector = 0000034;  intrMode = FALSE;
+				m_TRAPrq = FALSE;
+			}
+			else if (m_FIS_rq)  // FIS commands -- Floating point Instruction Set
+			{
+				intrVector = 0010;  intrMode = TRUE;
+				m_FIS_rq = FALSE;
+			}
+			else if (m_RPLYrq && currMode)  // Зависание в HALT, priority 1
+			{
+	            intrVector = 0004;  intrMode = TRUE;
+		        m_RPLYrq = FALSE;
+			}
+	        else if (m_RPLYrq && !currMode)  // Зависание в USER, priority 1
+		    {
+			    intrVector = 0000004;  intrMode = FALSE;
+				m_RPLYrq = FALSE;
+	        }
+		    else if (m_RPL2rq)  // Двойное зависание, priority 1
+			{
+				intrVector = 0174;  intrMode = TRUE;
+	            m_RPL2rq = FALSE;
+		    }
+			else if (m_RSVDrq)  // Reserved command, priority 2
+	        {
+		        intrVector = 000010;  intrMode = FALSE;
+			    m_RSVDrq = FALSE;
+			}
+	        else if (m_TBITrq && (!m_waitmode))  // T-bit, priority 3
+		    {
+			    intrVector = 000014;  intrMode = FALSE;
+				m_TBITrq = FALSE;
+	        }
+		    else if (m_ACLOrq && (m_psw & 0600) != 0600)  // ACLO, priority 4
+			{
+				intrVector = 000024;  intrMode = FALSE;
+				m_ACLOrq = FALSE;
+			}
+			else if (m_haltpin && (m_psw & 0400) != 0400)  // HALT signal in USER mode, priority 5
+			{
+				intrVector = 0170;  intrMode = TRUE;
+			}
+			else if (m_EVNTrq && (m_psw & 0200) != 0200)  // EVNT signal, priority 6
+			{
+				intrVector = 0000100;  intrMode = FALSE;
+				m_EVNTrq = FALSE;
+			}
+			else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
+			{
+				intrMode = FALSE;
+				for (int irq = 0; irq <= 15; irq++)
+				{
+					if (m_virq[irq] != 0)
+					{
+	                    intrVector = m_virq[irq];
+		                m_virq[irq] = 0;
+			            m_virqrq--;
+				        break;
+					}
+	            }
+		        if (intrVector == 0) m_virqrq = 0;
+			}
+			if (intrVector !=0)
+			{
+			    if (m_internalTick == 0) m_internalTick = EMT_TIMING;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
+
+		        m_waitmode = FALSE;
+
+			    if (intrMode)  // HALT mode interrupt
+				{
+					WORD selVector = GetMemoryController()->GetSelRegister() & 0x0ff00;
+					intrVector |= selVector;
+
+					// Save PC/PSW to CPC/CPSW
+					m_savepc = GetPC();
+					m_savepsw = GetPSW();
+
+					m_psw |= 0400;
+
+					m_psw = GetWord(intrVector + 2) & 0777;
+					SetPC(GetWord(intrVector));
+				}
+				else  // USER mode interrupt
+				{
+					WORD oldpsw = m_psw;
+					m_psw &= ~0400;
+
+					// Save PC/PSW to stack
+					SetSP(GetSP() - 2);
+					SetWord(GetSP(), oldpsw);
+					SetSP(GetSP() - 2);
+					SetWord(GetSP(), GetPC());
+
+					m_psw = GetWord(intrVector + 2) & 0377;
+					SetPC(GetWord(intrVector));
+				}
+		
+				return;
+			}
+		}
+		if (!m_waitmode)
+		{
+			FetchInstruction();  // Read next instruction from memory
+			if (!m_RPLYrq)
+				TranslateInstruction();  // Execute next instruction
+			//ASSERT(m_psw<0777);
+		}
+	} while (m_HALTrq || m_BPT_rq || m_IOT_rq || m_EMT_rq || m_TRAPrq || m_FIS_rq);
+} */
+
+void CProcessor::Execute()
+{
+    if (m_okStopped) return;  // Processor is stopped - nothing to do
+
+    if (m_internalTick > 0)
+    {
+        m_internalTick--;
+        return;
+    }
+
+	m_internalTick = 0;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
+
+	if (!CProcessor::InterruptProcessing())
+		CProcessor::CommandExecution();
+}
+
+BOOL CProcessor::InterruptProcessing ()
+{
+    WORD intrVector = 0;
+    BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
+    BOOL intrMode;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
+
+	if (m_stepmode)
+		m_stepmode = FALSE;
+	else
+	{
+           m_TBITrq = (m_psw & 020);  // T-bit
+
+		if (m_HALTrq)  // HALT command
+	    {
+			intrVector = 0170;  intrMode = TRUE;
+			m_HALTrq = FALSE;
+		}
+		else if (m_BPT_rq)  // BPT command
+		{
+			intrVector = 0000014;  intrMode = FALSE;
+			m_BPT_rq = FALSE;
+        }
+	    else if (m_IOT_rq)  // IOT command
+		{
+			intrVector = 0000020;  intrMode = FALSE;
+            m_IOT_rq = FALSE;
+	    }
+		else if (m_EMT_rq)  // EMT command
+        {
+	        intrVector = 0000030;  intrMode = FALSE;
+		    m_EMT_rq = FALSE;
+        }
+	    else if (m_TRAPrq)  // TRAP command
+		{
+			intrVector = 0000034;  intrMode = FALSE;
+			m_TRAPrq = FALSE;
+		}
+		else if (m_FIS_rq)  // FIS commands -- Floating point Instruction Set
+		{
+			intrVector = 0010;  intrMode = TRUE;
+			m_FIS_rq = FALSE;
+		}
+		else if (m_RPLYrq && currMode)  // Зависание в HALT, priority 1
+		{
+            intrVector = 0004;  intrMode = TRUE;
+	        m_RPLYrq = FALSE;
+		}
+        else if (m_RPLYrq && !currMode)  // Зависание в USER, priority 1
+	    {
+		    intrVector = 0000004;  intrMode = FALSE;
+			m_RPLYrq = FALSE;
+        }
+	    else if (m_RPL2rq)  // Двойное зависание, priority 1
+		{
+			intrVector = 0174;  intrMode = TRUE;
+            m_RPL2rq = FALSE;
+	    }
+		else if (m_RSVDrq)  // Reserved command, priority 2
+        {
+	        intrVector = 000010;  intrMode = FALSE;
+		    m_RSVDrq = FALSE;
+		}
+        else if (m_TBITrq && (!m_waitmode))  // T-bit, priority 3
+	    {
+		    intrVector = 000014;  intrMode = FALSE;
+			m_TBITrq = FALSE;
+        }
+	    else if (m_ACLOrq && (m_psw & 0600) != 0600)  // ACLO, priority 4
+		{
+			intrVector = 000024;  intrMode = FALSE;
+			m_ACLOrq = FALSE;
+		}
+		else if (m_haltpin && (m_psw & 0400) != 0400)  // HALT signal in USER mode, priority 5
+		{
+			intrVector = 0170;  intrMode = TRUE;
+		}
+		else if (m_EVNTrq && (m_psw & 0200) != 0200)  // EVNT signal, priority 6
+		{
+			intrVector = 0000100;  intrMode = FALSE;
+			m_EVNTrq = FALSE;
+		}
+		else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
+		{
+			intrMode = FALSE;
+			for (int irq = 0; irq <= 15; irq++)
+			{
+				if (m_virq[irq] != 0)
+				{
+                    intrVector = m_virq[irq];
+	                m_virq[irq] = 0;
+		            m_virqrq--;
+			        break;
+				}
+            }
+	        if (intrVector == 0) m_virqrq = 0;
+		}
+		if (intrVector !=0)
+		{
+		    if (m_internalTick == 0) m_internalTick = EMT_TIMING;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
+
+			m_waitmode = FALSE;
+
+		    if (intrMode)  // HALT mode interrupt
+			{
+				WORD selVector = GetMemoryController()->GetSelRegister() & 0x0ff00;
+				intrVector |= selVector;
+					// Save PC/PSW to CPC/CPSW
+				m_savepc = GetPC();
+				m_savepsw = GetPSW();
+				m_psw |= 0400;
+
+				m_psw = GetWord(intrVector + 2) & 0777;
+				SetPC(GetWord(intrVector));
+			}
+			else  // USER mode interrupt
+			{
+				WORD oldpsw = m_psw;
+				m_psw &= ~0400;
+
+				// Save PC/PSW to stack
+				SetSP(GetSP() - 2);
+				SetWord(GetSP(), oldpsw);
+				SetSP(GetSP() - 2);
+				SetWord(GetSP(), GetPC());
+
+				m_psw = GetWord(intrVector + 2) & 0377;
+				SetPC(GetWord(intrVector));
+			}
+		
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+void CProcessor::CommandExecution()
+{
+	if (!m_waitmode)
+	{
+		FetchInstruction();  // Read next instruction from memory
+		if (!m_RPLYrq)
+			TranslateInstruction();  // Execute next instruction
+		//ASSERT(m_psw<0777);
+	}
+	if (m_HALTrq || m_BPT_rq || m_IOT_rq || m_EMT_rq || m_TRAPrq || m_FIS_rq)
+		CProcessor::InterruptProcessing ();
 }
 
 void CProcessor::TickEVNT()
@@ -546,242 +860,6 @@ void CProcessor::MemoryError()
 
 
 //////////////////////////////////////////////////////////////////////
-
-
-// Вычисление адреса операнда, в зависимости от метода адресации
-//   meth - метод адресации
-//   reg  - номер регистра
-WORD CProcessor::CalculateOperAddrSrc (int meth, int reg)
-{
-	WORD arg;
-
-		switch (meth) {
-			case 0:  // R0,     PC 
-				return GetReg(reg);
-			case 1:  // (R0),   (PC)
-				return GetReg(reg);
-			case 2:  // (R0)+,  #012345
-				//if(reg==7) // is it immediate?
-				//	arg = GetWord(GetReg(reg));
-				//else
-					arg = GetReg(reg);
-				if ((m_instruction & 0100000)&&(reg<6))
-					SetReg(reg, GetReg(reg) + 1);
-				else
-					SetReg(reg, GetReg(reg) + 2);
-				return arg;
-			case 3:  // @(R0)+, @#012345
-				//if(reg==7) //abs index
-				//	arg =  GetWord(GetWord(GetReg(reg))) ;
-				//else
-					arg =  GetWord(GetReg(reg)) ;
-				//if ((m_instruction & 0100000)&&(reg!=7))
-			//		SetReg(reg, GetReg(reg) + 1);
-		//		else
-					SetReg(reg, GetReg(reg) + 2);
-				return arg;
-			case 4:  // -(R0),  -(PC)
-				if ((m_instruction & 0100000)&&(reg<6))
-					SetReg(reg, GetReg(reg) - 1);
-				else
-					SetReg(reg, GetReg(reg) - 2);
-				return GetReg(reg);
-			case 5:  // @-(R0), @-(PC)
-		//		if (m_instruction & 0100000)
-		//			SetReg(reg, GetReg(reg) - 1);
-		//		else
-					SetReg(reg, GetReg(reg) - 2);
-				return  GetWord(GetReg(reg));
-			case 6: {  // 345(R0),  345
-				WORD pc=0;
-				//if(reg==7) //relative direct
-				//	pc = GetWord(GetWordExec( GetPC() ));
-				//else
-				    pc = (GetWordExec( GetPC() ));
-
-				SetPC( GetPC() + 2 );
-				arg=(WORD)(pc + GetReg(reg));
-				return arg;
-			}
-			case 7: {  // @345(R0),@345
-				WORD pc;
-				//if(reg==7) //relative direct
-				//	pc = GetWord(GetWordExec( GetPC() ));
-				//else
-				    pc = GetWordExec( GetPC() );
-				SetPC( GetPC() + 2 );
-				arg=( GetWord(pc + GetReg(reg)) );
-				return arg;
-			}
-		}
-	
-    return 0;
-}
-
-WORD CProcessor::CalculateOperAddr (int meth, int reg)
-{
-	WORD arg;
-		switch (meth) {
-			case 0:  // R0,     PC 
-				return reg;
-			case 1:  // (R0),   (PC)
-				return GetReg(reg);
-			case 2:  // (R0)+,  #012345
-				//if(reg==7) // is it immediate?
-				//	arg = GetWord(GetReg(reg));
-				//else
-					arg = GetReg(reg);
-				if ((m_instruction & 0100000)&&(reg<6))
-					SetReg(reg, GetReg(reg) + 1);
-				else
-					SetReg(reg, GetReg(reg) + 2);
-				return arg;
-			case 3:  // @(R0)+, @#012345
-				//if(reg==7) //abs index
-					//arg =  GetWord(GetWord(GetReg(reg))) ;
-				//else
-					arg =  GetWord(GetReg(reg)) ;
-				//if ((m_instruction & 0100000)&&(reg!=7))
-				//	SetReg(reg, GetReg(reg) + 1);
-				//else
-					SetReg(reg, GetReg(reg) + 2);
-				return arg;
-			case 4:  // -(R0),  -(PC)
-				if ((m_instruction & 0100000)&&(reg<6))
-					SetReg(reg, GetReg(reg) - 1);
-				else
-					SetReg(reg, GetReg(reg) - 2);
-				return GetReg(reg);
-			case 5:  // @-(R0), @-(PC)
-				//if (m_instruction & 0100000)
-				//	SetReg(reg, GetReg(reg) - 1);
-				//else
-					SetReg(reg, GetReg(reg) - 2);
-				return  GetWord(GetReg(reg));
-			case 6: {  // 345(R0),  345
-				WORD pc=0;
-				//if(reg==7) //relative direct
-				// pc = GetWord(GetWordExec( GetPC() ));
-				//else
-				 pc = (GetWordExec( GetPC() ));
-
-				SetPC( GetPC() + 2 );
-				arg=(WORD)(pc + GetReg(reg));
-				return arg;
-			}
-			case 7: {  // @345(R0),@345
-				WORD pc=0;
-				//if(reg==7)
-				//	pc = GetWord(GetWordExec( GetPC() ));
-				//else
-					pc = GetWordExec( GetPC() );
-				SetPC( GetPC() + 2 );
-				arg=( GetWord(pc + GetReg(reg)) );
-				return arg;
-			}
-		}
-
-    return 0;
-}
-
-
-BYTE CProcessor::GetByteSrc ()
-{
-    if (m_methsrc == 0)
-        return (BYTE) GetReg(m_regsrc)&0377;
-    else
-        return GetByte( m_addrsrc );
-}
-BYTE CProcessor::GetByteDest ()
-{
-    if (m_methdest == 0)
-        return (BYTE) GetReg(m_regdest);
-    else
-        return GetByte( m_addrdest );
-}
-
-void CProcessor::SetByteDest (BYTE byte)
-{
-    if (m_methdest == 0)
-	{
-		if(byte&0200)
-			SetReg(m_regdest, 0xff00|byte);
-		else
-			SetReg(m_regdest, (GetReg(m_regdest)&0xff00)|byte);
-	}
-    else
-        SetByte( m_addrdest, byte );
-}
-
-WORD CProcessor::GetWordSrc ()
-{
-    if (m_methsrc == 0)
-	{
-        return GetReg(m_regsrc);
-	}
-    else
-        return GetWord( m_addrsrc );
-}
-WORD CProcessor::GetWordDest ()
-{
-    if (m_methdest == 0)
-        return GetReg(m_regdest);
-    else
-        return GetWord( m_addrdest );
-}
-
-void CProcessor::SetWordDest (WORD word)
-{
-    if (m_methdest == 0)
-        SetReg(m_regdest, word);
-    else
-        SetWord( (m_addrdest), word );
-}
-
-WORD CProcessor::GetDstWordArgAsBranch ()
-{
-	int reg = GetDigit(m_instruction, 0);
-	int meth = GetDigit(m_instruction, 1);
-	WORD arg;
-
-	    switch (meth) {
-        case 0:  // R0,     PC 
-			ASSERT(0);
-            return 0;
-        case 1:  // (R0),   (PC)
-            return GetReg(reg);
-        case 2:  // (R0)+,  #012345
-            arg = GetReg(reg);
-			SetReg(reg, GetReg(reg) + 2);
-            return arg;
-        case 3:  // @(R0)+, @#012345
-            arg = GetWord( GetReg(reg) );
-				SetReg(reg, GetReg(reg) + 2);
-            return arg;
-        case 4:  // -(R0),  -(PC)
-				SetReg(reg, GetReg(reg) - 2);
-            return GetReg(reg);
-        case 5:  // @-(R0), @-(PC)
-				SetReg(reg, GetReg(reg) - 2);
-            return GetWord( GetReg(reg) );
-        case 6: {  // 345(R0),  345
-            WORD pc = GetWordExec( GetPC() );
-            SetPC( GetPC() + 2 );
-            return (WORD)(pc + GetReg(reg));
-        }
-        case 7: {  // @345(R0),@345
-            WORD pc = GetWordExec( GetPC() );
-            SetPC( GetPC() + 2 );
-            return GetWord( (WORD)(pc + GetReg(reg)) );
-        }
-    }
-
-	return 0;
-}
-
-
-//////////////////////////////////////////////////////////////////////
-
 
 void CProcessor::FetchInstruction()
 {
@@ -979,6 +1057,24 @@ void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
 	m_internalTick=RTI_TIMING;
 }
 
+void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
+{
+	WORD new_psw;
+    SetPC( GetWord( GetSP() ) );  // Pop PC
+    SetSP( GetSP() + 2 );
+    
+	m_psw &= PSW_HALT;  // Store HALT
+    new_psw = GetWord ( GetSP() );  // Pop PSW --- saving HALT
+	if (GetPC() < 0160000)
+		SetPSW((new_psw & 0377) | m_psw);  // Preserve HALT mode
+	else
+		SetPSW(new_psw & 0777); // Load new mode
+    SetSP( GetSP() + 2 );
+	m_stepmode = (new_psw & PSW_T)?TRUE:FALSE;
+
+	m_internalTick = RTI_TIMING;
+}
+
 void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 {
     m_BPT_rq = TRUE;
@@ -997,24 +1093,6 @@ void CProcessor::ExecuteRESET ()  // Reset input/output devices
 	m_pMemoryController->ResetDevices();  // INIT signal
 
 	m_internalTick = RESET_TIMING;
-}
-
-void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
-{
-	WORD new_psw;
-    SetPC( GetWord( GetSP() ) );  // Pop PC
-    SetSP( GetSP() + 2 );
-    
-	m_psw &= PSW_HALT;  // Store HALT
-    new_psw = GetWord ( GetSP() );  // Pop PSW --- saving HALT
-	if (GetPC() < 0160000)
-		SetPSW((new_psw & 0377) | m_psw);  // Preserve HALT mode
-	else
-		SetPSW(new_psw & 0777); // Load new mode
-    SetSP( GetSP() + 2 );
-
-	//m_psw |= PSW_T; // set the trap flag ???
-	m_internalTick = RTI_TIMING;
 }
 
 void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из процедуры

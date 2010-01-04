@@ -390,15 +390,25 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
     }
 }
 
-void CMotherboard::DebugTicks()
+/* void CMotherboard::DebugTicks()
 {
  	m_pPPU->SetInternalTick(0);
 	m_pPPU->Execute();
 	m_pCPU->SetInternalTick(0);
 	m_pCPU->Execute();
 	m_pFloppyCtl->Periodic();
-}
+} */
 
+void CMotherboard::DebugTicks()
+{
+	while (m_pPPU->InterruptProcessing());
+	m_pPPU->CommandExecution();
+	while (m_pPPU->InterruptProcessing());
+	while (m_pCPU->InterruptProcessing());
+	m_pCPU->CommandExecution();
+	while (m_pCPU->InterruptProcessing());
+	while (m_pPPU->InterruptProcessing());
+}
 
 /*
 Каждый фрейм равен 1/25 секунды = 40 мс = 20000 тиков, 1 тик = 2 мкс.
