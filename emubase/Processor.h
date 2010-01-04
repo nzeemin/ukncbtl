@@ -80,13 +80,15 @@ public:  // Register control
     WORD        GetPSW() { return m_psw; }
     WORD        GetCPSW() { return m_savepsw; }
     void        SetPSW(WORD word) { m_psw = word; }
-    WORD        GetReg(int regno) { return m_R[regno]; }
-    void        SetReg(int regno, WORD word) { m_R[regno] = word; }
+	void		SetCPSW(WORD word) {m_savepsw = word; }
+	WORD        GetReg(int regno) { return m_R[regno]; }
+    void        SetReg(int regno, WORD word);
     WORD        GetSP() const { return m_R[6]; }
     void        SetSP(WORD word) { m_R[6] = word; }
     WORD        GetPC() const { return m_R[7]; }
     WORD        GetCPC() const { return m_savepc; }
-    void        SetPC(WORD word) { m_R[7] = word; }
+    void        SetPC(WORD word);
+	void		SetCPC(WORD word) {m_savepc = word; }
 
 public:  // PSW bits control
     void        SetC(BOOL bFlag);
@@ -119,6 +121,8 @@ public:  // Processor control
     void        InterruptVIRQ(int que, WORD interrupt);  // External interrupt via VIRQ signal
     WORD		GetVIRQ(int que);
     void        Execute();   // Execute one instruction - for debugger only
+	BOOL		InterruptProcessing();
+	void		CommandExecution();
     
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(BYTE* pImage);
@@ -127,16 +131,6 @@ public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
 protected:  // Implementation
     void        FetchInstruction();      // Read next instruction
     void        TranslateInstruction();  // Execute the instruction
-protected:  // Implementation - instruction processing
-    WORD        CalculateOperAddr (int meth, int reg);
-	WORD        CalculateOperAddrSrc (int meth, int reg);
-    BYTE        GetByteSrc();
-    BYTE        GetByteDest();
-    void        SetByteDest(BYTE);
-    WORD        GetWordSrc();
-    WORD        GetWordDest();
-    void        SetWordDest(WORD);
-    WORD        GetDstWordArgAsBranch();
 protected:  // Implementation - memory access
     WORD        GetWordExec(WORD address) { return m_pMemoryController->GetWordExec(address, IsHaltMode()); }
     WORD        GetWord(WORD address) { return m_pMemoryController->GetWord(address, IsHaltMode()); }
@@ -296,6 +290,18 @@ inline void CProcessor::SetZ (BOOL bFlag)
     if (bFlag) m_psw |= PSW_Z; else m_psw &= ~PSW_Z;
 }
 
+//
+inline void CProcessor::SetReg(int regno, WORD word)
+{
+	m_R[regno] = word;
+	if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = word;
+}
+
+inline void CProcessor::SetPC(WORD word)
+{ 
+	m_R[7] = word;
+	if ((m_psw & 0600) != 0600) m_savepc = word;
+}
 // PSW bits calculations - implementation
 inline BOOL CProcessor::CheckAddForOverflow (BYTE a, BYTE b)
 {
