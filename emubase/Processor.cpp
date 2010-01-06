@@ -281,9 +281,10 @@ void CProcessor::Start ()
 
     // "Turn On" interrupt processing
     WORD startvec = m_pMemoryController->GetSelRegister() & 0177400;
+	SetHALT(TRUE);
+	WORD pc = GetWord(startvec);
     WORD psw = GetWord(startvec + 2);
     SetPSW( psw );
-    WORD pc = GetWord(startvec);
     SetPC( pc );
     //TODO: Make sure we implemented start process correctly
 }
@@ -745,24 +746,24 @@ BOOL CProcessor::InterruptProcessing ()
 		    if (intrMode)  // HALT mode interrupt
 			{
 				WORD selVector = GetMemoryController()->GetSelRegister() & 0x0ff00;
-				WORD tmp;
+				WORD new_pc,new_psw;
 				intrVector |= selVector;
 					// Save PC/PSW to CPC/CPSW
 				//m_savepc = GetPC();
 				//m_savepsw = GetPSW();
 				//m_psw |= 0400;
 				SetHALT(TRUE);
-				tmp = GetWord(intrVector + 2);
+				new_pc = GetWord(intrVector);
+				new_psw = GetWord(intrVector + 2);
 				if (!m_RPLYrq)
 				{
-					SetPSW(tmp);
-					tmp = GetWord(intrVector);
-					if (!m_RPLYrq) SetPC(tmp);
+					SetPSW(new_psw);
+					SetPC(new_pc);
 				}
 			}
 			else  // USER mode interrupt
 			{
-				WORD tmp;
+				WORD new_pc,new_psw;
 
 				SetHALT(FALSE);
 				// Save PC/PSW to stack
@@ -777,12 +778,12 @@ BOOL CProcessor::InterruptProcessing ()
 						if (m_ACLOreset) m_ACLOrq = FALSE;
 						if (m_EVNTreset) m_EVNTrq = FALSE;
 						if (m_VIRQreset) m_virq[m_VIRQreset] = 0;
-						tmp = GetWord(intrVector + 2);
+						new_pc = GetWord(intrVector);
+						new_psw = GetWord(intrVector + 2);
 						if (!m_RPLYrq)
 						{
-							SetLPSW(LOBYTE(tmp));
-							tmp = GetWord(intrVector);
-							if (!m_RPLYrq) SetPC(tmp);
+							SetLPSW(LOBYTE(new_psw));
+							SetPC(new_pc);
 						}
 					}
 				}
