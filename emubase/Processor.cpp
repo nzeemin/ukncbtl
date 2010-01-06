@@ -151,39 +151,9 @@ void CProcessor::Init()
 	RegisterMethodRef( 0000100, 0000177, &CProcessor::ExecuteJMP );
 	RegisterMethodRef( 0000200, 0000207, &CProcessor::ExecuteRTS );  // RTS / RETURN
 
-	RegisterMethodRef( 0000240, 0000240, &CProcessor::ExecuteNOP );
-	RegisterMethodRef( 0000241, 0000241, &CProcessor::ExecuteCLC );
-	RegisterMethodRef( 0000242, 0000242, &CProcessor::ExecuteCLV );
-	RegisterMethodRef( 0000243, 0000243, &CProcessor::ExecuteCLVC );
-	RegisterMethodRef( 0000244, 0000244, &CProcessor::ExecuteCLZ );
-	RegisterMethodRef( 0000245, 0000245, &CProcessor::ExecuteCLZC );
-	RegisterMethodRef( 0000246, 0000246, &CProcessor::ExecuteCLZV );
-	RegisterMethodRef( 0000247, 0000247, &CProcessor::ExecuteCLZVC );
-	RegisterMethodRef( 0000250, 0000250, &CProcessor::ExecuteCLN );
-	RegisterMethodRef( 0000251, 0000251, &CProcessor::ExecuteCLNC );
-	RegisterMethodRef( 0000252, 0000252, &CProcessor::ExecuteCLNV );
-	RegisterMethodRef( 0000253, 0000253, &CProcessor::ExecuteCLNVC );
-	RegisterMethodRef( 0000254, 0000254, &CProcessor::ExecuteCLNZ );
-	RegisterMethodRef( 0000255, 0000255, &CProcessor::ExecuteCLNZC );
-	RegisterMethodRef( 0000256, 0000256, &CProcessor::ExecuteCLNZV );
-	RegisterMethodRef( 0000257, 0000257, &CProcessor::ExecuteCCC );
+	RegisterMethodRef( 0000240, 0000257, &CProcessor::ExecuteCCC );
 
-    RegisterMethodRef( 0000260, 0000260, &CProcessor::ExecuteNOP );
-	RegisterMethodRef( 0000261, 0000261, &CProcessor::ExecuteSEC );
-	RegisterMethodRef( 0000262, 0000262, &CProcessor::ExecuteSEV );
-	RegisterMethodRef( 0000263, 0000263, &CProcessor::ExecuteSEVC );
-	RegisterMethodRef( 0000264, 0000264, &CProcessor::ExecuteSEZ );
-	RegisterMethodRef( 0000265, 0000265, &CProcessor::ExecuteSEZC );
-	RegisterMethodRef( 0000266, 0000266, &CProcessor::ExecuteSEZV );
-	RegisterMethodRef( 0000267, 0000267, &CProcessor::ExecuteSEZVC );
-	RegisterMethodRef( 0000270, 0000270, &CProcessor::ExecuteSEN );
-	RegisterMethodRef( 0000271, 0000271, &CProcessor::ExecuteSENC );
-	RegisterMethodRef( 0000272, 0000272, &CProcessor::ExecuteSENV );
-	RegisterMethodRef( 0000273, 0000273, &CProcessor::ExecuteSENVC );
-	RegisterMethodRef( 0000274, 0000274, &CProcessor::ExecuteSENZ );
-	RegisterMethodRef( 0000275, 0000275, &CProcessor::ExecuteSENZC );
-	RegisterMethodRef( 0000276, 0000276, &CProcessor::ExecuteSENZV );
-	RegisterMethodRef( 0000277, 0000277, &CProcessor::ExecuteSCC );
+	RegisterMethodRef( 0000260, 0000277, &CProcessor::ExecuteSCC );
 
 	RegisterMethodRef( 0000300, 0000377, &CProcessor::ExecuteSWAB );
 
@@ -282,17 +252,18 @@ CProcessor::CProcessor (LPCTSTR name)
 {
     lstrcpy(m_name, name);
     ZeroMemory(m_R, sizeof(m_R));
-	m_psw = 0400;  // Start value of PSW is 340
-    m_savepc = m_savepsw = 0;
+	m_psw = m_savepsw = 0777; 
+    m_savepc = 0177777;
     m_okStopped = TRUE;
     m_internalTick = 0;
     m_pMemoryController = NULL;
 	m_waitmode = FALSE;
-	m_userspace = FALSE;
 	m_stepmode = FALSE;
-	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    m_haltpin = FALSE;
+	m_buserror = FALSE;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
+    m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+	m_haltpin = FALSE;
 }
 
 void CProcessor::Start ()
@@ -300,37 +271,35 @@ void CProcessor::Start ()
     m_okStopped = FALSE;
     m_internalTick = 0;
 
-	m_userspace = FALSE;
 	m_stepmode = FALSE;
 	m_waitmode = FALSE;
-	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
+	m_buserror = FALSE;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
+    m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    memset(m_virq, 0, sizeof(m_virq));
+    m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
 
     // "Turn On" interrupt processing
     WORD startvec = m_pMemoryController->GetSelRegister() & 0177400;
-    WORD pc = GetWord(startvec);
-    SetPC( pc );
     WORD psw = GetWord(startvec + 2);
     SetPSW( psw );
-	if (m_haltpin)
-		m_psw |= 0400;
+    WORD pc = GetWord(startvec);
+    SetPC( pc );
     //TODO: Make sure we implemented start process correctly
 }
 void CProcessor::Stop ()
 {
     m_okStopped = TRUE;
 
-	m_userspace = FALSE;
 	m_stepmode = FALSE;
+	m_buserror = FALSE;
 	m_waitmode = FALSE;
-	m_psw = 0400;  // Start value of PSW is 340
-    m_savepc = m_savepsw = 0;
     m_internalTick = 0;
-	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_RPL2rq = m_EVNTrq = FALSE;
-    m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    m_virqrq = 0;  memset(m_virq, 0, sizeof(m_virq));
-    m_haltpin = FALSE;
+	m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
+    m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+    memset(m_virq, 0, sizeof(m_virq));
+    m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+	m_pMemoryController->ResetDevices();
 }
 
 /* void CProcessor::Execute()
@@ -674,7 +643,8 @@ BOOL CProcessor::InterruptProcessing ()
 		m_stepmode = FALSE;
 	else
 	{
-           m_TBITrq = (m_psw & 020);  // T-bit
+	    m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+        m_TBITrq = (m_psw & 020);  // T-bit
 
 		if (m_HALTrq)  // HALT command
 	    {
@@ -706,21 +676,29 @@ BOOL CProcessor::InterruptProcessing ()
 			intrVector = 0010;  intrMode = TRUE;
 			m_FIS_rq = FALSE;
 		}
-		else if (m_RPLYrq && currMode)  // Зависание в HALT, priority 1
+		else if (m_RPLYrq)  // Зависание, priority 1
 		{
-            intrVector = 0004;  intrMode = TRUE;
-	        m_RPLYrq = FALSE;
-		}
-        else if (m_RPLYrq && !currMode)  // Зависание в USER, priority 1
-	    {
-		    intrVector = 0000004;  intrMode = FALSE;
+            if (m_buserror)
+			{
+				intrVector = 0174; intrMode = TRUE;
+			}
+			else
+				if (currMode)
+				{
+					intrVector = 0004;  intrMode = TRUE;
+				}
+				else
+				{
+					intrVector = 0000004; intrMode = FALSE;
+				}
+			m_buserror = TRUE;
 			m_RPLYrq = FALSE;
-        }
-	    else if (m_RPL2rq)  // Двойное зависание, priority 1
+		}
+		else if (m_ILLGrq)
 		{
-			intrVector = 0174;  intrMode = TRUE;
-            m_RPL2rq = FALSE;
-	    }
+	        intrVector = 000004;  intrMode = FALSE;
+		    m_ILLGrq = FALSE;
+		}
 		else if (m_RSVDrq)  // Reserved command, priority 2
         {
 	        intrVector = 000010;  intrMode = FALSE;
@@ -734,7 +712,7 @@ BOOL CProcessor::InterruptProcessing ()
 	    else if (m_ACLOrq && (m_psw & 0600) != 0600)  // ACLO, priority 4
 		{
 			intrVector = 000024;  intrMode = FALSE;
-			m_ACLOrq = FALSE;
+			m_ACLOreset = TRUE;
 		}
 		else if (m_haltpin && (m_psw & 0400) != 0400)  // HALT signal in USER mode, priority 5
 		{
@@ -743,22 +721,20 @@ BOOL CProcessor::InterruptProcessing ()
 		else if (m_EVNTrq && (m_psw & 0200) != 0200)  // EVNT signal, priority 6
 		{
 			intrVector = 0000100;  intrMode = FALSE;
-			m_EVNTrq = FALSE;
+			m_EVNTreset = TRUE;
 		}
 		else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
 		{
 			intrMode = FALSE;
-			for (int irq = 0; irq <= 15; irq++)
+			for (int irq = 1; irq <= 15; irq++)
 			{
 				if (m_virq[irq] != 0)
 				{
                     intrVector = m_virq[irq];
-	                m_virq[irq] = 0;
-		            m_virqrq--;
+	                m_VIRQreset = irq;
 			        break;
 				}
             }
-	        if (intrVector == 0) m_virqrq = 0;
 		}
 		if (intrVector !=0)
 		{
@@ -769,28 +745,47 @@ BOOL CProcessor::InterruptProcessing ()
 		    if (intrMode)  // HALT mode interrupt
 			{
 				WORD selVector = GetMemoryController()->GetSelRegister() & 0x0ff00;
+				WORD tmp;
 				intrVector |= selVector;
 					// Save PC/PSW to CPC/CPSW
-				m_savepc = GetPC();
-				m_savepsw = GetPSW();
-				m_psw |= 0400;
-
-				m_psw = GetWord(intrVector + 2) & 0777;
-				SetPC(GetWord(intrVector));
+				//m_savepc = GetPC();
+				//m_savepsw = GetPSW();
+				//m_psw |= 0400;
+				SetHALT(TRUE);
+				tmp = GetWord(intrVector + 2);
+				if (!m_RPLYrq)
+				{
+					SetPSW(tmp);
+					tmp = GetWord(intrVector);
+					if (!m_RPLYrq) SetPC(tmp);
+				}
 			}
 			else  // USER mode interrupt
 			{
-				WORD oldpsw = m_psw;
-				m_psw &= ~0400;
+				WORD tmp;
 
+				SetHALT(FALSE);
 				// Save PC/PSW to stack
 				SetSP(GetSP() - 2);
-				SetWord(GetSP(), oldpsw);
+				SetWord(GetSP(), GetCPSW());
 				SetSP(GetSP() - 2);
-				SetWord(GetSP(), GetPC());
-
-				m_psw = GetWord(intrVector + 2) & 0377;
-				SetPC(GetWord(intrVector));
+				if (!m_RPLYrq)
+				{
+					SetWord(GetSP(), GetCPC());
+					if (!m_RPLYrq)
+					{
+						if (m_ACLOreset) m_ACLOrq = FALSE;
+						if (m_EVNTreset) m_EVNTrq = FALSE;
+						if (m_VIRQreset) m_virq[m_VIRQreset] = 0;
+						tmp = GetWord(intrVector + 2);
+						if (!m_RPLYrq)
+						{
+							SetLPSW(LOBYTE(tmp));
+							tmp = GetWord(intrVector);
+							if (!m_RPLYrq) SetPC(tmp);
+						}
+					}
+				}
 			}
 		
 			return TRUE;
@@ -805,8 +800,10 @@ void CProcessor::CommandExecution()
 	{
 		FetchInstruction();  // Read next instruction from memory
 		if (!m_RPLYrq)
+		{
+			m_buserror = FALSE;
 			TranslateInstruction();  // Execute next instruction
-		//ASSERT(m_psw<0777);
+		}
 	}
 	if (m_HALTrq || m_BPT_rq || m_IOT_rq || m_EMT_rq || m_TRAPrq || m_FIS_rq)
 		CProcessor::InterruptProcessing ();
@@ -829,14 +826,6 @@ void CProcessor::PowerFail()
 void CProcessor::InterruptVIRQ(int que, WORD interrupt)
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
-	// if (m_virqrq == 1)
-	// {
-	//  DebugPrintFormat(_T("Lost VIRQ %d %d\r\n"), m_virq, interrupt);
-	// }
-	if (interrupt)
-		m_virqrq ++;
-	else
-		if (m_virqrq>0) m_virqrq--;
 	m_virq[que] = interrupt;
 }
 WORD CProcessor::GetVIRQ(int que)
@@ -925,8 +914,8 @@ void CProcessor::ExecuteRSEL()
         return;
     }
 
-    //SetReg(0, ???);  //TODO
-    ASSERT(0);
+    SetReg(0, GetMemoryController()->GetSelRegister());
+    //ASSERT(0);
 }
 
 void CProcessor::Execute000030()  // Unknown command
@@ -938,7 +927,7 @@ void CProcessor::Execute000030()  // Unknown command
     }
 
     //TODO: Реализовать команду
-    m_RPLYrq = TRUE;
+    //m_RPLYrq = TRUE;
 }
 
 void CProcessor::ExecuteFIS()  // Floating point instruction set
@@ -1009,17 +998,19 @@ void CProcessor::ExecuteWCPS	()
 
 void CProcessor::ExecuteMFUS () //move from user space
 {
-    if ((m_psw & PSW_HALT) == 0)
+    WORD word;
+	if ((m_psw & PSW_HALT) == 0)
     {
         m_RSVDrq = TRUE;
         return;
     }
 
     //r0 = (r5)+
-	m_userspace = TRUE;
-	SetReg(0,GetWord(GetReg(5)));
-	m_userspace = FALSE;
+	SetHALT(FALSE);
+	word = GetWord(GetReg(5));
+	SetHALT(TRUE);
 	SetReg(5,GetReg(5)+2);
+	if (!m_RPLYrq) 	SetReg(0, word);
 
 	m_internalTick=MOV_TIMING[0][2];
 }
@@ -1034,43 +1025,45 @@ void CProcessor::ExecuteMTUS () //move to user space
 
     //-(r5)=r0
 	SetReg(5,GetReg(5)-2);
-	m_userspace = TRUE;
+	SetHALT(FALSE);
 	SetWord(GetReg(5),GetReg(0));
-	m_userspace = FALSE;
+	SetHALT(TRUE);
 	m_internalTick=MOV_TIMING[0][2];
 }
 
 void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
 {
-	WORD new_psw;
-    SetReg(7, GetWord( GetSP() ) );  // Pop PC
+	WORD word;
+    word = GetWord(GetSP());
     SetSP( GetSP() + 2 );
-    
-	m_psw &= 0400;  // Store HALT
-    new_psw = GetWord ( GetSP() );  // Pop PSW --- saving HALT
+	if (m_RPLYrq) return;
+	SetPC(word);  // Pop PC
+	word = GetWord ( GetSP() );  // Pop PSW --- saving HALT
+    SetSP( GetSP() + 2 );
+	if (m_RPLYrq) return;
 	if(GetPC() < 0160000)
-		SetPSW((new_psw & 0377)|m_psw);  // Preserve HALT mode
+		SetLPSW(LOBYTE(word)); 
 	else
-		SetPSW(new_psw&0777); //load new mode
-
-    SetSP( GetSP() + 2 );
+		SetPSW(word); //load new mode
 	m_internalTick=RTI_TIMING;
 }
 
 void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
 {
-	WORD new_psw;
-    SetPC( GetWord( GetSP() ) );  // Pop PC
+	WORD word;
+    word = GetWord(GetSP());
     SetSP( GetSP() + 2 );
-    
-	m_psw &= PSW_HALT;  // Store HALT
-    new_psw = GetWord ( GetSP() );  // Pop PSW --- saving HALT
-	if (GetPC() < 0160000)
-		SetPSW((new_psw & 0377) | m_psw);  // Preserve HALT mode
+	if (m_RPLYrq) return;
+	SetPC(word);  // Pop PC
+	word = GetWord ( GetSP() );  // Pop PSW --- saving HALT
+    SetSP( GetSP() + 2 );
+	if (m_RPLYrq) return;
+	if(GetPC() < 0160000)
+		SetLPSW(LOBYTE(word)); 
 	else
-		SetPSW(new_psw & 0777); // Load new mode
-    SetSP( GetSP() + 2 );
-	m_stepmode = (new_psw & PSW_T)?TRUE:FALSE;
+		SetPSW(word); //load new mode
+
+	m_stepmode = (word & PSW_T)?TRUE:FALSE;
 
 	m_internalTick = RTI_TIMING;
 }
@@ -1097,199 +1090,23 @@ void CProcessor::ExecuteRESET ()  // Reset input/output devices
 
 void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из процедуры
 {
+	WORD word;
 	SetPC(GetReg(m_regdest));
-	SetReg(m_regdest,GetWord(GetSP()));
+	word = GetWord(GetSP());
 	SetSP(GetSP()+2);
+	if (m_RPLYrq) return;
+	SetReg(m_regdest, word);
 	m_internalTick=RTS_TIMING;
 }
 
-void CProcessor::ExecuteNOP ()  // NOP - Нет операции
-{
-	m_internalTick=NOP_TIMING;
-}
-
-void CProcessor::ExecuteCLC ()  // CLC - Очистка C
-{
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLV ()
-{
-    SetV(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLVC ()
-{
-    SetV(FALSE);
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLZ ()
-{
-    SetZ(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLZC ()
-{
-    SetZ(FALSE);
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLZV ()
-{
-    SetZ(FALSE);
-    SetV(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLZVC ()
-{
-    SetZ(FALSE);
-    SetV(FALSE);
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLN ()
-{
-    SetN(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNC ()
-{
-    SetN(FALSE);
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNV ()
-{
-    SetN(FALSE);
-    SetV(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNVC ()
-{
-    SetN(FALSE);
-    SetV(FALSE);
-    SetZ(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNZ ()
-{
-    SetN(FALSE);
-    SetZ(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNZC ()
-{
-    SetN(FALSE);
-    SetZ(FALSE);
-    SetC(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteCLNZV ()
-{
-    SetN(FALSE);
-    SetZ(FALSE);
-    SetV(FALSE);
-	m_internalTick=NOP_TIMING;
-}
 void CProcessor::ExecuteCCC ()
 {
-    SetC(FALSE);
-    SetV(FALSE);
-    SetZ(FALSE);
-    SetN(FALSE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEC ()
-{
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEV ()
-{
-    SetV(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEVC ()
-{
-    SetV(TRUE);
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEZ ()
-{
-    SetZ(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEZC ()
-{
-    SetZ(TRUE);
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEZV ()
-{
-    SetZ(TRUE);
-    SetV(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEZVC ()
-{
-    SetZ(TRUE);
-    SetV(TRUE);
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSEN ()
-{
-    SetN(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENC ()
-{
-    SetN(TRUE);
-    SetZ(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENV ()
-{
-    SetN(TRUE);
-    SetV(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENVC ()
-{
-    SetN(TRUE);
-    SetV(TRUE);
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENZ ()
-{
-    SetN(TRUE);
-    SetZ(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENZC ()
-{
-    SetN(TRUE);
-    SetZ(TRUE);
-    SetC(TRUE);
-	m_internalTick=NOP_TIMING;
-}
-void CProcessor::ExecuteSENZV ()
-{
-    SetN(TRUE);
-    SetZ(TRUE);
-    SetV(TRUE);
+	SetLPSW(GetLPSW() &  ~(LOBYTE(m_instruction) & 017));
 	m_internalTick=NOP_TIMING;
 }
 void CProcessor::ExecuteSCC ()
 {
-    SetC(TRUE);
-    SetV(TRUE);
-    SetZ(TRUE);
-    SetN(TRUE);
+	SetLPSW(GetLPSW() |  (LOBYTE(m_instruction) & 017));
 	m_internalTick=NOP_TIMING;
 }
 
@@ -1297,12 +1114,15 @@ void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 {
     if (m_methdest == 0)  // Неправильный метод адресации
     {
-        m_RPLYrq = TRUE;
+        m_ILLGrq = TRUE;
 		m_internalTick = EMT_TIMING;
     }
     else 
 	{
-        SetPC(GetWordAddr(m_methdest,m_regdest));
+		WORD word;
+		word = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		SetPC(word);
 		m_internalTick=JMP_TIMING[m_methdest-1];
     }
 }
@@ -1311,8 +1131,18 @@ void CProcessor::ExecuteSWAB ()
 {
 	WORD ea;
 	WORD dst;
+	BYTE new_psw = GetLPSW() & 0xF0;
 
-	dst=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+	if (m_methdest)
+	{	
+		ea = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		dst=GetWord(ea);
+		if (m_RPLYrq) return;
+	}
+	else
+		dst = GetReg(m_regdest);
+	
 	dst=((dst>>8)&0377) | (dst<<8);
 
 	if(m_methdest)
@@ -1320,41 +1150,45 @@ void CProcessor::ExecuteSWAB ()
 	else
 		SetReg(m_regdest,dst);
 	
-	SetN((dst&0200)!=0);
-	SetZ(!(dst&0377));
-	SetV(0);
-	SetC(0);
+	if (m_RPLYrq) return;
+	
+	if ((dst&0200)!=0) new_psw |= PSW_N;
+	if (LOBYTE(dst) == 0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 	m_internalTick=MOV_TIMING[m_methdest][m_methdest];
 }
 
 void CProcessor::ExecuteCLR ()  // CLR
 {
+	WORD dst_addr;
 	if(m_instruction&0100000)
 	{
-		SetN(0);
-		SetZ(1);
-		SetV(0);
-		SetC(0);
-
 		if(m_methdest)
-			SetByte(GetByteAddr(m_methdest,m_regdest),0);
+		{
+			dst_addr = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			SetByte(dst_addr, 0);
+			if (m_RPLYrq) return;
+		}
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400));
+			SetLReg(m_regdest, 0);
 		
+		SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
-		SetN(0);
-		SetZ(1);
-		SetV(0);
-		SetC(0);
-
 		if(m_methdest)
-			SetWord(GetWordAddr(m_methdest,m_regdest),0);
+		{
+			dst_addr = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			SetWord(dst_addr, 0);
+			if (m_RPLYrq) return;
+		}
 		else
 			SetReg(m_regdest,0);
 
+		SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1362,24 +1196,33 @@ void CProcessor::ExecuteCLR ()  // CLR
 void CProcessor::ExecuteCOM ()  // COM
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst= m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
-		dst = dst ^ 0377;
-
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(0);
-		SetC(1);
+		dst = ~dst;
 
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
-
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
+		
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 		
 	}
@@ -1387,17 +1230,28 @@ void CProcessor::ExecuteCOM ()  // COM
 	{
 		WORD dst;
 
-		dst= m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst = dst ^ 0177777;
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(0);
-		SetC(1);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
+
+		dst = ~dst;
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1405,42 +1259,61 @@ void CProcessor::ExecuteCOM ()  // COM
 void CProcessor::ExecuteINC ()  // INC - Инкремент
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF1;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
 		dst =dst + 1;
 		
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(dst == 0200);
-
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 0200) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
-	
 	}
 	else
 	{
 		WORD dst;
 
-		dst= m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
 
 		dst = dst + 1;
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(dst == 0100000);
 
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 0100000) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1448,41 +1321,61 @@ void CProcessor::ExecuteINC ()  // INC - Инкремент
 void CProcessor::ExecuteDEC ()  // DEC - Декремент
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF1;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
 		dst =dst - 1;
 		
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(dst == 0177);
-
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 0177) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
-	
 	}
 	else
 	{
 		WORD dst;
 
-		dst= m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
 
 		dst = dst - 1;
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(dst == 077777);
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 077777) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1490,46 +1383,63 @@ void CProcessor::ExecuteDEC ()  // DEC - Декремент
 void CProcessor::ExecuteNEG ()
 {
 	WORD ea;
-
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
+
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
+
+		dst = 0 - dst ;
 		
-		dst=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-
-		dst= 0-dst;
-
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(dst==0200);
-		SetC(!GetZ());
-
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 0200) new_psw |= PSW_V;
+		if (dst != 0) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
-
 	}
 	else
 	{
 		WORD dst;
-		
-		dst=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
 
-		dst= 0-dst;
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
 
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(dst==0100000);
-		SetC(!GetZ());
+		dst = 0 - dst;
 
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (dst == 0100000) new_psw |= PSW_V;
+		if (dst != 0) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1537,44 +1447,63 @@ void CProcessor::ExecuteNEG ()
 void CProcessor::ExecuteADC ()  // ADC{B}
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst=dst+(GetC()?1:0);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
+		dst = dst + (GetC()?1:0);
+		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
-
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(GetC() && (dst==0200));
-		SetC(GetC() && GetZ());
-
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if ((dst == 0200) && GetC()) new_psw |= PSW_V;
+		if ((dst == 0) && GetC()) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
 		WORD dst;
 
-		dst=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst=dst+(GetC()?1:0);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
+
+		dst = dst + (GetC()?1:0);
 
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
-
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(GetC() && (dst==0100000));
-		SetC(GetC() && GetZ());
-
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if ((dst == 0100000) && GetC()) new_psw |= PSW_V;
+		if ((dst == 0) && GetC()) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1582,69 +1511,107 @@ void CProcessor::ExecuteADC ()  // ADC{B}
 void CProcessor::ExecuteSBC ()  // SBC{B}
 {
 	WORD ea;
-
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
-		dst=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
 
-		dst=dst-(GetC()?1:0);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(GetC() && (dst==0177));
-		SetC(GetC() && (dst==0377));
-	
+		dst = dst - (GetC()?1:0);
+		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if ((dst == 0177) && GetC()) new_psw |= PSW_V;
+		if ((dst == 0377) && GetC()) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
 		WORD dst;
-		dst=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
 
-		dst=dst-(GetC()?1:0);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
 
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(GetC() && (dst==077777));
-		SetC(GetC() && (dst==0177777));
-	
+		dst = dst - (GetC()?1:0);
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
+
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if ((dst == 077777) && GetC()) new_psw |= PSW_V;
+		if ((dst == 0177777) && GetC()) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
 
 void CProcessor::ExecuteTST ()  // TST{B} - test
 {
+	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst=m_methdest?GetByte(GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(0);
-		SetC(0);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetLReg(m_regdest);
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=TST_TIMING[m_methdest];
 	}
 	else
 	{
 		WORD dst;
 
-		dst=m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(0);
-		SetC(0);	
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			dst= GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst= GetReg(m_regdest);
+
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=TST_TIMING[m_methdest];
 	}
 }
@@ -1652,47 +1619,63 @@ void CProcessor::ExecuteTST ()  // TST{B} - test
 void CProcessor::ExecuteROR ()  // ROR{B}
 {
 	WORD ea;
-
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
-		BYTE src;
-		BYTE dst;
+		BYTE src, dst;
 
-		src=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regdest);
 
-		dst=(src>>1)|(GetC()?0200:0);
-		
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetC(src&1);
-		SetV(GetN()!=GetC());
+		dst = (src>>1)|(GetC()?0200:0);
 		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 1) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
-		WORD src;
-		WORD dst;
+		WORD src, dst;
 
-		src=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetReg(m_regdest);
 
-		dst=(src>>1)|(GetC()?0100000:0);
-		
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetC(src&1);
-		SetV(GetN()!=GetC());
-		
+		dst = (src>>1)|(GetC()?0100000:0);
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 1) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1700,47 +1683,63 @@ void CProcessor::ExecuteROR ()  // ROR{B}
 void CProcessor::ExecuteROL ()  // ROL{B}
 {
 	WORD ea;
-
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
-		BYTE src;
-		BYTE dst;
+		BYTE src, dst;
 
-		src=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regdest);
 
-		dst=(src<<1)|(GetC()?1:0);
-		
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetC(src>>7);
-		SetV(GetN()!=GetC());
+		dst = (src<<1)|(GetC()?1:0);
 		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 0200) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
-		WORD src;
-		WORD dst;
+		WORD src, dst;
 
-		src=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetReg(m_regdest);
 
-		dst=(src<<1)|(GetC()?1:0);
-		
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetC(src>>15);
-		SetV(GetN()!=GetC());
-		
+		dst = (src<<1)|(GetC()?1:0);
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 0100000) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
@@ -1748,139 +1747,194 @@ void CProcessor::ExecuteROL ()  // ROL{B}
 void CProcessor::ExecuteASR ()  // ASR{B}
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
-		BYTE src;
-		BYTE dst;
+		BYTE src, dst;
 
-		src =m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst = (src >> 1) | (src & 0200);
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetC(src & 1);
-		SetV(GetN() != GetC());
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regdest);
+
+		dst = (src>>1)|(src & 0200);
 		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
-
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 1) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
-
 	}
 	else
 	{
-		WORD src;
-		WORD dst;
+		WORD src, dst;
 
-		src =m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst = (src >> 1) | (src & 0100000);
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetC(src & 1);
-		SetV(GetN() != GetC());
-		
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetReg(m_regdest);
+
+		dst = (src>>1)|(src & 0100000);
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 1) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
-	
 	}
 }
 
 void CProcessor::ExecuteASL ()  // ASL{B}
 {
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF0;
 	if(m_instruction&0100000)
 	{
-		BYTE src;
-		BYTE dst;
+		BYTE src, dst;
 
-		src = m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst = (src << 1) & 0377;
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetC(src>>7);
-		SetV(GetN()!=GetC());
+		if (m_methdest)
+		{
+			ea = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetByte(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regdest);
+
+		dst = src<<1;
 		
 		if(m_methdest)
 			SetByte(ea,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)& 0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 0200) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 	else
 	{
-		WORD src;
-		WORD dst;
-		src = m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-		dst = src << 1;
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetC(src>>15);
-		SetV(GetN()!=GetC());
-		
+		WORD src, dst;
+
+		if (m_methdest)
+		{
+			ea = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src = GetWord(ea);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetReg(m_regdest);
+
+		dst = src<<1;
+
 		if(m_methdest)
 			SetWord(ea,dst);
 		else
-			SetReg(m_regdest,dst);	
+			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (src & 0100000) new_psw |= PSW_C;
+		if (((new_psw & PSW_N)!=0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+		SetLPSW(new_psw);
 		m_internalTick=CLR_TIMING[m_methdest];
 	}
 }
 
 void CProcessor::ExecuteSXT ()  // SXT - sign-extend
 {
+	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF9;
 	if(m_methdest)
-		SetWord(GetWordAddr(m_methdest,m_regdest),GetN()?0177777:0);
+	{
+		ea = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		SetWord(ea,GetN()?0177777:0);
+		if (m_RPLYrq) return;
+	}
 	else
 		SetReg(m_regdest,GetN()?0177777:0); //sign extend	
 
-	SetZ(!GetN());
-	SetV(0);
-
+	if (!GetN()) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 	m_internalTick=CLR_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
 {
+	WORD ea;
 	BYTE dst;
 
-	dst=m_methdest?GetByte(GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-	
-	if(GetPSW()&0400)//in halt?
-	{ //allow everything
-		SetPSW(GetPSW()&0400|dst);
+	if(m_methdest)
+	{
+		ea = GetByteAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		dst = GetByte(ea);
+		if (m_RPLYrq) return;
 	}
 	else
-	{
-		SetPSW((GetPSW()&0420)|(dst&0357));//preserve T			
-	}
-
+		dst = GetLReg(m_regdest);
+	
+	SetLPSW((GetLPSW() & 0x10) | (dst & 0xEF));
 	m_internalTick=MTPS_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
 {
-    BYTE psw = GetPSW() & 0377;
-	if (m_methdest)
-		SetByte(GetByteAddr(m_methdest, m_regdest), psw);
-	else
-		SetReg(m_regdest, (char)psw); //sign extend
-    SetN(psw & 0200);
-    SetZ(psw == 0);
-    SetV(0);
+    WORD ea;
+	BYTE psw = GetLPSW();
+	BYTE new_psw = psw & 0xF1;
 
+	if (m_methdest)
+	{
+		ea = GetByteAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		SetByte(ea, psw);
+		if (m_RPLYrq) return;
+	}
+	else
+		SetReg(m_regdest, (WORD)(signed short)(char)psw); //sign extend
+    
+	if (psw & 0200) new_psw |= PSW_N;
+	if (psw == 0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 	m_internalTick=CLR_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteBR ()
 {
-    SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+    SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	m_internalTick=BR_TIMING;
 }
 
@@ -1889,7 +1943,7 @@ void CProcessor::ExecuteBNE ()
 	m_internalTick=BRANCH_FALSE_TIMING;
     if (! GetZ())
 	{
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 		m_internalTick=BRANCH_TRUE_TIMING;
 	}
 }
@@ -1900,7 +1954,7 @@ void CProcessor::ExecuteBEQ ()
     if (GetZ())
 	{
 		m_internalTick = BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1910,7 +1964,7 @@ void CProcessor::ExecuteBGE ()
     if (GetN() == GetV())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1920,7 +1974,7 @@ void CProcessor::ExecuteBLT ()
     if (GetN() != GetV())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1930,7 +1984,7 @@ void CProcessor::ExecuteBGT ()
     if (! ((GetN() != GetV()) || GetZ()))
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1940,7 +1994,7 @@ void CProcessor::ExecuteBLE ()
     if ((GetN() != GetV()) || GetZ())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1950,7 +2004,7 @@ void CProcessor::ExecuteBPL ()
     if (! GetN())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
 	}
 }
 
@@ -1960,7 +2014,7 @@ void CProcessor::ExecuteBMI ()
     if (GetN())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -1970,7 +2024,7 @@ void CProcessor::ExecuteBHI ()
     if (! (GetZ() || GetC()))
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -1980,7 +2034,7 @@ void CProcessor::ExecuteBLOS ()
     if (GetZ() || GetC())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -1990,7 +2044,7 @@ void CProcessor::ExecuteBVC ()
     if (! GetV())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -2000,7 +2054,7 @@ void CProcessor::ExecuteBVS ()
     if (GetV())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -2010,7 +2064,7 @@ void CProcessor::ExecuteBHIS ()
     if (! GetC())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -2020,7 +2074,7 @@ void CProcessor::ExecuteBLO ()
     if (GetC())
 	{
 		m_internalTick=BRANCH_TRUE_TIMING;
-        SetReg(7, GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
 	}
 }
 
@@ -2028,55 +2082,67 @@ void CProcessor::ExecuteXOR ()  // XOR
 {
 	WORD dst;
 	WORD ea;
+	BYTE new_psw = GetLPSW() & 0xF1;
 
-	dst=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
-	dst=dst^GetReg(m_regsrc);
+	if (m_methdest)
+	{
+		ea = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		dst = GetWord(ea);
+		if (m_RPLYrq) return;
+	}
+	else
+		dst=GetReg(m_regdest);
 	
-	SetN(dst>>15);
-	SetZ(!dst);
-	SetV(0);
-
+	dst = dst ^ GetReg(m_regsrc);
+	
 	if(m_methdest)
 		SetWord(ea,dst);
 	else
 		SetReg(m_regdest,dst);
-	
+	if (m_RPLYrq) return;
+
+	if (dst & 0100000) new_psw |= PSW_N;
+	if (dst == 0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 	m_internalTick=XOR_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteMUL ()  // MUL
 {
     WORD dst = GetReg(m_regsrc);
-	WORD src = m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+	WORD src, ea;
 	int res;
-	
-	//if(dst>>15)
-	//	dst|=~077777; 
-	//if(src>>15)
-	//	src|=~077777;	
+	BYTE new_psw = GetLPSW() & 0xF0;
+
+	if (m_methdest) ea = GetWordAddr(m_methdest,m_regdest);
+	if (m_RPLYrq) return;
+	src = m_methdest?GetWord(ea):GetReg(m_regdest);
+	if (m_RPLYrq) return;
 	
 	res=(signed short)dst*(signed short)src;
     
-    //SetReg(m_regsrc,(res>>16));
-	//SetReg(m_regsrc|1,res&0177777);
     SetReg(m_regsrc,HIWORD(res));
 	SetReg(m_regsrc|1,LOWORD(res));
 
-    SetN( res<0 );
-    SetZ( !res );
-    SetV( FALSE );
-	SetC( (res > 32767) || (res < -32768) );
-
+	if (res<0) new_psw |= PSW_N;
+	if (res==0) new_psw |= PSW_Z;
+	if ((res > 32767) || (res < -32768)) new_psw |= PSW_C;
+	SetLPSW(new_psw);
 	m_internalTick=MUL_TIMING[m_methdest];
 }
 void CProcessor::ExecuteDIV ()  // DIV
 {
 	//время надо считать тут
-
+	WORD ea;
     int longsrc;
-	int res,res1;
+	int res,res1,src2;
+	BYTE new_psw = GetLPSW() & 0xF0;
 
-	int src2=(int)(signed short)(m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest));
+	if (m_methdest) ea = GetWordAddr(m_methdest,m_regdest);
+	if (m_RPLYrq) return;
+	src2=(int)(signed short)(m_methdest?GetWord(ea):GetReg(m_regdest));
+	if (m_RPLYrq) return;
 
 	longsrc=(int)MAKELONG(GetReg(m_regsrc|1),GetReg(m_regsrc));
 
@@ -2084,177 +2150,118 @@ void CProcessor::ExecuteDIV ()  // DIV
 
     if(src2==0)
 	{
-		SetN(FALSE);
-		SetZ(FALSE);
-		SetV(TRUE);
-		SetC(TRUE); //если делят на 0 -- то устанавливаем V и C
+		new_psw |= (PSW_V | PSW_C); //если делят на 0 -- то устанавливаем V и C
+		SetLPSW(new_psw);
 		return; 
 	}	
 	if ((longsrc == 020000000000) && (src2 == -1))
 	{
-		SetN(FALSE);
-		SetZ(FALSE);
-		SetV(TRUE);
-		SetC(FALSE); // переполняемся, товарищи
+		new_psw |= PSW_V; // переполняемся, товарищи
+		SetLPSW(new_psw);
 		return;
 	}
-    
-//	if(src2>>15)
-//		src2|=~077777;
-//	if(GetReg(m_regsrc)>>15)
-//		longsrc|=~017777777777;
 
 	res=longsrc/src2;
 	res1=longsrc%src2;
 
 	if ((res > 32767) || (res < -32768)) 
 	{
-		SetN(FALSE);
-		SetZ(FALSE);
-		SetV(TRUE);
-		SetC(FALSE); // переполняемся, товарищи
+		new_psw |= PSW_V; // переполняемся, товарищи
+		SetLPSW(new_psw);
 		return;
 	}
-
 
 	SetReg(m_regsrc|1,res1&0177777);
     SetReg(m_regsrc,res&0177777);
 
-    SetN( res<0 );
-    SetZ( res==0 );
-    SetV( FALSE );
-	SetC( FALSE );
+	if (res<0) new_psw |= PSW_N;
+	if (res==0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 }
 void CProcessor::ExecuteASH ()  // ASH
 {
-		short src;
-		short dst;
+	WORD ea;
+	short src;
+	short dst;
+	BYTE new_psw = GetLPSW() & 0xF0;
 
-		m_internalTick=ASH_TIMING[m_methdest];
+	if (m_methdest) ea = GetWordAddr(m_methdest,m_regdest);
+	if (m_RPLYrq) return;
+	src = (short)(m_methdest?GetWord(ea):GetReg(m_regdest));
+	if (m_RPLYrq) return;
+	src |= (src & 040)?0177700:0;
+	dst = (short)GetReg(m_regsrc);
 
-		src = (short)(m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest));
-		src |= (src & 040)?0177700:0;
-		dst = (short)GetReg(m_regsrc);
-		SetC(FALSE);
-		SetV(FALSE);
-		if (src >= 0)
-		{
-		 while (src--)
-		 {
-		  SetC(dst & 0100000);
-		  dst <<= 1;
-		  if ((dst<0)^(GetC())) SetV(TRUE);
-		  m_internalTick+=ASH_S_TIMING;
-		 }
-		}
-		else
-		{
-		 while (src++)
-		 {
-		  SetC(dst & 1);
-		  dst >>= 1;
-		  m_internalTick+=ASH_S_TIMING;
-		 }
-		}
+	m_internalTick=ASH_TIMING[m_methdest];
 
-//		if (src2 == 0) 
-//		{			/* [0] */
-//			dst = src;
-//			SetV(0);
-//			SetC(0);  
-//		}
-//		else if (src2 <= 15) 
-//		{			/* [1,15] */
-//
-//			m_internalTick+=ASH_S_TIMING*src2;
-//			dst = src << src2;
-//			i = (src >> (16 - src2)) & 0177777;
-//			SetV(i != ((dst & 0100000)? 0177777: 0));
-//			SetC(i & 1);  
-//		}
-//		else if (src2 <= 31) 
-//		{			/* [16,31] */
-//			dst = 0;
-//			SetV(src != 0);
-//			SetC((src << (src2 - 16)) & 1);  
-//		}
-//		else 
-//		{					/* [-32,-1] */
-//
-//			m_internalTick+=ASH_S_TIMING*(64 - src2);
-//			dst = (src >> (64 - src2)) | (-sign << (src2 - 32));
-//			SetV(0);
-//			SetC((src >> (63 - src2)) & 1);  
-//		}
+	if (src >= 0)
+	{
+	 while (src--)
+	 {
+	  if (dst & 0100000) new_psw |= PSW_C; else new_psw &= ~PSW_C;
+	  dst <<= 1;
+	  if ((dst<0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+	  m_internalTick+=ASH_S_TIMING;
+	 }
+	}
+	else
+	{
+	 while (src++)
+	 {
+	  if (dst & 1) new_psw |= PSW_C; else new_psw &= ~PSW_C;
+	  dst >>= 1;
+	  m_internalTick+=ASH_S_TIMING;
+	 }
+	}
+	
+	SetReg(m_regsrc,dst);
 		
-		SetReg(m_regsrc,dst);
-		//dst&=0177777;
-		
-		SetN(dst<0);
-		SetZ(dst==0);
-
+	if (dst<0) new_psw |= PSW_N;
+	if (dst==0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 }
 void CProcessor::ExecuteASHC ()  // ASHC
 {
-		short src;
-		long dst;
+	WORD ea;
+	short src;
+	long dst;
+	BYTE new_psw = GetLPSW() & 0xF0;
 
-		m_internalTick=ASHC_TIMING[m_methdest];
-
-		src = (short)(m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest));
-		src |= (src & 040)?0177700:0;
-		dst = MAKELONG(GetReg(m_regsrc|1),GetReg(m_regsrc));
-
-		SetC(FALSE);
-		SetV(FALSE);
-		if (src >= 0)
-		{
-		 while (src--)
-		 {
-		  SetC(dst & 0x80000000L);
-		  dst <<= 1;
-		  if ((dst<0)^(GetC())) SetV(TRUE);
-		  m_internalTick+=ASHC_S_TIMING;
-		 }
-		}
-		else
-		{
-		 while (src++)
-		 {
-		  SetC(dst & 1);
-		  dst >>= 1;
-		  m_internalTick+=ASHC_S_TIMING;
-		 }
-		}
-
-//		if (src2 == 0) 
-//		{ 			/* [0] */
-//			dst = src;
-//			SetV(0); 
-//			SetC(0);  
-//		}
-//		else if (src2 <= 31) 
-//		{			/* [1,31] */
-//			dst = src << src2;
-//			m_internalTick+=ASHC_S_TIMING*src2;
-//			i = (src >> (32 - src2)) | (-sign << src2);
-//			SetV(i != ((dst & 020000000000)? -1: 0));
-//			SetC(i & 1);  
-//		}
-//		else 
-//		{					/* [-32,-1] */
-//			m_internalTick+=ASHC_S_TIMING*(64 - src2);
-//			dst = (src >> (64 - src2)) | (-sign << (src2 - 32));
-//			SetV(0);
-//			SetC((src >> (63 - src2)) & 1);  
-//		}
+	if (m_methdest) ea = GetWordAddr(m_methdest,m_regdest);
+	if (m_RPLYrq) return;
+	src = (short)(m_methdest?GetWord(ea):GetReg(m_regdest));
+	if (m_RPLYrq) return;
+	src |= (src & 040)?0177700:0;
+	dst = MAKELONG(GetReg(m_regsrc|1),GetReg(m_regsrc));
+	m_internalTick=ASHC_TIMING[m_methdest];
+	if (src >= 0)
+	{
+	 while (src--)
+	 {
+	  if (dst & 0x80000000L) new_psw |= PSW_C; else new_psw &= ~PSW_C;
+	  dst <<= 1;
+	  if ((dst<0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
+	  m_internalTick+=ASHC_S_TIMING;
+	 }
+	}
+	else
+	{
+	 while (src++)
+	 {
+	  if (dst & 1) new_psw |= PSW_C; else new_psw &= ~PSW_C;
+	  dst >>= 1;
+	  m_internalTick+=ASHC_S_TIMING;
+	 }
+	}
 		
-		SetReg(m_regsrc,HIWORD(dst));
-		SetReg(m_regsrc|1,LOWORD(dst));
-
+	SetReg(m_regsrc,HIWORD(dst));
+	SetReg(m_regsrc|1,LOWORD(dst));
 		
-		SetN(dst<0);
-		SetZ(dst==0);
+	SetN(dst<0);
+	SetZ(dst==0);
+	if (dst<0) new_psw |= PSW_N;
+	if (dst==0) new_psw |= PSW_Z;
+	SetLPSW(new_psw);
 }
 
 void CProcessor::ExecuteSOB ()  // SOB - subtract one: R = R - 1 ; if R != 0 : PC = PC - 2*nn
@@ -2274,58 +2281,110 @@ void CProcessor::ExecuteSOB ()  // SOB - subtract one: R = R - 1 ; if R != 0 : P
 
 void CProcessor::ExecuteMOV ()
 {
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF1;
+
 	if(m_instruction&0100000)
 	{
 		BYTE dst;
 
-		dst=m_methsrc?GetByte(GetByteAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(0);
-
-		if(m_methdest)
-			SetByte(GetByteAddr(m_methdest,m_regdest),dst);
+		if (m_methsrc)
+		{
+			src_addr = GetByteAddr(m_methsrc,m_regsrc);
+			if (m_RPLYrq) return;
+			dst = GetByte(src_addr);
+			if (m_RPLYrq) return;
+		}
 		else
-			SetReg(m_regdest,(dst&0200)?(0177400|dst):dst);
+			dst=GetLReg(m_regsrc);
 
+		if (m_methdest)
+		{
+			dst_addr = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			SetByte(dst_addr,dst);
+			if (m_RPLYrq) return;
+		}
+		else
+			SetReg(m_regdest,(WORD)(signed short)(char)dst);
+
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
 	}
 	else
 	{
 		WORD dst;
 
-		dst=m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
+		if (m_methsrc)
+		{
+			src_addr = GetWordAddr(m_methsrc,m_regsrc);
+			if (m_RPLYrq) return;
+			dst = GetWord(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			dst=GetReg(m_regsrc);
 
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(0);
-
-		if(m_methdest)
-			SetWord(GetWordAddr(m_methdest,m_regdest),dst);
+		if (m_methdest)
+		{
+			dst_addr = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			SetWord(dst_addr,dst);
+			if (m_RPLYrq) return;
+		}
 		else
 			SetReg(m_regdest,dst);
+
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOV_TIMING[m_methsrc][m_methdest];
 	}
 }
 
 void CProcessor::ExecuteCMP ()
 {
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF0;
+
 	if(m_instruction&0100000)
 	{
 		BYTE src;
 		BYTE src2;
 		BYTE dst;
 
-		src = m_methsrc?GetByte(GetByteAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2 = m_methdest?GetByte(GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetByteAddr(m_methsrc,m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetByte(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetByte(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetLReg(m_regdest);
 		
 		dst = src - src2;
-        SetN( CheckForNegative((BYTE)(src - src2)) );
-        SetZ( CheckForZero((BYTE)(src - src2)) );
-        SetV( CheckSubForOverflow (src, src2) );
-        SetC( CheckSubForCarry (src, src2) );
-
+        //SetN( CheckForNegative((BYTE)(src - src2)) );
+        //SetZ( CheckForZero((BYTE)(src - src2)) );
+        //SetV( CheckSubForOverflow (src, src2) );
+        //SetC( CheckSubForCarry (src, src2) );
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (((src ^ src2) & ~(dst ^ src2)) & 0200) new_psw |= PSW_V;
+		if (((~src & src2) | (~(src ^ src2) & dst)) & 0200) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
 	}
 	else
@@ -2334,37 +2393,77 @@ void CProcessor::ExecuteCMP ()
 		WORD src2;
 		WORD dst;
 
-		src = m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2 = m_methdest?GetWord(GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetWordAddr(m_methsrc,m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetWord(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetWordAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetWord(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetReg(m_regdest);
 		
 		dst = src - src2;
 		
-        SetN( CheckForNegative ((WORD)(src - src2)) );
-        SetZ( CheckForZero ((WORD)(src - src2)) );
-        SetV( CheckSubForOverflow (src, src2) );
-        SetC( CheckSubForCarry (src, src2) );
+        //SetN( CheckForNegative ((WORD)(src - src2)) );
+        //SetZ( CheckForZero ((WORD)(src - src2)) );
+        //SetV( CheckSubForOverflow (src, src2) );
+        //SetC( CheckSubForCarry (src, src2) );
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		if (((src ^ src2) & ~(dst ^ src2)) & 0100000) new_psw |= PSW_V;
+		if (((~src & src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
+		SetLPSW(new_psw);
 		m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
-	
 	}
 }
 
 void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 {
-	WORD ea;
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF1;
+
 	if(m_instruction&0100000)
 	{
 		BYTE src;
 		BYTE src2;
 		BYTE dst;
 		
-		src = m_methsrc ? GetByte(GetByteAddr(m_methsrc, m_regsrc)) : GetReg(m_regsrc);
-		src2 = m_methdest ? GetByte(ea = GetByteAddr(m_methdest, m_regdest)) : GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetByteAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetByte(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetByteAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetByte(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetLReg(m_regdest);
 
 		dst = src2 & src;
 
-		SetN(dst >> 7);
-		SetZ(!dst);
-		SetV(0);
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 	}
 	else
@@ -2373,40 +2472,78 @@ void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 		WORD src2;
 		WORD dst;
 		
-		src  = m_methsrc  ? GetWord(GetWordAddr(m_methsrc, m_regsrc)) : GetReg(m_regsrc);
-		src2 = m_methdest ? GetWord(ea = GetWordAddr(m_methdest, m_regdest)) : GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetWordAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetWord(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src  = GetReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetWordAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetWord(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetReg(m_regdest);
 
 		dst = src2 & src;
 
-		SetN(dst >> 15);
-		SetZ(!dst);
-		SetV(0);
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 	}
 }
 
 void CProcessor::ExecuteBIC ()  // BIC{B} - bit clear
 {
-	WORD ea;
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF1;
+
 	if(m_instruction&0100000)
 	{
 		BYTE src;
 		BYTE src2;
 		BYTE dst;
 		
-		src=m_methsrc?GetByte(GetByteAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetByteAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetByte(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetByteAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetByte(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetLReg(m_regdest);
 
 		dst=src2 & (~src);
 
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(0);
 
 		if(m_methdest)
-			SetByte(ea,dst);
+			SetByte(dst_addr,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
+
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
 	}
 	else
@@ -2415,46 +2552,84 @@ void CProcessor::ExecuteBIC ()  // BIC{B} - bit clear
 		WORD src2;
 		WORD dst;
 		
-		src=m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetWordAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetWord(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src  = GetReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetWordAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetWord(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetReg(m_regdest);
 
 		dst=src2 & (~src);
 
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(0);
-
 		if(m_methdest)
-			SetWord(ea,dst);
+			SetWord(dst_addr,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
+
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOV_TIMING[m_methsrc][m_methdest];
 	}
 }
 
 void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
 {
-	WORD ea;
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF1;
+
 	if(m_instruction&0100000)
 	{
 		BYTE src;
 		BYTE src2;
 		BYTE dst;
 		
-		src=m_methsrc?GetByte(GetByteAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetByte(ea=GetByteAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetByteAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetByte(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src = GetLReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetByteAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetByte(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetLReg(m_regdest);
 
 		dst=src2 | src;
 
-		SetN(dst>>7);
-		SetZ(!dst);
-		SetV(0);
 
 		if(m_methdest)
-			SetByte(ea,dst);
+			SetByte(dst_addr,dst);
 		else
-			SetReg(m_regdest,(GetReg(m_regdest)&0177400)|dst);
+			SetLReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0200) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
 	}
 	else
@@ -2463,75 +2638,122 @@ void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
 		WORD src2;
 		WORD dst;
 		
-		src=m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-		src2=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+		if (m_methsrc)
+		{
+			src_addr = GetWordAddr(m_methsrc, m_regsrc);
+			if (m_RPLYrq) return;
+			src = GetWord(src_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src  = GetReg(m_regsrc);
+
+		if (m_methdest)
+		{
+			dst_addr = GetWordAddr(m_methdest, m_regdest);
+			if (m_RPLYrq) return;
+			src2 = GetWord(dst_addr);
+			if (m_RPLYrq) return;
+		}
+		else
+			src2 = GetReg(m_regdest);
 
 		dst=src2 | src;
 
-		SetN(dst>>15);
-		SetZ(!dst);
-		SetV(0);
-
 		if(m_methdest)
-			SetWord(ea,dst);
+			SetWord(dst_addr,dst);
 		else
 			SetReg(m_regdest,dst);
+		if (m_RPLYrq) return;
 
+		if (dst & 0100000) new_psw |= PSW_N;
+		if (dst == 0) new_psw |= PSW_Z;
+		SetLPSW(new_psw);
 		m_internalTick=MOV_TIMING[m_methsrc][m_methdest];
 	}
 }
 
 void CProcessor::ExecuteADD ()  // ADD
 {
-	WORD src;
-	WORD src2;
-	signed short dst;
-	signed long dst2;
-	WORD ea;
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF0;
+	WORD src, src2, dst;
 	
-	src=m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-	src2=m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+	if (m_methsrc)
+	{
+		src_addr = GetWordAddr(m_methsrc,m_regsrc);
+		if (m_RPLYrq) return;
+		src = GetWord(src_addr);
+		if (m_RPLYrq) return;
+	}
+	else
+	 src = GetReg(m_regsrc);
 
-    SetN(CheckForNegative ((WORD)(src2 + src)));
-    SetZ(CheckForZero ((WORD)(src2 + src)));
-    SetV(CheckAddForOverflow (src2, src));
-    SetC(CheckAddForCarry (src2, src));
+	if (m_methdest)
+	{
+		dst_addr = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		src2 = GetWord(dst_addr);
+		if (m_RPLYrq) return;
+	}
+	else
+		src2 = GetReg(m_regdest);
 
-
-	dst=src2+src;
-	dst2=(short)src2+(short)src;
-
+	dst = src2 + src;
 
 	if(m_methdest)
-		SetWord(ea,dst);
+		SetWord(dst_addr, dst);
 	else
-		SetReg(m_regdest,dst);
+		SetReg(m_regdest, dst);
+	if (m_RPLYrq) return;
 
+	if (dst & 0100000) new_psw |= PSW_N;
+	if (dst == 0) new_psw |= PSW_Z;
+	if ((~(src ^ src2) & (dst ^ src2)) & 0100000) new_psw |= PSW_V;
+	if (((src & src2) | ((src ^ src2) & ~dst)) & 0100000) new_psw |= PSW_C;
+	SetLPSW(new_psw);
 	m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteSUB ()
 {
-	WORD src;
-	WORD src2;
-	WORD dst;
-	WORD ea;
+	WORD src_addr, dst_addr;
+	BYTE new_psw = GetLPSW() & 0xF0;
+	WORD src, src2, dst;
 	
-	src = m_methsrc?GetWord(GetWordAddr(m_methsrc,m_regsrc)):GetReg(m_regsrc);
-	src2 = m_methdest?GetWord(ea=GetWordAddr(m_methdest,m_regdest)):GetReg(m_regdest);
+	if (m_methsrc)
+	{
+		src_addr = GetWordAddr(m_methsrc,m_regsrc);
+		if (m_RPLYrq) return;
+		src = GetWord(src_addr);
+		if (m_RPLYrq) return;
+	}
+	else
+	 src = GetReg(m_regsrc);
 
-	SetN(CheckForNegative ((WORD)(src2 - src)));
-    SetZ(CheckForZero ((WORD)(src2 - src)));
-    SetV(CheckSubForOverflow (src2, src));
-    SetC(CheckSubForCarry (src2, src));
+	if (m_methdest)
+	{
+		dst_addr = GetWordAddr(m_methdest,m_regdest);
+		if (m_RPLYrq) return;
+		src2 = GetWord(dst_addr);
+		if (m_RPLYrq) return;
+	}
+	else
+		src2 = GetReg(m_regdest);
 
 	dst = src2 - src;
 
 	if(m_methdest)
-		SetWord(ea,dst);
+		SetWord(dst_addr, dst);
 	else
-		SetReg(m_regdest,dst);
+		SetReg(m_regdest, dst);
+	if (m_RPLYrq) return;
 
+	if (dst & 0100000) new_psw |= PSW_N;
+	if (dst == 0) new_psw |= PSW_Z;
+	if (((src ^ src2) & ~(dst ^ src)) & 0100000) new_psw |= PSW_V;
+	if (((src & ~src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
+	SetLPSW(new_psw);
 	m_internalTick=MOVB_TIMING[m_methsrc][m_methdest];
 }
 
@@ -2549,25 +2771,22 @@ void CProcessor::ExecuteTRAP ()
 
 void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC = &d (a-mode > 0)
 {
-	//int meth = GetDigit(m_instruction, DST + 1);
     if (m_methdest == 0) 
 	{  // Неправильный метод адресации
-        m_RPLYrq = TRUE;
+        m_ILLGrq = TRUE;
 		m_internalTick=EMT_TIMING;
     }
     else 
 	{
         WORD dst;
-		//WORD pc = GetDstWordArgAsBranch();
 		dst= GetWordAddr(m_methdest,m_regdest);
-	    
+		if (m_RPLYrq) return;
+
 	    SetSP( GetSP() - 2 );
-		
 		SetWord( GetSP(), GetReg(m_regsrc) );
-
         SetReg(m_regsrc, GetPC());
-
         SetPC(dst);
+		if (m_RPLYrq) return;
 
 		m_internalTick=JSR_TIMING[m_methdest-1];
     }
@@ -2579,6 +2798,7 @@ void CProcessor::ExecuteMARK ()  // MARK
     SetPC( GetReg(5) );
     SetReg(5, GetWord( GetSP() ));
     SetSP( GetSP() + 2 );
+	if (m_RPLYrq) return;
 
     m_internalTick = MARK_TIMING;
 }
@@ -2639,7 +2859,7 @@ WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
 			addr=GetReg(reg);
 			SetReg(reg,addr+2);
 			addr=GetWord(addr);
-		break;
+			break;
 		case 4: //-(R)
 			SetReg(reg,GetReg(reg)-2);
 			addr=GetReg(reg);
@@ -2658,7 +2878,7 @@ WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
 			addr=GetWord(GetPC());
 			SetPC(GetPC()+2);
 			addr=GetReg(reg)+addr;
-			addr=GetWord(addr);
+			if (!m_RPLYrq) addr=GetWord(addr);
 			break;
 	}
 	return addr;
@@ -2666,7 +2886,7 @@ WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
 
 WORD CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 {
-	WORD addr,delta;
+	WORD addr;
 
 	addr=0;
 	switch(meth)
@@ -2675,9 +2895,8 @@ WORD CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 			addr=GetReg(reg);
 		break;
 		case 2:
-			delta=1+(reg>=6);
 			addr=GetReg(reg);
-			SetReg(reg,addr+delta);
+			SetReg(reg,addr+(reg<6?1:2));
 			break;
 		case 3:
 			addr=GetReg(reg);
@@ -2685,8 +2904,7 @@ WORD CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 			addr=GetWord(addr);
 			break;
 		case 4:
-			delta=1+(reg>=6);
-			SetReg(reg,GetReg(reg)-delta);
+			SetReg(reg,GetReg(reg)-(reg<6?1:2));
 			addr=GetReg(reg);
 			break;
 		case 5:
@@ -2703,7 +2921,7 @@ WORD CProcessor::GetByteAddr (BYTE meth, BYTE reg)
 			addr=GetWord(GetPC());
 			SetPC(GetPC()+2);
 			addr=GetReg(reg)+addr;
-			addr=GetWord(addr);
+			if (!m_RPLYrq) addr=GetWord(addr);
 			break;
 	}
 
