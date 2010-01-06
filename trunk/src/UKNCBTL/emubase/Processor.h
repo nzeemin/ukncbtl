@@ -40,9 +40,9 @@ protected:  // Processor state
     BOOL        m_okStopped;        // "Processor stopped" flag
     WORD        m_savepc;           // CPC register
     WORD        m_savepsw;          // CPSW register
-    BOOL        m_userspace;        // Read TRUE if user space is used -- CPU is accessing I/O from HALT mode using user space
     BOOL        m_stepmode;         // Read TRUE if it's step mode
-    BOOL        m_haltpin;			// HALT 
+	BOOL		m_buserror;			// Read TRUE if occured bus error for implementing double bus error if needed
+	BOOL        m_haltpin;			// HALT 
     BOOL        m_waitmode;			// WAIT
 
 protected:  // Current instruction processing
@@ -55,21 +55,22 @@ protected:  // Current instruction processing
     WORD        m_addrdest;         // Destination address
 protected:  // Interrupt processing
     BOOL        m_RPLYrq;           // Hangup interrupt pending
-    BOOL        m_RSVDrq;           // Reserved instruction interrupt pending
+	BOOL		m_ILLGrq;			// Illegal instruction interrupt pending
+	BOOL        m_RSVDrq;           // Reserved instruction interrupt pending
     BOOL        m_TBITrq;           // T-bit interrupt pending
 	BOOL		m_ACLOrq;           // Power down interrupt pending
     BOOL        m_HALTrq;           // HALT command or HALT signal
-    BOOL        m_RPL2rq;           // Double hangup interrupt pending
 	BOOL		m_EVNTrq;           // Timer event interrupt pending
     BOOL        m_FIS_rq;           // FIS command interrupt pending
     BOOL        m_BPT_rq;           // BPT command interrupt pending
     BOOL        m_IOT_rq;           // IOT command interrupt pending
     BOOL        m_EMT_rq;           // EMT command interrupt pending
     BOOL        m_TRAPrq;           // TRAP command interrupt pending
-    //BOOL        m_VIRQrq;           // VIRQ vector interrupt pending
-    //WORD        m_VIRQvector;       // VIRQ interrupt vector
-    int         m_virqrq;           // VIRQ pending
+    //int         m_virqrq;           // VIRQ pending
     WORD        m_virq[16];         // VIRQ vector
+	BOOL		m_ACLOreset;		// Power fail interrupt request reset
+	BOOL		m_EVNTreset;		// EVNT interrupt request reset;
+	int			m_VIRQreset;		// VIRQ request reset for given device
 protected:
     CMemoryController* m_pMemoryController;
 
@@ -79,15 +80,39 @@ public:
 public:  // Register control
     WORD        GetPSW() { return m_psw; }
     WORD        GetCPSW() { return m_savepsw; }
-    void        SetPSW(WORD word) { m_psw = word; }
+	BYTE		GetLPSW() {return LOBYTE(m_psw); }
+	void        SetPSW(WORD word)
+	{
+		m_psw = word & 0777;
+		if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
+	}
 	void		SetCPSW(WORD word) {m_savepsw = word; }
+	void		SetLPSW(BYTE byte)
+	{
+		m_psw = (m_psw & 0xFF00) | (WORD)byte;
+		if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
+	}
 	WORD        GetReg(int regno) { return m_R[regno]; }
-    void        SetReg(int regno, WORD word);
-    WORD        GetSP() const { return m_R[6]; }
+    void        SetReg(int regno, WORD word)
+	{
+		m_R[regno] = word;
+		if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = word;
+	}
+	BYTE		GetLReg(int regno) { return LOBYTE(m_R[regno]); }
+	void		SetLReg(int regno, BYTE byte)
+	{
+		m_R[regno] = (m_R[regno] & 0xFF00) | (WORD)byte;
+		if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = m_R[7];
+	}
+	WORD        GetSP() const { return m_R[6]; }
     void        SetSP(WORD word) { m_R[6] = word; }
     WORD        GetPC() const { return m_R[7]; }
     WORD        GetCPC() const { return m_savepc; }
-    void        SetPC(WORD word);
+    void        SetPC(WORD word)
+	{ 
+		m_R[7] = word;
+		if ((m_psw & 0600) != 0600) m_savepc = word;
+	}
 	void		SetCPC(WORD word) {m_savepc = word; }
 
 public:  // PSW bits control
@@ -99,7 +124,8 @@ public:  // PSW bits control
     WORD        GetN() const { return (m_psw & PSW_N) != 0; }
     void        SetZ(BOOL bFlag);
     WORD        GetZ() const { return (m_psw & PSW_Z) != 0; }
-    WORD        GetHALT() const { return (m_psw & PSW_HALT) != 0; }
+	void		SetHALT(BOOL bFlag);
+	WORD        GetHALT() const { return (m_psw & PSW_HALT) != 0; }
 
 public:  // Processor state
     // "Processor stopped" flag
@@ -107,11 +133,7 @@ public:  // Processor state
     // HALT flag (TRUE - HALT mode, FALSE - USER mode)
     BOOL        IsHaltMode() 
 	{ 
-			BOOL mode = ((m_psw & 0x100) != 0); 
-			if (mode)
-				if(m_userspace)
-					return 0;
-			return mode;
+			return ((m_psw & 0400) != 0);
 	}
 public:  // Processor control
     void        Start();     // Start processor
@@ -176,36 +198,7 @@ protected:  // Implementation - instruction execution
     void        ExecuteFIS ();
 	void		ExecuteRUN	();
     void        ExecuteRTT ();
-    void        ExecuteNOP ();
-    void        ExecuteCLC ();
-    void        ExecuteCLV ();
-    void        ExecuteCLVC ();
-    void        ExecuteCLZ ();
-    void        ExecuteCLZC ();
-    void        ExecuteCLZV ();
-    void        ExecuteCLZVC ();
-    void        ExecuteCLN ();
-    void        ExecuteCLNC ();
-    void        ExecuteCLNV ();
-    void        ExecuteCLNVC ();
-    void        ExecuteCLNZ ();
-    void        ExecuteCLNZC ();
-    void        ExecuteCLNZV ();
     void        ExecuteCCC ();
-    void        ExecuteSEC ();
-    void        ExecuteSEV ();
-    void        ExecuteSEVC ();
-    void        ExecuteSEZ ();
-    void        ExecuteSEZC ();
-    void        ExecuteSEZV ();
-    void        ExecuteSEZVC ();
-    void        ExecuteSEN ();
-    void        ExecuteSENC ();
-    void        ExecuteSENV ();
-    void        ExecuteSENVC ();
-    void        ExecuteSENZ ();
-    void        ExecuteSENZC ();
-    void        ExecuteSENZV ();
     void        ExecuteSCC ();
 
     // One fiels
@@ -276,32 +269,29 @@ protected:  // Implementation - instruction execution
 inline void CProcessor::SetC (BOOL bFlag)
 {
     if (bFlag) m_psw |= PSW_C; else m_psw &= ~PSW_C;
+	if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
 }
 inline void CProcessor::SetV (BOOL bFlag)
 {
     if (bFlag) m_psw |= PSW_V; else m_psw &= ~PSW_V;
+	if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
 }
 inline void CProcessor::SetN (BOOL bFlag)
 {
     if (bFlag) m_psw |= PSW_N; else m_psw &= ~PSW_N;
+	if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
 }
 inline void CProcessor::SetZ (BOOL bFlag)
 {
     if (bFlag) m_psw |= PSW_Z; else m_psw &= ~PSW_Z;
+	if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
 }
 
-//
-inline void CProcessor::SetReg(int regno, WORD word)
+inline void CProcessor::SetHALT (BOOL bFlag)
 {
-	m_R[regno] = word;
-	if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = word;
+    if (bFlag) m_psw |= PSW_HALT; else m_psw &= ~PSW_HALT;
 }
 
-inline void CProcessor::SetPC(WORD word)
-{ 
-	m_R[7] = word;
-	if ((m_psw & 0600) != 0600) m_savepc = word;
-}
 // PSW bits calculations - implementation
 inline BOOL CProcessor::CheckAddForOverflow (BYTE a, BYTE b)
 {

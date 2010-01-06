@@ -401,13 +401,19 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
 
 void CMotherboard::DebugTicks()
 {
-	while (m_pPPU->InterruptProcessing());
-	m_pPPU->CommandExecution();
-	while (m_pPPU->InterruptProcessing());
-	while (m_pCPU->InterruptProcessing());
-	m_pCPU->CommandExecution();
-	while (m_pCPU->InterruptProcessing());
-	while (m_pPPU->InterruptProcessing());
+	if (!m_pPPU->IsStopped())
+	{
+		while (m_pPPU->InterruptProcessing());
+		m_pPPU->CommandExecution();
+		while (m_pPPU->InterruptProcessing());
+	}
+	if (!m_pCPU->IsStopped())
+	{
+		while (m_pCPU->InterruptProcessing());
+		m_pCPU->CommandExecution();
+		while (m_pCPU->InterruptProcessing());
+	}
+	if (!m_pPPU->IsStopped()) while (m_pPPU->InterruptProcessing());
 }
 
 /*
