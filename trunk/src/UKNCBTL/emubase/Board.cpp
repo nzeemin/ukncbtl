@@ -78,8 +78,11 @@ CMotherboard::~CMotherboard ()
 
 void CMotherboard::Reset () 
 {
-    m_pCPU->Stop();
-    m_pPPU->Stop();
+    //m_pCPU->Stop();
+    //m_pPPU->Stop();
+
+	m_pPPU->SetDCLOPin(TRUE);
+	m_pPPU->SetACLOPin(TRUE);
 
     ResetFloppy();
     m_pFirstMemCtl->Reset();
@@ -112,7 +115,9 @@ void CMotherboard::Reset ()
     //m_PPUbp = 0177777;
 
     // We always start with PPU
-    m_pPPU->Start();
+    //m_pPPU->Start();
+	m_pPPU->SetDCLOPin(FALSE);
+	m_pPPU->SetACLOPin(FALSE);
 }
 
 void CMotherboard::LoadROM(const BYTE* pBuffer)  // Load 32 KB ROM image from the buffer
