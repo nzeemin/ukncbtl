@@ -931,39 +931,13 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 			//m_pBoard->sett
             break;
         case 0177716:  // System control register
-            
-			if(word&020)
-				m_pBoard->GetCPU()->AssertHALT();
-			else
-				m_pBoard->GetCPU()->DeassertHALT();
+			m_pBoard->GetCPU()->SetHALTPin((word&020)?TRUE:FALSE);
 
-			//else
-			//	m_pBoard->GetCPU()->SetPSW(m_pBoard->GetCPU()->GetPSW()&(~0x100));
-
-			if(word&040)
-				m_pBoard->GetCPU()->Stop();
-			else
-			{//prepare == int 340????
-				//m_pBoard->GetCPU()->SetPSW(m_pBoard->GetCPU()->GetPSW()|0x100); //logically should be in halt
-			}
+			m_pBoard->GetCPU()->SetDCLOPin((word&040)?TRUE:FALSE);
 		
-            if ((m_Port177716 & 32768) == 0 && (word & 32768))  // Start CPU
-            {
-				m_Port177716 = word;
-                if (m_pBoard->GetCPU()->IsStopped())
-				{
-					m_pBoard->GetCPU()->Start();
-					if(m_pBoard->ChanRxStateGetPPU()&0x40)
-						m_pBoard->GetPPU()->InterruptVIRQ(4, 0314);
-				}
-            }
-			else
-			{
-				m_Port177716 = word;
-				if ((word & 32768) == 0) m_pBoard->GetCPU()->PowerFail();
-			}
+			m_pBoard->GetCPU()->SetACLOPin((word&0100000)?FALSE:TRUE);
 
-            m_Port177716 = word;
+			m_Port177716 = word;
 			m_pBoard->SetSound(word);
             break;
 		case 0177102: //par port data

@@ -18,8 +18,9 @@ class CProcessor  // KM1801VM2 processor
 public:  // Constructor / initialization
                 CProcessor(LPCTSTR name);
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
-    void        AssertHALT();
-	void		DeassertHALT();
+	void		SetHALTPin(BOOL value);
+	void		SetDCLOPin(BOOL value);
+	void		SetACLOPin(BOOL value);
 	void		MemoryError();
     LPCTSTR     GetName() const { return m_name; }
 	void        SetInternalTick (WORD tick) { m_internalTick = tick; }
@@ -42,7 +43,9 @@ protected:  // Processor state
     WORD        m_savepsw;          // CPSW register
     BOOL        m_stepmode;         // Read TRUE if it's step mode
 	BOOL		m_buserror;			// Read TRUE if occured bus error for implementing double bus error if needed
-	BOOL        m_haltpin;			// HALT 
+	BOOL        m_haltpin;			// HALT pin
+	BOOL		m_DCLOpin;			// DCLO pin
+	BOOL		m_ACLOpin;			// ACLO pin
     BOOL        m_waitmode;			// WAIT
 
 protected:  // Current instruction processing
@@ -54,7 +57,8 @@ protected:  // Current instruction processing
     int         m_methdest;         // Destination address mode
     WORD        m_addrdest;         // Destination address
 protected:  // Interrupt processing
-    BOOL        m_RPLYrq;           // Hangup interrupt pending
+    BOOL		m_STRTrq;			// Start interrupt pending
+	BOOL        m_RPLYrq;           // Hangup interrupt pending
 	BOOL		m_ILLGrq;			// Illegal instruction interrupt pending
 	BOOL        m_RSVDrq;           // Reserved instruction interrupt pending
     BOOL        m_TBITrq;           // T-bit interrupt pending
@@ -136,8 +140,6 @@ public:  // Processor state
 			return ((m_psw & 0400) != 0);
 	}
 public:  // Processor control
-    void        Start();     // Start processor
-    void        Stop();      // Stop processor
     void        TickEVNT();  // EVNT signal
 	void		PowerFail();
     void        InterruptVIRQ(int que, WORD interrupt);  // External interrupt via VIRQ signal
