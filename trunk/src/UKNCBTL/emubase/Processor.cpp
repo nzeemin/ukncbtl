@@ -471,13 +471,6 @@ void CProcessor::TickEVNT()
 	m_EVNTrq = TRUE;
 }
 
-void CProcessor::PowerFail()
-{
-    if (m_okStopped) return;  // Processor is stopped - nothing to do
-
-	m_ACLOrq = TRUE;
-}
-
 void CProcessor::InterruptVIRQ(int que, WORD interrupt)
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
@@ -508,6 +501,7 @@ void CProcessor::SetDCLOPin(BOOL value)
 		m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
 		memset(m_virq, 0, sizeof(m_virq));
 		m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+		m_pMemoryController->DCLO_Signal();
 		m_pMemoryController->ResetDevices();
 	}
 }
@@ -1602,6 +1596,7 @@ void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
 		dst = GetLReg(m_regdest);
 	
 	SetLPSW((GetLPSW() & 0x10) | (dst & 0xEF));
+	SetPC(GetPC());
 	m_internalTick=MTPS_TIMING[m_methdest];
 }
 

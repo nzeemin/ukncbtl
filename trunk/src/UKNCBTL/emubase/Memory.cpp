@@ -66,7 +66,7 @@ WORD CMemoryController::GetWord(WORD address, BOOL okHaltMode, BOOL okExec)
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset & 0177776);
+        return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset);
     case ADDRTYPE_RAM12:
         return MAKEWORD(
             m_pBoard->GetRAMByte(1, offset / 2),
@@ -141,12 +141,6 @@ void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
 
     WORD offset;
 	
-	if((address==0177777)&&(word==0177777))
-	{
-		if(m_pBoard->ChanRxStateGetPPU()&0x40)
-			m_pBoard->GetPPU()->InterruptVIRQ(4, 0314);
-		return;
-	}
 
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
@@ -156,7 +150,7 @@ void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        m_pBoard->SetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset & 0177776, word);
+        m_pBoard->SetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset, word);
         return;
     case ADDRTYPE_RAM12:
         m_pBoard->SetRAMByte(1, offset / 2, LOBYTE(word));
@@ -236,23 +230,12 @@ void CMemoryController::SetByte(WORD address, BOOL okHaltMode, BYTE byte)
 
 CFirstMemoryController::CFirstMemoryController() : CMemoryController()
 {
-    Reset();
-}
-
-void CFirstMemoryController::Reset()
-{
     m_Port176640 = 0;
     m_Port176642 = 0;
-    m_Port177560 = 0;
-    m_Port177562 = 0;
-    m_Port177564 = 0;
-    m_Port176660 = 0;
-    m_Port176662 = 0;
-    m_Port176664 = 0;
-    m_Port176674 = 0;
-    m_Port177570 = 0;
+}
 
-    //ResetDevices();
+void CFirstMemoryController::DCLO_Signal()
+{
 }
 
 void CFirstMemoryController::ResetDevices()
@@ -297,56 +280,71 @@ int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL
 
 BYTE CFirstMemoryController::GetPortByte(WORD address)
 {
-	if(address&1)
-		return GetPortWord(address&0xfffe)>>8;
-
-	return (BYTE) GetPortWord(address);
+	WORD word = GetPortWord(address);
+	return (BYTE) (address&1)?HIBYTE(word):LOBYTE(word);
 }
 
 WORD CFirstMemoryController::GetPortWord(WORD address)
 {
     switch (address) {
-        case 0176640:  			
+        case 0176640:
+		case 0176641:
 			return m_Port176640;  // Plane address register
-        case 0176642:  
+        case 0176642:
+		case 0176643:
 				m_Port176642 = MAKEWORD(m_pBoard->GetRAMByte(1, m_Port176640), m_pBoard->GetRAMByte(2, m_Port176640));
 			return m_Port176642;  // Plane 1 & 2 data register
 
-		case 0177564:
-			return m_pBoard->ChanTxStateGetCPU(0);
 		case 0177560:
-			//m_Port177570=
+		case 0177561:
 			return m_pBoard->ChanRxStateGetCPU(0);
-		case 0177570:
-			return m_Port177570;
 		case 0177562:
+		case 0177563:
 			return m_pBoard->ChanReadByCPU(0);
-		case 0176664:
-			return m_pBoard->ChanTxStateGetCPU(1);
+		case 0177564:
+		case 0177565:
+			return m_pBoard->ChanTxStateGetCPU(0);
 		case 0176660:
+		case 0176661:
 			return m_pBoard->ChanRxStateGetCPU(1);
 		case 0176662:
+		case 0176663:
 			return m_pBoard->ChanReadByCPU(1);
+		case 0176664:
+		case 0177665:
+			return m_pBoard->ChanTxStateGetCPU(1);
 		case 0176674:
+		case 0176675:
 			return m_pBoard->ChanTxStateGetCPU(2);
-		case 0177566: 
+		case 0177566:
+		case 0177567:
 		case 0176666:
+		case 0176667:
 		case 0176676:
+		case 0176677:
 			return 0;
 
 		case 0176560: //network 
+		case 0176561:
 		case 0176562:
+		case 0176563:
 		
 		case 0176566:
+		case 0176567:
 			return 0;
 		case 0176570: //rs232
+		case 0176571:
 		case 0176572:
-		
+		case 0176573:
+
 		case 0176576:
+		case 0176577:
 			return 0;
 		
 		case 0176564:
+		case 0176565:
 		case 0176574:
+		case 0176575:
 			return 0x80; //ready for tx
 
 		default: 
@@ -358,10 +356,6 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
     return 0; 
 }
 
-void CFirstMemoryController::ResetAll()
-{
-
-}
 
 // Read word from port for debugger
 WORD CFirstMemoryController::GetPortView(WORD address)
@@ -370,13 +364,6 @@ WORD CFirstMemoryController::GetPortView(WORD address)
         case 0176640:  return m_Port176640;  // Plane address register
         case 0176642:  return m_Port176642;  // Plane 1 & 2 data register
 
-        case 0177560:  return m_Port177560;  // Channel 0 RX status
-        case 0177562:  return m_Port177562;  // Channel 0 RX data
-        case 0177564:  return m_Port177564;  // Channel 0 TX status
-        case 0176660:  return m_Port176660;  // Channel 1 RX status
-        case 0176662:  return m_Port176662;  // Channel 1 RX data
-        case 0176664:  return m_Port176664;  // Channel 1 TX status
-        case 0176674:  return m_Port176674;  // Channel 2 TX status
 
         //TODO
 
@@ -467,28 +454,6 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
     }
 }
 
-// Receive byte sent via inter-processor channel
-void CFirstMemoryController::ReceiveChannelByte(int channel, BYTE data)
-{
-    switch (channel)
-    {
-    case 0:
-        m_Port177562 = (WORD) data;
-        m_Port177560 |= 0100;  // "Data ready" flag
-        if ((m_Port177560 & 0200) != 0)  // Interrupt enabled
-            m_pProcessor->InterruptVIRQ(1, 060);
-        break;
-    case 1:
-        m_Port176662 = (WORD) data;
-        m_Port176660 |= 0100;  // "Data ready" flag
-        if ((m_Port176660 & 0200) != 0)  // Interrupt enabled
-            m_pProcessor->InterruptVIRQ(3, 0460);
-        break;
-    default:
-        ASSERT(FALSE);  // Wrong channel number
-    }
-}
-
 //////////////////////////////////////////////////////////////////////
 //
 // CPU memory/IO controller image format (64 bytes):
@@ -500,28 +465,12 @@ void CFirstMemoryController::SaveToImage(BYTE* pImage)
     WORD* pwImage = (WORD*) pImage;
     *pwImage++ = m_Port176640;
     *pwImage++ = m_Port176642;
-    *pwImage++ = m_Port177560;
-    *pwImage++ = m_Port177562;
-    *pwImage++ = m_Port177564;
-    *pwImage++ = m_Port176660;
-    *pwImage++ = m_Port176662;
-    *pwImage++ = m_Port176664;
-    *pwImage++ = m_Port176674;
-    *pwImage++ = m_Port177570;
 }
 void CFirstMemoryController::LoadFromImage(const BYTE* pImage)
 {
     WORD* pwImage = (WORD*) pImage;
     m_Port176640 = *pwImage++;
     m_Port176642 = *pwImage++;
-    m_Port177560 = *pwImage++;
-    m_Port177562 = *pwImage++;
-    m_Port177564 = *pwImage++;
-    m_Port176660 = *pwImage++;
-    m_Port176662 = *pwImage++;
-    m_Port176664 = *pwImage++;
-    m_Port176674 = *pwImage++;
-    m_Port177570 = *pwImage++;
 }
 
 
@@ -536,11 +485,6 @@ void CFirstMemoryController::LoadFromImage(const BYTE* pImage)
 
 CSecondMemoryController::CSecondMemoryController() : CMemoryController()
 {
-    Reset();
-}
-
-void CSecondMemoryController::Reset()
-{
     m_Port177010 = m_Port177012 = m_Port177014 = 0;
 
 	m_Port177026 = m_Port177024 = 0;
@@ -549,17 +493,19 @@ void CSecondMemoryController::Reset()
 
     m_Port177700 = m_Port177702 = 0;
     m_Port177716 = 0;
-    m_Port177076 = m_Port177066 = 0;
-    m_Port177060 = m_Port177062 = m_Port177064 = 0;
 
 	m_Port177054 = 01401;
+}
 
-    //ResetDevices();
+void CSecondMemoryController::DCLO_Signal()
+{
+	DCLO_177716();
 }
 
 void CSecondMemoryController::ResetDevices()
 {
-    m_pBoard->ChanResetByPPU();
+    Init_177716();
+	m_pBoard->ChanResetByPPU();
     //TODO
 }
 
@@ -653,28 +599,27 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 #endif
 
     switch (address) {
-        case 0177010:  return m_Port177010;  // Plane address register
-        case 0177012:  
-
-           //m_Port177012 = m_pBoard->GetRAMByte(0, m_Port177010);
+        case 0177010:
+		case 0177011:
+			return m_Port177010;  // Plane address register
+        case 0177012:
+		case 0177013:
 			return m_Port177012;  // Plane 0 data register
-        case 0177700:  return m_Port177700;  // Keyboard status
-        case 0177702:  // Keyboard data
-            m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
-            return m_Port177702;
-        case 0177014:  
-           // m_Port177014 = MAKEWORD(m_pBoard->GetRAMByte(1, m_Port177010), m_pBoard->GetRAMByte(2, m_Port177010));
-
-			
+        case 0177014:
+		case 0177015:
 			return m_Port177014;  // Plane 1 & 2 data register
-        case 0177716:  return m_Port177716;  // System control register
-
-        case 0177026:  return m_Port177026;  // Plane Mask
-        case 0177020:  return m_Port177020;  // Plane 0,1,2 bits 0-3
-        case 0177022:  return m_Port177022;  // Plane 0,1,2 bits 4-7
-        case 0177016:  return m_Port177016;  // Sprite Color
+        case 0177016:
+		case 0177017:
+			return m_Port177016;  // Sprite Color
+        case 0177020:
+		case 0177021:
+			return m_Port177020;  // Plane 0,1,2 bits 0-3
+        case 0177022:
+		case 0177023:
+			return m_Port177022;  // Plane 0,1,2 bits 4-7
         case 0177024:  // Load background registers
-            {
+		case 0177025:
+			{
                 BYTE planes[3];
                 planes[0] = m_pBoard->GetRAMByte(0,m_Port177010);
                 planes[1] = m_pBoard->GetRAMByte(1,m_Port177010);
@@ -711,46 +656,83 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
                 m_Port177022 |= ((planes[2]&(1<<7))?1:0)<<14;
             }
             return 0;
-
-        case 0177710:
-            return m_pBoard->GetTimerState();
-        case 0177712:
-            return m_pBoard->GetTimerReload();
-        case 0177714:
-            return m_pBoard->GetTimerValue();
+        case 0177026:
+		case 0177027:
+			return m_Port177026;  // Plane Mask
 
 		case 0177054:
+		case 0177055:
 			return m_Port177054;
-	
+
 		case 0177060:
+		case 0177061:
 			return m_pBoard->ChanReadByPPU(0);
 		case 0177062:
+		case 0177063:
 			return m_pBoard->ChanReadByPPU(1);
 		case 0177064:
+		case 0177065:
 			return m_pBoard->ChanReadByPPU(2);
 		case 0177066:
+		case 0177067:
 			return m_pBoard->ChanRxStateGetPPU();
+		case 0177070:
+		case 0177071:
+		case 0177072:
+		case 0177073:
+		case 0177074:
+		case 0177075:
+			return 0;
 		case 0177076:
+		case 0177077:
 			return m_pBoard->ChanTxStateGetPPU();
+
+		case 0177100:
+		case 0177101:
+		case 0177102:
+		case 0177103:
+			return 0;
+
+		case 0177700:
+		case 0177701:
+			return m_Port177700;  // Keyboard status
+        case 0177702:  // Keyboard data
+		case 0177703:
+			m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
+            return m_Port177702;
+		case 0177704:
+		case 0177705:
+			return 010000; //!!!
+
+        case 0177710:
+		case 0177711:
+            return m_pBoard->GetTimerState();
+        case 0177712:
+		case 0177713:
+            return m_pBoard->GetTimerReload();
+        case 0177714:
+		case 0177715:
+            return m_pBoard->GetTimerValue();
+			
+        case 0177716:
+		case 0177717:
+			return m_Port177716;  // System control register
+	
 		case 0177130: //fdd status
-            value = m_pBoard->GetFloppyState();
+		case 0177131:
+			value = m_pBoard->GetFloppyState();
             //PrintOctalValue(oct2, value);
 			//wsprintf(str, _T("FDD STATE R %s, %s\r\n"), oct1, oct2);
 			//DebugLog(str);
 			return value;
 		case 0177132: //fdd data
-            value = m_pBoard->GetFloppyData();
+		case 0177133:
+			value = m_pBoard->GetFloppyData();
 			//wsprintf(str,_T("FDD DATA  R %s, %04x\r\n"), oct1, value);
 			//DebugLog(str);
 			return value;
-		case 0177704:
-			//fdd related
-//#if !defined(PRODUCT)
-//			DebugLogFormat(_T("FDD 177704 R %s, %s\r\n"), oct2, oct1);
-//#endif
-			return 010000; //!!!
 		default:
-//			ASSERT(0);
+			//m_pProcessor->MemoryError();
 			break;
         //TODO
 
@@ -761,18 +743,187 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 
 BYTE CSecondMemoryController::GetPortByte(WORD address)
 {
-	if(address&1)
-	{
-		WORD word;
-
-		word=GetPortWord(address&0xfffe);
-		return (word>>8)&0xff;
-	}
-    return (BYTE) GetPortWord(address); 
+	WORD word = GetPortWord(address);
+	return (BYTE) (address&1)?HIBYTE(word):LOBYTE(word); 
 }
 
 void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 {
+/*	WORD word = (address&1)?((WORD)byte) << 8:(WORD)byte;
+	switch (address) {
+		case 0177010:
+			m_Port177010 &= 0xFF00;
+			m_Port177010 |= word;
+            m_Port177012 = m_pBoard->GetRAMByte(0, m_Port177010);
+            m_Port177014 = MAKEWORD(
+                    m_pBoard->GetRAMByte(1, m_Port177010), m_pBoard->GetRAMByte(2, m_Port177010));
+            break;
+		case 0177011:
+			m_Port177010 &= 0xFF;
+			m_Port177010 |= word;
+            m_Port177012 = m_pBoard->GetRAMByte(0, m_Port177010);
+            m_Port177014 = MAKEWORD(
+                    m_pBoard->GetRAMByte(1, m_Port177010), m_pBoard->GetRAMByte(2, m_Port177010));
+            break;
+		case 0177012:
+			m_Port177012 = word;
+            m_pBoard->SetRAMByte(0, m_Port177010, LOBYTE(word));
+            break;
+		case 0177013:
+			break;
+		case 0177014:
+			m_Port177014 &= 0xFF00;
+			m_Port177014 |= word;
+            m_pBoard->SetRAMByte(1, m_Port177010, LOBYTE(word));
+			break;
+		case 0177015:
+			m_Port177014 &= 0xFF;
+			m_Port177014 |= word;
+            m_pBoard->SetRAMByte(2, m_Port177010, HIBYTE(word));
+            break;
+		case 0177016:
+			m_Port177016 = word & 7;
+            break;
+		case 0177017:
+			break;
+		case 0177020:
+			m_Port177020 &= 0xFF00;
+			m_Port177020 |= word;
+			break;
+		case 0177021:
+			m_Port177020 &= 0xFF;
+			m_Port177020 |= word;
+			break;
+		case 0177022:
+			m_Port177022 &= 0xFF00;
+			m_Port177022 |= word;
+			break;
+		case 0177023:
+			m_Port177022 &= 0xFF;
+			m_Port177022 |= word;
+			break;
+		case 0177024:
+            m_Port177024 = word & 0xFF;
+			BYTE planebyte[3];
+			planebyte[0] = m_pBoard->GetRAMByte(0, m_Port177010);
+			planebyte[1] = m_pBoard->GetRAMByte(1, m_Port177010);
+			planebyte[2] = m_pBoard->GetRAMByte(2, m_Port177010);
+			// Draw spryte
+            planebyte[0] &= ~m_Port177024;
+            if (m_Port177016 & 1)
+                planebyte[0] |= m_Port177024;
+            planebyte[1] &= ~m_Port177024;
+            if (m_Port177016 & 2)
+                planebyte[1] |= m_Port177024;
+            planebyte[2] &= ~m_Port177024;
+            if (m_Port177016 & 4)
+                planebyte[2] |= m_Port177024;
+
+            if ((m_Port177026 & 1) == 0)
+                m_pBoard->SetRAMByte(0, m_Port177010, planebyte[0]);
+            if ((m_Port177026 & 2) == 0)
+                m_pBoard->SetRAMByte(1, m_Port177010, planebyte[1]);
+            if ((m_Port177026 & 4) == 0)
+                m_pBoard->SetRAMByte(2, m_Port177010, planebyte[2]);
+			break;
+		case 0177025:
+			break;
+		case 0177026:
+            m_Port177026 = word & 7;
+            break;
+		case 0177027:
+			break;
+		case 0177054:
+			m_Port177054 &= 0xFF00;
+			m_Port177054 |= word;
+			break;
+		case 0177055:
+			m_Port177054 &= 0xFF;
+			m_Port177054 |= word;
+			break;
+
+		case 0177060:
+		case 0177061:
+		case 0177062:
+		case 0177063:
+		case 0177064:
+		case 0177065:
+			break;
+		case 0177066:  // RX status, channels 0,1,2
+			m_pBoard->ChanRxStateSetPPU((BYTE) word);
+            break;
+		case 0177067:
+			m_pBoard->ChanRxStateSetPPU(0);
+            break;
+        case 0177070:  // TX data, channel 0
+			m_pBoard->ChanWriteByPPU(0, (BYTE) word);
+			break;
+		case 0177071:
+			m_pBoard->ChanWriteByPPU(0, 0);
+			break;
+        case 0177072:  // TX data, channel 1
+			m_pBoard->ChanWriteByPPU(1, (BYTE) word);
+			break;
+		case 0177073:
+			m_pBoard->ChanWriteByPPU(1, 0);
+			break;
+		case 0177074:
+		case 0177075:
+			break;
+		case 0177076:  // TX status, channels 0,1
+			m_pBoard->ChanTxStateSetPPU((BYTE) word);
+            break;
+		case 0177077:
+			m_pBoard->ChanTxStateSetPPU(0);
+            break;
+
+		case 0177100:
+			break;
+		case 0177101:
+			break;
+		case 0177102: //par port data
+			break;
+		case 0177103: //par port ctrl
+			break;
+
+		case 0177130:  // FDD status
+		case 0177131:
+			m_pBoard->SetFloppyState(word);
+            break;
+        case 0177132:  // FDD data
+		case 0177133:
+			m_pBoard->SetFloppyData(word);
+			break;
+
+        case 0177700:  // Keyboard status
+		case 0177701:
+			SetPortWord(address, word);
+			break;
+		case 0177704: // fdd params:
+		case 0177705:
+			break;
+
+		case 0177710: //timer status
+		case 0177711:
+			m_pBoard->SetTimerState(word);
+            break;
+        case 0177712: //timer latch
+		case 0177713:
+			m_pBoard->SetTimerReload(word);
+            break;
+        case 0177714: //timer counter
+		case 0177715:
+			//m_pBoard->sett
+            break;
+        case 0177716:  // System control register
+		case 0177717:
+			SetPortWord(address, word);
+			break;
+		default:
+			m_pProcessor->MemoryError();
+			//ASSERT(0);
+			break;
+	} */
 	WORD word;
 	word = GetPortWord(address & 0xfffe);
 	if (address & 1)
@@ -802,33 +953,40 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 
     switch (address) {
         case 0177010:  // Plane address register
-            m_Port177010 = word;
+		case 0177011:
+			m_Port177010 = word;
             m_Port177012 = m_pBoard->GetRAMByte(0, word);
             m_Port177014 = MAKEWORD(
                     m_pBoard->GetRAMByte(1, word), m_pBoard->GetRAMByte(2, word));
             break;
         case 0177012:  // Plane 0 data register
-            m_Port177012 = word;
+		case 0177013:
+			m_Port177012 = word & 0xFF;
             m_pBoard->SetRAMByte(0, m_Port177010, LOBYTE(word));
             break;
         case 0177014:  // Plane 1 & 2 data register
+		case 0177015:
 			m_Port177014 = word;
             m_pBoard->SetRAMByte(1, m_Port177010, LOBYTE(word));
             m_pBoard->SetRAMByte(2, m_Port177010, HIBYTE(word));
             break;
 
         case 0177016:  // Sprite Color
-            m_Port177016 = word;
+		case 0177017:
+			m_Port177016 = word & 7;
             break;
         case 0177020:  // Background color code, plane 0,1,2 bits 0-3
-            m_Port177020 = word;
+		case 0177021:
+			m_Port177020 = word;
             break;
         case 0177022:  // Background color code, plane 0,1,2 bits 4-7
-            m_Port177022 = word;
+		case 0177023:
+			m_Port177022 = word;
             break;
         case 0177024:  // Pixel byte
-            {
-                m_Port177024 = word;
+		case 0177025:
+			{
+                m_Port177024 = word & 0xFF;
                 // Convert background into planes... it could've been modified by user
                 BYTE planebyte[3];
                 planebyte[0]  = ((m_Port177020&(1<< 0))?1:0)<<0;
@@ -877,33 +1035,61 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             }
             break;
         case 0177026:  // Pixel mask
-            
-            m_Port177026 = word;
+		case 0177027:
+            m_Port177026 = word & 7;
             break;
         case 0177054:  // Address space control
-            //wsprintf(str,_T("W %s, %s\r\n"),oct1,oct);
+		case 0177055:
+			//wsprintf(str,_T("W %s, %s\r\n"),oct1,oct);
             //DebugPrint(str);
-			m_Port177054 = word;
+			m_Port177054 = word & 01777;
             break;
-        case 0177066:  // RX status, channels 0,1,2
+
+		case 0177060:
+		case 0177061:
+		case 0177062:
+		case 0177063:
+		case 0177064:
+		case 0177065:
+			break;
+		case 0177066:  // RX status, channels 0,1,2
+		case 0177067:
 			m_pBoard->ChanRxStateSetPPU((BYTE) word);
             break;
         case 0177070:  // TX data, channel 0
+		case 0177071:
 			m_pBoard->ChanWriteByPPU(0, (BYTE) word);
 			break;
         case 0177072:  // TX data, channel 1
+		case 0177073:
 			m_pBoard->ChanWriteByPPU(1, (BYTE) word);
 			break;
-        case 0177076:  // TX status, channels 0,1
+		case 0177074:
+		case 0177075:
+			break;
+		case 0177076:  // TX status, channels 0,1
+		case 0177077:
 			m_pBoard->ChanTxStateSetPPU((BYTE) word);
             break;
-        case 0177130:  // FDD status
+
+		case 0177100:
+			break;
+		case 0177101:
+			break;
+		case 0177102: //par port data
+			break;
+		case 0177103: //par port ctrl
+			break;
+
+		case 0177130:  // FDD status
+		case 0177131:
 			//ASSERT(word==0);
 			//wsprintf(str,_T("FDD CMD   W %s, %s\r\n"), oct1,oct);
 			//DebugLog(str);
 			m_pBoard->SetFloppyState(word);
             break;
         case 0177132:  // FDD data
+		case 0177133:
 			//ASSERT(word==0);
 			//wsprintf(str,_T("%s: FDD DATA W %s, %s\r\n"),oct2,oct1,oct);
             //wsprintf(str,_T("FDD DATA  W %04x\r\n"), word);
@@ -911,41 +1097,45 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 			m_pBoard->SetFloppyData(word);
 			break;
 
+        case 0177700:  // Keyboard status
+		case 0177701:
+			m_Port177700 = (m_Port177700 & 0177677) | (word & 0100);
+            break;
 		case 0177704: // fdd params:
+		case 0177705:
 #if !defined(PRODUCT)
 			DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
 #endif
 			break;
 
-        case 0177700:  // Keyboard status
-            m_Port177700 = (m_Port177700 & 0177677) | (word & 0100);
-            break;
 
         case 0177710: //timer status
+		case 0177711:
 			m_pBoard->SetTimerState(word);
             break;
         case 0177712: //timer latch
+		case 0177713:
 			m_pBoard->SetTimerReload(word);
             break;
         case 0177714: //timer counter
+		case 0177715:
 			//m_pBoard->sett
             break;
         case 0177716:  // System control register
+		case 0177717:
+			word &= 0137676;
 			m_pBoard->GetCPU()->SetHALTPin((word&020)?TRUE:FALSE);
 
 			m_pBoard->GetCPU()->SetDCLOPin((word&040)?TRUE:FALSE);
 		
 			m_pBoard->GetCPU()->SetACLOPin((word&0100000)?FALSE:TRUE);
 
-			m_Port177716 = word;
+			m_Port177716 &= 1;
+			m_Port177716 |= word;
 			m_pBoard->SetSound(word);
             break;
-		case 0177102: //par port data
-			break;
-		case 0177103: //par port ctrl
-			break;
 		default:
-        //TODO
+		//	m_pProcessor->MemoryError();
 			//ASSERT(0);
 			break;
     }
@@ -966,45 +1156,11 @@ WORD CSecondMemoryController::GetPortView(WORD address)
         case 0177054:  return m_Port177054;
         case 0177700:  return m_Port177700;
         case 0177716:  return m_Port177716;
-        case 0177076:  return m_Port177076;
-        case 0177066:  return m_Port177066;
-        case 0177060:  return m_Port177060;
-        case 0177062:  return m_Port177062;
-        case 0177064:  return m_Port177064;
 
         //TODO
 
         default:
             return 0;
-    }
-}
-
-// Receive byte sent via inter-processor channel
-void CSecondMemoryController::ReceiveChannelByte(int channel, BYTE data)
-{
-	ASSERT(0);
-    switch (channel)
-    {
-    case 0:
-        m_Port177060 = (WORD) data;
-        m_Port177066 |= 010;  // "Data ready" flag
-        if ((m_Port177066 & 1) != 0)  // Interrupt enabled
-            m_pProcessor->InterruptVIRQ(5, 0320);
-        break;
-    case 1:
-        m_Port177062 = (WORD) data;
-        m_Port177066 |= 020;  // "Data ready" flag
-        if ((m_Port177066 & 2) != 0)  // Interrupt enabled
-            m_pProcessor->InterruptVIRQ(7, 0330);
-        break;
-    case 2:
-        m_Port177064 = (WORD) data;
-        m_Port177066 |= 040;  // "Data ready" flag
-        if ((m_Port177066 & 4) != 0)  // Interrupt enabled
-            m_pProcessor->InterruptVIRQ(9, 0340);
-        break;
-    default:
-        ASSERT(FALSE);  // Wrong channel number
     }
 }
 
@@ -1053,6 +1209,18 @@ BOOL CSecondMemoryController::TapeOutput()
 }
 
 
+void CSecondMemoryController::DCLO_177716()
+{
+	m_Port177716 &= 0077717;
+	m_pBoard->GetCPU()->SetHALTPin(FALSE);
+	m_pBoard->GetCPU()->SetDCLOPin(FALSE);
+	m_pBoard->GetCPU()->SetACLOPin(TRUE);
+}
+
+void CSecondMemoryController::Init_177716()
+{
+	m_Port177716 &= 0117461;
+}
 //////////////////////////////////////////////////////////////////////
 //
 // PPU memory/IO controller image format (64 bytes):
@@ -1075,11 +1243,6 @@ void CSecondMemoryController::SaveToImage(BYTE* pImage)
     *pwImage++ = m_Port177700;
     *pwImage++ = m_Port177702;
     *pwImage++ = m_Port177716;
-    *pwImage++ = m_Port177076;
-    *pwImage++ = m_Port177066;
-    *pwImage++ = m_Port177060;
-    *pwImage++ = m_Port177062;
-    *pwImage++ = m_Port177064;
 
     *pwImage++ = m_Port177054;
 }
@@ -1099,11 +1262,6 @@ void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
     m_Port177700 = *pwImage++;
     m_Port177702 = *pwImage++;
     m_Port177716 = *pwImage++;
-    m_Port177076 = *pwImage++;
-    m_Port177066 = *pwImage++;
-    m_Port177060 = *pwImage++;
-    m_Port177062 = *pwImage++;
-    m_Port177064 = *pwImage++;
 
     m_Port177054 = *pwImage++;
 }

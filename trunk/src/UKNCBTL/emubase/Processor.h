@@ -141,7 +141,6 @@ public:  // Processor state
 	}
 public:  // Processor control
     void        TickEVNT();  // EVNT signal
-	void		PowerFail();
     void        InterruptVIRQ(int que, WORD interrupt);  // External interrupt via VIRQ signal
     WORD		GetVIRQ(int que);
     void        Execute();   // Execute one instruction - for debugger only
