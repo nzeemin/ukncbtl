@@ -39,7 +39,7 @@ public:
     void        Attach(CMotherboard* board, CProcessor* processor)
                     { m_pBoard = board;  m_pProcessor = processor; }
     // Reset to initial state
-    virtual void Reset() = 0;
+    virtual void DCLO_Signal() = 0;  // DCLO signal
     virtual void ResetDevices() = 0;  // INIT signal
 public:  // Access to memory
     // Read command for execution
@@ -60,10 +60,6 @@ public:  // Access to memory
     virtual WORD GetPortView(WORD address) = 0;
     // Read SEL register
     virtual WORD GetSelRegister() = 0;
-    // Receive byte sent via inter-processor channel
-    //   channel - Channel number: 0..2
-    //   data - Byte to transmit
-    virtual void ReceiveChannelByte(int channel, BYTE data) = 0;
 public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(BYTE* pImage) = 0;
     virtual void LoadFromImage(const BYTE* pImage) = 0;
@@ -84,13 +80,11 @@ class CFirstMemoryController : public CMemoryController  // CPU memory control d
 {
 public:
     CFirstMemoryController();
-    virtual void Reset();
+    virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
 public:
-    void ResetAll();
     virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
     virtual WORD GetSelRegister() { return 0160000; }
-    virtual void ReceiveChannelByte(int channel, BYTE data);
     virtual WORD GetPortView(WORD address);
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address);
@@ -104,26 +98,19 @@ public:  // Saving/loading emulator status (64 bytes)
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
-    WORD        m_Port177560;  // Channel 0 RX status
-    WORD        m_Port177562;  // Channel 0 RX data
-    WORD        m_Port177564;  // Channel 0 TX status
-    WORD        m_Port176660;  // Channel 1 RX status
-    WORD        m_Port176662;  // Channel 1 RX data
-    WORD        m_Port176664;  // Channel 1 TX status
-    WORD        m_Port176674;  // Channel 2 TX status
-	WORD		m_Port177570;  // Unknown something!!!!!
 };
 
 class CSecondMemoryController : public CMemoryController  // PPU memory control device
 {
 public:
     CSecondMemoryController();
-    virtual void Reset();
+    virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
+	virtual void DCLO_177716();
+	virtual void Init_177716();
 public:
     virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
     virtual WORD GetSelRegister() { return 0160000; }
-    virtual void ReceiveChannelByte(int channel, BYTE data);
     virtual WORD GetPortView(WORD address);
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address);
@@ -151,11 +138,6 @@ protected:  // Implementation
     WORD        m_Port177700;  // Keyboard status
     WORD        m_Port177702;  // Keyboard data
     WORD        m_Port177716;  // System control register
-    WORD        m_Port177076;  // Channel 0/1 status
-    WORD        m_Port177066;  // Channel 1/2 status
-    WORD        m_Port177060;  // Channel 0 received data
-    WORD        m_Port177062;  // Channel 1 received data
-    WORD        m_Port177064;  // Channel 2 received data
 
 	WORD		m_Port177054;  // address space control
 

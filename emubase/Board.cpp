@@ -78,15 +78,12 @@ CMotherboard::~CMotherboard ()
 
 void CMotherboard::Reset () 
 {
-    //m_pCPU->Stop();
-    //m_pPPU->Stop();
-
 	m_pPPU->SetDCLOPin(TRUE);
 	m_pPPU->SetACLOPin(TRUE);
 
     ResetFloppy();
-    m_pFirstMemCtl->Reset();
-    m_pSecondMemCtl->Reset();
+    //m_pFirstMemCtl->Reset();
+    //m_pSecondMemCtl->Reset();
 
     m_cputicks = 0;
     m_pputicks = 0;
@@ -96,26 +93,12 @@ void CMotherboard::Reset ()
     m_timerflags = 0;
     m_timerdivider = 0;
 
-//  ::ZeroMemory(m_chancpurx, sizeof(m_chancpurx));
-//  ::ZeroMemory(m_chanppurx, sizeof(m_chanppurx));
-//  ::ZeroMemory(m_chancputx, sizeof(m_chancputx));
-//	::ZeroMemory(m_chanpputx, sizeof(m_chanpputx));
-//	m_chancputx[0].ready=1;
-//	m_chancputx[1].ready=1;
-//	m_chancputx[2].ready=1;
-//	m_chanpputx[0].ready=1;
-//	m_chanpputx[1].ready=1;
-
     m_chan0disabled = 0;
 
-	ChanResetByCPU();
-	ChanResetByPPU();
-
-    //m_CPUbp = 0177777;
-    //m_PPUbp = 0177777;
+	//ChanResetByCPU();
+	//ChanResetByPPU();
 
     // We always start with PPU
-    //m_pPPU->Start();
 	m_pPPU->SetDCLOPin(FALSE);
 	m_pPPU->SetACLOPin(FALSE);
 }
@@ -197,7 +180,7 @@ void CMotherboard::UnloadROMCartridge(int cartno)
 WORD CMotherboard::GetRAMWord(int plan, WORD offset)
 {
     ASSERT(plan >= 0 && plan <= 2);
-    return *((WORD*)(m_pRAM[plan] + offset)); 
+    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))); 
 }
 BYTE CMotherboard::GetRAMByte(int plan, WORD offset) 
 { 
@@ -207,7 +190,7 @@ BYTE CMotherboard::GetRAMByte(int plan, WORD offset)
 void CMotherboard::SetRAMWord(int plan, WORD offset, WORD word) 
 {
     ASSERT(plan >= 0 && plan <= 2);
-	*((WORD*)(m_pRAM[plan] + offset)) = word;
+	*((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))) = word;
 }
 void CMotherboard::SetRAMByte(int plan, WORD offset, BYTE byte) 
 {
@@ -218,7 +201,7 @@ void CMotherboard::SetRAMByte(int plan, WORD offset, BYTE byte)
 WORD CMotherboard::GetROMWord(WORD offset)
 {
     ASSERT(offset < 32768);
-    return *((WORD*)(m_pROM + offset)); 
+    return *((WORD*)(m_pROM + (offset & 0xFFFE))); 
 }
 BYTE CMotherboard::GetROMByte(WORD offset) 
 { 
@@ -233,7 +216,7 @@ WORD CMotherboard::GetROMCartWord(int cartno, WORD offset)
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == NULL)
         return 0177777;
-    WORD* p = (WORD*) (m_pROMCart[cartindex] + offset);
+    WORD* p = (WORD*) (m_pROMCart[cartindex] + (offset & 0xFFFE));
     return *p;
 }
 BYTE CMotherboard::GetROMCartByte(int cartno, WORD offset)
