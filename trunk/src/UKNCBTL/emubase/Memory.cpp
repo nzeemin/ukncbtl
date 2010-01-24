@@ -292,7 +292,7 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
 			return m_Port176640;  // Plane address register
         case 0176642:
 		case 0176643:
-				m_Port176642 = MAKEWORD(m_pBoard->GetRAMByte(1, m_Port176640), m_pBoard->GetRAMByte(2, m_Port176640));
+			m_Port176642 = MAKEWORD(m_pBoard->GetRAMByte(1, m_Port176640), m_pBoard->GetRAMByte(2, m_Port176640));
 			return m_Port176642;  // Plane 1 & 2 data register
 
 		case 0177560:
@@ -374,77 +374,178 @@ WORD CFirstMemoryController::GetPortView(WORD address)
 
 void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 {
-	if(address&1)
-	{
-		WORD word;
-		word=GetPortWord(address&0xfffe);
-		word&=0xff;
-		word|=byte<<8;
-		SetPortWord(address&0xfffe,word);
-	}
-	else
-	{
-		WORD word;
-		word=GetPortWord(address);
-		word&=0xff00;
-		SetPortWord(address,word|byte);
-	}
+	WORD word = (address&1)?((WORD)byte) << 8:(WORD)byte;
+    switch (address) {
+        case 0176640:  // Plane address register
+		case 0176641:
+			SetPortWord(address,word);
+			break;
+        case 0176642:  // Plane 1 & 2 data register
+			m_Port176642 &= 0xFF00;
+			m_Port176642 |= word;
+            m_pBoard->SetRAMByte(1, m_Port176640, LOBYTE(word));
+			break;
+		case 0176643:
+			m_Port176642 &= 0xFF;
+			m_Port176642 |= word;
+            m_pBoard->SetRAMByte(2, m_Port176640, HIBYTE(word));
+            break;
+
+		case 0177560:
+			m_pBoard->ChanRxStateSetCPU(0, (BYTE) word);
+			break;
+		case 0177561:
+			m_pBoard->ChanRxStateSetCPU(0, 0);
+			break;
+		case 0177562:
+		case 0177563:
+			break;
+		case 0177564:
+			m_pBoard->ChanTxStateSetCPU(0, (BYTE) word);
+			break;
+		case 0177565:
+			m_pBoard->ChanTxStateSetCPU(0, 0);
+			break;
+		case 0177566:  // TX data, channel 0
+			m_pBoard->ChanWriteByCPU(0, (BYTE) word);
+			break;
+		case 0177567:
+			m_pBoard->ChanWriteByCPU(0, 0);
+			break;
+		case 0176660:
+			m_pBoard->ChanRxStateSetCPU(1, (BYTE) word);
+			break;
+		case 0176661:
+			m_pBoard->ChanRxStateSetCPU(1, 0);
+			break;
+		case 0176662:
+		case 0176663:
+			return ;
+		case 0176664:
+			m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
+			break;
+		case 0176665:
+			m_pBoard->ChanTxStateSetCPU(1, 0);
+			break;
+		case 0176666:  // TX data, channel 1
+			m_pBoard->ChanWriteByCPU(1, (BYTE) word);
+			break;
+		case 0176667:
+			m_pBoard->ChanWriteByCPU(1, 0);
+			break;
+		case 0176674:
+			m_pBoard->ChanTxStateSetCPU(2, (BYTE) word);
+			break;
+		case 0176675:
+			m_pBoard->ChanTxStateSetCPU(2, 0);
+			break;
+		case 0176676:  // TX data, channel 2
+			m_pBoard->ChanWriteByCPU(2, (BYTE) word);
+			break;
+		case 0176677:
+			m_pBoard->ChanWriteByCPU(2, 0);
+			break;
+
+		case 0176560: //network 
+		case 0176561:
+		case 0176562:
+		case 0176563:
+		case 0176564:
+		case 0176565:
+		case 0176566:
+		case 0176567:
+			return ;
+		case 0176570: //rs232
+		case 0176571:
+		case 0176572:
+		case 0176573:
+		case 0176574:
+		case 0176575:
+		case 0176576:
+		case 0176577:
+			return ;
+
+		default:
+			m_pProcessor->MemoryError();
+//			ASSERT(0);
+			break;
+        //TODO
+    }
 }
 
 void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 {
     switch (address) {
         case 0176640:  // Plane address register
-            m_Port176640 = word;
+		case 0176641:
+			m_Port176640 = word;
             m_Port176642 = MAKEWORD(
                     m_pBoard->GetRAMByte(1, m_Port176640), m_pBoard->GetRAMByte(2, m_Port176640));
             break;
         case 0176642:  // Plane 1 & 2 data register
-            m_Port176642 = word;
+		case 0176643:
+			m_Port176642 = word;
             m_pBoard->SetRAMByte(1, m_Port176640, LOBYTE(word));
             m_pBoard->SetRAMByte(2, m_Port176640, HIBYTE(word));
             break;
 		case 0177560:
+		case 0177561:
 			m_pBoard->ChanRxStateSetCPU(0, (BYTE) word);
 			break;
+		case 0177562:
+		case 0177563:
+			break;
+
 		case 0177564:
+		case 0177565:
 			m_pBoard->ChanTxStateSetCPU(0, (BYTE) word);
 			break;
 		case 0177566:  // TX data, channel 0
+		case 0177567:
 			m_pBoard->ChanWriteByCPU(0, (BYTE) word);
 			break;
 		case 0176660:
+		case 0176661:
 			m_pBoard->ChanRxStateSetCPU(1, (BYTE) word);
 			break;
+		case 0176662:
+		case 0176663:
+			return ;
 		case 0176664:
+		case 0176665:
 			m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
 			break;
 		case 0176666:  // TX data, channel 1
+		case 0176667:
 			m_pBoard->ChanWriteByCPU(1, (BYTE) word);
 			break;
 		case 0176674:
+		case 0176675:
 			m_pBoard->ChanTxStateSetCPU(2, (BYTE) word);
 			break;
 		case 0176676:  // TX data, channel 2
+		case 0176677:
 			m_pBoard->ChanWriteByCPU(2, (BYTE) word);
 			break;
 
 		case 0176560: //network 
+		case 0176561:
 		case 0176562:
+		case 0176563:
 		case 0176564:
+		case 0176565:
 		case 0176566:
+		case 0176567:
 			return ;
 		case 0176570: //rs232
+		case 0176571:
 		case 0176572:
+		case 0176573:
 		case 0176574:
+		case 0176575:
 		case 0176576:
+		case 0176577:
 			return ;
-
-		case 0177562:
-			return ;
-		case 0176662:
-			return ;
-
 
 		default:
 			m_pProcessor->MemoryError();
@@ -732,7 +833,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 			//DebugLog(str);
 			return value;
 		default:
-			//m_pProcessor->MemoryError();
+			m_pProcessor->MemoryError();
 			break;
         //TODO
 
@@ -749,27 +850,15 @@ BYTE CSecondMemoryController::GetPortByte(WORD address)
 
 void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 {
-/*	WORD word = (address&1)?((WORD)byte) << 8:(WORD)byte;
+	WORD word = (address&1)?((WORD)byte) << 8:(WORD)byte;
 	switch (address) {
 		case 0177010:
-			m_Port177010 &= 0xFF00;
-			m_Port177010 |= word;
-            m_Port177012 = m_pBoard->GetRAMByte(0, m_Port177010);
-            m_Port177014 = MAKEWORD(
-                    m_pBoard->GetRAMByte(1, m_Port177010), m_pBoard->GetRAMByte(2, m_Port177010));
-            break;
 		case 0177011:
-			m_Port177010 &= 0xFF;
-			m_Port177010 |= word;
-            m_Port177012 = m_pBoard->GetRAMByte(0, m_Port177010);
-            m_Port177014 = MAKEWORD(
-                    m_pBoard->GetRAMByte(1, m_Port177010), m_pBoard->GetRAMByte(2, m_Port177010));
-            break;
+			SetPortWord(address, word);
+			break;
 		case 0177012:
-			m_Port177012 = word;
-            m_pBoard->SetRAMByte(0, m_Port177010, LOBYTE(word));
-            break;
 		case 0177013:
+			SetPortWord(address, word);
 			break;
 		case 0177014:
 			m_Port177014 &= 0xFF00;
@@ -782,64 +871,28 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
             m_pBoard->SetRAMByte(2, m_Port177010, HIBYTE(word));
             break;
 		case 0177016:
-			m_Port177016 = word & 7;
-            break;
 		case 0177017:
+			SetPortWord(address, word);
 			break;
 		case 0177020:
-			m_Port177020 &= 0xFF00;
-			m_Port177020 |= word;
-			break;
 		case 0177021:
-			m_Port177020 &= 0xFF;
-			m_Port177020 |= word;
+			SetPortWord(address, word);
 			break;
 		case 0177022:
-			m_Port177022 &= 0xFF00;
-			m_Port177022 |= word;
-			break;
 		case 0177023:
-			m_Port177022 &= 0xFF;
-			m_Port177022 |= word;
+			SetPortWord(address, word);
 			break;
 		case 0177024:
-            m_Port177024 = word & 0xFF;
-			BYTE planebyte[3];
-			planebyte[0] = m_pBoard->GetRAMByte(0, m_Port177010);
-			planebyte[1] = m_pBoard->GetRAMByte(1, m_Port177010);
-			planebyte[2] = m_pBoard->GetRAMByte(2, m_Port177010);
-			// Draw spryte
-            planebyte[0] &= ~m_Port177024;
-            if (m_Port177016 & 1)
-                planebyte[0] |= m_Port177024;
-            planebyte[1] &= ~m_Port177024;
-            if (m_Port177016 & 2)
-                planebyte[1] |= m_Port177024;
-            planebyte[2] &= ~m_Port177024;
-            if (m_Port177016 & 4)
-                planebyte[2] |= m_Port177024;
-
-            if ((m_Port177026 & 1) == 0)
-                m_pBoard->SetRAMByte(0, m_Port177010, planebyte[0]);
-            if ((m_Port177026 & 2) == 0)
-                m_pBoard->SetRAMByte(1, m_Port177010, planebyte[1]);
-            if ((m_Port177026 & 4) == 0)
-                m_pBoard->SetRAMByte(2, m_Port177010, planebyte[2]);
-			break;
 		case 0177025:
+			SetPortWord(address, word);
 			break;
 		case 0177026:
-            m_Port177026 = word & 7;
-            break;
 		case 0177027:
+			SetPortWord(address, word);
 			break;
 		case 0177054:
-			m_Port177054 &= 0xFF00;
-			m_Port177054 |= word;
-			break;
 		case 0177055:
-			m_Port177054 &= 0xFF;
-			m_Port177054 |= word;
+			SetPortWord(address, word);
 			break;
 
 		case 0177060:
@@ -923,20 +976,7 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 			m_pProcessor->MemoryError();
 			//ASSERT(0);
 			break;
-	} */
-	WORD word;
-	word = GetPortWord(address & 0xfffe);
-	if (address & 1)
-	{
-		word &= 0xff;
-		word |= (byte << 8);
-		SetPortWord(address & 0xfffe, word);
-	}
-	else
-	{
-		word &= 0xff00;
-		SetPortWord(address, word | byte);
-	}
+	} 
 }
 
 void CSecondMemoryController::SetPortWord(WORD address, WORD word)
@@ -1135,7 +1175,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 			m_pBoard->SetSound(word);
             break;
 		default:
-		//	m_pProcessor->MemoryError();
+			m_pProcessor->MemoryError();
 			//ASSERT(0);
 			break;
     }
