@@ -856,6 +856,8 @@ void CProcessor::ExecuteCLR ()  // CLR
 		{
 			dst_addr = GetByteAddr(m_methdest,m_regdest);
 			if (m_RPLYrq) return;
+			GetByte(dst_addr);
+			if (m_RPLYrq) return;
 			SetByte(dst_addr, 0);
 			if (m_RPLYrq) return;
 		}
@@ -1610,6 +1612,8 @@ void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
 	{
 		ea = GetByteAddr(m_methdest,m_regdest);
 		if (m_RPLYrq) return;
+		GetByte(ea);
+		if (m_RPLYrq) return;
 		SetByte(ea, psw);
 		if (m_RPLYrq) return;
 	}
@@ -1991,6 +1995,8 @@ void CProcessor::ExecuteMOV ()
 		if (m_methdest)
 		{
 			dst_addr = GetByteAddr(m_methdest,m_regdest);
+			if (m_RPLYrq) return;
+			GetByte(dst_addr);
 			if (m_RPLYrq) return;
 			SetByte(dst_addr,dst);
 			if (m_RPLYrq) return;
