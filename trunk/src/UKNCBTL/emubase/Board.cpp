@@ -56,6 +56,8 @@ CMotherboard::CMotherboard ()
     m_pROM    = (BYTE*) ::LocalAlloc(LPTR, 32768);
     m_pROMCart[0] = NULL;
     m_pROMCart[1] = NULL;
+    m_pHardDrives[0] = NULL;
+    m_pHardDrives[1] = NULL;
 }
 
 CMotherboard::~CMotherboard ()
@@ -172,6 +174,34 @@ void CMotherboard::UnloadROMCartridge(int cartno)
         ::LocalFree(m_pROMCart[cartindex]);
         m_pROMCart[cartindex] = NULL;
     }
+}
+
+
+// Hard Drives ///////////////////////////////////////////////////////
+
+BOOL CMotherboard::IsHardImageAttached(int slot)
+{
+    ASSERT(slot >= 1 && slot < 2);
+    return (m_pHardDrives[slot - 1] != NULL);
+}
+
+BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
+{
+    ASSERT(slot >= 1 && slot < 2);
+
+    m_pHardDrives[slot - 1] = new CHardDrive();
+    //TODO: Set hard drive image
+
+    return TRUE;  //STUB
+}
+
+void CMotherboard::DetachHardImage(int slot)
+{
+    ASSERT(slot >= 1 && slot < 2);
+
+    delete m_pHardDrives[slot - 1];
+    m_pHardDrives[slot - 1] = NULL;
+    //TODO
 }
 
 

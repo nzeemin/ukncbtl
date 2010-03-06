@@ -48,8 +48,13 @@ enum ToolbarButtons
     ToolbarButtonMZ3 = 6,
     // Separator
     ToolbarButtonCart1 = 8,
-    ToolbarButtonCart2 = 9,
+    ToolbarButtonHard1 = 9,
+    ToolbarButtonCart2 = 10,
+    ToolbarButtonHard2 = 11,
+    // Separator
+    ToolbarButtonSound = 13,
 };
+
 enum ToolbarButtonImages
 {
     ToolbarImageRun = 0,
@@ -62,6 +67,8 @@ enum ToolbarButtonImages
     ToolbarImageSoundOn = 7,
     ToolbarImageSoundOff = 8,
     ToolbarImageFloppyDiskWP = 9,
+    ToolbarImageHardSlot = 10,
+    ToolbarImageHardDrive = 11,
 };
 
 enum StatusbarParts
@@ -75,6 +82,9 @@ enum StatusbarParts
     StatusbarPartUptime = 6,
 };
 
+const DWORD CARTRIDGE1MODE_HARDDRIVE = 0x00000001;
+const DWORD CARTRIDGE2MODE_HARDDRIVE = 0x00010000;
+
 
 //////////////////////////////////////////////////////////////////////
 // Settings
@@ -85,6 +95,8 @@ void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath);
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer);
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath);
 void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer);
+void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath);
+void Settings_GetHardFilePath(int slot, LPTSTR buffer);
 void Settings_SetScreenViewMode(int mode);
 int Settings_GetScreenViewMode();
 void Settings_SetScreenHeightMode(int mode);
