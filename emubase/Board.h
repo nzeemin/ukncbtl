@@ -8,7 +8,7 @@
 class CProcessor;
 class CMemoryController;
 
-//floppy debug
+// Floppy debug constants
 #define FLOPPY_FSM_WAITFORLSB	0
 #define FLOPPY_FSM_WAITFORMSB	1
 #define FLOPPY_FSM_WAITFORTERM1	2
@@ -21,18 +21,17 @@ class CMemoryController;
 #define UKNCIMAGE_HEADER2 0x214C5442  // "BTL!"
 #define UKNCIMAGE_VERSION 0x00010000  // 1.0
 
-
 #define KEYB_RUS		0x01
 #define KEYB_LAT		0x02
 #define KEYB_LOWERREG	0x10
 
-
-typedef struct chan_tag{
+typedef struct chan_tag
+{
 	BYTE	data;
 	BYTE	ready;
 	BYTE	irq;
 	BYTE	rdwr;
-}chan_stc;
+} chan_stc;
 
 // Tape emulator callback used to read a tape recorded data.
 // Input:
@@ -50,6 +49,7 @@ typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, UINT samples);
 typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 
 class CFloppyController;
+class CHardDrive;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -66,6 +66,7 @@ protected:  // Devices
     CMemoryController*  m_pFirstMemCtl;  // CPU memory control
     CMemoryController*  m_pSecondMemCtl;  // PPU memory control
     CFloppyController*  m_pFloppyCtl;  // FDD control
+    CHardDrive* m_pHardDrives[2];  // HDD control
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU; }
     CProcessor*     GetPPU() { return m_pPPU; }
@@ -162,6 +163,10 @@ public:  // System control
 
     BOOL        IsROMCartridgeLoaded(int cartno);
     void        UnloadROMCartridge(int cartno);
+
+    BOOL        AttachHardImage(int slot, LPCTSTR sFileName);
+    void        DetachHardImage(int slot);
+    BOOL        IsHardImageAttached(int slot);
 
 	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);

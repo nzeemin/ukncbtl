@@ -145,6 +145,24 @@ BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* 
     return okResult;
 }
 
+BOOL ShowOpenDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName)
+{
+    *bufFileName = 0;
+    OPENFILENAME ofn;
+    ZeroMemory(&ofn, sizeof(ofn));
+    ofn.lStructSize = sizeof(ofn);
+    ofn.hwndOwner = g_hwnd;
+    ofn.hInstance = g_hInst;
+    ofn.lpstrTitle = strTitle;
+    ofn.lpstrFilter = strFilter;
+    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrFile = bufFileName;
+    ofn.nMaxFile = MAX_PATH;
+
+    BOOL okResult = GetOpenFileName(&ofn);
+    return okResult;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 // Create Disk Dialog

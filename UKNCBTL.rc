@@ -120,8 +120,10 @@ BEGIN
         MENUITEM "Floppy MZ2:",                 ID_EMULATOR_FLOPPY2
         MENUITEM "Floppy MZ3:",                 ID_EMULATOR_FLOPPY3
         MENUITEM SEPARATOR
-        MENUITEM "Cartridge1",                  ID_EMULATOR_CARTRIDGE1
-        MENUITEM "Cartridge2",                  ID_EMULATOR_CARTRIDGE2
+        MENUITEM "Cartridge 1",                 ID_EMULATOR_CARTRIDGE1
+        MENUITEM "Hard Drive 1",                ID_EMULATOR_HARDDRIVE1
+        MENUITEM "Cartridge 2",                 ID_EMULATOR_CARTRIDGE2
+        MENUITEM "Hard Drive 2",                ID_EMULATOR_HARDDRIVE2
     END
     POPUP "Debug"
     BEGIN

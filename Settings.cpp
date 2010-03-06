@@ -17,10 +17,12 @@ BOOL m_Settings_RealSpeed = FALSE;
 BOOL m_Settings_RealSpeed_Valid = FALSE;
 BOOL m_Settings_Sound = FALSE;
 BOOL m_Settings_Sound_Valid = FALSE;
-BOOL m_Settings_Keyboard = FALSE;
+BOOL m_Settings_Keyboard = TRUE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
 BOOL m_Settings_Tape = FALSE;
 BOOL m_Settings_Tape_Valid = FALSE;
+DWORD m_Settings_CartridgeMode = 0;
+BOOL m_Settings_CartridgeMode_Valid = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -96,6 +98,19 @@ void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath)
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
+void Settings_GetHardFilePath(int slot, LPTSTR buffer)
+{
+    TCHAR bufValueName[] = _T("Hard1");
+    bufValueName[4] = slot + _T('1');
+    Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
+}
+void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath)
+{
+    TCHAR bufValueName[] = _T("Hard2");
+    bufValueName[4] = slot + _T('1');
+    Settings_SaveStringValue(bufValueName, sFilePath);
+}
+
 void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[] = _T("Cartridge0");
@@ -107,6 +122,24 @@ void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath)
     TCHAR bufValueName[] = _T("Cartridge0");
     bufValueName[9] = slot + _T('0');
     Settings_SaveStringValue(bufValueName, sFilePath);
+}
+
+void Settings_SetCartridgeMode(DWORD cartridgeMode)
+{
+    m_Settings_CartridgeMode = cartridgeMode;
+    m_Settings_CartridgeMode_Valid = TRUE;
+    Settings_SaveDwordValue(_T("CartridgeMode"), (DWORD) cartridgeMode);
+}
+DWORD Settings_GetCartridgeMode()
+{
+    if (!m_Settings_CartridgeMode_Valid)
+    {
+        DWORD dwValue = (DWORD) 0;
+        Settings_LoadDwordValue(_T("CartridgeMode"), &dwValue);
+        m_Settings_CartridgeMode = dwValue;
+        m_Settings_CartridgeMode_Valid = TRUE;
+    }
+    return m_Settings_CartridgeMode;
 }
 
 void Settings_SetScreenViewMode(int mode)
@@ -220,7 +253,7 @@ BOOL Settings_GetKeyboard()
 {
     if (!m_Settings_Keyboard_Valid)
     {
-        DWORD dwValue = (DWORD) FALSE;
+        DWORD dwValue = (DWORD) TRUE;
         Settings_LoadDwordValue(_T("Keyboard"), &dwValue);
         m_Settings_Keyboard = (BOOL) dwValue;
         m_Settings_Keyboard_Valid = TRUE;

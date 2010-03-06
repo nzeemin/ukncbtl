@@ -46,6 +46,7 @@ void MainWindow_DoFileSaveState();
 void MainWindow_DoFileLoadState();
 void MainWindow_DoEmulatorFloppy(int slot);
 void MainWindow_DoEmulatorCartridge(int slot);
+void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
@@ -106,7 +107,7 @@ BOOL MainWindow_InitToolbar()
     addbitmap.nID = IDB_TOOLBAR;
     SendMessage(m_hwndToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
 
-    TBBUTTON buttons[12];
+    TBBUTTON buttons[14];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -141,17 +142,23 @@ BOOL MainWindow_InitToolbar()
     buttons[7].fsStyle = BTNS_SEP;
     buttons[8].idCommand = ID_EMULATOR_CARTRIDGE1;
     buttons[8].iBitmap = 6;
-    buttons[8].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
-    buttons[8].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("1"));
-    buttons[9].idCommand = ID_EMULATOR_CARTRIDGE2;
-    buttons[9].iBitmap = 6;
+    buttons[8].fsStyle = BTNS_BUTTON;
+    buttons[9].idCommand = ID_EMULATOR_HARDDRIVE1;
+    buttons[9].iBitmap = ToolbarImageHardSlot;
     buttons[9].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
-    buttons[9].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("2"));
-    buttons[10].fsStyle = BTNS_SEP;
-    buttons[11].idCommand = ID_EMULATOR_SOUND;
-    buttons[11].iBitmap = 8;
+    buttons[9].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("1"));
+    buttons[10].idCommand = ID_EMULATOR_CARTRIDGE2;
+    buttons[10].iBitmap = 6;
+    buttons[10].fsStyle = BTNS_BUTTON;
+    buttons[11].idCommand = ID_EMULATOR_HARDDRIVE2;
+    buttons[11].iBitmap = ToolbarImageHardSlot;
     buttons[11].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
-    buttons[11].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
+    buttons[11].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("2"));
+    buttons[12].fsStyle = BTNS_SEP;
+    buttons[13].idCommand = ID_EMULATOR_SOUND;
+    buttons[13].iBitmap = 8;
+    buttons[13].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[13].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 
@@ -211,6 +218,12 @@ void MainWindow_RestoreSettings()
             Emulator_LoadROMCartridge(slot, buf);
             //TODO: If failed to load Then
             //    Settings_SetCartridgeFilePath(slot, NULL);
+
+            Settings_GetHardFilePath(slot, buf);
+            if (lstrlen(buf) > 0)
+            {
+                g_pBoard->AttachHardImage(slot, buf);
+            }
         }
     }
 
@@ -595,6 +608,12 @@ void MainWindow_UpdateMenu()
         g_pBoard->IsROMCartridgeLoaded(1) ? ToolbarImageCartridge : ToolbarImageCartSlot);
     MainWindow_SetToolbarImage(ID_EMULATOR_CARTRIDGE2,
         g_pBoard->IsROMCartridgeLoaded(2) ? ToolbarImageCartridge : ToolbarImageCartSlot);
+    EnableMenuItem(hMenu, ID_EMULATOR_HARDDRIVE1, g_pBoard->IsROMCartridgeLoaded(1) ? MF_ENABLED : MF_DISABLED);
+    EnableMenuItem(hMenu, ID_EMULATOR_HARDDRIVE2, g_pBoard->IsROMCartridgeLoaded(2) ? MF_ENABLED : MF_DISABLED);
+    MainWindow_SetToolbarImage(ID_EMULATOR_HARDDRIVE1,
+        g_pBoard->IsHardImageAttached(1) ? ToolbarImageHardDrive : ToolbarImageHardSlot);
+    MainWindow_SetToolbarImage(ID_EMULATOR_HARDDRIVE2,
+        g_pBoard->IsHardImageAttached(2) ? ToolbarImageHardDrive : ToolbarImageHardSlot);
 }
 
 // Process menu command
@@ -676,6 +695,12 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_EMULATOR_CARTRIDGE2:
         MainWindow_DoEmulatorCartridge(2);
+        break;
+    case ID_EMULATOR_HARDDRIVE1:
+        MainWindow_DoEmulatorHardDrive(1);
+        break;
+    case ID_EMULATOR_HARDDRIVE2:
+        MainWindow_DoEmulatorHardDrive(2);
         break;
     case ID_FILE_LOADSTATE:
         MainWindow_DoFileLoadState();
@@ -893,6 +918,40 @@ void MainWindow_DoEmulatorCartridge(int slot)
         Emulator_LoadROMCartridge(slot, bufFileName);
 
         Settings_SetCartridgeFilePath(slot, bufFileName);
+    }
+    MainWindow_UpdateMenu();
+}
+
+void MainWindow_DoEmulatorHardDrive(int slot)
+{
+    BOOL okLoaded = g_pBoard->IsHardImageAttached(slot);
+    if (okLoaded)
+    {
+        g_pBoard->DetachHardImage(slot);
+        Settings_SetHardFilePath(slot, NULL);
+    }
+    else
+    {
+        // Check if cartridge (HDD ROM image) already selected
+        BOOL okCartLoaded = g_pBoard->IsROMCartridgeLoaded(slot);
+        if (!okCartLoaded)
+        {
+            AlertWarning(_T("Please select HDD ROM image as cartridge first."));
+            return;
+        }
+
+        // Select HDD disk image
+        TCHAR bufFileName[MAX_PATH];
+        BOOL okResult = ShowOpenDialog(g_hwnd,
+            _T("Open HDD image"),
+            _T("UKNC HDD images (*.img)\0*.img\0All Files (*.*)\0*.*\0\0"),
+            bufFileName);
+        if (! okResult) return;
+
+        // Attach HDD disk image
+        g_pBoard->AttachHardImage(slot, bufFileName);
+
+        Settings_SetHardFilePath(slot, bufFileName);
     }
     MainWindow_UpdateMenu();
 }
