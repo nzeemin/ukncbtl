@@ -190,9 +190,11 @@ BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
     ASSERT(slot >= 1 && slot < 2);
 
     m_pHardDrives[slot - 1] = new CHardDrive();
-    //TODO: Set hard drive image
+    BOOL success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
+    if (success)
+        m_pHardDrives[slot - 1]->Reset();
 
-    return TRUE;  //STUB
+    return success;
 }
 void CMotherboard::DetachHardImage(int slot)
 {

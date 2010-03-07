@@ -116,10 +116,21 @@ private:
 //////////////////////////////////////////////////////////////////////
 // CHardDrive
 
+#define IDE_DISK_SECTOR_SIZE			512
+
 class CHardDrive
 {
 protected:
-    HANDLE m_hFile;
+    HANDLE  m_hFile;
+    BYTE    m_status;
+    BYTE    m_error;
+    int     m_numcilynders;    // Cilynder count
+    int     m_numheads;        // Head count
+    int     m_numsectors;      // Sectors per track
+    int     m_curcilynder;
+    int     m_curhead;
+    int     m_cursector;
+    int     m_buffer[IDE_DISK_SECTOR_SIZE];
 
 public:
     CHardDrive();
