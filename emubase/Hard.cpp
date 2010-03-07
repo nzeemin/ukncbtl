@@ -54,50 +54,8 @@ void CHardDrive::Reset()
 {
     m_status = IDE_STATUS_DRIVE_READY | IDE_STATUS_SEEK_COMPLETE;
     m_error = IDE_ERROR_DEFAULT;
+
     //TODO
-}
-
-BOOL CalculateGeometry(DWORD dwFileSize, int* pCilynders, int* pHeads, int* pSectors)
-{
-    if (dwFileSize % 512 != 0)
-        return FALSE;
-    int chs = dwFileSize / 512;
-
-    BOOL okFound = FALSE;
-    for (int heads = 2; heads <= 256; heads += 2)
-    {
-        if (chs % heads != 0) continue;
-        int cs = chs / heads;
-
-        // First, calculate using typical sectors-per-track counts
-        static const int typicalSectors[] = { 63, 17, 34, 54, 26 };
-        for (int i = 0; i < sizeof(typicalSectors) / sizeof(int); i++)
-        {
-            int sectors = typicalSectors[i];
-            if (cs % sectors != 0 || cs / sectors > 1024) continue;
-
-            *pSectors = sectors;
-            *pHeads = heads;
-            *pCilynders = cs / sectors;
-            okFound = TRUE;
-            break;
-        }
-        if (okFound) break;
-        
-        for (int sectors = 16; sectors <= 63; sectors++)
-        {
-            if (cs % sectors != 0 || cs / sectors > 1024) continue;
-
-            *pSectors = sectors;
-            *pHeads = heads;
-            *pCilynders = cs / sectors;
-            okFound = TRUE;
-            break;
-        }
-        if (okFound) break;
-    }
-
-    return okFound;
 }
 
 BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
@@ -110,9 +68,19 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     if (m_hFile == INVALID_HANDLE_VALUE)
         return FALSE;
 
-    // Calculate CHS using file size
+    // Read first sector
     DWORD dwFileSize = ::GetFileSize(m_hFile, NULL);
-    if (!CalculateGeometry(dwFileSize, &m_numcilynders, &m_numheads, &m_numsectors))
+    if (dwFileSize % 512 != 0)
+        return FALSE;
+    DWORD dwBytesRead;
+    if (!::ReadFile(m_hFile, m_buffer, 512, &dwBytesRead, NULL))
+        return FALSE;
+    
+    // Calculate geometry
+    m_numsectors = *(m_buffer + 0);
+    m_numheads   = *(m_buffer + 1);
+    m_numcilynders = dwFileSize / 512 / m_numsectors / m_numheads;
+    if (m_numcilynders == 0 || m_numcilynders > 1024)
         return FALSE;
 
     //TODO
