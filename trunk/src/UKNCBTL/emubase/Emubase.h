@@ -130,7 +130,7 @@ protected:
     int     m_curcilynder;
     int     m_curhead;
     int     m_cursector;
-    int     m_buffer[IDE_DISK_SECTOR_SIZE];
+    BYTE    m_buffer[IDE_DISK_SECTOR_SIZE];
 
 public:
     CHardDrive();
