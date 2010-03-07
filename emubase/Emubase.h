@@ -126,6 +126,10 @@ public:
     void Reset();
     BOOL AttachImage(LPCTSTR sFileName);
     void DetachImage();
+
+public:
+    WORD ReadPort(WORD port);
+    void WritePort(WORD port, WORD data);
 };
 
 //////////////////////////////////////////////////////////////////////

@@ -167,6 +167,8 @@ public:  // System control
     BOOL        AttachHardImage(int slot, LPCTSTR sFileName);
     void        DetachHardImage(int slot);
     BOOL        IsHardImageAttached(int slot);
+    WORD        GetHardPortWord(int slot, WORD port);  // To use from CSecondMemoryController only
+    void        SetHardPortWord(int slot, WORD port, WORD data);  // To use from CSecondMemoryController only
 
 	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
