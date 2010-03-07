@@ -8,6 +8,15 @@
 //////////////////////////////////////////////////////////////////////
 // Constants
 
+#define IDE_PORT_DATA                   0x1f0
+#define IDE_PORT_ERROR                  0x1f1
+#define IDE_PORT_SECTOR_COUNT           0x1f2
+#define IDE_PORT_SECTOR_NUMBER          0x1f3
+#define IDE_PORT_CYLINDER_LSB           0x1f4
+#define IDE_PORT_CYLINDER_MSB           0x1f5
+#define IDE_PORT_HEAD_NUMBER            0x1f6
+#define IDE_PORT_STATUS_COMMAND         0x1f7
+
 #define IDE_STATUS_ERROR				0x01
 #define IDE_STATUS_HIT_INDEX			0x02
 #define IDE_STATUS_BUFFER_READY			0x08
@@ -79,10 +88,11 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     // Calculate geometry
     m_numsectors = *(m_buffer + 0);
     m_numheads   = *(m_buffer + 1);
-    m_numcilynders = dwFileSize / 512 / m_numsectors / m_numheads;
-    if (m_numcilynders == 0 || m_numcilynders > 1024)
+    m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
+    if (m_numcylinders == 0 || m_numcylinders > 1024)
         return FALSE;
 
+    m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_curoffset = 0;
     //TODO
 
     return TRUE;
@@ -98,6 +108,28 @@ void CHardDrive::DetachImage()
     m_hFile = INVALID_HANDLE_VALUE;
 }
 
+// Called from CMotherboard::SystemFrame() every tick
+void CHardDrive::Periodic()
+{
+    // Rotate the disks
+    m_curoffset += 2;
+    if (m_curoffset > 128)
+        m_status &= ~IDE_STATUS_HIT_INDEX;
+
+    if (m_curoffset >= 512)  // Next sector
+    {
+        m_curoffset = 0;
+        m_cursector++;
+        if (m_cursector > m_numsectors)  // First sector (sectors are 1-based)
+        {
+            m_cursector = 1;
+            m_status |= IDE_STATUS_HIT_INDEX;
+        }
+    }
+
+    //TODO
+}
+
 WORD CHardDrive::ReadPort(WORD port)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
@@ -105,10 +137,28 @@ WORD CHardDrive::ReadPort(WORD port)
     WORD data = 0;
     switch (port)
     {
-    case 0x1f1:
+    case IDE_PORT_DATA:
+        //TODO
+        break;
+    case IDE_PORT_ERROR:
         data = m_error;
         break;
-    case 0x1f7:
+    case IDE_PORT_SECTOR_COUNT:
+        //TODO
+        break;
+    case IDE_PORT_SECTOR_NUMBER:
+        data = m_cursector;
+        break;
+    case IDE_PORT_CYLINDER_LSB:
+        data = m_curcylinder & 0xff;
+        break;
+    case IDE_PORT_CYLINDER_MSB:
+        data = m_curcylinder >> 8;
+        break;
+    case IDE_PORT_HEAD_NUMBER:
+        data = m_curheadreg;
+        break;
+    case IDE_PORT_STATUS_COMMAND:
         data = m_status;
         break;
     }
@@ -123,7 +173,53 @@ void CHardDrive::WritePort(WORD port, WORD data)
 
     DebugPrintFormat(_T("HDD WritePort %x %06o\r\n"), port, data);
 
-    //TODO
+    switch (port)
+    {
+    case IDE_PORT_DATA:
+        //TODO
+        break;
+    case IDE_PORT_ERROR:
+        // Writing precompensation value -- ignore
+        break;
+    case IDE_PORT_SECTOR_COUNT:
+        m_sectorcount = (data == 0) ? 256 : data;
+        break;
+    case IDE_PORT_SECTOR_NUMBER:
+        //TODO
+        break;
+    case IDE_PORT_CYLINDER_LSB:
+        m_curcylinder = (m_curcylinder & 0xff00) | (data & 0xff);
+        break;
+    case IDE_PORT_CYLINDER_MSB:
+        m_curcylinder = (m_curcylinder & 0x00ff) | ((data & 0xff) << 8);
+        break;
+    case IDE_PORT_HEAD_NUMBER:
+		m_curhead = data & 0x0f;
+		m_curheadreg = data;
+        break;
+    case IDE_PORT_STATUS_COMMAND:
+        HandleCommand((BYTE)data);
+        break;
+    }
 }
+
+void CHardDrive::HandleCommand(BYTE command)
+{
+    m_command = command;
+    switch (command)
+    {
+        case IDE_COMMAND_READ_MULTIPLE:
+        case IDE_COMMAND_READ_MULTIPLE_ONCE:
+            //TODO
+            break;
+
+        case IDE_COMMAND_READ_MULTIPLE_BLOCK:
+            //TODO
+            break;
+
+        //TODO
+    }
+}
+
 
 //////////////////////////////////////////////////////////////////////
