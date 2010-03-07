@@ -511,6 +511,11 @@ BOOL CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();
         }
 
+        if (m_pHardDrives[0] != NULL)
+            m_pHardDrives[0]->Periodic();
+        if (m_pHardDrives[1] != NULL)
+            m_pHardDrives[1]->Periodic();
+
 		if (frameticks % audioticks == 0) //AUDIO tick
 			DoSound();
 

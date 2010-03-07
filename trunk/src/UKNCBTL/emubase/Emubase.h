@@ -124,12 +124,16 @@ protected:
     HANDLE  m_hFile;
     BYTE    m_status;
     BYTE    m_error;
-    int     m_numcilynders;    // Cilynder count
-    int     m_numheads;        // Head count
-    int     m_numsectors;      // Sectors per track
-    int     m_curcilynder;
+    BYTE    m_command;
+    int     m_numcylinders;     // Cylinder count
+    int     m_numheads;         // Head count
+    int     m_numsectors;       // Sectors per track
+    int     m_curoffset;        // Current offset within sector: 0..511
+    int     m_curcylinder;
     int     m_curhead;
     int     m_cursector;
+    int     m_curheadreg;
+    int     m_sectorcount;
     BYTE    m_buffer[IDE_DISK_SECTOR_SIZE];
 
 public:
@@ -141,6 +145,10 @@ public:
 public:
     WORD ReadPort(WORD port);
     void WritePort(WORD port, WORD data);
+    void Periodic();
+
+private:
+    void HandleCommand(BYTE command);  // Handle IDE command
 };
 
 //////////////////////////////////////////////////////////////////////

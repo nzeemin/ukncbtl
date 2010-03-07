@@ -988,7 +988,8 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 		case 0177717:
 			SetPortWord(address, word);
 			break;
-		default:
+
+        default:
 			m_pProcessor->MemoryError();
 			//ASSERT(0);
 			break;
@@ -1200,7 +1201,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         case 0110002:
         case 0110000:
             //DebugPrintFormat(_T("HDD IO write %06o %06o\r\n"), address, word);
-            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, (address >> 1) & 7, word);
+            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, ~(address >> 1) & 7 | 0x1f0, word);
             break;
 
         default:
