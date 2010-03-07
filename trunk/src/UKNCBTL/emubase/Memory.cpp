@@ -847,8 +847,8 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0110004:
         case 0110002:
         case 0110000:
-            DebugPrintFormat(_T("HDD IO read %06o\r\n"), address);
-            break;
+            //DebugPrintFormat(_T("HDD IO read %06o\r\n"), address);
+            return m_pBoard->GetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, ~(address >> 1) & 7 | 0x1f0);
 
 		default:
             m_pProcessor->MemoryError();
@@ -1164,7 +1164,6 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 #endif
 			break;
 
-
         case 0177710: //timer status
 		case 0177711:
 			m_pBoard->SetTimerState(word);
@@ -1200,7 +1199,8 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         case 0110004:
         case 0110002:
         case 0110000:
-            DebugPrintFormat(_T("HDD IO write %06o %06o\r\n"), address, word);
+            //DebugPrintFormat(_T("HDD IO write %06o %06o\r\n"), address, word);
+            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, (address >> 1) & 7, word);
             break;
 
         default:
@@ -1290,6 +1290,8 @@ void CSecondMemoryController::Init_177716()
 {
 	m_Port177716 &= 0117461;
 }
+
+
 //////////////////////////////////////////////////////////////////////
 //
 // PPU memory/IO controller image format (64 bytes):

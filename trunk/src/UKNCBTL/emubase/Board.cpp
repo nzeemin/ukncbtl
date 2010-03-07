@@ -194,14 +194,27 @@ BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
 
     return TRUE;  //STUB
 }
-
 void CMotherboard::DetachHardImage(int slot)
 {
     ASSERT(slot >= 1 && slot < 2);
 
     delete m_pHardDrives[slot - 1];
     m_pHardDrives[slot - 1] = NULL;
-    //TODO
+}
+
+WORD CMotherboard::GetHardPortWord(int slot, WORD port)
+{
+    ASSERT(slot >= 1 && slot < 2);
+
+    if (m_pHardDrives[slot - 1] == NULL) return 0;
+    return m_pHardDrives[slot - 1]->ReadPort(port);
+}
+void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
+{
+    ASSERT(slot >= 1 && slot < 2);
+
+    if (m_pHardDrives[slot - 1] == NULL) return;
+    m_pHardDrives[slot - 1]->WritePort(port, data);
 }
 
 

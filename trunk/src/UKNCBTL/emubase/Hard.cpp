@@ -74,5 +74,23 @@ void CHardDrive::DetachImage()
     m_hFile = INVALID_HANDLE_VALUE;
 }
 
+WORD CHardDrive::ReadPort(WORD port)
+{
+    ASSERT(port >= 0x1F0 && port <= 0x1F7);
+
+    WORD data = 0;  // STUB
+
+    DebugPrintFormat(_T("HDD ReadPort %x %06o\r\n"), port, data);
+    return data;
+}
+
+void CHardDrive::WritePort(WORD port, WORD data)
+{
+    ASSERT(port >= 0x1F0 && port <= 0x1F7);
+
+    DebugPrintFormat(_T("HDD WritePort %x %06o\r\n"), port, data);
+
+    //TODO
+}
 
 //////////////////////////////////////////////////////////////////////
