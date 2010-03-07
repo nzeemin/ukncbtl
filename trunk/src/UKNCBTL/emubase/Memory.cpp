@@ -633,12 +633,17 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOO
             }
 			else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
 			{
-				int bank = (m_Port177054 & 6) >> 1;
-				*pOffset = address - 0100000 + ((bank - 1) << 13);
-				if ((m_Port177054 & 8) == 0)
-					return ADDRTYPE_ROMCART1;
-				else
-					return ADDRTYPE_ROMCART2;
+                int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
+                if (m_pBoard->IsHardImageAttached(slot) && address >= 0110000)
+                {
+                    return ADDRTYPE_IO;  // 110000-117777 - HDD ports
+                }
+                else
+                {
+				    int bank = (m_Port177054 & 6) >> 1;
+				    *pOffset = address - 0100000 + ((bank - 1) << 13);
+				    return (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
+                }
 			}
             return ADDRTYPE_NONE;
         }
@@ -832,13 +837,24 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 			//wsprintf(str,_T("FDD DATA  R %s, %04x\r\n"), oct1, value);
 			//DebugLog(str);
 			return value;
-		default:
-			m_pProcessor->MemoryError();
-			break;
-        //TODO
 
+        // HDD ports
+        case 0110016:
+        case 0110014:
+        case 0110012:
+        case 0110010:
+        case 0110006:
+        case 0110004:
+        case 0110002:
+        case 0110000:
+            DebugPrintFormat(_T("HDD IO read %06o\r\n"), address);
+            break;
+
+		default:
+            m_pProcessor->MemoryError();
+			break;
     }
-//	ASSERT(0);
+
     return 0; 
 }
 
@@ -1174,7 +1190,20 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 			m_Port177716 |= word;
 			m_pBoard->SetSound(word);
             break;
-		default:
+
+        // HDD ports
+        case 0110016:
+        case 0110014:
+        case 0110012:
+        case 0110010:
+        case 0110006:
+        case 0110004:
+        case 0110002:
+        case 0110000:
+            DebugPrintFormat(_T("HDD IO write %06o %06o\r\n"), address, word);
+            break;
+
+        default:
 			m_pProcessor->MemoryError();
 			//ASSERT(0);
 			break;

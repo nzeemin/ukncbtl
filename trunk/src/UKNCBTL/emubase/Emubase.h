@@ -118,9 +118,14 @@ private:
 
 class CHardDrive
 {
+protected:
+    HANDLE m_hFile;
+
 public:
     CHardDrive();
     void Reset();
+    BOOL AttachImage(LPCTSTR sFileName);
+    void DetachImage();
 };
 
 //////////////////////////////////////////////////////////////////////
