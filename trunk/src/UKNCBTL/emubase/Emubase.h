@@ -153,8 +153,10 @@ private:
     DWORD CalculateOffset();  // Calculate sector offset in the HDD image
     void HandleCommand(BYTE command);  // Handle IDE command
     void ReadFirstSector();
+    void ReadNextSector();
     void ReadSectorDone();
     void NextSector();
+    void ContinueRead();
 };
 
 //////////////////////////////////////////////////////////////////////
