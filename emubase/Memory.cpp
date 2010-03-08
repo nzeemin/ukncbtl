@@ -138,10 +138,7 @@ BYTE CMemoryController::GetByte(WORD address, BOOL okHaltMode)
 
 void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
 {
-
     WORD offset;
-	
-
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
 	//ASSERT( (address!=0157552) || (word!=0157272));
@@ -179,7 +176,6 @@ void CMemoryController::SetByte(WORD address, BOOL okHaltMode, BYTE byte)
 {
     WORD offset;
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
-
 
     switch (addrtype)
     {
@@ -363,7 +359,6 @@ WORD CFirstMemoryController::GetPortView(WORD address)
     switch (address) {
         case 0176640:  return m_Port176640;  // Plane address register
         case 0176642:  return m_Port176642;  // Plane 1 & 2 data register
-
 
         //TODO
 
@@ -636,6 +631,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOO
                 int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
                 if (m_pBoard->IsHardImageAttached(slot) && address >= 0110000)
                 {
+                    *pOffset = address;
                     return ADDRTYPE_IO;  // 110000-117777 - HDD ports
                 }
                 else

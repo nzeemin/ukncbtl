@@ -76,6 +76,8 @@ CMotherboard::~CMotherboard ()
     ::LocalFree(m_pROM);
     if (m_pROMCart[0] != NULL) ::LocalFree(m_pROMCart[0]);
     if (m_pROMCart[1] != NULL) ::LocalFree(m_pROMCart[1]);
+    if (m_pHardDrives[0] != NULL) delete m_pHardDrives[0];
+    if (m_pHardDrives[1] != NULL) delete m_pHardDrives[1];
 }
 
 void CMotherboard::Reset () 

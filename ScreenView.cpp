@@ -482,10 +482,10 @@ void ScreenView_ScanKeyboard()
                     ScreenView_PutKeyEventToQueue(keyevent);
                 }
 
-    #if !defined(PRODUCT)
-                    TCHAR bufoct[7];  PrintOctalValue(bufoct, ukncscan);
-                    DebugPrintFormat(_T("KeyEvent: pc:0x%02x uknc:%s %x\r\n"), scan, bufoct, (newstate & 128) != 0);
-    #endif
+    //#if !defined(PRODUCT)
+    //                TCHAR bufoct[7];  PrintOctalValue(bufoct, ukncscan);
+    //                DebugPrintFormat(_T("KeyEvent: pc:0x%02x uknc:%s %x\r\n"), scan, bufoct, (newstate & 128) != 0);
+    //#endif
             }
         }
 
