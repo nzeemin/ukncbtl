@@ -140,6 +140,7 @@ protected:
 
 public:
     CHardDrive();
+    ~CHardDrive();
     void Reset();
     BOOL AttachImage(LPCTSTR sFileName);
     void DetachImage();

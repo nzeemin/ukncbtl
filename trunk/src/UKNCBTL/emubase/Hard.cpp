@@ -55,6 +55,11 @@ CHardDrive::CHardDrive()
     m_timeoutcount = m_timeoutevent = 0;
 }
 
+CHardDrive::~CHardDrive()
+{
+    DetachImage();
+}
+
 void CHardDrive::Reset()
 {
     DebugPrint(_T("HDD Reset\r\n"));
