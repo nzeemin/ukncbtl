@@ -27,6 +27,7 @@
 #define IDE_STATUS_BUSY					0x80
 
 #define IDE_COMMAND_READ_MULTIPLE       0x20
+#define IDE_COMMAND_SET_CONFIG          0x91
 
 #define IDE_ERROR_NONE					0x00
 #define IDE_ERROR_DEFAULT				0x01
@@ -125,7 +126,8 @@ WORD CHardDrive::ReadPort(WORD port)
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
                 DebugPrint(_T("HDD Read sector complete\r\n"));
-                //TODO
+
+                ContinueRead();
             }
         }
         break;
@@ -133,7 +135,7 @@ WORD CHardDrive::ReadPort(WORD port)
         data = m_error;
         break;
     case IDE_PORT_SECTOR_COUNT:
-        //TODO
+        data = m_sectorcount;
         break;
     case IDE_PORT_SECTOR_NUMBER:
         data = m_cursector;
@@ -152,7 +154,7 @@ WORD CHardDrive::ReadPort(WORD port)
         break;
     }
 
-    DebugPrintFormat(_T("HDD Read  %x     0x%04x\r\n"), port, data);
+    //DebugPrintFormat(_T("HDD Read  %x     0x%04x\r\n"), port, data);
     return data;
 }
 
@@ -228,12 +230,25 @@ void CHardDrive::HandleCommand(BYTE command)
     switch (command)
     {
         case IDE_COMMAND_READ_MULTIPLE:
-            DebugPrintFormat(_T("HDD COMMAND 20h: C=%d, H=%d, S=%d, cnt=%d\r\n"), m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-
+            DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
             ReadFirstSector();
             break;
 
-        //TODO
+        case IDE_COMMAND_SET_CONFIG:
+            DebugPrintFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
+                    command, m_curhead, m_sectorcount);
+            m_numsectors = m_sectorcount;
+            m_numheads = m_curhead + 1;
+            break;
+
+        default:
+#if !defined(PRODUCT)
+            DebugPrintFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+            DebugBreak();  // Implement this IDE command!
+#endif
+            break;
     }
 }
 
@@ -245,10 +260,17 @@ DWORD CHardDrive::CalculateOffset()
 
 void CHardDrive::ReadFirstSector()
 {
-    m_status &= ~IDE_STATUS_DRIVE_READY;
     m_status |= IDE_STATUS_BUSY;
 
     m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
+    m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
+}
+
+void CHardDrive::ReadNextSector()
+{
+    m_status |= IDE_STATUS_BUSY;
+
+    m_timeoutcount = TIME_PER_SECTOR * 2;  // Timeout while seek for next sector
     m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
 }
 
@@ -277,11 +299,13 @@ void CHardDrive::ReadSectorDone()
 
     m_error = IDE_ERROR_NONE;
     m_bufferoffset = 0;
+
+    //TODO: if m_verifyonly then ContinueRead();
 }
 
 void CHardDrive::NextSector()
 {
-    // Advance to the next sector
+    // Advance to the next sector, CHS-based
     m_cursector++;
     if (m_cursector > m_numsectors)  // Sectors are 1-based
     {
@@ -293,6 +317,19 @@ void CHardDrive::NextSector()
             m_curcylinder++;
         }
     }
+}
+
+void CHardDrive::ContinueRead()
+{
+    m_bufferoffset = 0;
+
+    m_status &= ~IDE_STATUS_BUFFER_READY;
+    m_status &= ~IDE_STATUS_BUSY;
+
+    if (m_sectorcount > 0)
+        m_sectorcount--;
+    if (m_sectorcount > 0)
+        ReadNextSector();
 }
 
 
