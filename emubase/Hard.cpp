@@ -8,6 +8,8 @@
 //////////////////////////////////////////////////////////////////////
 // Constants
 
+#define TIME_PER_SECTOR					(IDE_DISK_SECTOR_SIZE / 2)
+
 #define IDE_PORT_DATA                   0x1f0
 #define IDE_PORT_ERROR                  0x1f1
 #define IDE_PORT_SECTOR_COUNT           0x1f2
@@ -24,23 +26,7 @@
 #define IDE_STATUS_DRIVE_READY			0x40
 #define IDE_STATUS_BUSY					0x80
 
-#define IDE_COMMAND_READ_MULTIPLE		0x20
-#define IDE_COMMAND_READ_MULTIPLE_ONCE	0x21
-#define IDE_COMMAND_WRITE_MULTIPLE		0x30
-#define IDE_COMMAND_SET_CONFIG			0x91
-#define IDE_COMMAND_READ_MULTIPLE_BLOCK	0xc4
-#define IDE_COMMAND_WRITE_MULTIPLE_BLOCK 0xc5
-#define IDE_COMMAND_SET_BLOCK_COUNT		0xc6
-#define IDE_COMMAND_READ_DMA			0xc8
-#define IDE_COMMAND_WRITE_DMA			0xca
-#define IDE_COMMAND_GET_INFO			0xec
-#define IDE_COMMAND_SET_FEATURES		0xef
-#define IDE_COMMAND_SECURITY_UNLOCK		0xf2
-#define IDE_COMMAND_UNKNOWN_F9			0xf9
-#define IDE_COMMAND_VERIFY_MULTIPLE		0x40
-#define IDE_COMMAND_ATAPI_IDENTIFY		0xa1
-#define IDE_COMMAND_RECALIBRATE			0x10
-#define IDE_COMMAND_IDLE_IMMEDIATE		0xe1
+#define IDE_COMMAND_READ_MULTIPLE       0x20
 
 #define IDE_ERROR_NONE					0x00
 #define IDE_ERROR_DEFAULT				0x01
@@ -48,6 +34,12 @@
 #define IDE_ERROR_BAD_LOCATION			0x10
 #define IDE_ERROR_BAD_SECTOR			0x80
 
+enum TimeoutEvent
+{
+    TIMEEVT_NONE = 0,
+    TIMEEVT_RESET_DONE = 1,
+    TIMEEVT_READ_SECTOR_DONE = 2,
+};
 
 //////////////////////////////////////////////////////////////////////
 
@@ -56,15 +48,21 @@ CHardDrive::CHardDrive()
 {
     m_hFile = INVALID_HANDLE_VALUE;
 
-    m_status = m_error = 0;
+    m_status = IDE_STATUS_BUSY;
+    m_error = IDE_ERROR_NONE;
+    m_command = 0;
+    m_timeoutcount = m_timeoutevent = 0;
 }
 
 void CHardDrive::Reset()
 {
-    m_status = IDE_STATUS_DRIVE_READY | IDE_STATUS_SEEK_COMPLETE;
-    m_error = IDE_ERROR_DEFAULT;
+    DebugPrint(_T("HDD Reset\r\n"));
 
-    //TODO
+    m_status = IDE_STATUS_BUSY;
+    m_error = IDE_ERROR_NONE;
+    m_command = 0;
+    m_timeoutcount = 2;
+    m_timeoutevent = TIMEEVT_RESET_DONE;
 }
 
 BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
@@ -92,8 +90,10 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     if (m_numcylinders == 0 || m_numcylinders > 1024)
         return FALSE;
 
-    m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_curoffset = 0;
-    //TODO
+    m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
+
+    m_status = IDE_STATUS_BUSY;
+    m_error = IDE_ERROR_NONE;
 
     return TRUE;
 }
@@ -108,28 +108,6 @@ void CHardDrive::DetachImage()
     m_hFile = INVALID_HANDLE_VALUE;
 }
 
-// Called from CMotherboard::SystemFrame() every tick
-void CHardDrive::Periodic()
-{
-    // Rotate the disks
-    m_curoffset += 2;
-    if (m_curoffset > 128)
-        m_status &= ~IDE_STATUS_HIT_INDEX;
-
-    if (m_curoffset >= 512)  // Next sector
-    {
-        m_curoffset = 0;
-        m_cursector++;
-        if (m_cursector > m_numsectors)  // First sector (sectors are 1-based)
-        {
-            m_cursector = 1;
-            m_status |= IDE_STATUS_HIT_INDEX;
-        }
-    }
-
-    //TODO
-}
-
 WORD CHardDrive::ReadPort(WORD port)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
@@ -138,7 +116,18 @@ WORD CHardDrive::ReadPort(WORD port)
     switch (port)
     {
     case IDE_PORT_DATA:
-        //TODO
+        if (m_status & IDE_STATUS_BUFFER_READY)
+        {
+            data = *((WORD*)(m_buffer + m_bufferoffset));
+            data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
+            m_bufferoffset += 2;
+
+            if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
+            {
+                DebugPrint(_T("HDD Read sector complete\r\n"));
+                //TODO
+            }
+        }
         break;
     case IDE_PORT_ERROR:
         data = m_error;
@@ -153,7 +142,7 @@ WORD CHardDrive::ReadPort(WORD port)
         data = m_curcylinder & 0xff;
         break;
     case IDE_PORT_CYLINDER_MSB:
-        data = m_curcylinder >> 8;
+        data = (m_curcylinder >> 8) & 0xff;
         break;
     case IDE_PORT_HEAD_NUMBER:
         data = m_curheadreg;
@@ -163,7 +152,7 @@ WORD CHardDrive::ReadPort(WORD port)
         break;
     }
 
-    DebugPrintFormat(_T("HDD ReadPort %x %06o\r\n"), port, data);
+    DebugPrintFormat(_T("HDD Read  %x     0x%04x\r\n"), port, data);
     return data;
 }
 
@@ -171,7 +160,7 @@ void CHardDrive::WritePort(WORD port, WORD data)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
-    DebugPrintFormat(_T("HDD WritePort %x %06o\r\n"), port, data);
+    DebugPrintFormat(_T("HDD Write %x <-- 0x%04x\r\n"), port, data);
 
     switch (port)
     {
@@ -182,24 +171,54 @@ void CHardDrive::WritePort(WORD port, WORD data)
         // Writing precompensation value -- ignore
         break;
     case IDE_PORT_SECTOR_COUNT:
+        data &= 0x0ff;
         m_sectorcount = (data == 0) ? 256 : data;
         break;
     case IDE_PORT_SECTOR_NUMBER:
-        //TODO
+        data &= 0x0ff;
+        m_cursector = data;
         break;
     case IDE_PORT_CYLINDER_LSB:
+        data &= 0x0ff;
         m_curcylinder = (m_curcylinder & 0xff00) | (data & 0xff);
         break;
     case IDE_PORT_CYLINDER_MSB:
+        data &= 0x0ff;
         m_curcylinder = (m_curcylinder & 0x00ff) | ((data & 0xff) << 8);
         break;
     case IDE_PORT_HEAD_NUMBER:
+        data &= 0x0ff;
 		m_curhead = data & 0x0f;
 		m_curheadreg = data;
         break;
     case IDE_PORT_STATUS_COMMAND:
+        data &= 0x0ff;
         HandleCommand((BYTE)data);
         break;
+    }
+}
+
+// Called from CMotherboard::SystemFrame() every tick
+void CHardDrive::Periodic()
+{
+    if (m_timeoutcount > 0)
+    {
+        m_timeoutcount--;
+        if (m_timeoutcount == 0)
+        {
+            int evt = m_timeoutevent;
+            m_timeoutevent = TIMEEVT_NONE;
+            switch (evt)
+            {
+            case TIMEEVT_RESET_DONE:
+                m_status &= ~IDE_STATUS_BUSY;
+                m_status |= IDE_STATUS_DRIVE_READY | IDE_STATUS_SEEK_COMPLETE;
+                break;
+            case TIMEEVT_READ_SECTOR_DONE:
+                ReadSectorDone();
+                break;
+            }
+        }
     }
 }
 
@@ -209,15 +228,70 @@ void CHardDrive::HandleCommand(BYTE command)
     switch (command)
     {
         case IDE_COMMAND_READ_MULTIPLE:
-        case IDE_COMMAND_READ_MULTIPLE_ONCE:
-            //TODO
-            break;
+            DebugPrintFormat(_T("HDD COMMAND 20h: C=%d, H=%d, S=%d, cnt=%d\r\n"), m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
-        case IDE_COMMAND_READ_MULTIPLE_BLOCK:
-            //TODO
+            ReadFirstSector();
             break;
 
         //TODO
+    }
+}
+
+DWORD CHardDrive::CalculateOffset()
+{
+    int sector = (m_curcylinder * m_numheads + m_curhead) * m_numsectors + (m_cursector - 1);
+    return sector * IDE_DISK_SECTOR_SIZE;
+}
+
+void CHardDrive::ReadFirstSector()
+{
+    m_status &= ~IDE_STATUS_DRIVE_READY;
+    m_status |= IDE_STATUS_BUSY;
+
+    m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
+    m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
+}
+
+void CHardDrive::ReadSectorDone()
+{
+    m_status &= ~IDE_STATUS_BUSY;
+    m_status &= ~IDE_STATUS_ERROR;
+    m_status |= IDE_STATUS_BUFFER_READY;
+    m_status |= IDE_STATUS_SEEK_COMPLETE;
+
+    // Read sector from HDD image to the buffer
+    DWORD fileOffset = CalculateOffset();
+    ::SetFilePointer(m_hFile, fileOffset, NULL, FILE_BEGIN);
+    DWORD dwBytesRead;
+    if (!::ReadFile(m_hFile, m_buffer, IDE_DISK_SECTOR_SIZE, &dwBytesRead, NULL))
+    {
+        m_status |= IDE_STATUS_ERROR;
+        m_error = IDE_ERROR_BAD_SECTOR;
+        return;
+    }
+
+    if (m_sectorcount != 1)
+    {
+        NextSector();
+    }
+
+    m_error = IDE_ERROR_NONE;
+    m_bufferoffset = 0;
+}
+
+void CHardDrive::NextSector()
+{
+    // Advance to the next sector
+    m_cursector++;
+    if (m_cursector > m_numsectors)  // Sectors are 1-based
+    {
+        m_cursector = 0;
+        m_curhead++;
+        if (m_curhead >= m_numheads)
+        {
+            m_curhead = 0;
+            m_curcylinder++;
+        }
     }
 }
 

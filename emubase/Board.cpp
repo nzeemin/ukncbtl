@@ -84,8 +84,11 @@ void CMotherboard::Reset ()
 	m_pPPU->SetACLOPin(TRUE);
 
     ResetFloppy();
-    //m_pFirstMemCtl->Reset();
-    //m_pSecondMemCtl->Reset();
+
+    if (m_pHardDrives[0] != NULL)
+        m_pHardDrives[0]->Reset();
+    if (m_pHardDrives[1] != NULL)
+        m_pHardDrives[1]->Reset();
 
     m_cputicks = 0;
     m_pputicks = 0;
@@ -181,13 +184,13 @@ void CMotherboard::UnloadROMCartridge(int cartno)
 
 BOOL CMotherboard::IsHardImageAttached(int slot)
 {
-    ASSERT(slot >= 1 && slot < 2);
+    ASSERT(slot >= 1 && slot <= 2);
     return (m_pHardDrives[slot - 1] != NULL);
 }
 
 BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
 {
-    ASSERT(slot >= 1 && slot < 2);
+    ASSERT(slot >= 1 && slot <= 2);
 
     m_pHardDrives[slot - 1] = new CHardDrive();
     BOOL success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
@@ -198,7 +201,7 @@ BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
 }
 void CMotherboard::DetachHardImage(int slot)
 {
-    ASSERT(slot >= 1 && slot < 2);
+    ASSERT(slot >= 1 && slot <= 2);
 
     delete m_pHardDrives[slot - 1];
     m_pHardDrives[slot - 1] = NULL;
@@ -206,16 +209,20 @@ void CMotherboard::DetachHardImage(int slot)
 
 WORD CMotherboard::GetHardPortWord(int slot, WORD port)
 {
-    ASSERT(slot >= 1 && slot < 2);
+    ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return 0;
-    return m_pHardDrives[slot - 1]->ReadPort(port);
+    port = ~(port >> 1) & 7 | 0x1f0;
+    WORD data = m_pHardDrives[slot - 1]->ReadPort(port);
+    return ~data;  // QBUS inverts the bits
 }
 void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
 {
-    ASSERT(slot >= 1 && slot < 2);
+    ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return;
+    port = ~(port >> 1) & 7 | 0x1f0;
+    data = ~data;  // QBUS inverts the bits
     m_pHardDrives[slot - 1]->WritePort(port, data);
 }
 

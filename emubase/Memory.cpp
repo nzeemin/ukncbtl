@@ -847,8 +847,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0110004:
         case 0110002:
         case 0110000:
-            //DebugPrintFormat(_T("HDD IO read %06o\r\n"), address);
-            return m_pBoard->GetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, ~(address >> 1) & 7 | 0x1f0);
+            return m_pBoard->GetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address);
 
 		default:
             m_pProcessor->MemoryError();
@@ -1200,8 +1199,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         case 0110004:
         case 0110002:
         case 0110000:
-            //DebugPrintFormat(_T("HDD IO write %06o %06o\r\n"), address, word);
-            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, ~(address >> 1) & 7 | 0x1f0, word);
+            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address, word);
             break;
 
         default:
