@@ -128,13 +128,15 @@ protected:
     int     m_numcylinders;     // Cylinder count
     int     m_numheads;         // Head count
     int     m_numsectors;       // Sectors per track
-    int     m_curoffset;        // Current offset within sector: 0..511
     int     m_curcylinder;
     int     m_curhead;
     int     m_cursector;
     int     m_curheadreg;
     int     m_sectorcount;
     BYTE    m_buffer[IDE_DISK_SECTOR_SIZE];
+    int     m_bufferoffset;        // Current offset within sector: 0..511
+    int     m_timeoutcount;     // Timeout counter to wait for the next event
+    int     m_timeoutevent;
 
 public:
     CHardDrive();
@@ -148,7 +150,11 @@ public:
     void Periodic();
 
 private:
+    DWORD CalculateOffset();  // Calculate sector offset in the HDD image
     void HandleCommand(BYTE command);  // Handle IDE command
+    void ReadFirstSector();
+    void ReadSectorDone();
+    void NextSector();
 };
 
 //////////////////////////////////////////////////////////////////////
