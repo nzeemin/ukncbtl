@@ -53,6 +53,7 @@ CHardDrive::CHardDrive()
     m_error = IDE_ERROR_NONE;
     m_command = 0;
     m_timeoutcount = m_timeoutevent = 0;
+    m_sectorcount = 0;
 }
 
 CHardDrive::~CHardDrive()
@@ -137,25 +138,25 @@ WORD CHardDrive::ReadPort(WORD port)
         }
         break;
     case IDE_PORT_ERROR:
-        data = m_error;
+        data = 0xff00 | m_error;
         break;
     case IDE_PORT_SECTOR_COUNT:
-        data = m_sectorcount;
+        data = 0xff00 | m_sectorcount;
         break;
     case IDE_PORT_SECTOR_NUMBER:
-        data = m_cursector;
+        data = 0xff00 | m_cursector;
         break;
     case IDE_PORT_CYLINDER_LSB:
-        data = m_curcylinder & 0xff;
+        data = 0xff00 | m_curcylinder & 0xff;
         break;
     case IDE_PORT_CYLINDER_MSB:
-        data = (m_curcylinder >> 8) & 0xff;
+        data = 0xff00 | (m_curcylinder >> 8) & 0xff;
         break;
     case IDE_PORT_HEAD_NUMBER:
-        data = m_curheadreg;
+        data = 0xff00 | m_curheadreg;
         break;
     case IDE_PORT_STATUS_COMMAND:
-        data = m_status;
+        data = 0xff00 | m_status;
         break;
     }
 
@@ -297,7 +298,10 @@ void CHardDrive::ReadSectorDone()
         return;
     }
 
-    if (m_sectorcount != 1)
+    if (m_sectorcount > 0)
+        m_sectorcount--;
+
+    if (m_sectorcount > 0)
     {
         NextSector();
     }
@@ -331,8 +335,6 @@ void CHardDrive::ContinueRead()
     m_status &= ~IDE_STATUS_BUFFER_READY;
     m_status &= ~IDE_STATUS_BUSY;
 
-    if (m_sectorcount > 0)
-        m_sectorcount--;
     if (m_sectorcount > 0)
         ReadNextSector();
 }
