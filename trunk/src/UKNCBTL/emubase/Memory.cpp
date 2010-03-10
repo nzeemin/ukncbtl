@@ -318,6 +318,10 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
 		case 0176667:
 		case 0176676:
 		case 0176677:
+		case 0176670:
+		case 0176671:
+		case 0176672:
+		case 0176673:
 			return 0;
 
 		case 0176560: //network 
@@ -415,7 +419,7 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 			break;
 		case 0176662:
 		case 0176663:
-			return ;
+			break ;
 		case 0176664:
 			m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
 			break;
@@ -439,6 +443,11 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 			break;
 		case 0176677:
 			m_pBoard->ChanWriteByCPU(2, 0);
+			break;
+		case 0176670:
+		case 0176671:
+		case 0176672:
+		case 0176673:
 			break;
 
 		case 0176560: //network 
@@ -505,7 +514,7 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 			break;
 		case 0176662:
 		case 0176663:
-			return ;
+			break ;
 		case 0176664:
 		case 0176665:
 			m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
@@ -521,6 +530,11 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 		case 0176676:  // TX data, channel 2
 		case 0176677:
 			m_pBoard->ChanWriteByCPU(2, (BYTE) word);
+			break;
+		case 0176670:
+		case 0176671:
+		case 0176672:
+		case 0176673:
 			break;
 
 		case 0176560: //network 
@@ -862,6 +876,8 @@ BYTE CSecondMemoryController::GetPortByte(WORD address)
 void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 {
 	WORD word = (address&1)?((WORD)byte) << 8:(WORD)byte;
+    if ((address>=0110000) && (address<0120000))
+		address &= 0110016;
 	switch (address) {
 		case 0177010:
 		case 0177011:
@@ -984,6 +1000,18 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 			SetPortWord(address, word);
 			break;
 
+			// HDD ports
+        case 0110016:
+        case 0110014:
+        case 0110012:
+        case 0110010:
+        case 0110006:
+        case 0110004:
+        case 0110002:
+        case 0110000:
+            m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address, word);
+            break;
+
         default:
 			m_pProcessor->MemoryError();
 			//ASSERT(0);
@@ -1003,7 +1031,9 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 //    TCHAR str[1024];
 #endif
 
-    switch (address) {
+    if ((address>=0110000) && (address<0120000))
+		address &= 0110016;
+	switch (address) {
         case 0177010:  // Plane address register
 		case 0177011:
 			m_Port177010 = word;
