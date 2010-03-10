@@ -63,7 +63,9 @@ CHardDrive::~CHardDrive()
 
 void CHardDrive::Reset()
 {
+#if !defined(PRODUCT)
     DebugPrint(_T("HDD Reset\r\n"));
+#endif
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
@@ -131,8 +133,9 @@ WORD CHardDrive::ReadPort(WORD port)
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
+#if !defined(PRODUCT)
                 DebugPrint(_T("HDD Read sector complete\r\n"));
-
+#endif
                 ContinueRead();
             }
         }
@@ -168,7 +171,9 @@ void CHardDrive::WritePort(WORD port, WORD data)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
+#if !defined(PRODUCT)
     DebugPrintFormat(_T("HDD Write %x <-- 0x%04x\r\n"), port, data);
+#endif
 
     switch (port)
     {
@@ -236,14 +241,18 @@ void CHardDrive::HandleCommand(BYTE command)
     switch (command)
     {
         case IDE_COMMAND_READ_MULTIPLE:
+#if !defined(PRODUCT)
             DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
                     command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+#endif
             ReadFirstSector();
             break;
 
         case IDE_COMMAND_SET_CONFIG:
+#if !defined(PRODUCT)
             DebugPrintFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
                     command, m_curhead, m_sectorcount);
+#endif
             m_numsectors = m_sectorcount;
             m_numheads = m_curhead + 1;
             break;
@@ -318,7 +327,7 @@ void CHardDrive::NextSector()
     m_cursector++;
     if (m_cursector > m_numsectors)  // Sectors are 1-based
     {
-        m_cursector = 0;
+        m_cursector = 1;
         m_curhead++;
         if (m_curhead >= m_numheads)
         {
