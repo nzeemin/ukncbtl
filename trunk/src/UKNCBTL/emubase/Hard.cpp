@@ -28,6 +28,7 @@
 
 #define IDE_COMMAND_READ_MULTIPLE       0x20
 #define IDE_COMMAND_SET_CONFIG          0x91
+#define IDE_COMMAND_WRITE_MULTIPLE      0x30
 
 #define IDE_ERROR_NONE					0x00
 #define IDE_ERROR_DEFAULT				0x01
@@ -40,6 +41,7 @@ enum TimeoutEvent
     TIMEEVT_NONE = 0,
     TIMEEVT_RESET_DONE = 1,
     TIMEEVT_READ_SECTOR_DONE = 2,
+    TIMEEVT_WRITE_SECTOR_DONE = 3,
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -171,14 +173,26 @@ void CHardDrive::WritePort(WORD port, WORD data)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
-#if !defined(PRODUCT)
-    DebugPrintFormat(_T("HDD Write %x <-- 0x%04x\r\n"), port, data);
-#endif
+//#if !defined(PRODUCT)
+//    DebugPrintFormat(_T("HDD Write %x <-- 0x%04x\r\n"), port, data);
+//#endif
 
     switch (port)
     {
     case IDE_PORT_DATA:
-        //TODO
+        if (m_status & IDE_STATUS_BUFFER_READY)
+        {
+            data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
+            *((WORD*)(m_buffer + m_bufferoffset)) = data;
+            m_bufferoffset += 2;
+
+            if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
+            {
+                m_status &= ~IDE_STATUS_BUFFER_READY;
+
+                ContinueWrite();
+            }
+        }
         break;
     case IDE_PORT_ERROR:
         // Writing precompensation value -- ignore
@@ -230,6 +244,9 @@ void CHardDrive::Periodic()
             case TIMEEVT_READ_SECTOR_DONE:
                 ReadSectorDone();
                 break;
+            case TIMEEVT_WRITE_SECTOR_DONE:
+                WriteSectorDone();
+                break;
             }
         }
     }
@@ -245,7 +262,10 @@ void CHardDrive::HandleCommand(BYTE command)
             DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
                     command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 #endif
-            ReadFirstSector();
+            m_status |= IDE_STATUS_BUSY;
+
+            m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
+            m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
             break;
 
         case IDE_COMMAND_SET_CONFIG:
@@ -255,6 +275,15 @@ void CHardDrive::HandleCommand(BYTE command)
 #endif
             m_numsectors = m_sectorcount;
             m_numheads = m_curhead + 1;
+            break;
+
+        case IDE_COMMAND_WRITE_MULTIPLE:
+#if !defined(PRODUCT)
+            DebugPrintFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+#endif
+            m_bufferoffset = 0;
+            m_status |= IDE_STATUS_BUFFER_READY;
             break;
 
         default:
@@ -271,14 +300,6 @@ DWORD CHardDrive::CalculateOffset()
 {
     int sector = (m_curcylinder * m_numheads + m_curhead) * m_numsectors + (m_cursector - 1);
     return sector * IDE_DISK_SECTOR_SIZE;
-}
-
-void CHardDrive::ReadFirstSector()
-{
-    m_status |= IDE_STATUS_BUSY;
-
-    m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
-    m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
 }
 
 void CHardDrive::ReadNextSector()
@@ -317,8 +338,39 @@ void CHardDrive::ReadSectorDone()
 
     m_error = IDE_ERROR_NONE;
     m_bufferoffset = 0;
+}
 
-    //TODO: if m_verifyonly then ContinueRead();
+void CHardDrive::WriteSectorDone()
+{
+    m_status &= ~IDE_STATUS_BUSY;
+    m_status &= ~IDE_STATUS_ERROR;
+    m_status |= IDE_STATUS_BUFFER_READY;
+    m_status |= IDE_STATUS_SEEK_COMPLETE;
+
+    // Write buffer to the HDD image
+    DWORD fileOffset = CalculateOffset();
+#if !defined(PRODUCT)
+    DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);  //DEBUG
+#endif
+    ::SetFilePointer(m_hFile, fileOffset, NULL, FILE_BEGIN);
+    DWORD dwBytesWritten;
+    if (!::WriteFile(m_hFile, m_buffer, IDE_DISK_SECTOR_SIZE, &dwBytesWritten, NULL))
+    {
+        m_status |= IDE_STATUS_ERROR;
+        m_error = IDE_ERROR_BAD_SECTOR;
+        return;
+    }
+
+    if (m_sectorcount > 0)
+        m_sectorcount--;
+
+    if (m_sectorcount > 0)
+    {
+        NextSector();
+    }
+
+    m_error = IDE_ERROR_NONE;
+    m_bufferoffset = 0;
 }
 
 void CHardDrive::NextSector()
@@ -346,6 +398,17 @@ void CHardDrive::ContinueRead()
 
     if (m_sectorcount > 0)
         ReadNextSector();
+}
+
+void CHardDrive::ContinueWrite()
+{
+    m_bufferoffset = 0;
+
+    m_status &= ~IDE_STATUS_BUFFER_READY;
+    m_status |= IDE_STATUS_BUSY;
+
+    m_timeoutcount = TIME_PER_SECTOR;
+    m_timeoutevent = TIMEEVT_WRITE_SECTOR_DONE;
 }
 
 
