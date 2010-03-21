@@ -80,9 +80,19 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
 
-    m_hFile = ::CreateFile(sFileName,
-            GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL,
-            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    // Check read-only file attribute
+    DWORD dwFileAttrs = ::GetFileAttributes(sFileName);
+    m_okReadOnly = (dwFileAttrs & FILE_ATTRIBUTE_READONLY) != 0;
+
+    // Open file
+    if (m_okReadOnly)
+        m_hFile = ::CreateFile(sFileName,
+                GENERIC_READ, FILE_SHARE_READ, NULL,
+                OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+    else
+        m_hFile = ::CreateFile(sFileName,
+                GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL,
+                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
     if (m_hFile == INVALID_HANDLE_VALUE)
         return FALSE;
 
@@ -352,6 +362,13 @@ void CHardDrive::WriteSectorDone()
 #if !defined(PRODUCT)
     DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);  //DEBUG
 #endif
+    if (m_okReadOnly)
+    {
+        m_status |= IDE_STATUS_ERROR;
+        m_error = IDE_ERROR_BAD_SECTOR;
+        return;
+    }
+
     ::SetFilePointer(m_hFile, fileOffset, NULL, FILE_BEGIN);
     DWORD dwBytesWritten;
     if (!::WriteFile(m_hFile, m_buffer, IDE_DISK_SECTOR_SIZE, &dwBytesWritten, NULL))
