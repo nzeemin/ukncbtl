@@ -69,6 +69,7 @@ enum ToolbarButtonImages
     ToolbarImageFloppyDiskWP = 9,
     ToolbarImageHardSlot = 10,
     ToolbarImageHardDrive = 11,
+    ToolbarImageHardDriveWP = 12,
 };
 
 enum StatusbarParts

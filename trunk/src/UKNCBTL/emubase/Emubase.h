@@ -145,6 +145,7 @@ public:
     void Reset();
     BOOL AttachImage(LPCTSTR sFileName);
     void DetachImage();
+    BOOL IsReadOnly();
 
 public:
     WORD ReadPort(WORD port);

@@ -76,6 +76,11 @@ void CHardDrive::Reset()
     m_timeoutevent = TIMEEVT_RESET_DONE;
 }
 
+BOOL CHardDrive::IsReadOnly()
+{
+    return m_okReadOnly;
+}
+
 BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
