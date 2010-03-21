@@ -611,9 +611,9 @@ void MainWindow_UpdateMenu()
     EnableMenuItem(hMenu, ID_EMULATOR_HARDDRIVE1, g_pBoard->IsROMCartridgeLoaded(1) ? MF_ENABLED : MF_DISABLED);
     EnableMenuItem(hMenu, ID_EMULATOR_HARDDRIVE2, g_pBoard->IsROMCartridgeLoaded(2) ? MF_ENABLED : MF_DISABLED);
     MainWindow_SetToolbarImage(ID_EMULATOR_HARDDRIVE1,
-        g_pBoard->IsHardImageAttached(1) ? ToolbarImageHardDrive : ToolbarImageHardSlot);
+        g_pBoard->IsHardImageAttached(1) ? (g_pBoard->IsHardImageReadOnly(1) ? ToolbarImageHardDriveWP : ToolbarImageHardDrive) : ToolbarImageHardSlot);
     MainWindow_SetToolbarImage(ID_EMULATOR_HARDDRIVE2,
-        g_pBoard->IsHardImageAttached(2) ? ToolbarImageHardDrive : ToolbarImageHardSlot);
+        g_pBoard->IsHardImageAttached(2) ? (g_pBoard->IsHardImageReadOnly(2) ? ToolbarImageHardDriveWP : ToolbarImageHardDrive) : ToolbarImageHardSlot);
 }
 
 // Process menu command
@@ -994,6 +994,24 @@ void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP lpnm)
         {
             TCHAR buffilepath[MAX_PATH];
             Settings_GetCartridgeFilePath(cartslot, buffilepath);
+
+            LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
+            _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);
+        }
+    }
+    else if (commandId == ID_EMULATOR_HARDDRIVE1 || commandId == ID_EMULATOR_HARDDRIVE2)
+    {
+        int cartslot = 0;
+        switch (commandId)
+        {
+        case ID_EMULATOR_HARDDRIVE1: cartslot = 1; break;
+        case ID_EMULATOR_HARDDRIVE2: cartslot = 2; break;
+        }
+
+        if (g_pBoard->IsHardImageAttached(cartslot))
+        {
+            TCHAR buffilepath[MAX_PATH];
+            Settings_GetHardFilePath(cartslot, buffilepath);
 
             LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
             _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);

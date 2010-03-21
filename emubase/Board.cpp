@@ -184,10 +184,18 @@ void CMotherboard::UnloadROMCartridge(int cartno)
 
 // Hard Drives ///////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsHardImageAttached(int slot)
+BOOL CMotherboard::IsHardImageAttached(int slot) const
 {
     ASSERT(slot >= 1 && slot <= 2);
     return (m_pHardDrives[slot - 1] != NULL);
+}
+
+BOOL CMotherboard::IsHardImageReadOnly(int slot) const
+{
+    ASSERT(slot >= 1 && slot <= 2);
+    CHardDrive* pHardDrive = m_pHardDrives[slot - 1];
+    if (pHardDrive == NULL) return FALSE;
+    return pHardDrive->IsReadOnly();
 }
 
 BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
