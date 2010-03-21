@@ -122,6 +122,7 @@ class CHardDrive
 {
 protected:
     HANDLE  m_hFile;
+    BOOL    m_okReadOnly;
     BYTE    m_status;
     BYTE    m_error;
     BYTE    m_command;
