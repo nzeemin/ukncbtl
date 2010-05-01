@@ -4,6 +4,9 @@
 #include "StdAfx.h"
 #include "Processor.h"
 
+//NOTE: I know, we use unsafe string copy functions
+#pragma warning( disable: 4996 )
+
 
 // Timings ///////////////////////////////////////////////////////////
 
@@ -250,8 +253,8 @@ void CProcessor::RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMeth
 
 CProcessor::CProcessor (LPCTSTR name)
 {
-    lstrcpy(m_name, name);
-    ZeroMemory(m_R, sizeof(m_R));
+    _tcscpy(m_name, name);
+    memset(m_R, 0, sizeof(m_R));
 	m_psw = m_savepsw = 0777; 
     m_savepc = 0177777;
     m_okStopped = TRUE;
@@ -565,10 +568,7 @@ void CProcessor::TranslateInstruction ()
 void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается TRAP 10
 {
 #if !defined(PRODUCT)
-    TCHAR oct1[10], oct2[10];
-	PrintOctalValue(oct1, m_instruction);
-	PrintOctalValue(oct2, GetPC()-2);
-	DebugPrintFormat(_T(">>Invalid OPCODE = %s @ %s\r\n"), oct1, oct2);
+	DebugPrintFormat(_T(">>Invalid OPCODE = %06o @ %06o\r\n"), m_instruction, GetPC()-2);
 #endif
 
     m_RSVDrq = TRUE;
@@ -2513,7 +2513,7 @@ void CProcessor::SaveToImage(BYTE* pImage)
     // PSW
     *pwImage++ = m_psw;
     // Registers R0..R7
-    CopyMemory(pwImage, m_R, 2 * 8);
+    memcpy(pwImage, m_R, 2 * 8);
     pwImage += 2 * 8;
     // Saved PC and PSW
 	*pwImage++ = m_savepc;
@@ -2528,7 +2528,7 @@ void CProcessor::LoadFromImage(const BYTE* pImage)
     // PSW
     m_psw = *pwImage++;
     // Registers R0..R7
-    CopyMemory(m_R, pwImage, 2 * 8);
+    memcpy(m_R, pwImage, 2 * 8);
     // Saved PC and PSW
 	m_savepc= *pwImage++;
 	m_savepsw= *pwImage++;
