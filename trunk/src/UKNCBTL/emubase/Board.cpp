@@ -50,10 +50,10 @@ CMotherboard::CMotherboard ()
     m_SoundGenCallback = NULL;
 
     // Allocate memory for RAM and ROM
-    m_pRAM[0] = (BYTE*) ::LocalAlloc(LPTR, 65536);
-    m_pRAM[1] = (BYTE*) ::LocalAlloc(LPTR, 65536);
-    m_pRAM[2] = (BYTE*) ::LocalAlloc(LPTR, 65536);
-    m_pROM    = (BYTE*) ::LocalAlloc(LPTR, 32768);
+    m_pRAM[0] = (BYTE*) malloc(65536);  memset(m_pRAM[0], 0, 65536);
+    m_pRAM[1] = (BYTE*) malloc(65536);  memset(m_pRAM[1], 0, 65536);
+    m_pRAM[2] = (BYTE*) malloc(65536);  memset(m_pRAM[2], 0, 65536);
+    m_pROM    = (BYTE*) malloc(32768);  memset(m_pROM, 0, 32768);
     m_pROMCart[0] = NULL;
     m_pROMCart[1] = NULL;
     m_pHardDrives[0] = NULL;
@@ -70,12 +70,12 @@ CMotherboard::~CMotherboard ()
     delete m_pFloppyCtl;
 
     // Free memory
-    ::LocalFree(m_pRAM[0]);
-    ::LocalFree(m_pRAM[1]);
-    ::LocalFree(m_pRAM[2]);
-    ::LocalFree(m_pROM);
-    if (m_pROMCart[0] != NULL) ::LocalFree(m_pROMCart[0]);
-    if (m_pROMCart[1] != NULL) ::LocalFree(m_pROMCart[1]);
+    free(m_pRAM[0]);
+    free(m_pRAM[1]);
+    free(m_pRAM[2]);
+    free(m_pROM);
+    if (m_pROMCart[0] != NULL) free(m_pROMCart[0]);
+    if (m_pROMCart[1] != NULL) free(m_pROMCart[1]);
     if (m_pHardDrives[0] != NULL) delete m_pHardDrives[0];
     if (m_pHardDrives[1] != NULL) delete m_pHardDrives[1];
 }
@@ -112,7 +112,7 @@ void CMotherboard::Reset ()
 
 void CMotherboard::LoadROM(const BYTE* pBuffer)  // Load 32 KB ROM image from the buffer
 {
-    ::CopyMemory(m_pROM, pBuffer, 32768);
+    memcpy(m_pROM, pBuffer, 32768);
 }
 
 void CMotherboard::LoadROMCartridge(int cartno, const BYTE* pBuffer)  // Load 24 KB ROM cartridge image
@@ -122,15 +122,15 @@ void CMotherboard::LoadROMCartridge(int cartno, const BYTE* pBuffer)  // Load 24
 
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == NULL)
-        m_pROMCart[cartindex] = (BYTE*) ::LocalAlloc(LPTR, 24 * 1024);
+        m_pROMCart[cartindex] = (BYTE*) malloc(24 * 1024);
 
-    ::CopyMemory(m_pROMCart[cartindex], pBuffer, 24 * 1024);
+    memcpy(m_pROMCart[cartindex], pBuffer, 24 * 1024);
 }
 
 void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM image from the buffer
 {
     ASSERT(plan >= 0 && plan <= 2);
-    ::CopyMemory(m_pRAM[plan], pBuffer, 32768);
+    memcpy(m_pRAM[plan], pBuffer, 32768);
 }
 
 
@@ -176,7 +176,7 @@ void CMotherboard::UnloadROMCartridge(int cartno)
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] != NULL)
     {
-        ::LocalFree(m_pROMCart[cartindex]);
+        free(m_pROMCart[cartindex]);
         m_pROMCart[cartindex] = NULL;
     }
 }
@@ -621,14 +621,14 @@ void CMotherboard::SaveToImage(BYTE* pImage)
 
     // ROM
     BYTE* pImageRom = pImage + 256;
-    CopyMemory(pImageRom, m_pROM, 32 * 1024);
+    memcpy(pImageRom, m_pROM, 32 * 1024);
     // RAM planes 0, 1, 2
     BYTE* pImageRam = pImageRom + 32 * 1024;
-    CopyMemory(pImageRam, m_pRAM[0], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[0], 64 * 1024);
     pImageRam += 64 * 1024;
-    CopyMemory(pImageRam, m_pRAM[1], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[1], 64 * 1024);
     pImageRam += 64 * 1024;
-    CopyMemory(pImageRam, m_pRAM[2], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[2], 64 * 1024);
 }
 void CMotherboard::LoadFromImage(const BYTE* pImage)
 {
@@ -655,14 +655,14 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
 
     // ROM
     const BYTE* pImageRom = pImage + 256;
-    CopyMemory(m_pROM, pImageRom, 32 * 1024);
+    memcpy(m_pROM, pImageRom, 32 * 1024);
     // RAM planes 0, 1, 2
     const BYTE* pImageRam = pImageRom + 32 * 1024;
-    CopyMemory(m_pRAM[0], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[0], pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
-    CopyMemory(m_pRAM[1], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[1], pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
-    CopyMemory(m_pRAM[2], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[2], pImageRam, 64 * 1024);
 }
 
 void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
@@ -670,7 +670,6 @@ void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 	BYTE oldp_ready = m_chanppurx[chan].ready;
 	chan &= 3;
 	ASSERT(chan<3);
-
 
 //	if((chan==0)&&(m_chan0disabled))
 //		return;
