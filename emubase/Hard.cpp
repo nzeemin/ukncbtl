@@ -2,6 +2,10 @@
 //
 
 #include "StdAfx.h"
+#include <stdio.h>
+#include <Share.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "Emubase.h"
 
 
@@ -49,7 +53,7 @@ enum TimeoutEvent
 
 CHardDrive::CHardDrive()
 {
-    m_hFile = INVALID_HANDLE_VALUE;
+    m_fpFile = NULL;
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
@@ -86,27 +90,28 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     ASSERT(sFileName != NULL);
 
     // Check read-only file attribute
-    DWORD dwFileAttrs = ::GetFileAttributes(sFileName);
-    m_okReadOnly = (dwFileAttrs & FILE_ATTRIBUTE_READONLY) != 0;
+    struct _stat statbuf;
+    ::_tstat(sFileName, &statbuf);
+    m_okReadOnly = (statbuf.st_mode & _S_IREAD) != 0;
 
     // Open file
     if (m_okReadOnly)
-        m_hFile = ::CreateFile(sFileName,
-                GENERIC_READ, FILE_SHARE_READ, NULL,
-                OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+        m_fpFile = ::_tfsopen(sFileName, _T("rb"), _SH_DENYWR);
     else
-        m_hFile = ::CreateFile(sFileName,
-                GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL,
-                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (m_hFile == INVALID_HANDLE_VALUE)
+        m_fpFile = ::_tfsopen(sFileName, _T("r+b"), _SH_DENYWR);
+    if (m_fpFile == NULL)
+        return FALSE;
+
+    // Check file size
+    ::fseek(m_fpFile, 0, SEEK_END);
+    DWORD dwFileSize = ::ftell(m_fpFile);
+    ::fseek(m_fpFile, 0, SEEK_SET);
+    if (dwFileSize % 512 != 0)
         return FALSE;
 
     // Read first sector
-    DWORD dwFileSize = ::GetFileSize(m_hFile, NULL);
-    if (dwFileSize % 512 != 0)
-        return FALSE;
-    DWORD dwBytesRead;
-    if (!::ReadFile(m_hFile, m_buffer, 512, &dwBytesRead, NULL))
+    DWORD dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
+    if (dwBytesRead != 512)
         return FALSE;
     
     // Calculate geometry
@@ -126,12 +131,12 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 
 void CHardDrive::DetachImage()
 {
-    if (m_hFile == INVALID_HANDLE_VALUE) return;
+    if (m_fpFile == NULL) return;
 
     //FlushChanges();
 
-    ::CloseHandle(m_hFile);
-    m_hFile = INVALID_HANDLE_VALUE;
+    ::fclose(m_fpFile);
+    m_fpFile = NULL;
 }
 
 WORD CHardDrive::ReadPort(WORD port)
@@ -305,7 +310,7 @@ void CHardDrive::HandleCommand(BYTE command)
 #if !defined(PRODUCT)
             DebugPrintFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
                     command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-            DebugBreak();  // Implement this IDE command!
+            //DebugBreak();  // Implement this IDE command!
 #endif
             break;
     }
@@ -334,9 +339,9 @@ void CHardDrive::ReadSectorDone()
 
     // Read sector from HDD image to the buffer
     DWORD fileOffset = CalculateOffset();
-    ::SetFilePointer(m_hFile, fileOffset, NULL, FILE_BEGIN);
-    DWORD dwBytesRead;
-    if (!::ReadFile(m_hFile, m_buffer, IDE_DISK_SECTOR_SIZE, &dwBytesRead, NULL))
+    ::fseek(m_fpFile, fileOffset, SEEK_SET);
+    DWORD dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
+    if (dwBytesRead != IDE_DISK_SECTOR_SIZE)
     {
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;
@@ -374,9 +379,9 @@ void CHardDrive::WriteSectorDone()
         return;
     }
 
-    ::SetFilePointer(m_hFile, fileOffset, NULL, FILE_BEGIN);
-    DWORD dwBytesWritten;
-    if (!::WriteFile(m_hFile, m_buffer, IDE_DISK_SECTOR_SIZE, &dwBytesWritten, NULL))
+    ::fseek(m_fpFile, fileOffset, SEEK_SET);
+    DWORD dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
+    if (dwBytesWritten != IDE_DISK_SECTOR_SIZE)
     {
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;

@@ -3,6 +3,10 @@
 // See defines in header file Emubase.h
 
 #include "StdAfx.h"
+#include <stdio.h>
+#include <Share.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -20,7 +24,7 @@ static BOOL DecodeTrackData(BYTE* pRaw, BYTE* pDest);
 
 CFloppyDrive::CFloppyDrive()
 {
-    hFile = INVALID_HANDLE_VALUE;
+    fpFile = NULL;
     okNetRT11Image = okReadOnly = FALSE;
     datatrack = dataside = 0;
     dataptr = 0;
@@ -75,29 +79,26 @@ BOOL CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
     ASSERT(sFileName != NULL);
 
     // If image attached - detach one first
-    if (m_drivedata[drive].hFile != INVALID_HANDLE_VALUE)
+    if (m_drivedata[drive].fpFile != NULL)
         DetachImage(drive);
 
     // Определяем, это .dsk-образ или .rtd-образ - по расширению файла
     m_drivedata[drive].okNetRT11Image = FALSE;
-    LPCTSTR sFileNameExt = wcsrchr(sFileName, _T('.'));
-    if (sFileNameExt != NULL && _wcsicmp(sFileNameExt, _T(".rtd")) == 0)
+    LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
+    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".rtd")) == 0)
         m_drivedata[drive].okNetRT11Image = TRUE;
 
     // Check read-only file attribute
-    DWORD dwFileAttrs = ::GetFileAttributes(sFileName);
-    m_drivedata[drive].okReadOnly = (dwFileAttrs & FILE_ATTRIBUTE_READONLY) != 0;
+    struct _stat statbuf;
+    ::_tstat(sFileName, &statbuf);
+    m_drivedata[drive].okReadOnly = (statbuf.st_mode & _S_IREAD) != 0;
 
     // Open file
     if (m_drivedata[drive].okReadOnly)
-        m_drivedata[drive].hFile = CreateFile(sFileName,
-                GENERIC_READ, FILE_SHARE_READ, NULL,
-                OPEN_EXISTING, FILE_ATTRIBUTE_READONLY, NULL);
+        m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("rb"), _SH_DENYWR);
     else
-        m_drivedata[drive].hFile = CreateFile(sFileName,
-                GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, NULL,
-                OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (m_drivedata[drive].hFile == INVALID_HANDLE_VALUE)
+        m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("r+b"), _SH_DENYWR);
+    if (m_drivedata[drive].fpFile == NULL)
         return FALSE;
 
     m_side = m_track = m_drivedata[drive].datatrack = m_drivedata[drive].dataside = 0;
@@ -116,12 +117,12 @@ BOOL CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 
 void CFloppyController::DetachImage(int drive)
 {
-    if (m_drivedata[drive].hFile == INVALID_HANDLE_VALUE) return;
+    if (m_drivedata[drive].fpFile == NULL) return;
 
     FlushChanges();
 
-    ::CloseHandle(m_drivedata[drive].hFile);
-    m_drivedata[drive].hFile = INVALID_HANDLE_VALUE;
+    ::fclose(m_drivedata[drive].fpFile);
+    m_drivedata[drive].fpFile = NULL;
     m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = FALSE;
     m_drivedata[drive].Reset();
 }
@@ -392,10 +393,10 @@ void CFloppyController::PrepareTrack()
     BYTE data[5120];
     memset(data, 0, 5120);
 
-    if (m_pDrive->hFile != INVALID_HANDLE_VALUE)
+    if (m_pDrive->fpFile != NULL)
     {
-        SetFilePointer(m_pDrive->hFile, foffset, NULL, FILE_BEGIN);
-        ReadFile(m_pDrive->hFile, &data, 5120, &count, NULL);
+        ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
+        count = ::fread(&data, 1, 5120, m_pDrive->fpFile);
         //TODO: Контроль ошибок чтения
     }
 
@@ -425,13 +426,10 @@ void CFloppyController::FlushChanges()
 //    DebugLog(_T("Floppy FLUSH\r\n"));  //DEBUG
 //#endif
 
-    BYTE data[5120];
-    memset(data, 0, 5120);
-
     // Decode track data from m_data
+    BYTE data[5120];  memset(data, 0, 5120);
     BOOL decoded = DecodeTrackData(m_pDrive->data, data);
 
-    //TODO: Check for errors
     if (decoded)  // Write to the file only if the track was correctly decoded from raw data
     {
         // Track has 10 sectors, 512 bytes each; offset of the file is === ((Track<<1)+SIDE)*5120
@@ -439,16 +437,21 @@ void CFloppyController::FlushChanges()
         if (m_pDrive->okNetRT11Image) foffset += 256;  // Skip .RTD image header
 
         // Check file length
-        DWORD currentFileSize = ::GetFileSize(m_pDrive->hFile, NULL);
-        if (currentFileSize < (DWORD)(foffset + 5120))
+        ::fseek(m_pDrive->fpFile, 0, SEEK_END);
+        DWORD currentFileSize = ::ftell(m_pDrive->fpFile);
+        while (currentFileSize < (DWORD)(foffset + 5120))
         {
-            ::SetFilePointer(m_pDrive->hFile, foffset + 5120, NULL, FILE_BEGIN);
-            ::SetEndOfFile(m_pDrive->hFile);
+            BYTE datafill[512];  ::memset(datafill, 0, 512);
+            DWORD bytesToWrite = ((DWORD)(foffset + 5120) - currentFileSize) % 512;
+            if (bytesToWrite == 0) bytesToWrite = 512;
+            ::fwrite(datafill, 1, bytesToWrite, m_pDrive->fpFile);
+            //TODO: Проверка на ошибки записи
+            currentFileSize += bytesToWrite;
         }
+
         // Save data into the file
-        ::SetFilePointer(m_pDrive->hFile, foffset, NULL, FILE_BEGIN);
-        DWORD dwBytesWritten;
-        ::WriteFile(m_pDrive->hFile, &data, 5120, &dwBytesWritten, NULL);
+        ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
+        DWORD dwBytesWritten = ::fwrite(&data, 1, 5120, m_pDrive->fpFile);
         //TODO: Проверка на ошибки записи
     }
     else {
@@ -463,7 +466,6 @@ void CFloppyController::FlushChanges()
     //HANDLE hRawFile = CreateFile(_T("rawdata.bin"),
     //            GENERIC_WRITE, FILE_SHARE_READ, NULL,
     //            CREATE_ALWAYS, 0, NULL);
-
 }
 
 
