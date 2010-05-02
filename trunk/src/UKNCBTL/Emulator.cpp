@@ -1,11 +1,16 @@
 // Emulator.cpp
 
 #include "stdafx.h"
+#include <stdio.h>
+#include <Share.h>
 #include "UKNCBTL.h"
 #include "Emulator.h"
 #include "Views.h"
 #include "emubase\Emubase.h"
 #include "SoundGen.h"
+
+//NOTE: I know, we use unsafe string functions
+#pragma warning( disable: 4996 )
 
 
 //////////////////////////////////////////////////////////////////////
@@ -50,17 +55,16 @@ BOOL InitEmulator()
     DWORD dwBytesRead;
 
     // Load ROM file
-    ZeroMemory(buffer, 32768);
-    HANDLE hRomFile = CreateFile(FILE_NAME_UKNC_ROM, GENERIC_READ, FILE_SHARE_READ, NULL,
-            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hRomFile == INVALID_HANDLE_VALUE)
+    memset(buffer, 0, 32768);
+    FILE* fpRomFile = ::_tfsopen(FILE_NAME_UKNC_ROM, _T("rb"), _SH_DENYWR);
+    if (fpRomFile == NULL)
     {
         AlertWarning(_T("Failed to load ROM file."));
         return false;
     }
-    ReadFile(hRomFile, buffer, 32256, &dwBytesRead, NULL);
+    dwBytesRead = ::fread(buffer, 1, 32256, fpRomFile);
     ASSERT(dwBytesRead == 32256);
-    CloseHandle(hRomFile);
+    ::fclose(fpRomFile);
 
     g_pBoard->LoadROM(buffer);
 
@@ -78,8 +82,8 @@ BOOL InitEmulator()
     // Allocate memory for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        g_pEmulatorRam[i] = (BYTE*) ::LocalAlloc(LPTR, 65536);
-        g_pEmulatorChangedRam[i] = (BYTE*) ::LocalAlloc(LPTR, 65536);
+        g_pEmulatorRam[i] = (BYTE*) ::malloc(65536);  memset(g_pEmulatorRam[i], 0, 65536);
+        g_pEmulatorChangedRam[i] = (BYTE*) ::malloc(65536);  memset(g_pEmulatorChangedRam[i], 0, 65536);
     }
 
     return TRUE;
@@ -100,8 +104,8 @@ void DoneEmulator()
     // Free memory used for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        ::LocalFree(g_pEmulatorRam[i]);
-        ::LocalFree(g_pEmulatorChangedRam[i]);
+        ::free(g_pEmulatorRam[i]);
+        ::free(g_pEmulatorChangedRam[i]);
     }
 }
 
@@ -199,7 +203,7 @@ int Emulator_SystemFrame()
 	{
 		double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
 		TCHAR buffer[16];
-		swprintf_s(buffer, 16, _T("FPS: %05.2f"), dFramesPerSecond);
+		_stprintf(buffer, _T("FPS: %05.2f"), dFramesPerSecond);
 		MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
 		m_nFrameCount = 0;
@@ -218,7 +222,7 @@ int Emulator_SystemFrame()
 		int hours   = (int) (m_dwEmulatorUptime / 3600 % 60);
 
 		TCHAR buffer[20];
-		swprintf_s(buffer, 20, _T("Uptime: %02d:%02d:%02d"), hours, minutes, seconds);
+		_stprintf(buffer, _T("Uptime: %02d:%02d:%02d"), hours, minutes, seconds);
 		MainWindow_SetStatusbarText(StatusbarPartUptime, buffer);
 	}
 
@@ -278,27 +282,24 @@ WORD Emulator_GetChangeRamStatus(int addrtype, WORD address)
 void Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
-    HANDLE hFile = CreateFile(sFilePath,
-            GENERIC_READ, FILE_SHARE_READ, NULL,
-            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
+    FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
+    if (fpFile == INVALID_HANDLE_VALUE)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
         return;
     }
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::LocalAlloc(LPTR, 24 * 1024);
+    BYTE* pImage = (BYTE*) ::malloc(24 * 1024);
 
-    DWORD dwBytesRead = 0;
-    ReadFile(hFile, pImage, 24 * 1024, &dwBytesRead, NULL);
+    DWORD dwBytesRead = ::fread(pImage, 1, 24 * 1024, fpFile);
     ASSERT(dwBytesRead == 24 * 1024);
 
     g_pBoard->LoadROMCartridge(slot, pImage);
 
     // Free memory, close file
-    ::LocalFree(pImage);
-    ::CloseHandle(hFile);
+    ::free(pImage);
+    ::fclose(fpFile);
 }
 
 
@@ -316,18 +317,16 @@ void Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 void Emulator_SaveImage(LPCTSTR sFilePath)
 {
     // Create file
-    HANDLE hFile = CreateFile(sFilePath,
-            GENERIC_WRITE, FILE_SHARE_READ, NULL,
-            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
+    FILE* fpFile = ::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR);
+    if (fpFile == NULL)
     {
         AlertWarning(_T("Failed to save image file."));
         return;
     }
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::LocalAlloc(LPTR, UKNCIMAGE_SIZE);
-    ZeroMemory(pImage, UKNCIMAGE_SIZE);
+    BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
+    memset(pImage, 0, UKNCIMAGE_SIZE);
     // Prepare header
     DWORD* pHeader = (DWORD*) pImage;
     *pHeader++ = UKNCIMAGE_HEADER1;
@@ -339,22 +338,19 @@ void Emulator_SaveImage(LPCTSTR sFilePath)
     *(DWORD*)(pImage + 16) = m_dwEmulatorUptime;
 
     // Save image to the file
-    DWORD dwBytesWritten = 0;
-    WriteFile(hFile, pImage, UKNCIMAGE_SIZE, &dwBytesWritten, NULL);
+    DWORD dwBytesWritten = ::fwrite(pImage, 1, UKNCIMAGE_SIZE, fpFile);
     //TODO: Check if dwBytesWritten != UKNCIMAGE_SIZE
 
     // Free memory, close file
-    LocalFree(pImage);
-    CloseHandle(hFile);
+    ::free(pImage);
+    ::fclose(fpFile);
 }
 
 void Emulator_LoadImage(LPCTSTR sFilePath)
 {
     // Open file
-    HANDLE hFile = CreateFile(sFilePath,
-            GENERIC_READ, FILE_SHARE_READ, NULL,
-            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
+    FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
+    if (fpFile == NULL)
     {
         AlertWarning(_T("Failed to load image file."));
         return;
@@ -362,19 +358,17 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
 
     // Read header
     DWORD bufHeader[UKNCIMAGE_HEADER_SIZE / sizeof(DWORD)];
-    DWORD dwBytesRead = 0;
-    ReadFile(hFile, bufHeader, UKNCIMAGE_HEADER_SIZE, &dwBytesRead, NULL);
+    DWORD dwBytesRead = ::fread(bufHeader, 1, UKNCIMAGE_HEADER_SIZE, fpFile);
     //TODO: Check if dwBytesRead != UKNCIMAGE_HEADER_SIZE
     
     //TODO: Check version and size
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::LocalAlloc(LPTR, UKNCIMAGE_SIZE);
+    BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
 
     // Read image
-    SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-    dwBytesRead = 0;
-    ReadFile(hFile, pImage, UKNCIMAGE_SIZE, &dwBytesRead, NULL);
+    ::fseek(fpFile, 0, SEEK_SET);
+    dwBytesRead = ::fread(pImage, 1, UKNCIMAGE_SIZE, fpFile);
     //TODO: Check if dwBytesRead != UKNCIMAGE_SIZE
 
     // Restore emulator state from the image
@@ -383,8 +377,8 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
     m_dwEmulatorUptime = *(DWORD*)(pImage + 16);
 
     // Free memory, close file
-    LocalFree(pImage);
-    CloseHandle(hFile);
+    ::free(pImage);
+    ::fclose(fpFile);
 
     g_okEmulatorRunning = FALSE;
 

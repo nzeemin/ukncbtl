@@ -172,10 +172,10 @@ WORD CHardDrive::ReadPort(WORD port)
         data = 0xff00 | m_cursector;
         break;
     case IDE_PORT_CYLINDER_LSB:
-        data = 0xff00 | m_curcylinder & 0xff;
+        data = 0xff00 | (m_curcylinder & 0xff);
         break;
     case IDE_PORT_CYLINDER_MSB:
-        data = 0xff00 | (m_curcylinder >> 8) & 0xff;
+        data = 0xff00 | ((m_curcylinder >> 8) & 0xff);
         break;
     case IDE_PORT_HEAD_NUMBER:
         data = 0xff00 | m_curheadreg;

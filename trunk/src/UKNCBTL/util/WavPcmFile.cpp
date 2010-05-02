@@ -275,6 +275,7 @@ void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
     BYTE data = (value >> 24) & 0xff;
 
     DWORD bytesWritten = ::fwrite(&data, 1, 1, pWavPcm->fpFile);
+    //TODO: Проверка на ошибки записи
 
     pWavPcm->dwCurrentPosition++;
     pWavPcm->dwDataSize += pWavPcm->nBlockAlign;

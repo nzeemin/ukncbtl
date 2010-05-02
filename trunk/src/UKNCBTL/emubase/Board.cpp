@@ -222,7 +222,7 @@ WORD CMotherboard::GetHardPortWord(int slot, WORD port)
     ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return 0;
-    port = ~(port >> 1) & 7 | 0x1f0;
+    port = (~(port >> 1) & 7) | 0x1f0;
     WORD data = m_pHardDrives[slot - 1]->ReadPort(port);
     return ~data;  // QBUS inverts the bits
 }
@@ -231,7 +231,7 @@ void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
     ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return;
-    port = ~(port >> 1) & 7 | 0x1f0;
+    port = (~(port >> 1) & 7) | 0x1f0;
     data = ~data;  // QBUS inverts the bits
     m_pHardDrives[slot - 1]->WritePort(port, data);
 }
