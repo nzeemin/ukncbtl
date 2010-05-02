@@ -564,7 +564,7 @@ BOOL CMotherboard::SystemFrame()
             else if (m_TapeWriteCallback != NULL)
             {
                 CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
-                UINT value = pMemCtl->TapeOutput() ? UINT_MAX : 0;
+                unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                 (*m_TapeWriteCallback)(value, tapeSamples);
             }
 		}

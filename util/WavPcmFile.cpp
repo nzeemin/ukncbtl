@@ -261,7 +261,7 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
 	::free(pWavPcm);
 }
 
-void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, UINT value)
+void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
 {
 	if (wavpcmfile == INVALID_HANDLE_VALUE)
 		return;
@@ -280,7 +280,7 @@ void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, UINT value)
     pWavPcm->dwDataSize += pWavPcm->nBlockAlign;
 }
 
-UINT WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
+unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 {
 	if (wavpcmfile == INVALID_HANDLE_VALUE)
 		return 0;
@@ -300,7 +300,7 @@ UINT WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 	pWavPcm->dwCurrentPosition++;
 
 	// Decode first channel
-	UINT value;
+	unsigned int value;
 	switch (pWavPcm->nBitsPerSample)
 	{
 	case 8:

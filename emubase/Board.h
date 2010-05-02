@@ -38,12 +38,12 @@ typedef struct chan_tag
 //   samples    Number of samples to play.
 // Output:
 //   result     Bit to put in tape input port.
-typedef BOOL (CALLBACK* TAPEREADCALLBACK)(UINT samples);
+typedef BOOL (CALLBACK* TAPEREADCALLBACK)(unsigned int samples);
 
 // Tape emulator callback used to write a data to tape.
 // Input:
 //   value      Sample value to write.
-typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, UINT samples);
+typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, unsigned int samples);
 
 // Sound generator callback function type
 typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);

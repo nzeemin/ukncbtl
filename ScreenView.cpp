@@ -490,7 +490,7 @@ void ScreenView_ScanKeyboard()
         }
 
         // Save keyboard state
-        ::CopyMemory(m_ScreenKeyState, keys, 256);
+        ::memcpy(m_ScreenKeyState, keys, 256);
     }
 
     // Process next event in the keyboard queue
