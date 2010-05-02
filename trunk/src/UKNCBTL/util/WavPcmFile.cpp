@@ -2,6 +2,8 @@
 
 #include "stdafx.h"
 #include "WavPcmFile.h"
+#include <stdio.h>
+#include <Share.h>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -17,7 +19,7 @@ const int WAV_FORMAT_PCM = 1;
 
 struct WAVPCMFILE
 {
-	HANDLE hFile;
+	FILE* fpFile;
 	int nChannels;
 	int nBitsPerSample;
 	int nSampleFrequency;
@@ -66,7 +68,7 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position)
 	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
 
 	DWORD offsetInData = position * pWavPcm->nBlockAlign;
-	::SetFilePointer(pWavPcm->hFile, pWavPcm->dwDataOffset + offsetInData, NULL, FILE_BEGIN);
+    ::fseek(pWavPcm->fpFile, pWavPcm->dwDataOffset + offsetInData, SEEK_SET);
 
 	pWavPcm->dwCurrentPosition = position;
 }
@@ -77,14 +79,13 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 	const int channels = 1;
     const int blockAlign = channels * bitsPerSample / 8;
 
-	HANDLE hFileNew = ::CreateFile(filename,
-		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFileNew == INVALID_HANDLE_VALUE)
+    FILE* fpFileNew = ::_tfsopen(filename, _T("w+b"), _SH_DENYWR);
+	if (fpFileNew == NULL)
 		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to create file
 
 	// Prepare and write file header
 	BYTE consolidated_header[12 + 8 + 16 + 8];
-    ::ZeroMemory(consolidated_header, sizeof(consolidated_header));
+    ::memset(consolidated_header, 0, sizeof(consolidated_header));
 	DWORD bytesWritten;
 
     memcpy(&consolidated_header[0], magic1, 4);  // RIFF
@@ -102,15 +103,15 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
     memcpy(&consolidated_header[36], data_tag_id, 4);  // data
 
 	// Write consolidated header
-    ::WriteFile(hFileNew, consolidated_header, sizeof(consolidated_header), &bytesWritten, NULL);
+    bytesWritten = ::fwrite(consolidated_header, 1, sizeof(consolidated_header), fpFileNew);
 	if (bytesWritten != sizeof(consolidated_header))
 	{
-		::CloseHandle(hFileNew);
+		::fclose(fpFileNew);
 		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to write consolidated header
 	}
 
-	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::LocalAlloc(LPTR, sizeof(WAVPCMFILE));
-	pWavPcm->hFile = hFileNew;
+	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::malloc(sizeof(WAVPCMFILE));  memset(pWavPcm, 0, sizeof(WAVPCMFILE));
+	pWavPcm->fpFile = fpFileNew;
 	pWavPcm->nChannels = channels;
 	pWavPcm->nSampleFrequency = sampleRate;
 	pWavPcm->nBitsPerSample = bitsPerSample;
@@ -126,22 +127,23 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 {
-	HANDLE hFileOpen = ::CreateFile(filename,
-		GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFileOpen == INVALID_HANDLE_VALUE)
+    FILE* fpFileOpen = ::_tfsopen(filename, _T("rb"), _SH_DENYWR);
+	if (fpFileOpen == NULL)
 		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to open file
 
 	DWORD offset = 0;
 	DWORD bytesRead;
-	DWORD fileSize = ::GetFileSize(hFileOpen, NULL);
+    ::fseek(fpFileOpen, 0, SEEK_END);
+	DWORD fileSize = ::ftell(fpFileOpen);
+    ::fseek(fpFileOpen, 0, SEEK_SET);
 
-	UINT8 fileHeader[12];
-	::ReadFile(hFileOpen, fileHeader, sizeof(fileHeader), &bytesRead, NULL);
+	BYTE fileHeader[12];
+    bytesRead = ::fread(fileHeader, 1, sizeof(fileHeader), fpFileOpen);
 	if (bytesRead != sizeof(fileHeader) ||
 		memcmp(&fileHeader[0], magic1, 4) != 0 ||
 		memcmp(&fileHeader[8], magic2, 4) != 0)
 	{
-		::CloseHandle(hFileOpen);
+		::fclose(fpFileOpen);
 		return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to read file header OR invalid 'RIFF' tag OR invalid 'WAVE' tag
 	}
 	offset += bytesRead;
@@ -150,17 +152,17 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 	if (statedSize > fileSize)
 		statedSize = fileSize;
 
-	UINT8 tagHeader[8];
-	UINT8 formatTag[16];
+	BYTE tagHeader[8];
+	BYTE formatTag[16];
 	BOOL formatSpecified = FALSE;
 	int formatType, channels, bitsPerSample, blockAlign;
 	DWORD sampleFrequency, bytesPerSecond, dataOffset, dataSize;
 	while (offset < statedSize)
 	{
-		::ReadFile(hFileOpen, tagHeader, sizeof(tagHeader), &bytesRead, NULL);
+        bytesRead = ::fread(tagHeader, 1, sizeof(tagHeader), fpFileOpen);
 		if (bytesRead != sizeof(tagHeader))
 		{
-			::CloseHandle(hFileOpen);
+			::fclose(fpFileOpen);
 			return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to read tag header
 		}
 		offset += bytesRead;
@@ -170,34 +172,34 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 		{
 			if (formatSpecified || tagSize < sizeof(formatTag))
 			{
-				::CloseHandle(hFileOpen);
+				::fclose(fpFileOpen);
 				return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Wrong tag header
 			}
 			formatSpecified = TRUE;
 
-			::ReadFile(hFileOpen, formatTag, sizeof(formatTag), &bytesRead, NULL);
+            bytesRead = ::fread(formatTag, 1, sizeof(formatTag), fpFileOpen);
 			if (bytesRead != sizeof(formatTag))
 			{
-				::CloseHandle(hFileOpen);
+				::fclose(fpFileOpen);
 				return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to read format tag
 			}
 
-			formatType = *(UINT16*)(formatTag);
-			channels = *(UINT16*)(formatTag + 2);
+			formatType = *(WORD*)(formatTag);
+			channels = *(WORD*)(formatTag + 2);
 			sampleFrequency = *(DWORD*)(formatTag + 4);
 			bytesPerSecond = *(DWORD*)(formatTag + 8);
-			blockAlign = *(UINT16*)(formatTag + 12);
-			bitsPerSample = *(UINT16*)(formatTag + 14);
+			blockAlign = *(WORD*)(formatTag + 12);
+			bitsPerSample = *(WORD*)(formatTag + 14);
 
 			if (formatType != WAV_FORMAT_PCM)
 			{
-				::CloseHandle(hFileOpen);
+				::fclose(fpFileOpen);
 				return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Unsupported format
 			}
 			if (sampleFrequency * bitsPerSample * channels / 8 != bytesPerSecond ||
 				(bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32))
 			{
-				::CloseHandle(hFileOpen);
+				::fclose(fpFileOpen);
 				return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Wrong format tag
 			}
 		}
@@ -205,7 +207,7 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 		{
 			if (!formatSpecified)
 			{
-				::CloseHandle(hFileOpen);
+				::fclose(fpFileOpen);
 				return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Wrong tag
 			}
 
@@ -217,11 +219,11 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 		}
 
 		offset += tagSize;
-		::SetFilePointer(hFileOpen, offset, NULL, FILE_BEGIN);
+		::fseek(fpFileOpen, offset, SEEK_SET);
 	}
 
-	WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::LocalAlloc(LPTR, sizeof(WAVPCMFILE));
-	pWavPcm->hFile = hFileOpen;
+    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) ::malloc(sizeof(WAVPCMFILE));  ::memset(pWavPcm, 0, sizeof(WAVPCMFILE));
+	pWavPcm->fpFile = fpFileOpen;
 	pWavPcm->nChannels = channels;
 	pWavPcm->nSampleFrequency = sampleFrequency;
 	pWavPcm->nBitsPerSample = bitsPerSample;
@@ -246,17 +248,17 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
     {
         DWORD bytesWritten;
         // Write data chunk size
-	    ::SetFilePointer(pWavPcm->hFile, 4, NULL, FILE_BEGIN);
+	    ::fseek(pWavPcm->fpFile, 4, SEEK_SET);
         DWORD chunkSize = 36 + pWavPcm->dwDataSize;
-        ::WriteFile(pWavPcm->hFile, &chunkSize, 4, &bytesWritten, NULL);
+        bytesWritten = ::fwrite(&chunkSize, 1, 4, pWavPcm->fpFile);
         // Write data subchunk size
-	    ::SetFilePointer(pWavPcm->hFile, 40, NULL, FILE_BEGIN);
-        ::WriteFile(pWavPcm->hFile, &(pWavPcm->dwDataSize), 4, &bytesWritten, NULL);
+	    ::fseek(pWavPcm->fpFile, 40, SEEK_SET);
+        bytesWritten = ::fwrite(&(pWavPcm->dwDataSize), 1, 4, pWavPcm->fpFile);
     }
 
-	::CloseHandle(pWavPcm->hFile);
-	pWavPcm->hFile = INVALID_HANDLE_VALUE;
-	::LocalFree((HLOCAL)pWavPcm);
+	::fclose(pWavPcm->fpFile);
+	pWavPcm->fpFile = NULL;
+	::free(pWavPcm);
 }
 
 void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, UINT value)
@@ -272,8 +274,7 @@ void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, UINT value)
 
     BYTE data = (value >> 24) & 0xff;
 
-    DWORD bytesWritten;
-    ::WriteFile(pWavPcm->hFile, &data, 1, &bytesWritten, NULL);
+    DWORD bytesWritten = ::fwrite(&data, 1, 1, pWavPcm->fpFile);
 
     pWavPcm->dwCurrentPosition++;
     pWavPcm->dwDataSize += pWavPcm->nBlockAlign;
@@ -292,7 +293,7 @@ UINT WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 	DWORD bytesToRead = pWavPcm->nBlockAlign;
 	DWORD bytesRead;
 	BYTE data[16];
-	::ReadFile(pWavPcm->hFile, data, bytesToRead, &bytesRead, NULL);
+    bytesRead = ::fread(data, 1, bytesToRead, pWavPcm->fpFile);
 	if (bytesRead != bytesToRead)
 		return 0;
 
@@ -307,11 +308,11 @@ UINT WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 		value = value << 24;
 		break;
 	case 16:
-		value = *((UINT16*)data);
+		value = *((WORD*)data);
 		value = value << 16;
 		break;
 	case 32:
-		value = *((UINT32*)data);
+		value = *((DWORD*)data);
 		break;
 	}
 
