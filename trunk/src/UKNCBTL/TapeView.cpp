@@ -360,7 +360,7 @@ void TapeView_DoRewind()
 //   samples    Number of samples to play.
 // Output:
 //   result     Bit to put in tape input port.
-BOOL CALLBACK TapeView_TapeReadCallback(UINT samples)
+BOOL CALLBACK TapeView_TapeReadCallback(unsigned int samples)
 {
 	if (samples == 0) return 0;
 

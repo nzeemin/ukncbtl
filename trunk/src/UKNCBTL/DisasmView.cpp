@@ -192,7 +192,7 @@ void DisasmView_ResizeSubtitleArray(int newSize)
     DisasmSubtitleItem* pNewMemory = (DisasmSubtitleItem*) ::LocalAlloc(LPTR, sizeof(DisasmSubtitleItem) * newSize);
     if (m_pDisasmSubtitleItems != NULL)
     {
-        ::CopyMemory(pNewMemory, m_pDisasmSubtitleItems, sizeof(DisasmSubtitleItem) * m_nDisasmSubtitleMax);
+        ::memcpy(pNewMemory, m_pDisasmSubtitleItems, sizeof(DisasmSubtitleItem) * m_nDisasmSubtitleMax);
         ::LocalFree(m_pDisasmSubtitleItems);
     }
 
