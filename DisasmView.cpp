@@ -181,9 +181,9 @@ void DisasmView_UpdateWindowText()
 
 	TCHAR buffer[64];
     if (m_okDisasmSubtitles)
-	    swprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
+	    _stprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
     else
-	    swprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
+	    _stprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
 	::SetWindowText(g_hwndDisasm, buffer);
 }
 
@@ -483,7 +483,7 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
                 LPCTSTR strBlockSubtitle = pSubItem->comment;
 
                 ::SetTextColor(hdc, COLOR_SUBTITLE);
-                TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) wcslen(strBlockSubtitle));
+                TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) _tcslen(strBlockSubtitle));
                 ::SetTextColor(hdc, colorText);
 
                 y += cyLine;
@@ -519,7 +519,7 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
                 LPCTSTR strSubtitle = pSubItem->comment;
 
                 ::SetTextColor(hdc, COLOR_SUBTITLE);
-                TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) wcslen(strSubtitle));
+                TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) _tcslen(strSubtitle));
                 ::SetTextColor(hdc, colorText);
 
                 // Строку с субтитром мы можем использовать как опорную для дизассемблера
@@ -544,8 +544,8 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
             }
             if (index + length <= nWindowSize)
             {
-                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) wcslen(strInstr));
-                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) wcslen(strArg));
+                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) _tcslen(strInstr));
+                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) _tcslen(strArg));
             }
             ::SetTextColor(hdc, colorText);
             if (wNextBaseAddr == 0)

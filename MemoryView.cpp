@@ -154,7 +154,7 @@ void MemoryView_OnDraw(HDC hdc)
     m_cyLineMemory = cyLine;
 
     const TCHAR* ADDRESS_LINE = _T(" address  0      2      4      6      10     12     14     16");
-    TextOut(hdc, 0, 0, ADDRESS_LINE, (int) wcslen(ADDRESS_LINE));
+    TextOut(hdc, 0, 0, ADDRESS_LINE, (int) _tcslen(ADDRESS_LINE));
 
     RECT rcClip;
     GetClipBox(hdc, &rcClip);
@@ -256,7 +256,7 @@ LPCTSTR MemoryView_GetMemoryModeName()
 void MemoryView_UpdateWindowText()
 {
 	TCHAR buffer[64];
-	swprintf_s(buffer, 64, _T("Memory - %s"), MemoryView_GetMemoryModeName());
+	_stprintf_s(buffer, 64, _T("Memory - %s"), MemoryView_GetMemoryModeName());
 	::SetWindowText(g_hwndMemory, buffer);
 }
 

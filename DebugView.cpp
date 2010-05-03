@@ -149,7 +149,7 @@ void DebugView_UpdateWindowText()
     LPCTSTR sProcName = pDebugPU->GetName();
 
 	TCHAR buffer[64];
-	swprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
+	_stprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
 	::SetWindowText(g_hwndDebug, buffer);
 }
 
@@ -254,7 +254,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
         ::SetTextColor(hdc, arrRChanged[r] ? COLOR_RED : colorText);
 
         LPCTSTR strRegName = REGISTER_NAME[r];
-        TextOut(hdc, x, y + r * cyLine, strRegName, (int) wcslen(strRegName));
+        TextOut(hdc, x, y + r * cyLine, strRegName, (int) _tcslen(strRegName));
 
         WORD value = arrR[r]; //pProc->GetReg(r);
         DrawOctalValue(hdc, x + cxChar * 3, y + r * cyLine, value);
