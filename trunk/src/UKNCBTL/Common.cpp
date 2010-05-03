@@ -51,7 +51,7 @@ void DebugPrintFormat(LPCTSTR pszFormat, ...)
 
     va_list ptr;
 	va_start(ptr, pszFormat);
-    _vsnwprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
+    _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
 	va_end(ptr);
 
     DebugPrint(buffer);
@@ -89,7 +89,7 @@ void DebugLogFormat(LPCTSTR pszFormat, ...)
 
     va_list ptr;
 	va_start(ptr, pszFormat);
-    _vsnwprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
+    _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
 	va_end(ptr);
 
     DebugLog(buffer);
@@ -194,7 +194,7 @@ void DrawOctalValue(HDC hdc, int x, int y, WORD value)
 {
     TCHAR buffer[7];
     PrintOctalValue(buffer, value);
-    TextOut(hdc, x, y, buffer, (int) wcslen(buffer));
+    TextOut(hdc, x, y, buffer, (int) _tcslen(buffer));
 }
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value)
 {

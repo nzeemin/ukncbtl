@@ -177,7 +177,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
 		return;  //TODO: Report error
 
-	wcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
+	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = TRUE;
 
@@ -197,7 +197,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 	if (m_hTapeWavPcmFile == INVALID_HANDLE_VALUE)
 		return;  //TODO: Report about a bad WAV file
 
-	wcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
+	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = FALSE;
 

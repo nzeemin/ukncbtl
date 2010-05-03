@@ -70,7 +70,7 @@ LRESULT CALLBACK ToolWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
 			HGDIOBJ hOldFont = ::SelectObject(hdc, hfont);
 			::SetTextColor(hdc, ::GetSysColor(COLOR_CAPTIONTEXT));
 			::SetBkMode(hdc, TRANSPARENT);
-			::DrawText(hdc, buffer, (int) wcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+			::DrawText(hdc, buffer, (int) _tcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
 			::SelectObject(hdc, hOldFont);
 			::DeleteObject(hfont);
 
