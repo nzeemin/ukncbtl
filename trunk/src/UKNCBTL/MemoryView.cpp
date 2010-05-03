@@ -212,11 +212,11 @@ void MemoryView_OnDraw(HDC hdc)
 
             // Prepare characters to draw at right
             BYTE ch1 = LOBYTE(word);
-            TCHAR wch1 = Translate_KOI8R_Unicode(ch1);
+            TCHAR wch1 = Translate_KOI8R(ch1);
             if (ch1 < 32) wch1 = _T('·');
             wchars[j * 2] = wch1;
             BYTE ch2 = HIBYTE(word);
-            TCHAR wch2 = Translate_KOI8R_Unicode(ch2);
+            TCHAR wch2 = Translate_KOI8R(ch2);
             if (ch2 < 32) wch2 = _T('·');
             wchars[j * 2 + 1] = wch2;
 

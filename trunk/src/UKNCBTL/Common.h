@@ -58,7 +58,7 @@ BOOL ParseOctalValue(LPCTSTR text, WORD* pValue);
 void DrawOctalValue(HDC hdc, int x, int y, WORD value);
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value);
 BOOL ParseOctalValue(LPCTSTR text, WORD* pValue);
-TCHAR Translate_KOI8R_Unicode(BYTE ch);
+TCHAR Translate_KOI8R(BYTE ch);
 void DrawCharKOI8R(HDC hdc, int x, int y, BYTE ch);
 
 LPCTSTR GetFileNameFromFilePath(LPCTSTR lpfilepath);
