@@ -5,8 +5,10 @@
 #include "Disasm.h"
 #include "Defines.h"
 
+#ifdef _MSC_VER
 //NOTE: I know, we use unsafe string copy functions
 #pragma warning( disable: 4996 )
+#endif
 
 // Формат отображения режимов адресации
 const LPCTSTR ADDRESS_MODE_FORMAT[] = {
