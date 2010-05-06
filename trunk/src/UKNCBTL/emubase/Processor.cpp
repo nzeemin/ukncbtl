@@ -4,8 +4,10 @@
 #include "StdAfx.h"
 #include "Processor.h"
 
+#ifdef _MSC_VER
 //NOTE: I know, we use unsafe string copy functions
 #pragma warning( disable: 4996 )
+#endif
 
 
 // Timings ///////////////////////////////////////////////////////////
