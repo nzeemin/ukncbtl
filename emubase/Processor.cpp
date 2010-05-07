@@ -1,7 +1,7 @@
 // Processor.cpp
 //
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "Processor.h"
 
 #ifdef _MSC_VER

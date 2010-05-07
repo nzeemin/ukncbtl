@@ -1,7 +1,7 @@
 // Board.cpp
 //
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "Emubase.h"
 #include "Board.h"
 
