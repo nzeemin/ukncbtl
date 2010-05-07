@@ -1,7 +1,7 @@
 // Disasm.cpp
 // See defines in header file Emubase.h
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "Disasm.h"
 #include "Defines.h"
 

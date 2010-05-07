@@ -1,7 +1,7 @@
 // Memory.cpp
 //
 
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "Memory.h"
 #include "Board.h"
 #include "Processor.h"
