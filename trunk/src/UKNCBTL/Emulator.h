@@ -33,6 +33,8 @@ void Emulator_Stop();
 void Emulator_Reset();
 int Emulator_SystemFrame();
 
+void Emulator_PrepareScreenRGB32(void* pBits, const DWORD* colors);
+
 void Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 
 // Update cached values after Run or Step
