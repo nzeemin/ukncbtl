@@ -140,7 +140,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     InitCommonControlsEx(&ics);
 
     Settings_Init();
-    if (!InitEmulator()) return FALSE;
+    if (!Emulator_Init()) return FALSE;
     Emulator_SetSound(Settings_GetSound());
 
     // Create main window    
@@ -186,7 +186,7 @@ void DoneInstance()
 {
     ScreenView_Done();
 
-    DoneEmulator();
+    Emulator_Done();
 
     Settings_Done();
 }
