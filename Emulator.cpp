@@ -18,6 +18,7 @@
 
 CMotherboard* g_pBoard = NULL;
 
+BOOL g_okEmulatorInitialized = FALSE;
 BOOL g_okEmulatorRunning = FALSE;
 
 WORD m_wEmulatorCPUBreakpoint = 0177777;
@@ -43,7 +44,7 @@ WORD g_wEmulatorPrevPpuPC = 0177777;  // Previous PC value
 
 const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
-BOOL InitEmulator()
+BOOL Emulator_Init()
 {
     ASSERT(g_pBoard == NULL);
 
@@ -86,10 +87,11 @@ BOOL InitEmulator()
         g_pEmulatorChangedRam[i] = (BYTE*) ::malloc(65536);  memset(g_pEmulatorChangedRam[i], 0, 65536);
     }
 
+    g_okEmulatorInitialized = TRUE;
     return TRUE;
 }
 
-void DoneEmulator()
+void Emulator_Done()
 {
     ASSERT(g_pBoard != NULL);
 
@@ -107,6 +109,8 @@ void DoneEmulator()
         ::free(g_pEmulatorRam[i]);
         ::free(g_pEmulatorChangedRam[i]);
     }
+
+    g_okEmulatorInitialized = FALSE;
 }
 
 void Emulator_Start()
