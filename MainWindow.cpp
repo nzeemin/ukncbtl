@@ -531,7 +531,7 @@ void MainWindow_ShowHideTape()
         RECT rc;  GetClientRect(g_hwnd, &rc);
         int yTapeTop = rcPrev.bottom + 4;
         int cxTapeWidth = rcPrev.right - rcPrev.left;
-        int cyTapeHeight = 64;
+        int cyTapeHeight = 100;
 
         if (g_hwndTape == INVALID_HANDLE_VALUE)
             CreateTapeView(g_hwnd, 4, yTapeTop, cxTapeWidth, cyTapeHeight);

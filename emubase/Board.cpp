@@ -485,11 +485,11 @@ BOOL CMotherboard::SystemFrame()
 	
 	int audioticks = 20286/(SAMPLERATE/25);
 
-	int frameTapeTicks = 0, tapeSamplesPerFrame = 0, tapeReadError = 0;
+	int tapeSamplesPerFrame, tapeBrasErr;
     if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
     {
 		tapeSamplesPerFrame = m_nTapeSampleRate / 25;
-        frameTapeTicks = 20000 / tapeSamplesPerFrame;
+        tapeBrasErr = 0;
     }
 
     do
@@ -536,38 +536,30 @@ BOOL CMotherboard::SystemFrame()
 		if (frameticks % audioticks == 0) //AUDIO tick
 			DoSound();
 
-        if ((m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL) && frameticks % frameTapeTicks == 0)
+        if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
 		{
-			int tapeSamples = 0;
-			const int readsTotal = 20000 / frameTapeTicks;
-			while (true)
-			{
-				tapeSamples++;
-				tapeReadError += readsTotal;
-				if (2 * tapeReadError >= tapeSamplesPerFrame)
-				{
-					tapeReadError -= tapeSamplesPerFrame;
-					break;
-				}
-			}
-
-			// Tape reading/writing
-            if (m_TapeReadCallback != NULL)
+            tapeBrasErr += tapeSamplesPerFrame;
+            if (2 * tapeBrasErr >= 20000)
             {
-			    BOOL tapeBit = (*m_TapeReadCallback)(tapeSamples);
-                CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
-			    if (pMemCtl->TapeInput(tapeBit))
+                tapeBrasErr -= 20000;
+
+                if (m_TapeReadCallback != NULL)  // Tape reading
                 {
-			        m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
+			        BOOL tapeBit = (*m_TapeReadCallback)(1);
+                    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+			        if (pMemCtl->TapeInput(tapeBit))
+                    {
+			            m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
+                    }
+                }
+                else if (m_TapeWriteCallback != NULL)  // Tape writing
+                {
+                    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+                    unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
+                    (*m_TapeWriteCallback)(value, 1);
                 }
             }
-            else if (m_TapeWriteCallback != NULL)
-            {
-                CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
-                unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
-                (*m_TapeWriteCallback)(value, tapeSamples);
-            }
-		}
+        }
 
         frameticks++;
     }
