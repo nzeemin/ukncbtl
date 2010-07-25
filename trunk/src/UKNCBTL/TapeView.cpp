@@ -22,6 +22,7 @@ HWND m_hwndTapePlay = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeRewind = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeOpen = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeSave = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndTapeGraph = (HWND) INVALID_HANDLE_VALUE;
 
 HFONT m_hfontTape = NULL;
 BOOL m_okTapeInserted = FALSE;
@@ -38,6 +39,7 @@ void TapeView_PlayTape();
 void TapeView_StopTape();
 void TapeView_UpdatePosition();
 
+void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis);
 void TapeView_OnDraw(HDC hdc);
 void TapeView_DoOpenWav();
 void TapeView_DoSaveWav();
@@ -46,6 +48,9 @@ void TapeView_DoRewind();
 
 BOOL CALLBACK TapeView_TapeReadCallback(UINT samples);
 void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples);
+
+#define TAPE_BUFFER_SIZE 624
+BYTE m_TapeBuffer[TAPE_BUFFER_SIZE];
 
 
 //////////////////////////////////////////////////////////////////////
@@ -104,32 +109,37 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
 	m_hwndTapeCurrent = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE,
-            8, 26, 100, 18,
+            8, 62, 100, 18,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeTotal = CreateWindow(
             _T("STATIC"), NULL,
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
             500 + 8 + 4, 4, rcClient.right - 8*2 - 500 - 4, 18,
             g_hwndTape, NULL, g_hInst, NULL);
-	m_hwndTapePlay = CreateWindow(
+	m_hwndTapeGraph = CreateWindow(
+            _T("STATIC"), NULL,
+            WS_CHILD | WS_VISIBLE | SS_OWNERDRAW,
+            8, 22, TAPE_BUFFER_SIZE, 32,
+            g_hwndTape, NULL, g_hInst, NULL);
+    m_hwndTapePlay = CreateWindow(
             _T("BUTTON"), _T("Play"),
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
-            8 + 100 + 16, 24, 96, 22,
+            8 + 100 + 16, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeRewind = CreateWindow(
             _T("BUTTON"), _T("<< Rewind"),
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
-            8 + 100 + 16 + 4 + 96, 24, 96, 22,
+            8 + 100 + 16 + 4 + 96, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeOpen = CreateWindow(
             _T("BUTTON"), _T("Open WAV"),
             WS_CHILD | WS_VISIBLE,
-            rcClient.right - 96 - 4 - 96 - 8, 24, 96, 22,
+            rcClient.right - 96 - 4 - 96 - 8, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 	m_hwndTapeSave = CreateWindow(
             _T("BUTTON"), _T("Save WAV"),
             WS_CHILD | WS_VISIBLE,
-            rcClient.right - 96 - 8, 24, 96, 22,
+            rcClient.right - 96 - 8, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
 
 	m_hfontTape = CreateDialogFont();
@@ -165,10 +175,30 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     case WM_DESTROY:
         g_hwndTape = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         return CallWindowProc(m_wndprocTapeToolWindow, hWnd, message, wParam, lParam);
+    case WM_DRAWITEM:
+        TapeView_DrawGraph((LPDRAWITEMSTRUCT)lParam);
+        return (LRESULT)TRUE;
     default:
         return CallWindowProc(m_wndprocTapeToolWindow, hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
+}
+
+void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis)
+{
+    HDC hdc = lpdis->hDC;
+    RECT rcItem = lpdis->rcItem;
+    PatBlt(hdc, rcItem.left, rcItem.top, rcItem.right - rcItem.left, rcItem.bottom - rcItem.top, WHITENESS);
+    
+    int x = rcItem.left;
+    for (int i = 0; i < TAPE_BUFFER_SIZE; i++)
+    {
+        BYTE value = m_TapeBuffer[i];
+        value = value >> 3;
+        COLORREF color = (value >= 16) ? RGB(0,192,0) : RGB(192,0,0);
+        SetPixel(hdc, x, rcItem.bottom - value - 1, color);
+        x++;
+    }
 }
 
 void TapeView_CreateTape(LPCTSTR lpszFile)
@@ -180,6 +210,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = TRUE;
+    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
 
 	EnableWindow(m_hwndTapePlay, TRUE);
 	SetWindowText(m_hwndTapePlay, _T("Record"));
@@ -200,6 +231,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = FALSE;
+    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
 
 	EnableWindow(m_hwndTapePlay, TRUE);
 	SetWindowText(m_hwndTapePlay, _T("Play"));
@@ -364,13 +396,19 @@ BOOL CALLBACK TapeView_TapeReadCallback(unsigned int samples)
 {
 	if (samples == 0) return 0;
 
+    // Scroll buffer
+    memmove(m_TapeBuffer, m_TapeBuffer + samples, TAPE_BUFFER_SIZE - samples);
+
 	UINT value = 0;
 	for (UINT i = 0; i < samples; i++)
 	{
 		value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
+        *(m_TapeBuffer + TAPE_BUFFER_SIZE - samples + i) = (BYTE)((value >> 24) & 0xff);
 	}
-	BOOL result = (value > UINT_MAX / 2);
-	
+	BOOL result = (value >= UINT_MAX / 2);
+
+    InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
+
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
 	if (wavPos >= wavLength)  // End of tape
@@ -395,9 +433,17 @@ void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples)
     if (!m_okTapeRecording) return;
 	if (samples == 0) return;
 
+    // Scroll buffer
+    memmove(m_TapeBuffer, m_TapeBuffer + samples, TAPE_BUFFER_SIZE - samples);
+
     // Write samples to the file
     for (UINT i = 0; i < samples; i++)
+    {
         WavPcmFile_WriteOne(m_hTapeWavPcmFile, value);
+        *(m_TapeBuffer + TAPE_BUFFER_SIZE - samples + i) = (BYTE)((value >> 24) & 0xff);
+    }
+
+    InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
 
 	DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
 	int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
