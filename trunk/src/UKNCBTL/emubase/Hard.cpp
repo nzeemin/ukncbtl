@@ -90,16 +90,14 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
 
-    // Check read-only file attribute
-    struct _stat statbuf;
-    ::_tstat(sFileName, &statbuf);
-    m_okReadOnly = (statbuf.st_mode & S_IREAD) != 0;
-
     // Open file
-    if (m_okReadOnly)
+    m_okReadOnly = FALSE;
+    m_fpFile = ::_tfopen(sFileName, _T("r+b"));
+    if (m_fpFile == NULL)
+    {
+        m_okReadOnly = TRUE;
         m_fpFile = ::_tfopen(sFileName, _T("rb"));
-    else
-        m_fpFile = ::_tfopen(sFileName, _T("r+b"));
+    }
     if (m_fpFile == NULL)
         return FALSE;
 

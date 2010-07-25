@@ -89,16 +89,14 @@ BOOL CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".rtd")) == 0)
         m_drivedata[drive].okNetRT11Image = TRUE;
 
-    // Check read-only file attribute
-    struct _stat statbuf;
-    ::_tstat(sFileName, &statbuf);
-    m_drivedata[drive].okReadOnly = (statbuf.st_mode & S_IREAD) != 0;
-
     // Open file
-    if (m_drivedata[drive].okReadOnly)
+    m_drivedata[drive].okReadOnly = FALSE;
+    m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("r+b"));
+    if (m_drivedata[drive].fpFile == NULL)
+    {
+        m_drivedata[drive].okReadOnly = TRUE;
         m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("rb"));
-    else
-        m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("r+b"));
+    }
     if (m_drivedata[drive].fpFile == NULL)
         return FALSE;
 
