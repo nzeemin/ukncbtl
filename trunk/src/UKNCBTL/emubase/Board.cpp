@@ -329,13 +329,14 @@ void CMotherboard::ExecutePPU ()
 
 void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer routine
 {
-    int flag;
-	
-    if ((m_timerflags & 1) == 0)  // Nothing to do
+    if ((m_timerflags & 1) == 0)  // Timer is off
+        return;
+    if ((m_timerflags & 040) != 0)  // External event is ready
         return;
 
-	flag=0;
     m_timerdivider++;
+
+    int flag = 0;
     switch((m_timerflags >> 1) & 3)
     {
         case 0: //2uS
@@ -376,34 +377,33 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
         if(m_timerflags & 0200)
             m_timerflags |= 010;  // Overflow
         m_timerflags |= 0200;  // 0
-        m_timer = m_timerreload & 07777; // Reload it
 
-        if((m_timerflags & 0100) && (m_timerflags & 0200))
+        if ((m_timerflags & 0100) && (m_timerflags & 0200))
         {
             m_pPPU->InterruptVIRQ(2, 0304); 
         }
+
+        m_timer = m_timerreload & 07777; // Reload it
     }
 }
 WORD CMotherboard::GetTimerValue()  // Returns current timer value
 {
-    if(m_timerflags & 0200)
-    {
-        m_timerflags &= ~0200;  // Clear it
+    if ((m_timerflags & 0240) == 0)
         return m_timer;
-    }
-    return m_timer;
+    
+    m_timerflags &= ~0240;  // Clear flags
+    WORD res = m_timer;
+    m_timer = m_timerreload & 07777; // Reload it
+    return res;
 }
 WORD CMotherboard::GetTimerReload()  // Returns timer reload value
 {
     return m_timerreload;
 }
-
 WORD CMotherboard::GetTimerState() // Returns timer state
 {
     WORD res = m_timerflags;
     m_timerflags &= ~010;  // Clear overflow
-    m_timerflags &= ~040;  // Clear external int
-    
     return res;
 }
 
@@ -411,7 +411,7 @@ void CMotherboard::SetTimerReload(WORD val)	 // Sets timer reload value
 {
     m_timerreload = val & 07777;
 	if ((m_timerflags & 1) == 0)
-		m_timer=m_timerreload;
+		m_timer = m_timerreload;
 }
 
 void CMotherboard::SetTimerState(WORD val) // Sets timer state
@@ -477,7 +477,6 @@ void CMotherboard::DebugTicks()
 ** Первая невидимая строка (#0) начинает рисоваться на 96-ой тик
 ** Первая видимая строка (#18) начинает рисоваться на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
-* 800 тиков чтения с магнитофона - каждый 25-й тик
 */
 BOOL CMotherboard::SystemFrame()
 {
@@ -549,7 +548,7 @@ BOOL CMotherboard::SystemFrame()
                     CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
 			        if (pMemCtl->TapeInput(tapeBit))
                     {
-			            m_timerflags |= 32;  // Set bit 5 of timer state: external event ready to read
+			            m_timerflags |= 040;  // Set bit 5 of timer state: external event ready to read
                     }
                 }
                 else if (m_TapeWriteCallback != NULL)  // Tape writing

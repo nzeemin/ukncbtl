@@ -194,6 +194,7 @@ void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis)
     for (int i = 0; i < TAPE_BUFFER_SIZE; i++)
     {
         BYTE value = m_TapeBuffer[i];
+        if (value == 0) continue;
         value = value >> 3;
         COLORREF color = (value >= 16) ? RGB(0,192,0) : RGB(192,0,0);
         SetPixel(hdc, x, rcItem.bottom - value - 1, color);
@@ -210,7 +211,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = TRUE;
-    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
+    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));  // Clear graph
 
 	EnableWindow(m_hwndTapePlay, TRUE);
 	SetWindowText(m_hwndTapePlay, _T("Record"));
@@ -271,6 +272,8 @@ void TapeView_CloseTape()
 	SetWindowText(m_hwndTapeCurrent, NULL);
 	SetWindowText(m_hwndTapeOpen, _T("Open WAV"));
 	SetWindowText(m_hwndTapeSave, _T("Save WAV"));
+
+    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));  // Clear graph
 }
 void TapeView_PlayTape()
 {

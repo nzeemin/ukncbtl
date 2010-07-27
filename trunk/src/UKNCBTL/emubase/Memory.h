@@ -140,7 +140,6 @@ protected:  // Implementation
     WORD        m_Port177716;  // System control register
 
 	WORD		m_Port177054;  // address space control
-
 };
 
 
