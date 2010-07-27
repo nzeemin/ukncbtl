@@ -1288,7 +1288,7 @@ BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
 		{
             res = TRUE;
 			m_Port177716 = (m_Port177716 & 0177776) | tapeBitNew;
-			if ((m_Port177716 & 8) == 0)
+			//if ((m_Port177716 & 8) == 0)
 			{
 				m_pProcessor->InterruptVIRQ(3, 0310);
 			}
@@ -1301,7 +1301,6 @@ BOOL CSecondMemoryController::TapeOutput()
 {
     return (BOOL)(m_Port177716 & 2);
 }
-
 
 void CSecondMemoryController::DCLO_177716()
 {

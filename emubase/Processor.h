@@ -82,8 +82,8 @@ public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
 
 public:  // Register control
-    WORD        GetPSW() { return m_psw; }
-    WORD        GetCPSW() { return m_savepsw; }
+    WORD        GetPSW() const { return m_psw; }
+    WORD        GetCPSW() const { return m_savepsw; }
 	BYTE		GetLPSW() {return LOBYTE(m_psw); }
 	void        SetPSW(WORD word)
 	{
