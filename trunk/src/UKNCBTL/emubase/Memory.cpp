@@ -809,6 +809,11 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
 		case 0177103:
 			return 0;
 
+        case 0176644: case 0176645:
+			return 0;
+        case 0176646: case 0176647:
+			return 0;
+
 		case 0177700:
 		case 0177701:
 			return m_Port177700;  // Keyboard status
@@ -974,6 +979,11 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 		case 0177133:
 			m_pBoard->SetFloppyData(word);
 			break;
+
+        case 0176644: case 0176645:
+            break;
+        case 0176646: case 0176647:
+            break;
 
         case 0177700:  // Keyboard status
 		case 0177701:
@@ -1178,6 +1188,11 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 			//DebugLog(str);
 			m_pBoard->SetFloppyData(word);
 			break;
+
+        case 0176644: case 0176645:
+            break;
+        case 0176646: case 0176647:
+            break;
 
         case 0177700:  // Keyboard status
 		case 0177701:
