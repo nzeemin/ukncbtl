@@ -39,7 +39,9 @@ void TapeView_PlayTape();
 void TapeView_StopTape();
 void TapeView_UpdatePosition();
 
+void TapeView_ClearGraph();
 void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis);
+
 void TapeView_OnDraw(HDC hdc);
 void TapeView_DoOpenWav();
 void TapeView_DoSaveWav();
@@ -150,6 +152,8 @@ void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
 	SendMessage(m_hwndTapeRewind, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeOpen, WM_SETFONT, (WPARAM) m_hfontTape, 0);
 	SendMessage(m_hwndTapeSave, WM_SETFONT, (WPARAM) m_hfontTape, 0);
+
+    TapeView_ClearGraph();
 }
 
 LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -184,6 +188,15 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
     return (LRESULT)FALSE;
 }
 
+void TapeView_ClearGraph()
+{
+    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
+
+    if (m_hwndTapeGraph != INVALID_HANDLE_VALUE)
+    {
+        InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
+    }
+}
 void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis)
 {
     HDC hdc = lpdis->hDC;
@@ -211,7 +224,6 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = TRUE;
-    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));  // Clear graph
 
 	EnableWindow(m_hwndTapePlay, TRUE);
 	SetWindowText(m_hwndTapePlay, _T("Record"));
@@ -219,6 +231,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
 	SetWindowText(m_hwndTapeFile, lpszFile);
 
 	TapeView_UpdatePosition();
+    TapeView_ClearGraph();
 
 	SetWindowText(m_hwndTapeSave, _T("Close WAV"));
 	EnableWindow(m_hwndTapeOpen, FALSE);
@@ -232,7 +245,6 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 	_tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
 	m_okTapeInserted = TRUE;
 	m_okTapeRecording = FALSE;
-    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
 
 	EnableWindow(m_hwndTapePlay, TRUE);
 	SetWindowText(m_hwndTapePlay, _T("Play"));
@@ -240,6 +252,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 	SetWindowText(m_hwndTapeFile, lpszFile);
 
 	TapeView_UpdatePosition();
+    TapeView_ClearGraph();
 
 	DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
 	int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
@@ -273,7 +286,7 @@ void TapeView_CloseTape()
 	SetWindowText(m_hwndTapeOpen, _T("Open WAV"));
 	SetWindowText(m_hwndTapeSave, _T("Save WAV"));
 
-    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));  // Clear graph
+    TapeView_ClearGraph();
 }
 void TapeView_PlayTape()
 {
