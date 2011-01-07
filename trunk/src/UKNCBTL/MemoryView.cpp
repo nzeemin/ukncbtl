@@ -42,6 +42,7 @@ enum MemoryViewMode {
 
 int     m_Mode = MEMMODE_ROM;  // See MemoryViewMode enum
 WORD    m_wBaseAddress = 0;
+BOOL    m_okMemoryByteMode = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -153,6 +154,7 @@ void MemoryView_OnDraw(HDC hdc)
 
     m_cyLineMemory = cyLine;
 
+    TCHAR buffer[7];
     const TCHAR* ADDRESS_LINE = _T(" address  0      2      4      6      10     12     14     16");
     TextOut(hdc, 0, 0, ADDRESS_LINE, (int) _tcslen(ADDRESS_LINE));
 
@@ -207,7 +209,15 @@ void MemoryView_OnDraw(HDC hdc)
             if (okValid)
             {
                 ::SetTextColor(hdc, (wChanged != 0) ? RGB(255,0,0) : colorText);
-                DrawOctalValue(hdc, x, y, word);
+                if (m_okMemoryByteMode)
+                {
+                    PrintOctalValue(buffer, (word & 0xff));
+                    TextOut(hdc, x, y, buffer + 3, 3);
+                    PrintOctalValue(buffer, (word >> 8));
+                    TextOut(hdc, x + 3 * cxChar + 3, y, buffer + 3, 3);
+                }
+                else
+                    DrawOctalValue(hdc, x, y, word);
             }
 
             // Prepare characters to draw at right
@@ -303,6 +313,11 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
                 MemoryView_ScrollTo(value);
             break;
         }
+    case 0x42:  // B - change byte/word mode
+    case 0x57:  // W
+        m_okMemoryByteMode = !m_okMemoryByteMode;
+        InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+        break;
     default:
         return TRUE;
     }
@@ -351,7 +366,7 @@ BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam)
 // Scroll window to given base address
 void MemoryView_ScrollTo(WORD wAddress)
 {
-    m_wBaseAddress = wAddress & ((WORD)~15);
+    m_wBaseAddress = wAddress & ((WORD)~1);
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
 
     MemoryView_UpdateScrollPos();
