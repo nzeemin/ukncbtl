@@ -123,6 +123,7 @@ class CHardDrive
 protected:
     FILE*   m_fpFile;
     BOOL    m_okReadOnly;
+    BOOL    m_okInverted;
     BYTE    m_status;
     BYTE    m_error;
     BYTE    m_command;
