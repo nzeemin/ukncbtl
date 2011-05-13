@@ -51,6 +51,19 @@ enum TimeoutEvent
 
 //////////////////////////////////////////////////////////////////////
 
+// Inverts 512 bytes in the buffer
+static void InvertBuffer(void* buffer)
+{
+    DWORD* p = (DWORD*) buffer;
+    for (int i = 0; i < 128; i++)
+    {
+        *p = ~(*p);
+        p++;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+
 
 CHardDrive::CHardDrive()
 {
@@ -112,6 +125,16 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     DWORD dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
     if (dwBytesRead != 512)
         return FALSE;
+
+    // Autodetect inverted image
+    m_okInverted = FALSE;
+    BYTE test = 0xff;
+    for (int i = 0x1f0; i <= 0x1fb; i++)
+        test &= m_buffer[i];
+    m_okInverted = (test == 0xff);
+    // Invert the buffer if needed
+    if (m_okInverted)
+        InvertBuffer(m_buffer);
     
     // Calculate geometry
     m_numsectors = *(m_buffer + 0);
@@ -149,7 +172,8 @@ WORD CHardDrive::ReadPort(WORD port)
         if (m_status & IDE_STATUS_BUFFER_READY)
         {
             data = *((WORD*)(m_buffer + m_bufferoffset));
-            data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
+            if (!m_okInverted)
+                data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             m_bufferoffset += 2;
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
@@ -201,7 +225,8 @@ void CHardDrive::WritePort(WORD port, WORD data)
     case IDE_PORT_DATA:
         if (m_status & IDE_STATUS_BUFFER_READY)
         {
-            data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
+            if (!m_okInverted)
+                data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             *((WORD*)(m_buffer + m_bufferoffset)) = data;
             m_bufferoffset += 2;
 
