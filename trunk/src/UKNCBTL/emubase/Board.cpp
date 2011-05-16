@@ -1278,5 +1278,21 @@ void CMotherboard::SetSoundGenCallback(SOUNDGENCALLBACK callback)
 	}
 }
 
+void CMotherboard::SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback)
+{
+    if (incallback == NULL || outcallback == NULL)  // Reset callbacks
+    {
+        m_SerialInCallback = NULL;
+        m_SerialOutCallback = NULL;
+        //TODO: Set port value to indicate we are not ready to translate
+    }
+    else
+    {
+        m_SerialInCallback = incallback;
+        m_SerialOutCallback = outcallback;
+        //TODO: Set port value to indicate we are ready to translate
+    }
+}
+
 
 //////////////////////////////////////////////////////////////////////

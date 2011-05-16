@@ -116,6 +116,9 @@ void Settings_SetKeyboard(BOOL flag);
 BOOL Settings_GetKeyboard();
 void Settings_SetTape(BOOL flag);
 BOOL Settings_GetTape();
+void Settings_SetSerial(BOOL flag);
+BOOL Settings_GetSerial();
+void Settings_GetSerialPort(LPTSTR buffer);
 
 
 //////////////////////////////////////////////////////////////////////

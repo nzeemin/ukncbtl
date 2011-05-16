@@ -48,6 +48,20 @@ typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, unsigned int samples);
 // Sound generator callback function type
 typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 
+// Serial port callback for receiving
+// Output:
+//   pbyte      Byte received
+//   result     TRUE means we have a new byte, FALSE means not ready yet
+typedef BOOL (CALLBACK* SERIALINCALLBACK)(BYTE* pbyte);
+
+// Serial port callback for translating
+// Input:
+//   byte       A byte to translate
+// Output:
+//   result     TRUE means we translated the byte successfully, FALSE means we have an error
+typedef BOOL (CALLBACK* SERIALOUTCALLBACK)(BYTE byte);
+
+
 class CFloppyController;
 class CHardDrive;
 
@@ -174,6 +188,7 @@ public:  // System control
 	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
 	void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
+	void		SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
 
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
@@ -190,7 +205,8 @@ private: // Timing
 private:
     WORD        m_CPUbp;
     WORD        m_PPUbp;
-	WORD		m_timer;
+
+    WORD		m_timer;
 	WORD		m_timerreload;
 	WORD		m_timerflags;
 	WORD		m_timerdivider;
@@ -207,6 +223,8 @@ private:
     TAPEWRITECALLBACK m_TapeWriteCallback;
 	int			m_nTapeSampleRate;
     SOUNDGENCALLBACK m_SoundGenCallback;
+    SERIALINCALLBACK    m_SerialInCallback;
+    SERIALOUTCALLBACK   m_SerialOutCallback;
 
 	void DoSound(void);
 	

@@ -34,6 +34,7 @@
 #define IDE_COMMAND_READ_MULTIPLE       0x20
 #define IDE_COMMAND_SET_CONFIG          0x91
 #define IDE_COMMAND_WRITE_MULTIPLE      0x30
+#define IDE_COMMAND_IDENTIFY            0xec
 
 #define IDE_ERROR_NONE					0x00
 #define IDE_ERROR_DEFAULT				0x01
@@ -329,6 +330,8 @@ void CHardDrive::HandleCommand(BYTE command)
             m_bufferoffset = 0;
             m_status |= IDE_STATUS_BUFFER_READY;
             break;
+
+        //TODO: case IDE_COMMAND_IDENTIFY
 
         default:
 #if !defined(PRODUCT)

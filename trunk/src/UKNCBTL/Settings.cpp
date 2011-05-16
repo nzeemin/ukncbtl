@@ -21,6 +21,8 @@ BOOL m_Settings_Keyboard = TRUE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
 BOOL m_Settings_Tape = FALSE;
 BOOL m_Settings_Tape_Valid = FALSE;
+BOOL m_Settings_Serial = FALSE;
+BOOL m_Settings_Serial_Valid = FALSE;
 DWORD m_Settings_CartridgeMode = 0;
 BOOL m_Settings_CartridgeMode_Valid = FALSE;
 
@@ -277,6 +279,29 @@ BOOL Settings_GetTape()
         m_Settings_Tape_Valid = TRUE;
     }
     return m_Settings_Tape;
+}
+
+void Settings_SetSerial(BOOL flag)
+{
+    m_Settings_Serial = flag;
+    m_Settings_Serial_Valid = TRUE;
+    Settings_SaveDwordValue(_T("Serial"), (DWORD) flag);
+}
+BOOL Settings_GetSerial()
+{
+    if (!m_Settings_Serial_Valid)
+    {
+        DWORD dwValue = (DWORD) FALSE;
+        Settings_LoadDwordValue(_T("Serial"), &dwValue);
+        m_Settings_Serial = (BOOL) dwValue;
+        m_Settings_Serial_Valid = TRUE;
+    }
+    return m_Settings_Serial;
+}
+
+void Settings_GetSerialPort(LPTSTR buffer)
+{
+    Settings_LoadStringValue(_T("SerialPort"), buffer, 10);
 }
 
 
