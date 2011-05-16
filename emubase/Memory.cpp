@@ -228,6 +228,7 @@ CFirstMemoryController::CFirstMemoryController() : CMemoryController()
 {
     m_Port176640 = 0;
     m_Port176642 = 0;
+    m_Port176570 = m_Port176572 = m_Port176574 = m_Port176576 = 0;  // RS-232 ports
 }
 
 void CFirstMemoryController::DCLO_Signal()
@@ -338,19 +339,22 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
 		case 0176566:
 		case 0176567:
 			return 0;
-		case 0176570: //rs232
+		
+        case 0176570:  // Стык С2: Регистр состояния приемника
 		case 0176571:
-		case 0176572:
+            return m_Port176570;
+		case 0176572:  // Стык С2: Регистр данных приемника
 		case 0176573:
-
-		case 0176576:
+			return 0;
+        case 0176574:  // Стык С2: Регистр состояния источника
+		case 0176575:
+            return m_Port176574;
+        case 0176576:  // Стык С2: Регистр данных источника
 		case 0176577:
 			return 0;
 		
 		case 0176564:
 		case 0176565:
-		case 0176574:
-		case 0176575:
 			return 0x80; //ready for tx
 
 		default: 
@@ -470,13 +474,13 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 		case 0176566:
 		case 0176567:
 			return ;
-		case 0176570: //rs232
+		case 0176570:  // Стык С2: Регистр состояния приемника
 		case 0176571:
-		case 0176572:
+		case 0176572:  // Стык С2: Регистр данных приемника
 		case 0176573:
-		case 0176574:
+		case 0176574:  // Стык С2: Регистр состояния источника
 		case 0176575:
-		case 0176576:
+		case 0176576:  // Стык С2: Регистр данных источника
 		case 0176577:
 			return ;
 
@@ -563,13 +567,13 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 		case 0176566:
 		case 0176567:
 			return ;
-		case 0176570: //rs232
+		case 0176570:  // Стык С2: Регистр состояния приемника
 		case 0176571:
-		case 0176572:
+		case 0176572:  // Стык С2: Регистр данных приемника
 		case 0176573:
-		case 0176574:
+		case 0176574:  // Стык С2: Регистр состояния источника
 		case 0176575:
-		case 0176576:
+		case 0176576:  // Стык С2: Регистр данных источника
 		case 0176577:
 			return ;
 

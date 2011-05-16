@@ -26,6 +26,9 @@ WORD m_wEmulatorPPUBreakpoint = 0177777;
 
 BOOL m_okEmulatorSound = FALSE;
 
+BOOL m_okEmulatorSerial = FALSE;
+HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
+
 long m_nFrameCount = 0;
 DWORD m_dwTickCount = 0;
 DWORD m_dwEmulatorUptime = 0;  // UKNC uptime, seconds, from turn on or reset, increments every 25 frames
@@ -99,6 +102,13 @@ void Emulator_Done()
 
     g_pBoard->SetSoundGenCallback(NULL);
     SoundGen_Finalize();
+
+    g_pBoard->SetSerialCallbacks(NULL, NULL);
+    if (m_hEmulatorComPort != INVALID_HANDLE_VALUE)
+    {
+        ::CloseHandle(m_hEmulatorComPort);
+        m_hEmulatorComPort = INVALID_HANDLE_VALUE;
+    }
 
     delete g_pBoard;
     g_pBoard = NULL;
@@ -187,6 +197,107 @@ void Emulator_SetSound(BOOL soundOnOff)
     }
 
     m_okEmulatorSound = soundOnOff;
+}
+
+BOOL CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
+{
+    DWORD dwBytesRead;
+    ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, NULL);
+
+    return (dwBytesRead == 1);
+}
+
+BOOL CALLBACK Emulator_SerialOut_Callback(BYTE byte)
+{
+    DWORD dwBytesWritten;
+    ::WriteFile(m_hEmulatorComPort, &byte, 1, &dwBytesWritten, NULL);
+
+    return (dwBytesWritten == 1);
+}
+
+void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
+{
+    if (m_okEmulatorSerial != serialOnOff)
+    {
+        if (serialOnOff)
+        {
+            // Prepare port name
+            TCHAR portname[10];
+            Settings_GetSerialPort(portname);
+            TCHAR port[15];
+            wsprintf(port, _T("\\\\.\\%s"), portname);
+
+            // Open port
+            m_hEmulatorComPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (m_hEmulatorComPort == INVALID_HANDLE_VALUE)
+            {
+                AlertWarning(_T("Failed to open COM port."));
+                return;
+            }
+
+            // Set port settings
+            DCB dcb;
+            //::GetCommState(m_portHandle, &dcb);
+            ::memset(&dcb, 0, sizeof(dcb));
+            dcb.DCBlength = sizeof(dcb);
+            dcb.BaudRate = 0;  //TODO
+            dcb.ByteSize = 8;
+            dcb.fBinary = 1;
+            dcb.fParity = FALSE;
+            dcb.fOutxCtsFlow = dcb.fOutxDsrFlow = FALSE;
+            dcb.fDtrControl = DTR_CONTROL_DISABLE;
+            dcb.fDsrSensitivity = FALSE;
+            dcb.fTXContinueOnXoff = FALSE;
+            dcb.fOutX = dcb.fInX = FALSE;
+            dcb.fErrorChar = FALSE;
+            dcb.fNull = FALSE;
+            dcb.fRtsControl = RTS_CONTROL_DISABLE;
+            dcb.fAbortOnError = FALSE;
+            dcb.Parity = NOPARITY;
+            dcb.StopBits = ONESTOPBIT;
+            if (!::SetCommState(m_hEmulatorComPort, &dcb))
+            {
+                ::CloseHandle(m_hEmulatorComPort);
+                m_hEmulatorComPort = INVALID_HANDLE_VALUE;
+                AlertWarning(_T("Failed to configure the COM port."));
+                return;
+            }
+
+            // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
+            // and ReadTotalTimeoutMultiplier members, specifies that the read operation is to return immediately with the bytes
+            // that have already been received, even if no bytes have been received.
+            COMMTIMEOUTS timeouts;
+            timeouts.ReadIntervalTimeout = MAXDWORD;
+            timeouts.ReadTotalTimeoutConstant = 0;
+            timeouts.ReadTotalTimeoutMultiplier = 0;
+            if (!::SetCommTimeouts(m_hEmulatorComPort, &timeouts))
+            {
+                ::CloseHandle(m_hEmulatorComPort);
+                m_hEmulatorComPort = INVALID_HANDLE_VALUE;
+                AlertWarning(_T("Failed to set the COM port timeouts."));
+                return;
+            }
+
+            // Clear port input buffer
+            ::PurgeComm(m_hEmulatorComPort, PURGE_RXABORT|PURGE_RXCLEAR);
+
+            // Set callbacks
+            g_pBoard->SetSerialCallbacks(Emulator_SerialIn_Callback, Emulator_SerialOut_Callback);
+        }
+        else
+        {
+            g_pBoard->SetSerialCallbacks(NULL, NULL);  // Reset callbacks
+
+            // Close port
+            if (m_hEmulatorComPort != INVALID_HANDLE_VALUE)
+            {
+                ::CloseHandle(m_hEmulatorComPort);
+                m_hEmulatorComPort = INVALID_HANDLE_VALUE;
+            }
+        }
+    }
+
+    m_okEmulatorSerial = serialOnOff;
 }
 
 int Emulator_SystemFrame()

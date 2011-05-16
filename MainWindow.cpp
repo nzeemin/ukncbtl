@@ -42,6 +42,7 @@ void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
 void MainWindow_DoEmulatorRealSpeed();
 void MainWindow_DoEmulatorSound();
+void MainWindow_DoEmulatorSerial();
 void MainWindow_DoFileSaveState();
 void MainWindow_DoFileLoadState();
 void MainWindow_DoEmulatorFloppy(int slot);
@@ -578,6 +579,7 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_EMULATOR_REALSPEED, (Settings_GetRealSpeed() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
     MainWindow_SetToolbarImage(ID_EMULATOR_SOUND, (Settings_GetSound() ? ToolbarImageSoundOn : ToolbarImageSoundOff));
+    CheckMenuItem(hMenu, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? MF_CHECKED : MF_UNCHECKED));
 
     // Emulator|FloppyX
     CheckMenuItem(hMenu, ID_EMULATOR_FLOPPY0, (g_pBoard->IsFloppyImageAttached(0) ? MF_CHECKED : MF_UNCHECKED));
@@ -677,6 +679,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_EMULATOR_SOUND:
         MainWindow_DoEmulatorSound();
+        break;
+    case ID_EMULATOR_SERIAL:
+        MainWindow_DoEmulatorSerial();
         break;
     case ID_EMULATOR_FLOPPY0:
         MainWindow_DoEmulatorFloppy(0);
@@ -797,6 +802,15 @@ void MainWindow_DoEmulatorSound()
 
     Emulator_SetSound(Settings_GetSound());
 
+    MainWindow_UpdateMenu();
+}
+void MainWindow_DoEmulatorSerial()
+{
+    BOOL okSerial = Settings_GetSerial();
+
+    //TODO
+
+    Settings_SetSerial(!okSerial);
     MainWindow_UpdateMenu();
 }
 

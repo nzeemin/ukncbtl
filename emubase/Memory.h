@@ -98,6 +98,10 @@ public:  // Saving/loading emulator status (64 bytes)
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
+    WORD        m_Port176570;  // RS-232 receiver state
+    WORD        m_Port176572;  // RS-232 receiver data (bits 0-7)
+    WORD        m_Port176574;  // RS-232 translator state
+    WORD        m_Port176576;  // RS-232 translator data (bits 0-7)
 };
 
 class CSecondMemoryController : public CMemoryController  // PPU memory control device
