@@ -87,7 +87,7 @@ void CreateDisasmView(HWND hwndParent, int x, int y, int width, int height)
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
-	DisasmView_UpdateWindowText();
+    DisasmView_UpdateWindowText();
 
     // ToolWindow subclassing
     m_wndprocDisasmToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
@@ -95,7 +95,7 @@ void CreateDisasmView(HWND hwndParent, int x, int y, int width, int height)
 
     RECT rcClient;  GetClientRect(g_hwndDisasm, &rcClient);
 
-	m_hwndDisasmViewer = CreateWindowEx(
+    m_hwndDisasmViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
             CLASSNAME_DISASMVIEW, NULL,
             WS_CHILD | WS_VISIBLE,
@@ -179,12 +179,12 @@ void DisasmView_UpdateWindowText()
     ASSERT(pDisasmPU != NULL);
     LPCTSTR sProcName = pDisasmPU->GetName();
 
-	TCHAR buffer[64];
+    TCHAR buffer[64];
     if (m_okDisasmSubtitles)
-	    _stprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
+        _stprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
     else
-	    _stprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
-	::SetWindowText(g_hwndDisasm, buffer);
+        _stprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
+    ::SetWindowText(g_hwndDisasm, buffer);
 }
 
 void DisasmView_ResizeSubtitleArray(int newSize)
@@ -389,7 +389,7 @@ void DisasmView_OnUpdate()
 {
     CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
     ASSERT(pDisasmPU != NULL);
-	m_wDisasmBaseAddr = pDisasmPU->GetPC();
+    m_wDisasmBaseAddr = pDisasmPU->GetPC();
 }
 
 void DisasmView_SetCurrentProc(BOOL okCPU)
@@ -399,7 +399,7 @@ void DisasmView_SetCurrentProc(BOOL okCPU)
     ASSERT(pDisasmPU != NULL);
     m_wDisasmBaseAddr = pDisasmPU->GetPC();
     InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
-	DisasmView_UpdateWindowText();
+    DisasmView_UpdateWindowText();
 }
 
 void DisasmView_SetBaseAddr(WORD base)
@@ -429,7 +429,7 @@ void DoDrawDisasmView(HDC hdc)
     WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
     DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
 
-	SetTextColor(hdc, colorOld);
+    SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
     DeleteObject(hFont);

@@ -27,10 +27,10 @@ class CMemoryController;
 
 typedef struct chan_tag
 {
-	BYTE	data;
-	BYTE	ready;
-	BYTE	irq;
-	BYTE	rdwr;
+    BYTE	data;
+    BYTE	ready;
+    BYTE	irq;
+    BYTE	rdwr;
 } chan_stc;
 
 // Tape emulator callback used to read a tape recorded data.
@@ -104,23 +104,23 @@ public:  // Debug
     void        DebugTicks();  // One Debug PPU tick -- use for debug step or debug breakpoint
     void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } // Set CPU breakpoint
     void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } // Set PPU breakpoint
-	chan_stc	GetChannelStruct(unsigned char cpu,unsigned char chan, unsigned char tx)
-	{//cpu==1 ,ppu==0; tx==1, rx==0
-		if(cpu)
-		{
-			if(tx)
-				return m_chancputx[chan];
-			else
-				return m_chancpurx[chan];
-		}
-		else
-		{
-			if(tx)
-				return m_chanpputx[chan];
-			else
-				return m_chanppurx[chan];		
-		}
-	}
+    chan_stc	GetChannelStruct(unsigned char cpu,unsigned char chan, unsigned char tx)
+    {//cpu==1 ,ppu==0; tx==1, rx==0
+        if(cpu)
+        {
+            if(tx)
+                return m_chancputx[chan];
+            else
+                return m_chancpurx[chan];
+        }
+        else
+        {
+            if(tx)
+                return m_chanpputx[chan];
+            else
+                return m_chanppurx[chan];		
+        }
+    }
 
 public:  // System control
     void        Reset();  // Reset computer
@@ -130,50 +130,50 @@ public:  // System control
     void        Tick8000();  // Tick 8.00 MHz
     void        Tick6250();  // Tick 6.25 MHz
     void        Tick50();    // Tick 50 Hz - goes to CPU/PPU EVNT line
-	void		TimerTick();		// Timer Tick, 2uS -- dividers are within timer routine
+    void		TimerTick();		// Timer Tick, 2uS -- dividers are within timer routine
     void        ResetFloppy();     // INIT signal for FDD
-	WORD		GetTimerValue();	// returns current timer value
-	WORD		GetTimerValueView() { return m_timer; }	// Returns current timer value for debugger
-	WORD		GetTimerReload();	// returns timer reload value
-	WORD		GetTimerReloadView() { return m_timerreload; }	// Returns timer reload value for debugger
-	WORD		GetTimerState();	// returns timer state
-	WORD		GetTimerStateView() { return m_timerflags; } // Returns timer state for debugger
+    WORD		GetTimerValue();	// returns current timer value
+    WORD		GetTimerValueView() { return m_timer; }	// Returns current timer value for debugger
+    WORD		GetTimerReload();	// returns timer reload value
+    WORD		GetTimerReloadView() { return m_timerreload; }	// Returns timer reload value for debugger
+    WORD		GetTimerState();	// returns timer state
+    WORD		GetTimerStateView() { return m_timerflags; } // Returns timer state for debugger
 
-	void		ChanWriteByCPU(BYTE chan, BYTE data);
-	void		ChanWriteByPPU(BYTE chan, BYTE data);
-	BYTE		ChanReadByCPU(BYTE chan);
-	BYTE		ChanReadByPPU(BYTE chan);
-	
-	BYTE		ChanRxStateGetCPU(BYTE chan);
-	BYTE		ChanTxStateGetCPU(BYTE chan);
-	BYTE		ChanRxStateGetPPU();
-	BYTE		ChanTxStateGetPPU();
-	void		ChanRxStateSetCPU(BYTE chan, BYTE state);
-	void		ChanTxStateSetCPU(BYTE chan, BYTE state);
-	void		ChanRxStateSetPPU(BYTE state);
-	void		ChanTxStateSetPPU(BYTE state);
+    void		ChanWriteByCPU(BYTE chan, BYTE data);
+    void		ChanWriteByPPU(BYTE chan, BYTE data);
+    BYTE		ChanReadByCPU(BYTE chan);
+    BYTE		ChanReadByPPU(BYTE chan);
+    
+    BYTE		ChanRxStateGetCPU(BYTE chan);
+    BYTE		ChanTxStateGetCPU(BYTE chan);
+    BYTE		ChanRxStateGetPPU();
+    BYTE		ChanTxStateGetPPU();
+    void		ChanRxStateSetCPU(BYTE chan, BYTE state);
+    void		ChanTxStateSetCPU(BYTE chan, BYTE state);
+    void		ChanRxStateSetPPU(BYTE state);
+    void		ChanTxStateSetPPU(BYTE state);
 
-	void		ChanResetByCPU();
-	void		ChanResetByPPU();
+    void		ChanResetByCPU();
+    void		ChanResetByPPU();
 
-	//void		FloppyDebug(BYTE val);
+    //void		FloppyDebug(BYTE val);
 
-	void		SetTimerReload(WORD val);	//sets timer reload value
-	void		SetTimerState(WORD val);	//sets timer state
+    void		SetTimerReload(WORD val);	//sets timer reload value
+    void		SetTimerState(WORD val);	//sets timer state
     void        ExecuteCPU();  // Execute one CPU instruction
     void        ExecutePPU();  // Execute one PPU instruction
     BOOL        SystemFrame();  // Do one frame -- use for normal run
     void        KeyboardEvent(BYTE scancode, BOOL okPressed);  // Key pressed or released
-	WORD        GetKeyboardRegister(void);
+    WORD        GetKeyboardRegister(void);
     
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
     void        DetachFloppyImage(int slot);
     BOOL        IsFloppyImageAttached(int slot);
     BOOL        IsFloppyReadOnly(int slot);
-	WORD		GetFloppyState();
-	WORD		GetFloppyData();
-	void		SetFloppyState(WORD val);
-	void		SetFloppyData(WORD val);
+    WORD		GetFloppyState();
+    WORD		GetFloppyData();
+    void		SetFloppyState(WORD val);
+    void		SetFloppyData(WORD val);
 
     BOOL        IsROMCartridgeLoaded(int cartno);
     void        UnloadROMCartridge(int cartno);
@@ -185,20 +185,20 @@ public:  // System control
     WORD        GetHardPortWord(int slot, WORD port);  // To use from CSecondMemoryController only
     void        SetHardPortWord(int slot, WORD port, WORD data);  // To use from CSecondMemoryController only
 
-	void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+    void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
-	void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
-	void		SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
+    void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
+    void		SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
 
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
     void        LoadFromImage(const BYTE* pImage);
-	void		SetSound(WORD val);
+    void		SetSound(WORD val);
 private: // Timing
-	int m_multiply;
-	int freq_per[6];
-	int freq_out[6];
-	int freq_enable[6];
+    int m_multiply;
+    int freq_per[6];
+    int freq_out[6];
+    int freq_enable[6];
     int m_pputicks;
     int m_cputicks;
     unsigned int m_lineticks;
@@ -207,27 +207,27 @@ private:
     WORD        m_PPUbp;
 
     WORD		m_timer;
-	WORD		m_timerreload;
-	WORD		m_timerflags;
-	WORD		m_timerdivider;
-	
-	chan_stc	m_chancputx[3];
-	chan_stc	m_chancpurx[2];
-	chan_stc	m_chanpputx[2];
-	chan_stc	m_chanppurx[3];
+    WORD		m_timerreload;
+    WORD		m_timerflags;
+    WORD		m_timerdivider;
+    
+    chan_stc	m_chancputx[3];
+    chan_stc	m_chancpurx[2];
+    chan_stc	m_chanpputx[2];
+    chan_stc	m_chanppurx[3];
 
-	BYTE		m_chan0disabled;
-	BYTE		m_irq_cpureset;
+    BYTE		m_chan0disabled;
+    BYTE		m_irq_cpureset;
 
     TAPEREADCALLBACK m_TapeReadCallback;
     TAPEWRITECALLBACK m_TapeWriteCallback;
-	int			m_nTapeSampleRate;
+    int			m_nTapeSampleRate;
     SOUNDGENCALLBACK m_SoundGenCallback;
     SERIALINCALLBACK    m_SerialInCallback;
     SERIALOUTCALLBACK   m_SerialOutCallback;
 
-	void DoSound(void);
-	
+    void DoSound(void);
+    
 };
 
 

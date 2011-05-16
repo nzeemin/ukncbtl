@@ -34,45 +34,45 @@ LRESULT CALLBACK ToolWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
-	case WM_NCCALCSIZE:
-		{
-			LPRECT pRect = (LPRECT) lParam;
-			pRect->top += TOOLWINDOW_CAPTION_HEIGHT;
-		}
-		break;
+    case WM_NCCALCSIZE:
+        {
+            LPRECT pRect = (LPRECT) lParam;
+            pRect->top += TOOLWINDOW_CAPTION_HEIGHT;
+        }
+        break;
     case WM_NCPAINT:
         {
-			RECT rcClient;  ::GetClientRect(hWnd, &rcClient);
-			RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
-			MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
+            RECT rcClient;  ::GetClientRect(hWnd, &rcClient);
+            RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
+            MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
 
-			rcClient.left -= rcWindow.left;  rcClient.top -= rcWindow.top;
-			rcClient.right -= rcWindow.left;  rcClient.bottom -= rcWindow.top;
-			rcWindow.left -= rcWindow.left;  rcWindow.top -= rcWindow.top;
-			rcWindow.right -= rcWindow.left;  rcWindow.bottom -= rcWindow.top;
+            rcClient.left -= rcWindow.left;  rcClient.top -= rcWindow.top;
+            rcClient.right -= rcWindow.left;  rcClient.bottom -= rcWindow.top;
+            rcWindow.left -= rcWindow.left;  rcWindow.top -= rcWindow.top;
+            rcWindow.right -= rcWindow.left;  rcWindow.bottom -= rcWindow.top;
 
-			HDC hdc = ::GetWindowDC(hWnd);
-			::ExcludeClipRect(hdc, rcClient.left, rcClient.top, rcClient.right, rcClient.bottom);
+            HDC hdc = ::GetWindowDC(hWnd);
+            ::ExcludeClipRect(hdc, rcClient.left, rcClient.top, rcClient.right, rcClient.bottom);
 
-			// Draw caption background
-			BOOL okActive = (::GetActiveWindow() == hWnd);
-			HBRUSH brushCaption = ::GetSysColorBrush(okActive ? COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION);
-			RECT rc;
-			rc.left = rc.top = 0;
-			rc.right = rcWindow.right;  rc.bottom = TOOLWINDOW_CAPTION_HEIGHT;
-			::FillRect(hdc, &rc, brushCaption);
+            // Draw caption background
+            BOOL okActive = (::GetActiveWindow() == hWnd);
+            HBRUSH brushCaption = ::GetSysColorBrush(okActive ? COLOR_ACTIVECAPTION : COLOR_INACTIVECAPTION);
+            RECT rc;
+            rc.left = rc.top = 0;
+            rc.right = rcWindow.right;  rc.bottom = TOOLWINDOW_CAPTION_HEIGHT;
+            ::FillRect(hdc, &rc, brushCaption);
 
-			// Draw caption text
-			TCHAR buffer[64];
-			::GetWindowText(hWnd, buffer, 64);
-			rc.left += 8;  rc.right -= 8;
-			HFONT hfont = CreateDialogFont();
-			HGDIOBJ hOldFont = ::SelectObject(hdc, hfont);
-			::SetTextColor(hdc, ::GetSysColor(COLOR_CAPTIONTEXT));
-			::SetBkMode(hdc, TRANSPARENT);
-			::DrawText(hdc, buffer, (int) _tcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
-			::SelectObject(hdc, hOldFont);
-			::DeleteObject(hfont);
+            // Draw caption text
+            TCHAR buffer[64];
+            ::GetWindowText(hWnd, buffer, 64);
+            rc.left += 8;  rc.right -= 8;
+            HFONT hfont = CreateDialogFont();
+            HGDIOBJ hOldFont = ::SelectObject(hdc, hfont);
+            ::SetTextColor(hdc, ::GetSysColor(COLOR_CAPTIONTEXT));
+            ::SetBkMode(hdc, TRANSPARENT);
+            ::DrawText(hdc, buffer, (int) _tcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
+            ::SelectObject(hdc, hOldFont);
+            ::DeleteObject(hfont);
 
             //RECT rcClose;
             //rcClose.right = rcWindow.right;  rcClose.top = 0;  rcClose.bottom = TOOLWINDOW_CAPTION_HEIGHT;
@@ -82,17 +82,17 @@ LRESULT CALLBACK ToolWindowWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
             ReleaseDC(hWnd, hdc);
         }
         break;
-	case WM_SETTEXT:
-		{
-	        LRESULT lResult = DefWindowProc(hWnd, message, wParam, lParam);
+    case WM_SETTEXT:
+        {
+            LRESULT lResult = DefWindowProc(hWnd, message, wParam, lParam);
 
-			// Invalidate non-client area
-			RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
-			MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
-			::RedrawWindow(hWnd, &rcWindow, NULL, RDW_FRAME | RDW_INVALIDATE);
+            // Invalidate non-client area
+            RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
+            MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
+            ::RedrawWindow(hWnd, &rcWindow, NULL, RDW_FRAME | RDW_INVALIDATE);
 
-			return lResult;
-		}
+            return lResult;
+        }
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }

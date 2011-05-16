@@ -38,7 +38,7 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
 
     EnterCriticalSection(&waveCriticalSection);
     (*freeBlockCounter)++;
-	
+    
     LeaveCriticalSection(&waveCriticalSection);
 }
 
@@ -58,7 +58,7 @@ void SoundGen_Initialize()
     if (mbuffer == NULL)
     {
         //ExitProcess(1);
-		return;
+        return;
     }
 
     waveBlocks = (WAVEHDR*)mbuffer;
@@ -68,11 +68,11 @@ void SoundGen_Initialize()
         waveBlocks[i].lpData = (LPSTR)mbuffer;
         mbuffer += BLOCK_SIZE;
     }
-	
-	waveFreeBlockCount = BLOCK_COUNT;
+    
+    waveFreeBlockCount = BLOCK_COUNT;
     waveCurrentBlock   = 0;
     
-	wfx.nSamplesPerSec  = SAMPLERATE;  
+    wfx.nSamplesPerSec  = SAMPLERATE;  
     wfx.wBitsPerSample  = 16;     
     wfx.nChannels       = 2;      
     wfx.cbSize          = 0;      
@@ -82,15 +82,15 @@ void SoundGen_Initialize()
 
     MMRESULT result = waveOutOpen(
         &hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)WaveCallback, (DWORD_PTR)&waveFreeBlockCount, CALLBACK_FUNCTION);
-	if (result != MMSYSERR_NOERROR) 
-	{
- 		return;
+    if (result != MMSYSERR_NOERROR) 
+    {
+        return;
     }
-	InitializeCriticalSection(&waveCriticalSection);
-	bufcurpos = 0;
+    InitializeCriticalSection(&waveCriticalSection);
+    bufcurpos = 0;
 
-	m_SoundGenInitialized = true;
-	//waveOutSetPlaybackRate(hWaveOut,0x00008000);
+    m_SoundGenInitialized = true;
+    //waveOutSetPlaybackRate(hWaveOut,0x00008000);
 }
 
 void SoundGen_Finalize()
@@ -101,13 +101,13 @@ void SoundGen_Finalize()
     while (waveFreeBlockCount < BLOCK_COUNT)
         Sleep(10);
 
-	for (int i = 0; i < waveFreeBlockCount; i++)
+    for (int i = 0; i < waveFreeBlockCount; i++)
     {
         if (waveBlocks[i].dwFlags & WHDR_PREPARED)
             waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
     }
 
-	DeleteCriticalSection(&waveCriticalSection);
+    DeleteCriticalSection(&waveCriticalSection);
     waveOutClose(hWaveOut);
 
     HeapFree(GetProcessHeap(), 0, waveBlocks);
@@ -118,43 +118,43 @@ void SoundGen_Finalize()
 
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
 {
-	unsigned int word;
-	WAVEHDR* current;
+    unsigned int word;
+    WAVEHDR* current;
 
 //return;
-	if(!m_SoundGenInitialized)
-		return;
+    if(!m_SoundGenInitialized)
+        return;
 
-	word = ((unsigned int)R<<16)+L;
-	memcpy(&buffer[bufcurpos], &word, 4);
-	bufcurpos += 4;
+    word = ((unsigned int)R<<16)+L;
+    memcpy(&buffer[bufcurpos], &word, 4);
+    bufcurpos += 4;
 
-	if (bufcurpos >= BUFSIZE)
-	{
-		current = &waveBlocks[waveCurrentBlock];
+    if (bufcurpos >= BUFSIZE)
+    {
+        current = &waveBlocks[waveCurrentBlock];
 
-		if (current->dwFlags & WHDR_PREPARED) 
-			waveOutUnprepareHeader(hWaveOut, current, sizeof(WAVEHDR));
-		
-		memcpy(current->lpData, buffer, BUFSIZE);
-		current->dwBufferLength = BLOCK_SIZE;
+        if (current->dwFlags & WHDR_PREPARED) 
+            waveOutUnprepareHeader(hWaveOut, current, sizeof(WAVEHDR));
+        
+        memcpy(current->lpData, buffer, BUFSIZE);
+        current->dwBufferLength = BLOCK_SIZE;
        
-		waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR));
-		waveOutWrite(hWaveOut, current, sizeof(WAVEHDR));
+        waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR));
+        waveOutWrite(hWaveOut, current, sizeof(WAVEHDR));
         
-		EnterCriticalSection(&waveCriticalSection);
-		waveFreeBlockCount--;
-		LeaveCriticalSection(&waveCriticalSection);
+        EnterCriticalSection(&waveCriticalSection);
+        waveFreeBlockCount--;
+        LeaveCriticalSection(&waveCriticalSection);
         
-		while(!waveFreeBlockCount)
-			Sleep(1);
+        while(!waveFreeBlockCount)
+            Sleep(1);
 
-		waveCurrentBlock++;
-		if (waveCurrentBlock >= BLOCK_COUNT)
-			waveCurrentBlock=0;
+        waveCurrentBlock++;
+        if (waveCurrentBlock >= BLOCK_COUNT)
+            waveCurrentBlock=0;
 
-		bufcurpos = 0;
-	}
+        bufcurpos = 0;
+    }
 }
 
 

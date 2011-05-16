@@ -69,7 +69,7 @@ void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height)
             WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
-	SetWindowText(g_hwndConsole, _T("Debug Console"));
+    SetWindowText(g_hwndConsole, _T("Debug Console"));
 
     // ToolWindow subclassing
     m_wndprocConsoleToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
@@ -122,7 +122,7 @@ void ConsoleView_AdjustWindowLayout()
 LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
-	LRESULT lResult;
+    LRESULT lResult;
     switch (message)
     {
     case WM_DESTROY:
@@ -136,7 +136,7 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_SIZE:
         lResult = CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
         ConsoleView_AdjustWindowLayout();
-		return lResult;
+        return lResult;
     default:
         return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
     }
@@ -223,17 +223,17 @@ void PrintRegister(LPCTSTR strName, WORD value)
 
 void SaveMemoryDump(CProcessor *pProc)
 { //
-	CMemoryController* pMemCtl = pProc->GetMemoryController();
-	BYTE buf[65536];
-	HANDLE file;
-	TCHAR fname[256];
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    BYTE buf[65536];
+    HANDLE file;
+    TCHAR fname[256];
 
-	for(int i=0;i<65536;i++)
-	{
-		buf[i]=pMemCtl->GetByte(i,1);
-	}
+    for(int i=0;i<65536;i++)
+    {
+        buf[i]=pMemCtl->GetByte(i,1);
+    }
 
-	wsprintf(fname,_T("memdump%s.bin"),pProc->GetName());
+    wsprintf(fname,_T("memdump%s.bin"),pProc->GetName());
     
         // Create file
         file = CreateFile(fname,
@@ -245,7 +245,7 @@ void SaveMemoryDump(CProcessor *pProc)
     DWORD dwLength = 65536;
     DWORD dwBytesWritten = 0;
     WriteFile(file, buf, dwLength, &dwBytesWritten, NULL);
-	CloseHandle(file);
+    CloseHandle(file);
 
 }
 // Print memory dump
@@ -478,8 +478,8 @@ void DoConsoleCommand()
         {
             PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
             //pProc->Execute();
-    		
-		    g_pBoard->DebugTicks();
+            
+            g_pBoard->DebugTicks();
 
             okUpdateAllViews = TRUE;
         }
@@ -515,9 +515,9 @@ void DoConsoleCommand()
                 ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         }
         break;
-	case _T('u'):
-		SaveMemoryDump(pProc);
-		break;
+    case _T('u'):
+        SaveMemoryDump(pProc);
+        break;
     case _T('m'):
         if (command[1] == 0)  // "m" - dump memory at current address
         {
