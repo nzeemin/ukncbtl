@@ -94,7 +94,7 @@ protected:  // Access to I/O ports
 public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(BYTE* pImage);
     virtual void LoadFromImage(const BYTE* pImage);
-	
+    
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
@@ -110,8 +110,8 @@ public:
     CSecondMemoryController();
     virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
-	virtual void DCLO_177716();
-	virtual void Init_177716();
+    virtual void DCLO_177716();
+    virtual void Init_177716();
 public:
     virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
     virtual WORD GetSelRegister() { return 0160000; }
@@ -126,24 +126,24 @@ public:  // Saving/loading emulator status (64 bytes)
     virtual void LoadFromImage(const BYTE* pImage);
 public:  // PPU specifics
     void KeyboardEvent(BYTE scancode, BOOL okPressed);  // Keyboard key pressed or released
-	BOOL TapeInput(BOOL inputBit);
+    BOOL TapeInput(BOOL inputBit);
     BOOL TapeOutput();
 protected:  // Implementation
     WORD        m_Port177010;  // Plane address register
     WORD        m_Port177012;  // Plane 0 data register
     WORD        m_Port177014;  // Plane 1 & 2 data register
 
-	WORD		m_Port177026;  // Plane mask
-	WORD		m_Port177024;  // SpriteByte
-	WORD		m_Port177020;  // Background color 1
-	WORD		m_Port177022;  // Background color 2
-	WORD		m_Port177016;  // Pixel Color
+    WORD		m_Port177026;  // Plane mask
+    WORD		m_Port177024;  // SpriteByte
+    WORD		m_Port177020;  // Background color 1
+    WORD		m_Port177022;  // Background color 2
+    WORD		m_Port177016;  // Pixel Color
 
     WORD        m_Port177700;  // Keyboard status
     WORD        m_Port177702;  // Keyboard data
     WORD        m_Port177716;  // System control register
 
-	WORD		m_Port177054;  // address space control
+    WORD		m_Port177054;  // address space control
 };
 
 

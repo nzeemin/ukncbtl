@@ -50,9 +50,9 @@ void DebugPrintFormat(LPCTSTR pszFormat, ...)
     TCHAR buffer[512];
 
     va_list ptr;
-	va_start(ptr, pszFormat);
+    va_start(ptr, pszFormat);
     _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
-	va_end(ptr);
+    va_end(ptr);
 
     DebugPrint(buffer);
 }
@@ -88,9 +88,9 @@ void DebugLogFormat(LPCTSTR pszFormat, ...)
     TCHAR buffer[512];
 
     va_list ptr;
-	va_start(ptr, pszFormat);
+    va_start(ptr, pszFormat);
     _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
-	va_end(ptr);
+    va_end(ptr);
 
     DebugLog(buffer);
 }
@@ -137,7 +137,7 @@ HFONT CreateDialogFont()
             VARIABLE_PITCH,
             _T("MS Shell Dlg 2"));
 
-	return font;
+    return font;
 }
 
 void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight)

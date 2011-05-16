@@ -129,26 +129,26 @@ void ScreenView_CreateDisplay()
 {
     ASSERT(g_hwnd != NULL);
 
-	m_cxScreenWidth = UKNC_SCREEN_WIDTH;
-	m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
+    m_cxScreenWidth = UKNC_SCREEN_WIDTH;
+    m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
 
-	HDC hdc = GetDC( g_hwnd );
+    HDC hdc = GetDC( g_hwnd );
 
-	m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
-	m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
-	m_bmpinfo.bmiHeader.biHeight = m_cyScreenHeight;
-	m_bmpinfo.bmiHeader.biPlanes = 1;
-	m_bmpinfo.bmiHeader.biBitCount = 32;
-	m_bmpinfo.bmiHeader.biCompression = BI_RGB;
-	m_bmpinfo.bmiHeader.biSizeImage = 0;
-	m_bmpinfo.bmiHeader.biXPelsPerMeter = 0;
-	m_bmpinfo.bmiHeader.biYPelsPerMeter = 0;
-	m_bmpinfo.bmiHeader.biClrUsed = 0;
-	m_bmpinfo.bmiHeader.biClrImportant = 0;
-	
-	m_hbmp = CreateDIBSection( hdc, &m_bmpinfo, DIB_RGB_COLORS, (void **) &m_bits, NULL, 0 );
+    m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
+    m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
+    m_bmpinfo.bmiHeader.biHeight = m_cyScreenHeight;
+    m_bmpinfo.bmiHeader.biPlanes = 1;
+    m_bmpinfo.bmiHeader.biBitCount = 32;
+    m_bmpinfo.bmiHeader.biCompression = BI_RGB;
+    m_bmpinfo.bmiHeader.biSizeImage = 0;
+    m_bmpinfo.bmiHeader.biXPelsPerMeter = 0;
+    m_bmpinfo.bmiHeader.biYPelsPerMeter = 0;
+    m_bmpinfo.bmiHeader.biClrUsed = 0;
+    m_bmpinfo.bmiHeader.biClrImportant = 0;
+    
+    m_hbmp = CreateDIBSection( hdc, &m_bmpinfo, DIB_RGB_COLORS, (void **) &m_bits, NULL, 0 );
 
-	ReleaseDC( g_hwnd, hdc );
+    ReleaseDC( g_hwnd, hdc );
 }
 
 // Create Screen View as child of Main Window
@@ -574,13 +574,13 @@ void ScreenView_SaveScreenshot(LPCTSTR sFileName)
     hdr.bfType = 0x4d42;  // "BM"
     BITMAPINFOHEADER bih;
     ::ZeroMemory(&bih, sizeof(bih));
-	bih.biSize = sizeof( BITMAPINFOHEADER );
-	bih.biWidth = m_cxScreenWidth;
-	bih.biHeight = m_cyScreenHeight;
+    bih.biSize = sizeof( BITMAPINFOHEADER );
+    bih.biWidth = m_cxScreenWidth;
+    bih.biHeight = m_cyScreenHeight;
     bih.biSizeImage = bih.biWidth * bih.biHeight * 4;
-	bih.biPlanes = 1;
-	bih.biBitCount = 32;
-	bih.biCompression = BI_RGB;
+    bih.biPlanes = 1;
+    bih.biBitCount = 32;
+    bih.biCompression = BI_RGB;
     bih.biXPelsPerMeter = bih.biXPelsPerMeter = 2000;
     hdr.bfSize = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + bih.biSizeImage;
     hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize;

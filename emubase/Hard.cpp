@@ -260,8 +260,8 @@ void CHardDrive::WritePort(WORD port, WORD data)
         break;
     case IDE_PORT_HEAD_NUMBER:
         data &= 0x0ff;
-		m_curhead = data & 0x0f;
-		m_curheadreg = data;
+        m_curhead = data & 0x0f;
+        m_curheadreg = data;
         break;
     case IDE_PORT_STATUS_COMMAND:
         data &= 0x0ff;

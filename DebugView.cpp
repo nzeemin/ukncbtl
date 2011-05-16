@@ -67,7 +67,7 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
-	DebugView_UpdateWindowText();
+    DebugView_UpdateWindowText();
 
     // ToolWindow subclassing
     m_wndprocDebugToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
@@ -75,7 +75,7 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
 
     RECT rcClient;  GetClientRect(g_hwndDebug, &rcClient);
 
-	m_hwndDebugViewer = CreateWindowEx(
+    m_hwndDebugViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
             CLASSNAME_DEBUGVIEW, NULL,
             WS_CHILD | WS_VISIBLE,
@@ -130,7 +130,7 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam)
     case VK_SPACE:
         m_okDebugProcessor = ! m_okDebugProcessor;
         InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
-		DebugView_UpdateWindowText();
+        DebugView_UpdateWindowText();
         DisasmView_SetCurrentProc(m_okDebugProcessor);   // Switch DisasmView to current processor
         break;
     case VK_ESCAPE:
@@ -148,9 +148,9 @@ void DebugView_UpdateWindowText()
     ASSERT(pDebugPU != NULL);
     LPCTSTR sProcName = pDebugPU->GetName();
 
-	TCHAR buffer[64];
-	_stprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
-	::SetWindowText(g_hwndDebug, buffer);
+    TCHAR buffer[64];
+    _stprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
+    ::SetWindowText(g_hwndDebug, buffer);
 }
 
 
@@ -190,7 +190,7 @@ void DebugView_SetCurrentProc(BOOL okCPU)
 {
     m_okDebugProcessor = okCPU;
     InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
-	DebugView_UpdateWindowText();
+    DebugView_UpdateWindowText();
 }
 
 
@@ -216,12 +216,12 @@ void DoDrawDebugView(HDC hdc)
     LPCTSTR sProcName = pDebugPU->GetName();
     TextOut(hdc, cxChar * 1, 2 + 1 * cyLine, sProcName, 3);
 
-	DrawProcessor(hdc, pDebugPU, cxChar * 6, 2 + 1 * cyLine, arrR, arrRChanged);
+    DrawProcessor(hdc, pDebugPU, cxChar * 6, 2 + 1 * cyLine, arrR, arrRChanged);
 
     // Draw stack for the current processor
     DrawMemoryForRegister(hdc, 6, pDebugPU, 35 * cxChar, 1 * cyLine);
 
-	CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
+    CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
     DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 57 * cxChar, 2 + 0 * cyLine);
 
     DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
@@ -336,7 +336,7 @@ void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboa
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
-	TextOut(hdc, x, y, _T("Ports:"), 6);
+    TextOut(hdc, x, y, _T("Ports:"), 6);
 
     if (okProcessor)  // CPU
     {
@@ -381,7 +381,7 @@ void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboa
         WORD value177700 = pMemCtl->GetPortView(0177700);
         DrawOctalValue(hdc, x + 0 * cxChar, y + 10 * cyLine, 0177700);
         DrawOctalValue(hdc, x + 8 * cxChar, y + 10 * cyLine, value177700);
-		WORD value177716 = pMemCtl->GetPortView(0177716);
+        WORD value177716 = pMemCtl->GetPortView(0177716);
         DrawOctalValue(hdc, x + 0 * cxChar, y + 11 * cyLine, 0177716);
         DrawOctalValue(hdc, x + 8 * cxChar, y + 11 * cyLine, value177716);
 
@@ -394,7 +394,7 @@ void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboa
         WORD value177714 = pBoard->GetTimerValueView();
         DrawOctalValue(hdc, x + 0 * cxChar, y + 15 * cyLine, 0177714);
         DrawOctalValue(hdc, x + 8 * cxChar, y + 15 * cyLine, value177714);
-	}
+    }
 }
 
 void DrawChannels(HDC hdc, int x, int y)
@@ -410,13 +410,13 @@ void DrawChannels(HDC hdc, int x, int y)
 
     TCHAR bufData[7];
     TCHAR buffer[32];
-	chan_stc tmpstc;
+    chan_stc tmpstc;
 
     
-	tmpstc=g_pBoard->GetChannelStruct(0,0,0);
+    tmpstc=g_pBoard->GetChannelStruct(0,0,0);
     
     PrintOctalValue(bufData, tmpstc.data);
-	wsprintf(buffer, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    wsprintf(buffer, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 1 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc=g_pBoard->GetChannelStruct(0,1,0);
@@ -429,17 +429,17 @@ void DrawChannels(HDC hdc, int x, int y)
     wsprintf(buffer, _T("PPU CH:2 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 3 * cyLine, buffer, lstrlen(buffer));
 
-	tmpstc=g_pBoard->GetChannelStruct(0,0,1);
+    tmpstc=g_pBoard->GetChannelStruct(0,0,1);
     wsprintf(buffer, _T("PPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 4 * cyLine, buffer, lstrlen(buffer));
 
-	tmpstc=g_pBoard->GetChannelStruct(0,1,1);
+    tmpstc=g_pBoard->GetChannelStruct(0,1,1);
     wsprintf(buffer, _T("PPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 5 * cyLine, buffer, lstrlen(buffer));
 
 
     tmpstc=g_pBoard->GetChannelStruct(1,0,0);
-	PrintOctalValue(bufData, tmpstc.data);
+    PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("CPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 6 * cyLine, buffer, lstrlen(buffer));
 
@@ -447,16 +447,16 @@ void DrawChannels(HDC hdc, int x, int y)
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("CPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 7 * cyLine, buffer, lstrlen(buffer));
-	
-	tmpstc=g_pBoard->GetChannelStruct(1,0,1);
+    
+    tmpstc=g_pBoard->GetChannelStruct(1,0,1);
     wsprintf(buffer, _T("CPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 8 * cyLine, buffer, lstrlen(buffer));
-	
-	tmpstc=g_pBoard->GetChannelStruct(1,1,1);
+    
+    tmpstc=g_pBoard->GetChannelStruct(1,1,1);
     wsprintf(buffer, _T("CPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 9 * cyLine, buffer, lstrlen(buffer));
 
-	tmpstc=g_pBoard->GetChannelStruct(1,2,1);
+    tmpstc=g_pBoard->GetChannelStruct(1,2,1);
     wsprintf(buffer, _T("CPU CH:2 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 10 * cyLine, buffer, lstrlen(buffer));
 

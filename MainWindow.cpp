@@ -77,7 +77,7 @@ void MainWindow_RegisterClass()
 
     RegisterClassEx(&wcex);
 
-	ToolWindow_RegisterClass();
+    ToolWindow_RegisterClass();
 
     // Register view classes
     ScreenView_RegisterClass();
@@ -86,7 +86,7 @@ void MainWindow_RegisterClass()
     DebugView_RegisterClass();
     DisasmView_RegisterClass();
     ConsoleView_RegisterClass();
-	TapeView_RegisterClass();
+    TapeView_RegisterClass();
 }
 
 BOOL MainWindow_InitToolbar()
@@ -318,18 +318,18 @@ void MainWindow_AdjustWindowSize()
     RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
     int cyStatus = rcStatus.bottom - rcStatus.top;
     int cyKeyboard = 0;
-	int cyTape = 0;
+    int cyTape = 0;
 
-	if (Settings_GetKeyboard())
+    if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
-	if (Settings_GetTape())
-	{
-		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
+    if (Settings_GetTape())
+    {
+        RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
         cyTape = rcTape.bottom - rcTape.top;
-	}
+    }
 
     // Adjust main window size
     int xLeft = rcWorkArea.left;
@@ -348,8 +348,8 @@ void MainWindow_AdjustWindowSize()
             cyHeight += cyToolbar + 4;
         if (Settings_GetKeyboard())
             cyHeight += cyKeyboard + 4;
-		if (Settings_GetTape())
-			cyHeight += cyTape + 4;
+        if (Settings_GetTape())
+            cyHeight += cyTape + 4;
     }
  
     SetWindowPos(g_hwnd, NULL, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER);
@@ -368,17 +368,17 @@ void MainWindow_AdjustWindowLayout()
     int cyToolbar = rcToolbar.bottom - rcToolbar.top;
 
     int cyKeyboard = 0;
-	if (Settings_GetKeyboard())
+    if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
-	int cyTape = 0;
-	if (Settings_GetTape())
-	{
-		RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
+    int cyTape = 0;
+    if (Settings_GetTape())
+    {
+        RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
         cyTape = rcTape.bottom - rcTape.top;
-	}
+    }
     int yScreen = 4;
     int yKeyboard = yScreen + cyScreen + 4;
     int yTape = yScreen + cyScreen + 4;
@@ -452,8 +452,8 @@ void MainWindow_ShowHideDebug()
         int xDebugLeft = (rcScreen.right - rcScreen.left) + 8;
         int cxDebugWidth = rc.right - xDebugLeft - 4;
         int cyDebugHeight = 222;
-		int yDisasmTop = 4 + cyDebugHeight + 4;
-		int cyDisasmHeight = 380;
+        int yDisasmTop = 4 + cyDebugHeight + 4;
+        int cyDisasmHeight = 380;
         int yMemoryTop = cyDebugHeight + 4 + cyDisasmHeight + 8;
         int cyMemoryHeight = rc.bottom - cyStatus - yMemoryTop - 4;
 
@@ -522,11 +522,11 @@ void MainWindow_ShowHideTape()
     }
     else
     {
-		RECT rcPrev;
-		if (Settings_GetKeyboard())
-			GetWindowRect(g_hwndKeyboard, &rcPrev);
-		else
-			GetWindowRect(g_hwndScreen, &rcPrev);
+        RECT rcPrev;
+        if (Settings_GetKeyboard())
+            GetWindowRect(g_hwndKeyboard, &rcPrev);
+        else
+            GetWindowRect(g_hwndScreen, &rcPrev);
 
         // Calculate children positions
         RECT rc;  GetClientRect(g_hwnd, &rc);
