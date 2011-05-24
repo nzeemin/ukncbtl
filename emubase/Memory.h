@@ -88,6 +88,7 @@ protected:  // Access to I/O ports
 
 class CFirstMemoryController : public CMemoryController  // CPU memory control device
 {
+    friend class CMotherboard;
 public:
     CFirstMemoryController();
     virtual void DCLO_Signal();  // DCLO signal
