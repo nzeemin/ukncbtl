@@ -58,6 +58,8 @@ CMotherboard::CMotherboard ()
     m_TapeWriteCallback = NULL;
     m_nTapeSampleRate = 0;
     m_SoundGenCallback = NULL;
+    m_SerialInCallback = NULL;
+    m_SerialOutCallback = NULL;
 
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) malloc(65536);  memset(m_pRAM[0], 0, 65536);
@@ -487,12 +489,14 @@ void CMotherboard::DebugTicks()
 ** ѕерва€ невидима€ строка (#0) начинает рисоватьс€ на 96-ой тик
 ** ѕерва€ видима€ строка (#18) начинает рисоватьс€ на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
+* 48 тиков обмена с COM-портом - каждый 416 тик
 */
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
-    
     int audioticks = 20286/(SAMPLERATE/25);
+    const int serialOutTicks = 20000 / (9600 / 25);
+    int serialTxCount = 0;
 
     int tapeSamplesPerFrame, tapeBrasErr;
     if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
@@ -567,6 +571,44 @@ BOOL CMotherboard::SystemFrame()
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                     (*m_TapeWriteCallback)(value, 1);
                 }
+            }
+        }
+
+        if (m_SerialInCallback != NULL && frameticks % 416 == 0)
+        {
+            BYTE b;
+            if (m_SerialInCallback(&b))
+            {
+                //TODO: Move the code to CFirstMemoryController::SerialInput method
+                CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+                pMemCtl->m_Port176572 = (WORD)b;
+                if (pMemCtl->m_Port176570 & 0200)  // Ready?
+                    pMemCtl->m_Port176570 |= 010000;  // Set Overflow flag
+                else
+                {
+                    pMemCtl->m_Port176570 |= 0200;  // Set Ready flag
+                    if (pMemCtl->m_Port176570 & 0200)  // Interrupt?
+                        m_pCPU->InterruptVIRQ(3, 0370);
+                }
+            }
+        }
+        if (m_SerialOutCallback != NULL && frameticks % serialOutTicks)
+        {
+            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            if (serialTxCount > 0)
+            {
+                serialTxCount--;
+                if (serialTxCount == 0)  // Translation countdown finished - the byte translated
+                {
+                    (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
+                    pMemCtl->m_Port176574 |= 0200;  // Set Ready flag
+                    if (pMemCtl->m_Port176574 & 0100)  // Interrupt?
+                         m_pCPU->InterruptVIRQ(3, 374);
+                }
+            }
+            else if ((pMemCtl->m_Port176574 & 0200) == 0)  // Ready is 0?
+            {
+                serialTxCount = 8;  // Start translation countdown
             }
         }
 

@@ -345,6 +345,11 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
         case 0176561:
         case 0176562:
         case 0176563:
+            return 0;
+        
+        case 0176564:
+        case 0176565:
+            return 0x80; //ready for tx
         
         case 0176566:
         case 0176567:
@@ -354,23 +359,19 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
         case 0176571:
             return m_Port176570;
         case 0176572:  // Стык С2: Регистр данных приемника
-        case 0176573:
-            return 0;
+        case 0176573:  // нижние 8 бит доступны по чтению
+            m_Port176570 &= ~010200;  // Reset bit 12 and bit 7
+            return m_Port176572;
         case 0176574:  // Стык С2: Регистр состояния источника
         case 0176575:
             return m_Port176574;
         case 0176576:  // Стык С2: Регистр данных источника
         case 0176577:
             return 0;
-        
-        case 0176564:
-        case 0176565:
-            return 0x80; //ready for tx
 
         default: 
             m_pProcessor->MemoryError();
             return 0x0;
-        //TODO
     }
     //ASSERT(0);
     return 0; 
@@ -498,7 +499,6 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
             m_pProcessor->MemoryError();
 //			ASSERT(0);
             break;
-        //TODO
     }
 }
 
@@ -579,13 +579,20 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             return ;
         case 0176570:  // Стык С2: Регистр состояния приемника
         case 0176571:
+            m_Port176570 = (m_Port176570 & ~0100) | (word & 0100);  // Bit 6 only
+            break;
         case 0176572:  // Стык С2: Регистр данных приемника
-        case 0176573:
+        case 0176573:  // недоступен по записи
+            return ;
         case 0176574:  // Стык С2: Регистр состояния источника
         case 0176575:
+            m_Port176574 = (m_Port176574 & ~0105) | (word & 0105);  // Bits 0,2,6
+            break;
         case 0176576:  // Стык С2: Регистр данных источника
-        case 0176577:
-            return ;
+        case 0176577:  // нижние 8 бит доступны по записи
+            m_Port176576 = word & 0xff;
+            m_Port176574 &= ~128;  // Reset bit 7 (Ready)
+            break;
 
         default:
             m_pProcessor->MemoryError();

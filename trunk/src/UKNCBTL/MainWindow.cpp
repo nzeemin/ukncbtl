@@ -248,6 +248,15 @@ void MainWindow_RestoreSettings()
     if (heimode < 1) heimode = 1;
     if (heimode > 2) heimode = 2;
     ScreenView_SetHeightMode(heimode);
+
+    // Restore Serial flag
+    if (Settings_GetSerial())
+    {
+        TCHAR portname[10];
+        Settings_GetSerialPort(portname);
+        if (!Emulator_SetSerial(TRUE, portname))
+            Settings_SetSerial(FALSE);
+    }
 }
 
 // Processes messages for the main window
@@ -817,10 +826,19 @@ void MainWindow_DoEmulatorSound()
 void MainWindow_DoEmulatorSerial()
 {
     BOOL okSerial = Settings_GetSerial();
+    if (!okSerial)
+    {
+        TCHAR portname[10];
+        Settings_GetSerialPort(portname);
+        if (Emulator_SetSerial(TRUE, portname))
+            Settings_SetSerial(TRUE);
+    }
+    else
+    {
+        Emulator_SetSerial(FALSE, NULL);
+        Settings_SetSerial(FALSE);
+    }
 
-    //TODO
-
-    Settings_SetSerial(!okSerial);
     MainWindow_UpdateMenu();
 }
 

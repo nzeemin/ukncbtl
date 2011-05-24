@@ -111,6 +111,7 @@ BEGIN
         MENUITEM "Reset",                       ID_EMULATOR_RESET
         MENUITEM SEPARATOR
         MENUITEM "Sound",                       ID_EMULATOR_SOUND
+        MENUITEM "Serial",                      ID_EMULATOR_SERIAL
         MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
     END
     POPUP "&Drives"
@@ -164,7 +165,7 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
     LTEXT           "UKNCBTL Version 1.0",IDC_STATIC,10,10,119,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2007-2010",IDC_STATIC,10,20,119,8
+    LTEXT           "Copyright (C) 2007-2011",IDC_STATIC,10,20,119,8
     DEFPUSHBUTTON   "OK",IDOK,211,10,57,15,WS_GROUP
     LTEXT           "Authors:\r\nNikita Zeemin (nzeemin@gmail.com)\r\nFelix Lazarev (felix.lazarev@gmail.com)\r\nAlexey Kisly",IDC_STATIC,10,57,174,36
     LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,93,174,22

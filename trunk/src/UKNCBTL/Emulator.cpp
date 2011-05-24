@@ -225,24 +225,22 @@ BOOL CALLBACK Emulator_SerialOut_Callback(BYTE byte)
     return (dwBytesWritten == 1);
 }
 
-void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
+BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
 {
     if (m_okEmulatorSerial != serialOnOff)
     {
         if (serialOnOff)
         {
             // Prepare port name
-            TCHAR portname[10];
-            Settings_GetSerialPort(portname);
             TCHAR port[15];
-            wsprintf(port, _T("\\\\.\\%s"), portname);
+            wsprintf(port, _T("\\\\.\\%s"), serialPort);
 
             // Open port
             m_hEmulatorComPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
             if (m_hEmulatorComPort == INVALID_HANDLE_VALUE)
             {
                 AlertWarning(_T("Failed to open COM port."));
-                return;
+                return FALSE;
             }
 
             // Set port settings
@@ -250,7 +248,7 @@ void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             //::GetCommState(m_portHandle, &dcb);
             ::memset(&dcb, 0, sizeof(dcb));
             dcb.DCBlength = sizeof(dcb);
-            dcb.BaudRate = 0;  //TODO
+            dcb.BaudRate = 0;  //TODO: 9600
             dcb.ByteSize = 8;
             dcb.fBinary = 1;
             dcb.fParity = FALSE;
@@ -270,7 +268,7 @@ void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
                 AlertWarning(_T("Failed to configure the COM port."));
-                return;
+                return FALSE;
             }
 
             // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
@@ -285,7 +283,7 @@ void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
                 AlertWarning(_T("Failed to set the COM port timeouts."));
-                return;
+                return FALSE;
             }
 
             // Clear port input buffer
@@ -308,6 +306,8 @@ void Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
     }
 
     m_okEmulatorSerial = serialOnOff;
+
+    return TRUE;
 }
 
 int Emulator_SystemFrame()
