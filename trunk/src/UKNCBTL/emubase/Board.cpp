@@ -600,7 +600,11 @@ BOOL CMotherboard::SystemFrame()
                 serialTxCount--;
                 if (serialTxCount == 0)  // Translation countdown finished - the byte translated
                 {
-                    (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
+                    if (pMemCtl->m_Port176574 & 004)  // Loopback?
+                        //TODO: Call CFirstMemoryController::SerialInput method
+                        pMemCtl->m_Port176572 = pMemCtl->m_Port176576 & 0xff;
+                    else
+                        (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
                     pMemCtl->m_Port176574 |= 0200;  // Set Ready flag
                     if (pMemCtl->m_Port176574 & 0100)  // Interrupt?
                          m_pCPU->InterruptVIRQ(3, 374);

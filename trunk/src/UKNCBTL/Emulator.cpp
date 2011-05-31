@@ -239,7 +239,8 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             m_hEmulatorComPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
             if (m_hEmulatorComPort == INVALID_HANDLE_VALUE)
             {
-                AlertWarning(_T("Failed to open COM port."));
+                DWORD dwError = ::GetLastError();
+                AlertWarningFormat(_T("Failed to open COM port (0x%08lx)."), dwError);
                 return FALSE;
             }
 
@@ -248,7 +249,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             //::GetCommState(m_portHandle, &dcb);
             ::memset(&dcb, 0, sizeof(dcb));
             dcb.DCBlength = sizeof(dcb);
-            dcb.BaudRate = 0;  //TODO: 9600
+            dcb.BaudRate = 9600;
             dcb.ByteSize = 8;
             dcb.fBinary = 1;
             dcb.fParity = FALSE;
@@ -265,9 +266,10 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             dcb.StopBits = ONESTOPBIT;
             if (!::SetCommState(m_hEmulatorComPort, &dcb))
             {
+                DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
-                AlertWarning(_T("Failed to configure the COM port."));
+                AlertWarningFormat(_T("Failed to configure the COM port (0x%08lx)."), dwError);
                 return FALSE;
             }
 
@@ -275,14 +277,15 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             // and ReadTotalTimeoutMultiplier members, specifies that the read operation is to return immediately with the bytes
             // that have already been received, even if no bytes have been received.
             COMMTIMEOUTS timeouts;
+            ::memset(&timeouts, 0, sizeof(timeouts));
             timeouts.ReadIntervalTimeout = MAXDWORD;
-            timeouts.ReadTotalTimeoutConstant = 0;
-            timeouts.ReadTotalTimeoutMultiplier = 0;
+            timeouts.WriteTotalTimeoutConstant = 100;
             if (!::SetCommTimeouts(m_hEmulatorComPort, &timeouts))
             {
+                DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
-                AlertWarning(_T("Failed to set the COM port timeouts."));
+                AlertWarningFormat(_T("Failed to set the COM port timeouts (0x%08lx)."), dwError);
                 return FALSE;
             }
 
