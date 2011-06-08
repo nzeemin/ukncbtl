@@ -60,6 +60,7 @@ void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
 void MainWindow_DoFileCreateDisk();
+void MainWindow_DoFileSettings();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
@@ -737,6 +738,10 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_FILE_CREATEDISK:
         MainWindow_DoFileCreateDisk();
+        break;
+    case ID_FILE_SETTINGS:
+        MainWindow_DoFileSettings();
+        break;
     default:
         return false;
     }
@@ -891,6 +896,11 @@ void MainWindow_DoFileScreenshot()
 void MainWindow_DoFileCreateDisk()
 {
     ShowCreateDiskDialog();
+}
+
+void MainWindow_DoFileSettings()
+{
+    ShowSettingsDialog();
 }
 
 void MainWindow_DoEmulatorFloppy(int slot)

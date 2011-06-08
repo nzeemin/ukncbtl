@@ -21,6 +21,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 void Dialogs_DoCreateDisk(int tracks);
 BOOL InputBoxValidate(HWND hDlg);
 
@@ -230,6 +231,50 @@ void Dialogs_DoCreateDisk(int tracks)
 
     ::MessageBox(g_hwnd, _T("New disk file created successfully.\nPlease initialize the disk using INIT command."),
         _T("UKNCBTL"), MB_OK | MB_ICONINFORMATION);
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Settings Dialog
+
+void ShowSettingsDialog()
+{
+    DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS), g_hwnd, SettingsProc);
+}
+
+INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            TCHAR buffer[10];
+            Settings_GetSerialPort(buffer);
+            SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
+
+            return (INT_PTR)FALSE;
+        }
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            {
+                TCHAR buffer[10];
+                GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
+                Settings_SetSerialPort(buffer);
+            }
+
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        default:
+            return (INT_PTR)FALSE;
+        }
+        break;
+    }
+    return (INT_PTR) FALSE;
 }
 
 

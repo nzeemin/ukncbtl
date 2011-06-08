@@ -313,6 +313,10 @@ void Settings_GetSerialPort(LPTSTR buffer)
 {
     Settings_LoadStringValue(_T("SerialPort"), buffer, 10);
 }
+void Settings_SetSerialPort(LPCTSTR sValue)
+{
+    Settings_SaveStringValue(_T("SerialPort"), sValue);
+}
 
 
 //////////////////////////////////////////////////////////////////////

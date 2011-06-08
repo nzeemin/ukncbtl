@@ -129,6 +129,7 @@ BOOL Settings_GetTape();
 void Settings_SetSerial(BOOL flag);
 BOOL Settings_GetSerial();
 void Settings_GetSerialPort(LPTSTR buffer);
+void Settings_SetSerialPort(LPCTSTR sValue);
 
 
 //////////////////////////////////////////////////////////////////////
