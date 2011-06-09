@@ -172,6 +172,7 @@ private:
     void NextSector();
     void ContinueRead();
     void ContinueWrite();
+    void IdentifyDrive();  // Prepare m_buffer for the IDENTIFY DRIVE command
 };
 
 //////////////////////////////////////////////////////////////////////
