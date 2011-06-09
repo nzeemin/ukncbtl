@@ -91,47 +91,50 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
     if (lResult == ERROR_SUCCESS && dwType == REG_DWORD)
         return TRUE;
     else
-    {
-        *dwValue = 0;
         return FALSE;
-    }
 }
 
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
-    TCHAR bufValueName[] = _T("Floppy0");
+    TCHAR bufValueName[8];
+    lstrcpy(bufValueName, _T("Floppy0"));
     bufValueName[6] = slot + _T('0');
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[] = _T("Floppy0");
+    TCHAR bufValueName[8];
+    lstrcpy(bufValueName, _T("Floppy0"));
     bufValueName[6] = slot + _T('0');
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
 void Settings_GetHardFilePath(int slot, LPTSTR buffer)
 {
-    TCHAR bufValueName[] = _T("Hard1");
+    TCHAR bufValueName[6];
+    lstrcpy(bufValueName, _T("Hard1"));
     bufValueName[4] = slot + _T('1');
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[] = _T("Hard2");
+    TCHAR bufValueName[6];
+    lstrcpy(bufValueName, _T("Hard1"));
     bufValueName[4] = slot + _T('1');
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
 void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer)
 {
-    TCHAR bufValueName[] = _T("Cartridge0");
+    TCHAR bufValueName[11];
+    lstrcpy(bufValueName, _T("Cartridge0"));
     bufValueName[9] = slot + _T('0');
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[] = _T("Cartridge0");
+    TCHAR bufValueName[11];
+    lstrcpy(bufValueName, _T("Cartridge0"));
     bufValueName[9] = slot + _T('0');
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
@@ -198,9 +201,6 @@ BOOL Settings_GetDebug()
     if (!m_Settings_Debug_Valid)
     {
         DWORD dwValue = (DWORD) FALSE;
-#if !defined(PRODUCT)
-        dwValue = (DWORD) TRUE;
-#endif
         Settings_LoadDwordValue(_T("Debug"), &dwValue);
         m_Settings_Debug = (BOOL) dwValue;
         m_Settings_Debug_Valid = TRUE;
