@@ -148,13 +148,13 @@ void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM ima
 
 // Floppy ////////////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsFloppyImageAttached(int slot)
+BOOL CMotherboard::IsFloppyImageAttached(int slot) const
 {
     ASSERT(slot >= 0 && slot < 4);
     return m_pFloppyCtl->IsAttached(slot);
 }
 
-BOOL CMotherboard::IsFloppyReadOnly(int slot)
+BOOL CMotherboard::IsFloppyReadOnly(int slot) const
 {
     ASSERT(slot >= 0 && slot < 4);
     return m_pFloppyCtl->IsReadOnly(slot);
@@ -175,7 +175,7 @@ void CMotherboard::DetachFloppyImage(int slot)
 
 // ROM cartridge /////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsROMCartridgeLoaded(int cartno)
+BOOL CMotherboard::IsROMCartridgeLoaded(int cartno) const
 {
     ASSERT(cartno == 1 || cartno == 2);  // Only two cartridges, #1 and #2
     int cartindex = cartno - 1;

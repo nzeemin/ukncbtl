@@ -178,14 +178,14 @@ public:  // System control
     
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
     void        DetachFloppyImage(int slot);
-    BOOL        IsFloppyImageAttached(int slot);
-    BOOL        IsFloppyReadOnly(int slot);
+    BOOL        IsFloppyImageAttached(int slot) const;
+    BOOL        IsFloppyReadOnly(int slot) const;
     WORD		GetFloppyState();
     WORD		GetFloppyData();
     void		SetFloppyState(WORD val);
     void		SetFloppyData(WORD val);
 
-    BOOL        IsROMCartridgeLoaded(int cartno);
+    BOOL        IsROMCartridgeLoaded(int cartno) const;
     void        UnloadROMCartridge(int cartno);
 
     BOOL        AttachHardImage(int slot, LPCTSTR sFileName);
