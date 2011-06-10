@@ -94,7 +94,7 @@ public:
 public:  // Register control
     WORD        GetPSW() const { return m_psw; }
     WORD        GetCPSW() const { return m_savepsw; }
-    BYTE		GetLPSW() {return LOBYTE(m_psw); }
+    BYTE		GetLPSW() const { return LOBYTE(m_psw); }
     void        SetPSW(WORD word)
     {
         m_psw = word & 0777;
@@ -106,13 +106,13 @@ public:  // Register control
         m_psw = (m_psw & 0xFF00) | (WORD)byte;
         if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
     }
-    WORD        GetReg(int regno) { return m_R[regno]; }
+    WORD        GetReg(int regno) const { return m_R[regno]; }
     void        SetReg(int regno, WORD word)
     {
         m_R[regno] = word;
         if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = word;
     }
-    BYTE		GetLReg(int regno) { return LOBYTE(m_R[regno]); }
+    BYTE		GetLReg(int regno) const { return LOBYTE(m_R[regno]); }
     void		SetLReg(int regno, BYTE byte)
     {
         m_R[regno] = (m_R[regno] & 0xFF00) | (WORD)byte;

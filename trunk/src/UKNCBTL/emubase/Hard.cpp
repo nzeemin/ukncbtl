@@ -107,11 +107,6 @@ void CHardDrive::Reset()
     m_timeoutevent = TIMEEVT_RESET_DONE;
 }
 
-BOOL CHardDrive::IsReadOnly()
-{
-    return m_okReadOnly;
-}
-
 BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
@@ -383,7 +378,7 @@ void CHardDrive::IdentifyDrive()
     InvertBuffer(m_buffer);
 }
 
-DWORD CHardDrive::CalculateOffset()
+DWORD CHardDrive::CalculateOffset() const
 {
     int sector = (m_curcylinder * m_numheads + m_curhead) * m_numsectors + (m_cursector - 1);
     return sector * IDE_DISK_SECTOR_SIZE;

@@ -107,8 +107,8 @@ public:
 public:
     BOOL AttachImage(int drive, LPCTSTR sFileName);
     void DetachImage(int drive);
-    BOOL IsAttached(int drive) { return (m_drivedata[drive].fpFile != NULL); }
-    BOOL IsReadOnly(int drive) { return m_drivedata[drive].okReadOnly; } // return (m_status & FLOPPY_STATUS_WRITEPROTECT) != 0; }
+    BOOL IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
+    BOOL IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     BOOL IsEngineOn() { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
 	WORD GetData(void);         // Reading port 177132 - data
 	WORD GetState(void);        // Reading port 177130 - device status
@@ -156,7 +156,7 @@ public:
     void Reset();
     BOOL AttachImage(LPCTSTR sFileName);
     void DetachImage();
-    BOOL IsReadOnly();
+    BOOL IsReadOnly() const { return m_okReadOnly; }
 
 public:
     WORD ReadPort(WORD port);
@@ -164,15 +164,16 @@ public:
     void Periodic();
 
 private:
-    DWORD CalculateOffset();  // Calculate sector offset in the HDD image
+    DWORD CalculateOffset() const;  // Calculate sector offset in the HDD image
     void HandleCommand(BYTE command);  // Handle IDE command
     void ReadNextSector();
     void ReadSectorDone();
     void WriteSectorDone();
-    void NextSector();
+    void NextSector();          // Advance to the next sector, CHS-based
     void ContinueRead();
     void ContinueWrite();
-    void IdentifyDrive();  // Prepare m_buffer for the IDENTIFY DRIVE command
+    void IdentifyDrive();       // Prepare m_buffer for the IDENTIFY DRIVE command
 };
+
 
 //////////////////////////////////////////////////////////////////////
