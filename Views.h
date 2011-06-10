@@ -14,7 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 //////////////////////////////////////////////////////////////////////
-
+// Window class names
 
 const LPCTSTR CLASSNAME_SCREENVIEW  = _T("UKNCBTLSCREEN");
 const LPCTSTR CLASSNAME_KEYBOARDVIEW = _T("UKNCBTLKEYBOARD");
@@ -58,8 +58,6 @@ void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed);
 extern HWND g_hwndKeyboard;  // Keyboard View window handle
 
 void KeyboardView_RegisterClass();
-void KeyboardView_Init();
-void KeyboardView_Done();
 void CreateKeyboardView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK KeyboardViewWndProc(HWND, UINT, WPARAM, LPARAM);
 

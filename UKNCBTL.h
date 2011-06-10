@@ -21,21 +21,19 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 extern TCHAR g_szTitle[MAX_LOADSTRING];            // The title bar text
 extern TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 
-
 extern HINSTANCE g_hInst; // current instance
-
-extern HWND g_hwnd;  // Main window handle
 
 
 //////////////////////////////////////////////////////////////////////
+// Main Window
 
+extern HWND g_hwnd;  // Main window handle
 
 void MainWindow_RegisterClass();
+BOOL CreateMainWindow();
 void MainWindow_RestoreSettings();
 void MainWindow_UpdateMenu();
 void MainWindow_UpdateAllViews();
-BOOL MainWindow_InitToolbar();
-BOOL MainWindow_InitStatusbar();
 void MainWindow_ShowHideDebug();
 void MainWindow_ShowHideToolbar();
 void MainWindow_ShowHideKeyboard();
