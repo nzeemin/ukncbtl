@@ -348,7 +348,10 @@ void CHardDrive::HandleCommand(BYTE command)
 #endif
             IdentifyDrive();  // Prepare the buffer
             m_bufferoffset = 0;
-            m_status |= IDE_STATUS_BUFFER_READY;
+            m_sectorcount = 1;
+            m_status |= IDE_STATUS_BUFFER_READY | IDE_STATUS_SEEK_COMPLETE | IDE_STATUS_DRIVE_READY;
+            m_status &= ~IDE_STATUS_BUSY;
+            m_status &= ~IDE_STATUS_ERROR;
             break;
 
         default:
@@ -361,19 +364,40 @@ void CHardDrive::HandleCommand(BYTE command)
     }
 }
 
+// Copy the string to the destination, swapping bytes in every word
+// For use in CHardDrive::IdentifyDrive() method.
+static void swap_strncpy(BYTE* dst, const char* src, int words)
+{
+	int i;
+	for (i = 0; i < (int)strlen(src); i++)
+		dst[i ^ 1] = src[i];
+	for ( ; i < words * 2; i++)
+		dst[i ^ 1] = ' ';
+}
+
 void CHardDrive::IdentifyDrive()
 {
+    DWORD totalsectors = (DWORD)m_numcylinders * (DWORD)m_numheads * (DWORD)m_numsectors;
+
     memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
 
     WORD* pwBuffer = (WORD*)m_buffer;
-    pwBuffer[0] = 0x0040;  // Fixed disk
-    pwBuffer[1] = pwBuffer[54] = m_numcylinders;
-    pwBuffer[3] = pwBuffer[55] = m_numheads;
-    pwBuffer[6] = pwBuffer[56] = m_numsectors;
-    *(DWORD*)(pwBuffer + 57) = *(DWORD*)(pwBuffer + 60) =
-        (DWORD)m_numcylinders * (DWORD)m_numheads * (DWORD)m_numsectors;  // LBA capacity
+    pwBuffer[0]  = 0x045a;  // Configuration: fixed disk
+    pwBuffer[1]  = (WORD)m_numcylinders;
+    pwBuffer[3]  = (WORD)m_numheads;
+    pwBuffer[6]  = (WORD)m_numsectors;
+    swap_strncpy((BYTE*)(pwBuffer + 10), "0000000000", 10);  // Serial number
+    swap_strncpy((BYTE*)(pwBuffer + 23), "1.0", 4);  // Firmware version
+    swap_strncpy((BYTE*)(pwBuffer + 27), "UKNCBTL Hard Disk", 20);  // Model
+    pwBuffer[47] = 0x8001;  // Read/write multiple support
     pwBuffer[49] = 0x2f00;  // Capabilities: bit9 = LBA
     pwBuffer[53] = 1;  // Words 54-58 are valid
+    pwBuffer[54] = (WORD)m_numcylinders;
+    pwBuffer[55] = (WORD)m_numheads;
+    pwBuffer[56] = (WORD)m_numsectors;
+    *(DWORD*)(pwBuffer + 57) = (DWORD)m_numheads * (DWORD)m_numsectors;
+    *(DWORD*)(pwBuffer + 60) = totalsectors;
+    *(DWORD*)(pwBuffer + 100) = totalsectors;
 
     InvertBuffer(m_buffer);
 }
