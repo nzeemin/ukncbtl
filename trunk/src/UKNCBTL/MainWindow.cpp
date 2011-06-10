@@ -13,9 +13,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <commdlg.h>
-#include <crtdbg.h>
-#include <mmintrin.h>
-#include <vfw.h>
 #include <commctrl.h>
 
 #include "UKNCBTL.h"
@@ -38,6 +35,8 @@ HWND m_hwndStatusbar = NULL;
 //////////////////////////////////////////////////////////////////////
 // Forward declarations
 
+BOOL MainWindow_InitToolbar();
+BOOL MainWindow_InitStatusbar();
 LRESULT CALLBACK MainWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
 void MainWindow_AdjustWindowLayout();
 bool MainWindow_DoCommand(int commandId);
@@ -98,6 +97,48 @@ void MainWindow_RegisterClass()
     DisasmView_RegisterClass();
     ConsoleView_RegisterClass();
     TapeView_RegisterClass();
+}
+
+BOOL CreateMainWindow()
+{
+    // Create the window    
+    g_hwnd = CreateWindow(
+            g_szWindowClass, g_szTitle,
+            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_DLGFRAME | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+            0, 0, 0, 0,
+            NULL, NULL, g_hInst, NULL);
+    if (!g_hwnd)
+        return FALSE;
+
+    // Create and set up the toolbar and the statusbar
+    if (!MainWindow_InitToolbar())
+        return FALSE;
+    if (!MainWindow_InitStatusbar())
+        return FALSE;
+
+    // Create screen window as a child of the main window
+    CreateScreenView(g_hwnd, 4, 4);
+
+    MainWindow_RestoreSettings();
+
+    MainWindow_ShowHideToolbar();
+    MainWindow_ShowHideKeyboard();
+	MainWindow_ShowHideTape();
+    MainWindow_ShowHideDebug();
+    MainWindow_AdjustWindowSize();
+
+    ScreenView_Init();
+
+    ShowWindow(g_hwnd, SW_SHOW);
+    UpdateWindow(g_hwnd);
+    MainWindow_UpdateAllViews();
+    MainWindow_UpdateMenu();
+
+    // Autostart
+    if (Settings_GetAutostart())
+        ::PostMessage(g_hwnd, WM_COMMAND, ID_EMULATOR_RUN, 0);
+
+    return TRUE;
 }
 
 BOOL MainWindow_InitToolbar()
@@ -1087,13 +1128,13 @@ void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT lpDrawItem)
 {
     HDC hdc = lpDrawItem->hDC;
 
-    // Номер привода дисковода
+    // Draw floppy drive number
     TCHAR text[2];
     text[0] = _T('0') + lpDrawItem->itemID - StatusbarPartMZ0;
     text[1] = 0;
     ::DrawStatusText(hdc, &lpDrawItem->rcItem, text, SBT_NOBORDERS);
 
-    // Иконка диска
+    // Draw floppy disk icon
     UINT resourceId = (UINT) lpDrawItem->itemData;
     if (resourceId != 0)
     {

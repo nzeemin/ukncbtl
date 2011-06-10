@@ -158,14 +158,6 @@ void KeyboardView_RegisterClass()
     RegisterClassEx(&wcex);
 }
 
-void KeyboardView_Init()
-{
-}
-
-void KeyboardView_Done()
-{
-}
-
 void CreateKeyboardView(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
@@ -175,7 +167,6 @@ void CreateKeyboardView(HWND hwndParent, int x, int y, int width, int height)
         WS_CHILD | WS_VISIBLE,
         x, y, width, height,
         hwndParent, NULL, g_hInst, NULL);
-
 }
 
 LRESULT CALLBACK KeyboardViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

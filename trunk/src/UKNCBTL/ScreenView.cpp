@@ -11,7 +11,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ScreenView.cpp
 
 #include "stdafx.h"
-#include <mmintrin.h>
 #include <vfw.h>
 #include "UKNCBTL.h"
 #include "Views.h"
