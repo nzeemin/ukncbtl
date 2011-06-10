@@ -220,21 +220,26 @@ void MainWindow_RestoreSettings()
         }
     }
 
-    // Reattach cartridge images
+    // Reattach cartridge and HDD images
     for (int slot = 0; slot < 2; slot++)
     {
         buf[0] = '\0';
         Settings_GetCartridgeFilePath(slot, buf);
         if (lstrlen(buf) > 0)
         {
-            Emulator_LoadROMCartridge(slot, buf);
-            //TODO: If failed to load Then
-            //    Settings_SetCartridgeFilePath(slot, NULL);
+            if (!Emulator_LoadROMCartridge(slot, buf))
+            {
+                Settings_SetCartridgeFilePath(slot, NULL);
+                Settings_SetHardFilePath(slot, NULL);
+            }
 
             Settings_GetHardFilePath(slot, buf);
             if (lstrlen(buf) > 0)
             {
-                g_pBoard->AttachHardImage(slot, buf);
+                if (!g_pBoard->AttachHardImage(slot, buf))
+                {
+                    Settings_SetHardFilePath(slot, NULL);
+                }
             }
         }
     }
@@ -915,19 +920,10 @@ void MainWindow_DoEmulatorFloppy(int slot)
     {
         // File Open dialog
         TCHAR bufFileName[MAX_PATH];
-        *bufFileName = 0;
-        OPENFILENAME ofn;
-        ZeroMemory(&ofn, sizeof(ofn));
-        ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = g_hwnd;
-        ofn.hInstance = g_hInst;
-        ofn.lpstrTitle = _T("Open floppy image to load");
-        ofn.lpstrFilter = _T("UKNC floppy images (*.dsk, *.rtd)\0*.dsk;*.rtd\0All Files (*.*)\0*.*\0\0");
-        ofn.Flags = OFN_FILEMUSTEXIST;
-        ofn.lpstrFile = bufFileName;
-        ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
-
-        BOOL okResult = GetOpenFileName(&ofn);
+        BOOL okResult = ShowOpenDialog(g_hwnd,
+            _T("Open floppy image to load"),
+            _T("UKNC floppy images (*.dsk, *.rtd)\0*.dsk;*.rtd\0All Files (*.*)\0*.*\0\0"),
+            bufFileName);
         if (! okResult) return;
 
         if (! g_pBoard->AttachFloppyImage(slot, bufFileName))
@@ -952,22 +948,17 @@ void MainWindow_DoEmulatorCartridge(int slot)
     {
         // File Open dialog
         TCHAR bufFileName[MAX_PATH];
-        *bufFileName = 0;
-        OPENFILENAME ofn;
-        ZeroMemory(&ofn, sizeof(ofn));
-        ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = g_hwnd;
-        ofn.hInstance = g_hInst;
-        ofn.lpstrTitle = _T("Open ROM cartridge image to load");
-        ofn.lpstrFilter = _T("UKNC ROM cartridge images (*.bin)\0*.bin\0All Files (*.*)\0*.*\0\0");
-        ofn.Flags = OFN_FILEMUSTEXIST;
-        ofn.lpstrFile = bufFileName;
-        ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
-
-        BOOL okResult = GetOpenFileName(&ofn);
+        BOOL okResult = ShowOpenDialog(g_hwnd,
+            _T("Open ROM cartridge image to load"),
+            _T("UKNC ROM cartridge images (*.bin)\0*.bin\0All Files (*.*)\0*.*\0\0"),
+            bufFileName);
         if (! okResult) return;
 
-        Emulator_LoadROMCartridge(slot, bufFileName);
+        if (!Emulator_LoadROMCartridge(slot, bufFileName))
+        {
+            AlertWarning(_T("Failed to attach the ROM cartridge image."));
+            return;
+        }
 
         Settings_SetCartridgeFilePath(slot, bufFileName);
     }
@@ -1001,7 +992,11 @@ void MainWindow_DoEmulatorHardDrive(int slot)
         if (! okResult) return;
 
         // Attach HDD disk image
-        g_pBoard->AttachHardImage(slot, bufFileName);
+        if (!g_pBoard->AttachHardImage(slot, bufFileName))
+        {
+            AlertWarning(_T("Failed to attach the HDD image."));
+            return;
+        }
 
         Settings_SetHardFilePath(slot, bufFileName);
     }

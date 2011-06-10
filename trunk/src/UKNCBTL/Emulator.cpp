@@ -407,14 +407,14 @@ WORD Emulator_GetChangeRamStatus(int addrtype, WORD address)
     }
 }
 
-void Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
+BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
     if (fpFile == INVALID_HANDLE_VALUE)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
-        return;
+        return FALSE;
     }
 
     // Allocate memory
@@ -428,6 +428,8 @@ void Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     // Free memory, close file
     ::free(pImage);
     ::fclose(fpFile);
+
+    return TRUE;
 }
 
 void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
