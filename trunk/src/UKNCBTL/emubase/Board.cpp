@@ -60,6 +60,7 @@ CMotherboard::CMotherboard ()
     m_SoundGenCallback = NULL;
     m_SerialInCallback = NULL;
     m_SerialOutCallback = NULL;
+    m_ParallelOutCallback = NULL;
 
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) malloc(65536);  memset(m_pRAM[0], 0, 65536);

@@ -39,6 +39,9 @@ BOOL m_okEmulatorSound = FALSE;
 BOOL m_okEmulatorSerial = FALSE;
 HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
 
+BOOL m_okEmulatorParallel = FALSE;
+FILE* m_fpEmulatorParallelOut = NULL;
+
 long m_nFrameCount = 0;
 DWORD m_dwTickCount = 0;
 DWORD m_dwEmulatorUptime = 0;  // UKNC uptime, seconds, from turn on or reset, increments every 25 frames
@@ -311,6 +314,41 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
     m_okEmulatorSerial = serialOnOff;
 
     return TRUE;
+}
+
+BOOL CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
+{
+    if (m_fpEmulatorParallelOut != NULL)
+    {
+        ::fwrite(&byte, 1, 1, m_fpEmulatorParallelOut);
+    }
+
+    ////DEBUG
+    //TCHAR buffer[32];
+    //_snwprintf_s(buffer, 32, _T("Printer: <%02x>\r\n"), byte);
+    //ConsoleView_Print(buffer);
+
+    return TRUE;
+}
+
+void Emulator_SetParallel(BOOL parallelOnOff)
+{
+    if (m_okEmulatorParallel == parallelOnOff)
+        return;
+
+    if (!parallelOnOff)
+    {
+        g_pBoard->SetParallelOutCallback(NULL);
+        if (m_fpEmulatorParallelOut != NULL)
+            ::fclose(m_fpEmulatorParallelOut);
+    }
+    else
+    {
+        g_pBoard->SetParallelOutCallback(Emulator_ParallelOut_Callback);
+        m_fpEmulatorParallelOut = ::_tfopen(_T("printer.log"), _T("wb"));
+    }
+
+    m_okEmulatorParallel = parallelOnOff;
 }
 
 int Emulator_SystemFrame()

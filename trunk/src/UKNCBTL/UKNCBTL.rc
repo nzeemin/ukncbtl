@@ -113,6 +113,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Sound",                       ID_EMULATOR_SOUND
         MENUITEM "Serial",                      ID_EMULATOR_SERIAL
+        MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL
         MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
     END
     POPUP "&Drives"
