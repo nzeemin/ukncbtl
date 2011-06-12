@@ -119,6 +119,7 @@ protected:  // Implementation
 
 class CSecondMemoryController : public CMemoryController  // PPU memory control device
 {
+    friend class CMotherboard;
 public:
     CSecondMemoryController();
     virtual void DCLO_Signal();  // DCLO signal
