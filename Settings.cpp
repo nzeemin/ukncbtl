@@ -33,6 +33,8 @@ BOOL m_Settings_Tape = FALSE;
 BOOL m_Settings_Tape_Valid = FALSE;
 BOOL m_Settings_Serial = FALSE;
 BOOL m_Settings_Serial_Valid = FALSE;
+BOOL m_Settings_Parallel = FALSE;
+BOOL m_Settings_Parallel_Valid = FALSE;
 DWORD m_Settings_CartridgeMode = 0;
 BOOL m_Settings_CartridgeMode_Valid = FALSE;
 
@@ -307,6 +309,24 @@ BOOL Settings_GetSerial()
         m_Settings_Serial_Valid = TRUE;
     }
     return m_Settings_Serial;
+}
+
+void Settings_SetParallel(BOOL flag)
+{
+    m_Settings_Parallel = flag;
+    m_Settings_Parallel_Valid = TRUE;
+    Settings_SaveDwordValue(_T("Parallel"), (DWORD) flag);
+}
+BOOL Settings_GetParallel()
+{
+    if (!m_Settings_Parallel_Valid)
+    {
+        DWORD dwValue = (DWORD) FALSE;
+        Settings_LoadDwordValue(_T("Parallel"), &dwValue);
+        m_Settings_Parallel = (BOOL) dwValue;
+        m_Settings_Parallel_Valid = TRUE;
+    }
+    return m_Settings_Parallel;
 }
 
 void Settings_GetSerialPort(LPTSTR buffer)

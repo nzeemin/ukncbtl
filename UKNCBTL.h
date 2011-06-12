@@ -128,6 +128,8 @@ void Settings_SetSerial(BOOL flag);
 BOOL Settings_GetSerial();
 void Settings_GetSerialPort(LPTSTR buffer);
 void Settings_SetSerialPort(LPCTSTR sValue);
+void Settings_SetParallel(BOOL flag);
+BOOL Settings_GetParallel();
 
 
 //////////////////////////////////////////////////////////////////////
