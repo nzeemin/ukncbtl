@@ -368,7 +368,7 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
             return m_Port176574;
         case 0176576:  // Стык С2: Регистр данных источника
         case 0176577:
-            return 0;
+            return 0370;
 
         default: 
             m_pProcessor->MemoryError();
@@ -599,8 +599,22 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             m_pProcessor->MemoryError();
 //			ASSERT(0);
             break;
-        //TODO
     }
+}
+
+BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
+{
+    this->m_Port176572 = (WORD)inputByte;
+    if (this->m_Port176570 & 0200)  // Ready?
+        this->m_Port176570 |= 010000;  // Set Overflow flag
+    else
+    {
+        this->m_Port176570 |= 0200;  // Set Ready flag
+        if (this->m_Port176570 & 0200)  // Interrupt?
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -644,6 +658,8 @@ CSecondMemoryController::CSecondMemoryController() : CMemoryController()
     m_Port177716 = 0;
 
     m_Port177054 = 01401;
+
+    m_Port177100 = m_Port177101 = m_Port177102 = 0;
 }
 
 void CSecondMemoryController::DCLO_Signal()
@@ -842,10 +858,13 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177077:
             return m_pBoard->ChanTxStateGetPPU();
 
-        case 0177100:
-        case 0177101:
-        case 0177102:
-        case 0177103:
+        case 0177100:  // i8255 port A -- Parallel port output data
+            return 0;
+        case 0177101:  // i8255 port B
+            return m_Port177101;
+        case 0177102:  // i8255 port C
+            return m_Port177102 & 0x0f;
+        case 0177103:  // i8255 control
             return 0;
 
         case 0177700:
@@ -873,7 +892,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177717:
             return m_Port177716;  // System control register
     
-        case 0177130: //fdd status
+        case 0177130:  // FDD status
         case 0177131:
             value = m_pBoard->GetFloppyState();
             //PrintOctalValue(oct2, value);
@@ -996,13 +1015,15 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
             m_pBoard->ChanTxStateSetPPU(0);
             break;
 
-        case 0177100:
+        case 0177100:  // i8255 port A -- Parallel port output data
+            m_Port177100 = word & 0xff;
             break;
-        case 0177101:
+        case 0177101:  // i8255 port B
             break;
-        case 0177102: //par port data
+        case 0177102:  // i8255 port C
+            m_Port177102 = (m_Port177102 & 0x0f) | (word & 0xf0);
             break;
-        case 0177103: //par port ctrl
+        case 0177103:  // i8255 control byte
             break;
 
         case 0177130:  // FDD status
@@ -1193,13 +1214,15 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             m_pBoard->ChanTxStateSetPPU((BYTE) word);
             break;
 
-        case 0177100:
+        case 0177100:  // i8255 port A -- Parallel port output data
+            m_Port177100 = word & 0xff;
             break;
-        case 0177101:
+        case 0177101:  // i8255 port B
             break;
-        case 0177102: //par port data
+        case 0177102:  // i8255 port C
+            m_Port177102 = (m_Port177102 & 0x0f) | (word & 0xf0);
             break;
-        case 0177103: //par port ctrl
+        case 0177103:  // i8255 control byte
             break;
 
         case 0177130:  // FDD status

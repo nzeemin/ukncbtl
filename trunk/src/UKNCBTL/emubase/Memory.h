@@ -100,11 +100,13 @@ public:
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address);
     virtual void SetPortWord(WORD address, WORD word);
-    virtual BYTE GetPortByte(WORD address) ;  //TODO
-    virtual void SetPortByte(WORD address, BYTE byte) ;  //TODO
+    virtual BYTE GetPortByte(WORD address);
+    virtual void SetPortByte(WORD address, BYTE byte);
 public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(BYTE* pImage);
     virtual void LoadFromImage(const BYTE* pImage);
+public:  // CPU specific
+    BOOL SerialInput(BYTE inputByte);
     
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
@@ -155,6 +157,10 @@ protected:  // Implementation
     WORD        m_Port177716;  // System control register
 
     WORD		m_Port177054;  // address space control
+
+    BYTE        m_Port177100;  // i8255 port A -- Parallel port output data
+    BYTE        m_Port177101;  // i8255 port B
+    BYTE        m_Port177102;  // i8255 port C
 };
 
 
