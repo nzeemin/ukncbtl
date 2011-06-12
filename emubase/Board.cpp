@@ -613,6 +613,22 @@ BOOL CMotherboard::SystemFrame()
             }
         }
 
+        if (m_ParallelOutCallback != NULL)
+        {
+            CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+            if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
+            {  // Strobe set, Printer Ack set => reset Printer Ack
+                pMemCtl->m_Port177101 &= ~0x80;
+                // Now printer waits for a next byte
+            }
+            else if ((pMemCtl->m_Port177102 & 0x80) == 0 && (pMemCtl->m_Port177101 & 0x80) == 0)
+            {  // Strobe reset, Printer Ack reset => byte is ready, print it
+                (*m_ParallelOutCallback)(pMemCtl->m_Port177100);
+                pMemCtl->m_Port177101 |= 0x80;  // Set Printer Acknowledge
+                // Now the printer waits for Strobe
+            }
+        }
+
         frameticks++;
     }
     while (frameticks < 20000);
@@ -1344,6 +1360,21 @@ void CMotherboard::SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALL
         m_SerialInCallback = incallback;
         m_SerialOutCallback = outcallback;
         //TODO: Set port value to indicate we are ready to translate
+    }
+}
+
+void CMotherboard::SetParallelOutCallback(PARALLELOUTCALLBACK outcallback)
+{
+    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+    if (outcallback == NULL)  // Reset callback
+    {
+        pMemCtl->m_Port177101 &= ~2;  // Reset OnLine flag
+        m_ParallelOutCallback = NULL;
+    }
+    else
+    {
+        pMemCtl->m_Port177101 |= 2;  // Set OnLine flag
+        m_ParallelOutCallback = outcallback;
     }
 }
 

@@ -71,6 +71,13 @@ typedef BOOL (CALLBACK* SERIALINCALLBACK)(BYTE* pbyte);
 //   result     TRUE means we translated the byte successfully, FALSE means we have an error
 typedef BOOL (CALLBACK* SERIALOUTCALLBACK)(BYTE byte);
 
+// Parallel port output callback
+// Input:
+//   byte       An output byte
+// Output:
+//   result     TRUE means OK, FALSE means we have an error
+typedef BOOL (CALLBACK* PARALLELOUTCALLBACK)(BYTE byte);
+
 
 class CFloppyController;
 class CHardDrive;
@@ -199,6 +206,7 @@ public:  // System control
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
     void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
     void		SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
+    void		SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
 
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
@@ -229,12 +237,14 @@ private:
     BYTE		m_chan0disabled;
     BYTE		m_irq_cpureset;
 
+private:
     TAPEREADCALLBACK m_TapeReadCallback;
     TAPEWRITECALLBACK m_TapeWriteCallback;
     int			m_nTapeSampleRate;
     SOUNDGENCALLBACK m_SoundGenCallback;
     SERIALINCALLBACK    m_SerialInCallback;
     SERIALOUTCALLBACK   m_SerialOutCallback;
+    PARALLELOUTCALLBACK m_ParallelOutCallback;
 
     void DoSound(void);
     

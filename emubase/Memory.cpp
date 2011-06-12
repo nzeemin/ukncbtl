@@ -659,7 +659,7 @@ CSecondMemoryController::CSecondMemoryController() : CMemoryController()
 
     m_Port177054 = 01401;
 
-    m_Port177100 = m_Port177101 = m_Port177102 = 0;
+    m_Port177100 = m_Port177101 = m_Port177102 = 0377;
 }
 
 void CSecondMemoryController::DCLO_Signal()
@@ -859,7 +859,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
             return m_pBoard->ChanTxStateGetPPU();
 
         case 0177100:  // i8255 port A -- Parallel port output data
-            return 0;
+            return m_Port177100;
         case 0177101:  // i8255 port B
             return m_Port177101;
         case 0177102:  // i8255 port C
@@ -1223,6 +1223,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             m_Port177102 = (m_Port177102 & 0x0f) | (word & 0xf0);
             break;
         case 0177103:  // i8255 control byte
+            m_Port177100 = 0377;  // Writing to control register resets port A
             break;
 
         case 0177130:  // FDD status
