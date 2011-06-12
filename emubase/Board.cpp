@@ -576,18 +576,13 @@ BOOL CMotherboard::SystemFrame()
 
         if (m_SerialInCallback != NULL && frameticks % 416 == 0)
         {
-            BYTE b;
-            if (m_SerialInCallback(&b))
+            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
             {
-                //TODO: Move the code to CFirstMemoryController::SerialInput method
-                CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
-                pMemCtl->m_Port176572 = (WORD)b;
-                if (pMemCtl->m_Port176570 & 0200)  // Ready?
-                    pMemCtl->m_Port176570 |= 010000;  // Set Overflow flag
-                else
+                BYTE b;
+                if (m_SerialInCallback(&b))
                 {
-                    pMemCtl->m_Port176570 |= 0200;  // Set Ready flag
-                    if (pMemCtl->m_Port176570 & 0200)  // Interrupt?
+                    if (pMemCtl->SerialInput(b))
                         m_pCPU->InterruptVIRQ(3, 0370);
                 }
             }
@@ -600,11 +595,13 @@ BOOL CMotherboard::SystemFrame()
                 serialTxCount--;
                 if (serialTxCount == 0)  // Translation countdown finished - the byte translated
                 {
-                    if (pMemCtl->m_Port176574 & 004)  // Loopback?
-                        //TODO: Call CFirstMemoryController::SerialInput method
-                        pMemCtl->m_Port176572 = pMemCtl->m_Port176576 & 0xff;
-                    else
+                    if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
                         (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
+                    else  // Loopback
+                    {
+                        if (pMemCtl->SerialInput(pMemCtl->m_Port176576 & 0xff))
+                            m_pCPU->InterruptVIRQ(3, 0370);
+                    }
                     pMemCtl->m_Port176574 |= 0200;  // Set Ready flag
                     if (pMemCtl->m_Port176574 & 0100)  // Interrupt?
                          m_pCPU->InterruptVIRQ(3, 374);
