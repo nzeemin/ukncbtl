@@ -153,6 +153,9 @@ void Emulator_Stop()
     m_wEmulatorCPUBreakpoint = 0177777;
     m_wEmulatorPPUBreakpoint = 0177777;
 
+    if (m_fpEmulatorParallelOut != NULL)
+        ::fflush(m_fpEmulatorParallelOut);
+
     // Reset title bar message
     SetWindowText(g_hwnd, _T("UKNC Back to Life [stop]"));
     MainWindow_UpdateMenu();
