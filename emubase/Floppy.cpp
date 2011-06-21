@@ -27,8 +27,8 @@ const WORD FLOPPY_CMD_MASKSTORED =
     FLOPPY_CMD_CORRECTION250 | FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC |
     FLOPPY_CMD_ENGINESTART;
 
-static void EncodeTrackData(BYTE* pSrc, BYTE* data, BYTE* marker, WORD track, WORD side);
-static BOOL DecodeTrackData(BYTE* pRaw, BYTE* pDest);
+static void EncodeTrackData(const BYTE* pSrc, BYTE* data, BYTE* marker, WORD track, WORD side);
+static BOOL DecodeTrackData(const BYTE* pRaw, BYTE* pDest);
 
 //////////////////////////////////////////////////////////////////////
 
@@ -482,7 +482,7 @@ void CFloppyController::FlushChanges()
 
 
 // Fill data array and marker array with marked data
-static void EncodeTrackData(BYTE* pSrc, BYTE* data, BYTE* marker, WORD track, WORD side)
+static void EncodeTrackData(const BYTE* pSrc, BYTE* data, BYTE* marker, WORD track, WORD side)
 {
     memset(data, 0, FLOPPY_RAWTRACKSIZE);
     memset(marker, 0, FLOPPY_RAWMARKERSIZE);
@@ -531,7 +531,7 @@ static void EncodeTrackData(BYTE* pSrc, BYTE* data, BYTE* marker, WORD track, WO
 // pRaw is array of FLOPPY_RAWTRACKSIZE bytes
 // pDest is array of 5120 bytes
 // Returns: TRUE - decoded, FALSE - parse error
-static BOOL DecodeTrackData(BYTE* pRaw, BYTE* pDest)
+static BOOL DecodeTrackData(const BYTE* pRaw, BYTE* pDest)
 {
     WORD dataptr = 0;  // Offset in m_data array
     WORD destptr = 0;  // Offset in data array
