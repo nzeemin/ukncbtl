@@ -9,15 +9,12 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // Hard.cpp
-//
+// Hard disk drive emulation
+// See defines in header file Emubase.h
 
 #include "stdafx.h"
 #include <sys/stat.h>
 #include "Emubase.h"
-
-#ifdef _MSC_VER
-#pragma warning( disable: 4996 )  //NOTE: I know, we use unsafe functions
-#endif
 
 
 //////////////////////////////////////////////////////////////////////

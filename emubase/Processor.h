@@ -9,7 +9,7 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // Processor.h
-//
+// KM1801VM2 processor
 
 #pragma once
 

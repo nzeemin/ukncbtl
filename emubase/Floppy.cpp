@@ -16,9 +16,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <sys/stat.h>
 #include "Emubase.h"
 
-#ifdef _MSC_VER
-#pragma warning( disable: 4996 )  //NOTE: I know, we use unsafe functions
-#endif
 
 //////////////////////////////////////////////////////////////////////
 
