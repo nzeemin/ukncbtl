@@ -1889,6 +1889,7 @@ void CProcessor::ExecuteASH ()  // ASH
     if (m_RPLYrq) return;
     src = (short)(m_methdest?GetWord(ea):GetReg(m_regdest));
     if (m_RPLYrq) return;
+    src &= 0x3F;
     src |= (src & 040)?0177700:0;
     dst = (short)GetReg(m_regsrc);
 
@@ -1931,6 +1932,7 @@ void CProcessor::ExecuteASHC ()  // ASHC
     if (m_RPLYrq) return;
     src = (short)(m_methdest?GetWord(ea):GetReg(m_regdest));
     if (m_RPLYrq) return;
+    src &= 0x3F;
     src |= (src & 040)?0177700:0;
     dst = MAKELONG(GetReg(m_regsrc|1),GetReg(m_regsrc));
     m_internalTick=ASHC_TIMING[m_methdest];
