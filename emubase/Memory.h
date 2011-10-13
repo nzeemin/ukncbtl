@@ -78,7 +78,7 @@ protected:
     //   okHaltMode - processor mode (USER/HALT)
     //   okExec - TRUE: read instruction for execution; FALSE: read memory
     //   pOffset - result - offset in memory plane
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset) = 0;
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView = FALSE) = 0;
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address) = 0;
     virtual void SetPortWord(WORD address, WORD word) = 0;
@@ -94,7 +94,7 @@ public:
     virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView);
     virtual WORD GetSelRegister() { return 0160000; }
     virtual WORD GetPortView(WORD address);
 protected:  // Access to I/O ports
@@ -111,7 +111,9 @@ public:  // CPU specific
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
-    WORD        m_Port176570;  // RS-232 receiver state
+    WORD		m_Port176644;
+	WORD		m_Port176646;
+	WORD        m_Port176570;  // RS-232 receiver state
     WORD        m_Port176572;  // RS-232 receiver data (bits 0-7)
     WORD        m_Port176574;  // RS-232 translator state
     WORD        m_Port176576;  // RS-232 translator data (bits 0-7)
@@ -127,7 +129,7 @@ public:
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset);
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView);
     virtual WORD GetSelRegister() { return 0160000; }
     virtual WORD GetPortView(WORD address);
 protected:  // Access to I/O ports
