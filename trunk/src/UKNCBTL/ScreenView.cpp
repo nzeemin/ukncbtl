@@ -368,7 +368,7 @@ void ScreenView_ScanKeyboard()
 
         // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
         WORD ukncRegister = g_pBoard->GetKeyboardRegister();
-        const BYTE* pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+        const BYTE* pTable;
 
         // Check every key for state change
         for (int scan = 0; scan < 256; scan++)
@@ -378,8 +378,19 @@ void ScreenView_ScanKeyboard()
             if ((newstate & 128) != (oldstate & 128))  // Key state changed - key pressed or released
             {
                 BYTE pcscan = (BYTE) scan;
-                BYTE ukncscan = pTable[pcscan];
-                if (ukncscan != 0)
+                BYTE ukncscan;
+                if (oldstate & 128)
+				{
+					pTable = ((oldstate & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+					m_ScreenKeyState[scan] = 0;
+				}
+				else
+				{
+					pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+					m_ScreenKeyState[scan] = (newstate & 128) | ukncRegister;
+				}
+				ukncscan = pTable[pcscan];
+				if (ukncscan != 0)
                 {
                     BYTE pressed = newstate & 128;
                     WORD keyevent = MAKEWORD(ukncscan, pressed);
@@ -394,7 +405,7 @@ void ScreenView_ScanKeyboard()
         }
 
         // Save keyboard state
-        ::memcpy(m_ScreenKeyState, keys, 256);
+        //::memcpy(m_ScreenKeyState, keys, 256);
     }
 
     // Process next event in the keyboard queue

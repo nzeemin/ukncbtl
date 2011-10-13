@@ -29,7 +29,7 @@ CMemoryController::CMemoryController ()
 WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid)
 {
     WORD offset;
-    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset);
+    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, TRUE);
 
     switch (addrtype)
     {
@@ -238,6 +238,8 @@ CFirstMemoryController::CFirstMemoryController() : CMemoryController()
 {
     m_Port176640 = 0;
     m_Port176642 = 0;
+    m_Port176644 = 0;
+    m_Port176646 = 0;
     m_Port176570 = m_Port176572 = m_Port176576 = 0;  // RS-232 ports
     m_Port176574 = 0200;
 }
@@ -249,12 +251,18 @@ void CFirstMemoryController::DCLO_Signal()
 void CFirstMemoryController::ResetDevices()
 {
     m_pBoard->ChanResetByCPU();
-    //TODO
+	m_Port176644 = 0;
+	m_pProcessor->InterruptVIRQ(6,0);
+	//TODO
 }
 
-int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset)
+int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView)
 {
-    if (address < 0160000) {  // CPU RAM (plane 1 & 2)
+    if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
+	{
+		m_pProcessor->InterruptVIRQ(6,m_Port176644 & 0xFC);
+	}
+	if (address < 0160000) {  // CPU RAM (plane 1 & 2)
         *pOffset = address;
         return ADDRTYPE_RAM12;
     }
@@ -266,19 +274,9 @@ int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL
                 return ADDRTYPE_RAM12;
         }
         else 
-        {  // USER mode
-            /* if (address <= 0173777) 
-            {  // 160000-173777 - access denied
-                *pOffset = 0;
-                m_pProcessor->MemoryError();
-                return ADDRTYPE_DENY;
-            }
-            else 
-            {  // 174000-177777 in USER mode
-            */    
+        {      
                 *pOffset = address;
                 return ADDRTYPE_IO;
-            // }
         }
     }
 
@@ -303,7 +301,12 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
             m_Port176642 = MAKEWORD(m_pBoard->GetRAMByte(1, m_Port176640), m_pBoard->GetRAMByte(2, m_Port176640));
             return m_Port176642;  // Plane 1 & 2 data register
 
-        case 0177560:
+        case 0176644: case 0176645:
+            return (m_Port176644 & 0x200);
+        case 0176646: case 0176647:
+            return 0;
+
+		case 0177560:
         case 0177561:
             return m_pBoard->ChanRxStateGetCPU(0);
         case 0177562:
@@ -312,11 +315,6 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
         case 0177564:
         case 0177565:
             return m_pBoard->ChanTxStateGetCPU(0);
-
-        case 0176644: case 0176645:
-            return 0;
-        case 0176646: case 0176647:
-            return 0;
 
         case 0176660:
         case 0176661:
@@ -413,9 +411,11 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
             break;
 
         case 0176644: case 0176645:
-            break;
+            SetPortWord(address,word);
+			break;
         case 0176646: case 0176647:
-            break;
+            SetPortWord(address,word);
+			break;
 
         case 0177560:
             m_pBoard->ChanRxStateSetCPU(0, (BYTE) word);
@@ -520,9 +520,21 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             break;
 
         case 0176644: case 0176645:
-            break;
+            word &= 0x3FF;
+			m_Port176644 = word;
+			if ((word & 0x101) == 0x101)
+			{
+				if ((m_pProcessor->GetVIRQ(6)) != 0)
+					m_pProcessor->InterruptVIRQ(6, word & 0xFC);
+			}
+			else
+			{
+				m_pProcessor->InterruptVIRQ(6,0);
+			}
+			break;
         case 0176646: case 0176647:
-            break;
+            m_Port176646 = word;
+			break;
 
         case 0177560:
         case 0177561:
@@ -674,7 +686,7 @@ void CSecondMemoryController::ResetDevices()
     //TODO
 }
 
-int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset)
+int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView)
 {
     if (address < 0100000)  // 000000-077777 - PPU RAM
     {
