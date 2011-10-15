@@ -43,6 +43,12 @@ typedef struct chan_tag
     BYTE	rdwr;
 } chan_stc;
 
+typedef struct kbd_row_tag
+{
+	BOOL	processed;
+	BYTE	row_Y;
+} kbd_row;
+
 // Tape emulator callback used to read a tape recorded data.
 // Input:
 //   samples    Number of samples to play.
@@ -236,6 +242,9 @@ private:
 
     BYTE		m_chan0disabled;
     BYTE		m_irq_cpureset;
+
+	BYTE		m_scanned_key;
+	kbd_row		m_kbd_matrix[16];
 
 private:
     TAPEREADCALLBACK m_TapeReadCallback;

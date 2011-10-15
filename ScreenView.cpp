@@ -409,13 +409,20 @@ void ScreenView_ScanKeyboard()
     }
 
     // Process next event in the keyboard queue
-    WORD keyevent = ScreenView_GetKeyEventFromQueue();
-    if (keyevent != 0)
-    {
-        BOOL pressed = ((keyevent & 0x8000) != 0);
-        BYTE ukncscan = LOBYTE(keyevent);
-        g_pBoard->KeyboardEvent(ukncscan, pressed);
-    }
+    // WORD keyevent = ScreenView_GetKeyEventFromQueue();
+    // if (keyevent != 0)
+    // {
+    //    BOOL pressed = ((keyevent & 0x8000) != 0);
+    //    BYTE ukncscan = LOBYTE(keyevent);
+    //    g_pBoard->KeyboardEvent(ukncscan, pressed);
+    //}
+	WORD keyevent;
+	while ((keyevent = ScreenView_GetKeyEventFromQueue()) != 0)
+	{
+		BOOL pressed = ((keyevent & 0x8000) != 0);
+		BYTE ukncscan = LOBYTE(keyevent);
+		g_pBoard->KeyboardEvent(ukncscan, pressed);
+	}
 }
 
 // External key event - e.g. from KeyboardView
