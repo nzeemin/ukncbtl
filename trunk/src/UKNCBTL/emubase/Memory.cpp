@@ -885,7 +885,8 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177702:  // Keyboard data
         case 0177703:
             m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
-            return m_Port177702;
+			m_pProcessor->InterruptVIRQ(3, 0);
+			return m_Port177702;
         case 0177704:
         case 0177705:
             return 010000; //!!!
@@ -1256,7 +1257,11 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 
         case 0177700:  // Keyboard status
         case 0177701:
-            m_Port177700 = (m_Port177700 & 0177677) | (word & 0100);
+            if (((m_Port177700 & 0100) == 0) && (word & 0100) && (m_Port177700 & 0200))
+				m_pProcessor->InterruptVIRQ(3, 0300);
+			if ((word & 0100) == 0)
+				m_pProcessor->InterruptVIRQ(3, 0);
+			m_Port177700 = (m_Port177700 & 0177677) | (word & 0100);
             break;
         case 0177704: // fdd params:
         case 0177705:
