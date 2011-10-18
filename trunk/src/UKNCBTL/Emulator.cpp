@@ -489,7 +489,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
     BOOL okTagType = FALSE;  // Type of 4-word tag: TRUE - set palette, FALSE - set params
     int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
     DWORD palette = 0;       // Palette
-    BYTE pbpgpr = 7;         // 3-bit Y-value modifier
+	BYTE pbpgpr = 7;         // 3-bit Y-value modifier
     for (int yy = 0; yy < 307; yy++) {
 
         if (okTagSize) {  // 4-word tag
@@ -557,13 +557,17 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 for (int bit = 0; bit < 8; bit++)
                 {
                     // Make 3-bit value from the bits
-                    BYTE value012 = (src0 & 1) | (src1 & 1) * 2 | (src2 & 1) * 4;
-                    // Map value to palette; result is 4-bit value YRGB
+                    //BYTE value012 = (src0 & 1) | (src1 & 1) * 2 | (src2 & 1) * 4;
+					BYTE value012;
+					// Map value to palette; result is 4-bit value YRGB
                     BYTE valueYRGB;
                     if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
                         valueYRGB = cursorYRGB;
                     else
-                        valueYRGB = (BYTE) (palette >> (value012 * 4)) & 15;
+					{
+						value012 = (src0 & 1) | (src1 & 1) * 2 | (src2 & 1) * 4;
+						valueYRGB = (BYTE) (palette >> (value012 * 4)) & 15;
+					}
                     DWORD valueRGB = colors[valueYRGB];
 
                     // Put value to m_bits; repeat using scale value

@@ -369,7 +369,8 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
             return 0370;
 
         default: 
-            m_pProcessor->MemoryError();
+            if (!(((m_Port176644 & 0x101) == 0x100) && m_Port176646 == address))
+				m_pProcessor->MemoryError();
             return 0x0;
     }
     //ASSERT(0);
@@ -497,7 +498,8 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
             return ;
 
         default:
-            m_pProcessor->MemoryError();
+            if (!(((m_Port176644 & 0x101) == 0x100) && m_Port176646 == address))
+	            m_pProcessor->MemoryError();
 //			ASSERT(0);
             break;
     }
@@ -608,7 +610,8 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             break;
 
         default:
-            m_pProcessor->MemoryError();
+            if (!(((m_Port176644 & 0x101) == 0x100) && m_Port176646 == address))
+	            m_pProcessor->MemoryError();
 //			ASSERT(0);
             break;
     }
