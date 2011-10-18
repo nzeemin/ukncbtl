@@ -45,6 +45,9 @@ int m_ScreenKeyQueueCount = 0;
 void ScreenView_PutKeyEventToQueue(WORD keyevent);
 WORD ScreenView_GetKeyEventFromQueue();
 
+BOOL bEnter = FALSE;
+BOOL bNumpadEnter = FALSE;
+BOOL bEntPressed = FALSE;
 
 //////////////////////////////////////////////////////////////////////
 // Colors
@@ -210,7 +213,28 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     //case WM_KEYUP:
     //    //return (LRESULT) ScreenView_OnKeyEvent(wParam, (lParam & (1 << 24)) != 0, FALSE);
     //    return (LRESULT) TRUE;
-    case WM_SETCURSOR:
+
+	case WM_KEYDOWN:
+	case WM_SYSKEYDOWN:
+		if (wParam == VK_RETURN)
+		{
+			if (lParam & 0x1000000)
+				bNumpadEnter = TRUE;
+			else
+				bEnter = TRUE;
+		}
+		break;
+	case WM_KEYUP:
+	case WM_SYSKEYUP:
+		if (wParam == VK_RETURN)
+		{
+			if (lParam & 0x1000000)
+				bNumpadEnter = FALSE;
+			else
+				bEnter = FALSE;
+		}
+		break;
+	case WM_SETCURSOR:
         if (::GetFocus() == g_hwndScreen)
         {
             SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
@@ -320,7 +344,7 @@ WORD ScreenView_GetKeyEventFromQueue()
 
 const BYTE arrPcscan2UkncscanLat[256] = {  // ЛАТ
 /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0000, 0000, 
+/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000, 
 /*1*/    0000, 0000, 0000, 0004, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000, 
 /*2*/    0113, 0004, 0151, 0172, 0000, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0152, 0000, 
 /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000, 
@@ -339,7 +363,7 @@ const BYTE arrPcscan2UkncscanLat[256] = {  // ЛАТ
 };
 const BYTE arrPcscan2UkncscanRus[256] = {  // РУС
 /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0000, 0000, 
+/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000, 
 /*1*/    0000, 0000, 0000, 0004, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000, 
 /*2*/    0113, 0004, 0151, 0172, 0000, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0152, 0000, 
 /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000, 
@@ -365,7 +389,31 @@ void ScreenView_ScanKeyboard()
         // Read current keyboard state
         BYTE keys[256];
         VERIFY(::GetKeyboardState(keys));
-
+		if (keys[VK_RETURN] & 128)
+		{
+			if (bEnter && bNumpadEnter)
+				keys[VK_RETURN+1] = 128;
+			if (!bEnter && bNumpadEnter)
+			{
+				keys[VK_RETURN] = 0;
+				keys[VK_RETURN+1] = 128;
+			}
+			bEntPressed = TRUE;
+		}
+		else
+		{
+			if (bEntPressed)
+			{
+				if (bEnter) keys[VK_RETURN+1] = 128;
+				if (bNumpadEnter) keys[VK_RETURN+1] = 128;
+			}
+			else
+			{
+				bEnter = FALSE;
+				bNumpadEnter = FALSE;
+			}
+			bEntPressed = FALSE;
+		}
         // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
         WORD ukncRegister = g_pBoard->GetKeyboardRegister();
         const BYTE* pTable;
