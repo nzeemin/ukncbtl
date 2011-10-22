@@ -846,6 +846,18 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177027:
             return m_Port177026;  // Plane Mask
 
+        case 0177030: case 0177031:
+        case 0177032: case 0177033:
+        case 0177034: case 0177035:
+        case 0177036: case 0177037:
+        case 0177040: case 0177041:
+        case 0177042: case 0177043:
+        case 0177044: case 0177045:
+        case 0177046: case 0177047:
+        case 0177050: case 0177051:
+        case 0177052: case 0177053:
+            return 0;
+
         case 0177054:
         case 0177055:
             return m_Port177054;
@@ -1173,7 +1185,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
                 planebyte[2] |= ((m_Port177022&(1<< 6))?1:0)<<5;
                 planebyte[2] |= ((m_Port177022&(1<<10))?1:0)<<6;
                 planebyte[2] |= ((m_Port177022&(1<<14))?1:0)<<7;
-                // Draw spryte
+                // Draw sprite
                 planebyte[0] &= ~m_Port177024;
                 if (m_Port177016 & 1)
                     planebyte[0] |= m_Port177024;

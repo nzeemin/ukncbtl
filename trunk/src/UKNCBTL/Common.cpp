@@ -182,6 +182,17 @@ void PrintOctalValue(TCHAR* buffer, WORD value)
     }
     buffer[6] = 0;
 }
+// Print hex 16-bit value to buffer
+// buffer size at least 5 characters
+void PrintHexValue(TCHAR* buffer, WORD value)
+{
+    for (int p = 0; p < 4; p++) {
+        int digit = value & 15;
+        buffer[3 - p] = (digit < 10) ? _T('0') + digit : _T('a') + digit - 10;
+        value = (value >> 4);
+    }
+    buffer[4] = 0;
+}
 // Print binary 16-bit value to buffer
 // buffer size at least 17 characters
 void PrintBinaryValue(TCHAR* buffer, WORD value)
@@ -215,6 +226,12 @@ void DrawOctalValue(HDC hdc, int x, int y, WORD value)
 {
     TCHAR buffer[7];
     PrintOctalValue(buffer, value);
+    TextOut(hdc, x, y, buffer, (int) _tcslen(buffer));
+}
+void DrawHexValue(HDC hdc, int x, int y, WORD value)
+{
+    TCHAR buffer[7];
+    PrintHexValue(buffer, value);
     TextOut(hdc, x, y, buffer, (int) _tcslen(buffer));
 }
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value)

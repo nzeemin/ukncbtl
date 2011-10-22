@@ -585,7 +585,6 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 addressBits++;  // Go to the next byte
             }
         }
-
     }
 }
 
