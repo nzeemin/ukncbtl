@@ -287,7 +287,7 @@ void CFloppyController::WriteData(WORD data)
 
 void CFloppyController::Periodic()
 {
-    if (!IsEngineOn()) return;  // Вращаем дискеты только если включен мотор
+    //if (!IsEngineOn()) return;  // Вращаем дискеты только если включен мотор
 
     // Вращаем дискеты во всех драйвах сразу
     for (int drive = 0; drive < 4; drive++)
