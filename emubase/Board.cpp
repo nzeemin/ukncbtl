@@ -115,14 +115,14 @@ void CMotherboard::Reset ()
 
     m_chan0disabled = 0;
 
-	int i;
-	m_scanned_key = 0;
-	for (i=0; i<=15; i++)
-	{
-		m_kbd_matrix[i].processed = FALSE;
-		m_kbd_matrix[i].row_Y = 0;
-	}
-	m_kbd_matrix[3].row_Y = 0xFF;
+    int i;
+    m_scanned_key = 0;
+    for (i=0; i<=15; i++)
+    {
+        m_kbd_matrix[i].processed = FALSE;
+        m_kbd_matrix[i].row_Y = 0;
+    }
+    m_kbd_matrix[3].row_Y = 0xFF;
 
     //ChanResetByCPU();
     //ChanResetByPPU();
@@ -551,44 +551,44 @@ BOOL CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();
         }
 
-		if (frameticks % 32 == 0)	// Keyboard tick
-		{
+        if (frameticks % 32 == 0)	// Keyboard tick
+        {
             CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
-			if ((pMemCtl->m_Port177700 & 0200) == 0)
-			{
-				BYTE row_Y = m_scanned_key & 0xF;
-				BYTE col_X = (m_scanned_key & 0x70) >> 4;
-				BYTE bit_X = 1 << col_X;
-				pMemCtl->m_Port177702 = m_scanned_key;
-				if ((m_scanned_key & 0200) == 0)
-				{
-					if ((m_kbd_matrix[row_Y].processed == FALSE) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
-					{
-						pMemCtl->m_Port177700 |= 0200;
-						m_kbd_matrix[row_Y].processed = TRUE;
-						if (pMemCtl->m_Port177700 & 0100)
-							m_pPPU->InterruptVIRQ(3, 0300);
-					}
-					else
-						m_scanned_key++;
-				}
-				else
-				{
-					if ((m_kbd_matrix[row_Y].processed == TRUE) && (m_kbd_matrix[row_Y].row_Y == 0))
-					{
-						pMemCtl->m_Port177700 |= 0200;
-						m_kbd_matrix[row_Y].processed = FALSE;
-						if (pMemCtl->m_Port177700 & 0100)
-							m_pPPU->InterruptVIRQ(3, 0300);
-						pMemCtl->m_Port177702 = m_scanned_key & 0x8F;
-					}
-					else
-						m_scanned_key++;
-				}
-			}
-		}
+            if ((pMemCtl->m_Port177700 & 0200) == 0)
+            {
+                BYTE row_Y = m_scanned_key & 0xF;
+                BYTE col_X = (m_scanned_key & 0x70) >> 4;
+                BYTE bit_X = 1 << col_X;
+                pMemCtl->m_Port177702 = m_scanned_key;
+                if ((m_scanned_key & 0200) == 0)
+                {
+                    if ((m_kbd_matrix[row_Y].processed == FALSE) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
+                    {
+                        pMemCtl->m_Port177700 |= 0200;
+                        m_kbd_matrix[row_Y].processed = TRUE;
+                        if (pMemCtl->m_Port177700 & 0100)
+                            m_pPPU->InterruptVIRQ(3, 0300);
+                    }
+                    else
+                        m_scanned_key++;
+                }
+                else
+                {
+                    if ((m_kbd_matrix[row_Y].processed == TRUE) && (m_kbd_matrix[row_Y].row_Y == 0))
+                    {
+                        pMemCtl->m_Port177700 |= 0200;
+                        m_kbd_matrix[row_Y].processed = FALSE;
+                        if (pMemCtl->m_Port177700 & 0100)
+                            m_pPPU->InterruptVIRQ(3, 0300);
+                        pMemCtl->m_Port177702 = m_scanned_key & 0x8F;
+                    }
+                    else
+                        m_scanned_key++;
+                }
+            }
+        }
 
-		if (m_pHardDrives[0] != NULL)
+        if (m_pHardDrives[0] != NULL)
             m_pHardDrives[0]->Periodic();
         if (m_pHardDrives[1] != NULL)
             m_pHardDrives[1]->Periodic();
@@ -688,13 +688,13 @@ void CMotherboard::KeyboardEvent(BYTE scancode, BOOL okPressed)
 {
     // CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
     // pMemCtl->KeyboardEvent(scancode, okPressed);
-	BYTE	row_Y = scancode & 0xF;
-	BYTE	col_X = (scancode & 0x70) >> 4;
-	BYTE	bit_X = 1 << col_X;
-	if (okPressed)
-		m_kbd_matrix[row_Y].row_Y |= bit_X;
-	else
-		m_kbd_matrix[row_Y].row_Y &= ~bit_X;
+    BYTE	row_Y = scancode & 0xF;
+    BYTE	col_X = (scancode & 0x70) >> 4;
+    BYTE	bit_X = 1 << col_X;
+    if (okPressed)
+        m_kbd_matrix[row_Y].row_Y |= bit_X;
+    else
+        m_kbd_matrix[row_Y].row_Y &= ~bit_X;
 }
 
 
@@ -805,7 +805,6 @@ void CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
     chan &= 3;
     ASSERT(chan<2); 
 
-
 //	if((chan==0)&&(m_chan0disabled))
 //		return;
 
@@ -849,10 +848,8 @@ BYTE CMotherboard::ChanReadByPPU(BYTE chan)
     chan &= 3;
     ASSERT(chan<3); 
 
-
     //if((chan==0)&&(m_chan0disabled))
     //	return 0;
-
 
     res = m_chanppurx[chan].data;
     m_chanppurx[chan].ready = 0;

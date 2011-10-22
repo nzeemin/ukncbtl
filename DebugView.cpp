@@ -223,18 +223,18 @@ void DoDrawDebugView(HDC hdc)
     WORD* arrR = (m_okDebugProcessor) ? m_wDebugCpuR : m_wDebugPpuR;
     BOOL* arrRChanged = (m_okDebugProcessor) ? m_okDebugCpuRChanged : m_okDebugPpuRChanged;
 
-    LPCTSTR sProcName = pDebugPU->GetName();
-    TextOut(hdc, cxChar * 1, 2 + 1 * cyLine, sProcName, 3);
+    //LPCTSTR sProcName = pDebugPU->GetName();
+    //TextOut(hdc, cxChar * 1, 2 + 1 * cyLine, sProcName, 3);
 
-    DrawProcessor(hdc, pDebugPU, cxChar * 6, 2 + 1 * cyLine, arrR, arrRChanged);
+    DrawProcessor(hdc, pDebugPU, cxChar * 2, 2 + 1 * cyLine, arrR, arrRChanged);
 
     // Draw stack for the current processor
-    DrawMemoryForRegister(hdc, 6, pDebugPU, 35 * cxChar, 1 * cyLine);
+    DrawMemoryForRegister(hdc, 6, pDebugPU, 35 * cxChar, 2 + 0 * cyLine);
 
     CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
     DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 57 * cxChar, 2 + 0 * cyLine);
 
-    DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
+    //DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -257,7 +257,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
 
-    DrawRectangle(hdc, x - cxChar, y - 8, x + cxChar + 26 * cxChar, y + 8 + cyLine * 14);
+    DrawRectangle(hdc, x - cxChar, y - 8, x + cxChar + 31 * cxChar, y + 8 + cyLine * 14);
 
     // Registers
     for (int r = 0; r < 8; r++) {
@@ -268,7 +268,8 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
 
         WORD value = arrR[r]; //pProc->GetReg(r);
         DrawOctalValue(hdc, x + cxChar * 3, y + r * cyLine, value);
-        DrawBinaryValue(hdc, x + cxChar * 10, y + r * cyLine, value);
+        DrawHexValue(hdc, x + cxChar * 10, y + r * cyLine, value);
+        DrawBinaryValue(hdc, x + cxChar * 15, y + r * cyLine, value);
     }
     ::SetTextColor(hdc, colorText);
 
@@ -276,15 +277,16 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     TextOut(hdc, x, y + 8 * cyLine, _T("PC'"), 3);
     WORD cpc = pProc->GetCPC();
     DrawOctalValue(hdc, x + cxChar * 3, y + 8 * cyLine, cpc);
-    DrawBinaryValue(hdc, x + cxChar * 10, y + 8 * cyLine, cpc);
+    DrawBinaryValue(hdc, x + cxChar * 15, y + 8 * cyLine, cpc);
 
     // PSW value
     ::SetTextColor(hdc, arrRChanged[8] ? COLOR_RED : colorText);
     TextOut(hdc, x, y + 10 * cyLine, _T("PS"), 2);
     WORD psw = arrR[8]; // pProc->GetPSW();
     DrawOctalValue(hdc, x + cxChar * 3, y + 10 * cyLine, psw);
-    TextOut(hdc, x + cxChar * 10, y + 9 * cyLine, _T("       HP  TNZVC"), 16);
-    DrawBinaryValue(hdc, x + cxChar * 10, y + 10 * cyLine, psw);
+    DrawHexValue(hdc, x + cxChar * 10, y + 10 * cyLine, psw);
+    TextOut(hdc, x + cxChar * 15, y + 9 * cyLine, _T("       HP  TNZVC"), 16);
+    DrawBinaryValue(hdc, x + cxChar * 15, y + 10 * cyLine, psw);
 
     ::SetTextColor(hdc, colorText);
 
@@ -292,7 +294,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     TextOut(hdc, x, y + 11 * cyLine, _T("PS'"), 3);
     WORD cpsw = pProc->GetCPSW();
     DrawOctalValue(hdc, x + cxChar * 3, y + 11 * cyLine, cpsw);
-    DrawBinaryValue(hdc, x + cxChar * 10, y + 11 * cyLine, cpsw);
+    DrawBinaryValue(hdc, x + cxChar * 15, y + 11 * cyLine, cpsw);
 
     // Processor mode - HALT or USER
     BOOL okHaltMode = pProc->IsHaltMode();

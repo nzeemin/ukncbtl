@@ -47,7 +47,7 @@ void CFloppyDrive::Reset()
 
 //////////////////////////////////////////////////////////////////////
 
-    
+
 CFloppyController::CFloppyController()
 {
     m_drive = m_side = m_track = 0;
