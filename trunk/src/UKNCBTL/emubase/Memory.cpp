@@ -846,18 +846,6 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177027:
             return m_Port177026;  // Plane Mask
 
-        case 0177030: case 0177031:
-        case 0177032: case 0177033:
-        case 0177034: case 0177035:
-        case 0177036: case 0177037:
-        case 0177040: case 0177041:
-        case 0177042: case 0177043:
-        case 0177044: case 0177045:
-        case 0177046: case 0177047:
-        case 0177050: case 0177051:
-        case 0177052: case 0177053:
-            return 0;
-
         case 0177054:
         case 0177055:
             return m_Port177054;
@@ -899,9 +887,13 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
             return m_Port177700;  // Keyboard status
         case 0177702:  // Keyboard data
         case 0177703:
-            m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
-			m_pProcessor->InterruptVIRQ(3, 0);
-			return m_Port177702;
+			{
+				WORD a = m_Port177702;
+				if (m_Port177700 & 0200) m_Port177702 = m_pBoard->GetScannedKey();
+				m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
+				m_pProcessor->InterruptVIRQ(3, 0);
+				return a;
+			}
         case 0177704:
         case 0177705:
             return 010000; //!!!

@@ -188,7 +188,8 @@ public:  // System control
     BOOL        SystemFrame();  // Do one frame -- use for normal run
     void        KeyboardEvent(BYTE scancode, BOOL okPressed);  // Key pressed or released
     WORD        GetKeyboardRegister(void);
-    
+	WORD		GetScannedKey() {return m_scanned_key; }
+
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
     void        DetachFloppyImage(int slot);
     BOOL        IsFloppyImageAttached(int slot) const;

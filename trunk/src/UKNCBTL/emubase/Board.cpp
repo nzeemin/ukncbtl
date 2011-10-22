@@ -569,8 +569,6 @@ BOOL CMotherboard::SystemFrame()
                         if (pMemCtl->m_Port177700 & 0100)
                             m_pPPU->InterruptVIRQ(3, 0300);
                     }
-                    else
-                        m_scanned_key++;
                 }
                 else
                 {
@@ -582,9 +580,8 @@ BOOL CMotherboard::SystemFrame()
                             m_pPPU->InterruptVIRQ(3, 0300);
                         pMemCtl->m_Port177702 = m_scanned_key & 0x8F;
                     }
-                    else
-                        m_scanned_key++;
                 }
+				m_scanned_key++;
             }
         }
 
