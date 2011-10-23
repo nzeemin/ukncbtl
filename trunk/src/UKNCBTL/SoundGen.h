@@ -17,6 +17,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define BLOCK_COUNT	8
 #define BLOCK_SIZE  BUFSIZE
 
-void SoundGen_Initialize();
+void SoundGen_Initialize(WORD volume);
 void SoundGen_Finalize();
+void SoundGen_SetVolume(WORD volume);
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R);

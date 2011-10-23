@@ -52,7 +52,7 @@ static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance,
     LeaveCriticalSection(&waveCriticalSection);
 }
 
-void SoundGen_Initialize()
+void SoundGen_Initialize(WORD volume)
 {
     if (m_SoundGenInitialized)
         return;
@@ -96,6 +96,9 @@ void SoundGen_Initialize()
     {
         return;
     }
+
+    waveOutSetVolume(hWaveOut, (DWORD)volume);
+
     InitializeCriticalSection(&waveCriticalSection);
     bufcurpos = 0;
 
@@ -126,12 +129,19 @@ void SoundGen_Finalize()
     m_SoundGenInitialized = FALSE;
 }
 
+void SoundGen_SetVolume(WORD volume)
+{
+    if(!m_SoundGenInitialized)
+        return;
+
+    waveOutSetVolume(hWaveOut, (DWORD)volume);
+}
+
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
 {
     unsigned int word;
     WAVEHDR* current;
 
-//return;
     if(!m_SoundGenInitialized)
         return;
 
