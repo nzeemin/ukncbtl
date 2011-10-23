@@ -139,7 +139,7 @@ BOOL InputBoxValidate(HWND hDlg) {
 //////////////////////////////////////////////////////////////////////
 
 
-BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName)
+BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, LPCTSTR strDefExt, TCHAR* bufFileName)
 {
     *bufFileName = 0;
     OPENFILENAME ofn;
@@ -149,7 +149,8 @@ BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* 
     ofn.hInstance = g_hInst;
     ofn.lpstrTitle = strTitle;
     ofn.lpstrFilter = strFilter;
-    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.lpstrDefExt = strDefExt;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
     ofn.lpstrFile = bufFileName;
     ofn.nMaxFile = MAX_PATH;
 
@@ -217,15 +218,23 @@ void Dialogs_DoCreateDisk(int tracks)
     TCHAR bufFileName[MAX_PATH];
     BOOL okResult = ShowSaveDialog(g_hwnd,
         _T("Save new disk as"),
-        _T("Bitmaps (*.dsk)\0*.dsk\0All Files (*.*)\0*.*\0\0"),
+        _T("UKNC disks (*.dsk)\0*.dsk\0All Files (*.*)\0*.*\0\0"),
+        _T("dsk"),
         bufFileName);
     if (! okResult) return;
 
-    // Create zero-filled file
+    // Create the file
     LONG fileSize = tracks * 10240;
 	HANDLE hFile = ::CreateFile(bufFileName,
 		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	//if (hFileNew == INVALID_HANDLE_VALUE)
+	if (hFile == INVALID_HANDLE_VALUE)
+    {
+        DWORD dwError = ::GetLastError();
+        AlertWarningFormat(_T("Failed to create a file for the new disk (0x%08lx)."), dwError);
+        return;
+    }
+
+    // Zero-fill the file
     ::SetFilePointer(hFile, fileSize, NULL, FILE_BEGIN);
     ::SetEndOfFile(hFile);
     ::CloseHandle(hFile);
