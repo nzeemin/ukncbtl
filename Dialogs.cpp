@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <commdlg.h>
+#include <commctrl.h>
 #include "Dialogs.h"
 #include "UKNCBTL.h"
 
@@ -252,6 +253,12 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
             Settings_GetSerialPort(buffer);
             SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
 
+            HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
+            SendMessage(hVolume, TBM_SETRANGEMIN, 0, (LPARAM)0);
+            SendMessage(hVolume, TBM_SETRANGEMAX, 0, (LPARAM)0xffff);
+            SendMessage(hVolume, TBM_SETTICFREQ, 0x1000, 0);
+            SendMessage(hVolume, TBM_SETPOS, TRUE, (LPARAM)Settings_GetSoundVolume());
+
             return (INT_PTR)FALSE;
         }
     case WM_COMMAND:
@@ -262,6 +269,10 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
                 TCHAR buffer[10];
                 GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
                 Settings_SetSerialPort(buffer);
+
+                HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
+                DWORD volume = SendMessage(hVolume, TBM_GETPOS, 0, 0);
+                Settings_SetSoundVolume((WORD)volume);
             }
 
             EndDialog(hDlg, LOWORD(wParam));

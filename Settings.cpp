@@ -27,6 +27,8 @@ BOOL m_Settings_RealSpeed = FALSE;
 BOOL m_Settings_RealSpeed_Valid = FALSE;
 BOOL m_Settings_Sound = FALSE;
 BOOL m_Settings_Sound_Valid = FALSE;
+WORD m_Settings_SoundVolume = 0x7fff;
+BOOL m_Settings_SoundVolume_Valid = FALSE;
 BOOL m_Settings_Keyboard = TRUE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
 BOOL m_Settings_Tape = FALSE;
@@ -255,6 +257,24 @@ BOOL Settings_GetSound()
         m_Settings_Sound_Valid = TRUE;
     }
     return m_Settings_Sound;
+}
+
+void Settings_SetSoundVolume(WORD value)
+{
+    m_Settings_SoundVolume = value;
+    m_Settings_SoundVolume_Valid = TRUE;
+    Settings_SaveDwordValue(_T("SoundVolume"), (DWORD) value);
+}
+WORD Settings_GetSoundVolume()
+{
+    if (!m_Settings_SoundVolume_Valid)
+    {
+        DWORD dwValue = (DWORD) 0x7fff;
+        Settings_LoadDwordValue(_T("SoundVolume"), &dwValue);
+        m_Settings_SoundVolume = (WORD)dwValue;
+        m_Settings_SoundVolume_Valid = TRUE;
+    }
+    return m_Settings_SoundVolume;
 }
 
 void Settings_SetKeyboard(BOOL flag)

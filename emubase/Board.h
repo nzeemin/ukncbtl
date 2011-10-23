@@ -141,7 +141,7 @@ public:  // Debug
             if(tx)
                 return m_chanpputx[chan];
             else
-                return m_chanppurx[chan];		
+                return m_chanppurx[chan];
         }
     }
 
@@ -181,23 +181,23 @@ public:  // System control
 
     //void		FloppyDebug(BYTE val);
 
-    void		SetTimerReload(WORD val);	//sets timer reload value
-    void		SetTimerState(WORD val);	//sets timer state
+    void        SetTimerReload(WORD val);	//sets timer reload value
+    void        SetTimerState(WORD val);	//sets timer state
     void        ExecuteCPU();  // Execute one CPU instruction
     void        ExecutePPU();  // Execute one PPU instruction
     BOOL        SystemFrame();  // Do one frame -- use for normal run
     void        KeyboardEvent(BYTE scancode, BOOL okPressed);  // Key pressed or released
     WORD        GetKeyboardRegister(void);
-	WORD		GetScannedKey() {return m_scanned_key; }
+    WORD        GetScannedKey() {return m_scanned_key; }
 
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
     void        DetachFloppyImage(int slot);
     BOOL        IsFloppyImageAttached(int slot) const;
     BOOL        IsFloppyReadOnly(int slot) const;
-    WORD		GetFloppyState();
-    WORD		GetFloppyData();
-    void		SetFloppyState(WORD val);
-    void		SetFloppyData(WORD val);
+    WORD        GetFloppyState();
+    WORD        GetFloppyData();
+    void        SetFloppyState(WORD val);
+    void        SetFloppyData(WORD val);
 
     BOOL        IsROMCartridgeLoaded(int cartno) const;
     void        UnloadROMCartridge(int cartno);
@@ -209,16 +209,16 @@ public:  // System control
     WORD        GetHardPortWord(int slot, WORD port);  // To use from CSecondMemoryController only
     void        SetHardPortWord(int slot, WORD port, WORD data);  // To use from CSecondMemoryController only
 
-    void		SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+    void        SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
-    void		SetSoundGenCallback(SOUNDGENCALLBACK callback);
-    void		SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
-    void		SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
+    void        SetSoundGenCallback(SOUNDGENCALLBACK callback);
+    void        SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
+    void        SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
 
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
     void        LoadFromImage(const BYTE* pImage);
-    void		SetSound(WORD val);
+    void        SetSound(WORD val);
 private: // Timing
     int m_multiply;
     int freq_per[6];

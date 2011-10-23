@@ -27,6 +27,8 @@
 #define IDC_RADIO2                      1003
 #define IDC_TRACKS80                    1003
 #define IDC_SERIALPORT                  1004
+#define IDC_SLIDER1                     1005
+#define IDC_VOLUME                      1005
 #define ID_VIEW                         32771
 #define ID_VIEW_MEMORY                  32772
 #define ID_EMULATOR                     32773
@@ -70,7 +72,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        146
 #define _APS_NEXT_COMMAND_VALUE         32815
-#define _APS_NEXT_CONTROL_VALUE         1005
+#define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

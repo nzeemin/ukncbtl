@@ -89,7 +89,7 @@ BOOL Emulator_Init()
 
     if (m_okEmulatorSound)
     {
-        SoundGen_Initialize();
+        SoundGen_Initialize(Settings_GetSoundVolume());
         g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
     }
 
@@ -202,7 +202,7 @@ void Emulator_SetSound(BOOL soundOnOff)
     {
         if (soundOnOff)
         {
-            SoundGen_Initialize();
+            SoundGen_Initialize(Settings_GetSoundVolume());
             g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
         }
         else
@@ -356,6 +356,8 @@ void Emulator_SetParallel(BOOL parallelOnOff)
 
 int Emulator_SystemFrame()
 {
+    SoundGen_SetVolume(Settings_GetSoundVolume());
+
     g_pBoard->SetCPUBreakpoint(m_wEmulatorCPUBreakpoint);
     g_pBoard->SetPPUBreakpoint(m_wEmulatorPPUBreakpoint);
 
