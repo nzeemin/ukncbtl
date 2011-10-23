@@ -922,21 +922,11 @@ void MainWindow_DoEmulatorParallel()
 
 void MainWindow_DoFileLoadState()
 {
-    // File Open dialog
     TCHAR bufFileName[MAX_PATH];
-    *bufFileName = 0;
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    ofn.hwndOwner = g_hwnd;
-    ofn.hInstance = g_hInst;
-    ofn.lpstrTitle = _T("Open state image to load");
-    ofn.lpstrFilter = _T("UKNC state images (*.uknc)\0*.uknc\0All Files (*.*)\0*.*\0\0");
-    ofn.Flags = OFN_FILEMUSTEXIST;
-    ofn.lpstrFile = bufFileName;
-    ofn.nMaxFile = sizeof(bufFileName) / sizeof(TCHAR);
-
-    BOOL okResult = GetOpenFileName(&ofn);
+    BOOL okResult = ShowOpenDialog(g_hwnd,
+        _T("Open state image to load"),
+        _T("UKNC state images (*.uknc)\0*.uknc\0All Files (*.*)\0*.*\0\0"),
+        bufFileName);
     if (! okResult) return;
 
     Emulator_LoadImage(bufFileName);
@@ -948,6 +938,7 @@ void MainWindow_DoFileSaveState()
     BOOL okResult = ShowSaveDialog(g_hwnd,
         _T("Save state image as"),
         _T("UKNC state images (*.uknc)\0*.uknc\0All Files (*.*)\0*.*\0\0"),
+        _T("uknc"),
         bufFileName);
     if (! okResult) return;
 
@@ -960,6 +951,7 @@ void MainWindow_DoFileScreenshot()
     BOOL okResult = ShowSaveDialog(g_hwnd,
         _T("Save screenshot as"),
         _T("Bitmaps (*.bmp)\0*.bmp\0All Files (*.*)\0*.*\0\0"),
+        _T("bmp"),
         bufFileName);
     if (! okResult) return;
 
