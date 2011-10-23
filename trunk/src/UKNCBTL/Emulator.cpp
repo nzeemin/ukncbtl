@@ -373,8 +373,9 @@ int Emulator_SystemFrame()
     if (nTicksElapsed >= 1200)
     {
         double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
+        double dSpeed = dFramesPerSecond / 25.0 * 100;
         TCHAR buffer[16];
-        _stprintf(buffer, _T("FPS: %05.2f"), dFramesPerSecond);
+        _stprintf(buffer, _T("%03.f%%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
         m_nFrameCount = 0;

@@ -104,18 +104,9 @@ int APIENTRY _tWinMain(
             ::TranslateMessage(&msg);
             ::DispatchMessage(&msg);
         }
-#if 0
-        if (g_okEmulatorRunning && Settings_GetRealSpeed())
-        {
-            // Slow down to 25 frames per second
-            LARGE_INTEGER nFrameFinishTime;  // Frame start time
-            ::QueryPerformanceCounter(&nFrameFinishTime);
-            LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
-                    * 1000 / nPerformanceFrequency.QuadPart;
-            if (nTimeElapsed > 0 && nTimeElapsed < 38)  // 1000 millisec / 25 = 40 millisec
-                ::Sleep((DWORD)(38 - nTimeElapsed));
-        }
-#endif
+
+        if (g_okEmulatorRunning && !Settings_GetSound())
+            Sleep(1);  // We should not consume 100% of CPU
     }
 endprog:
 
