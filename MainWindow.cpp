@@ -231,11 +231,11 @@ BOOL MainWindow_InitStatusbar()
         return FALSE;
     int statusbarParts[7];
     statusbarParts[0] = 350;
-    statusbarParts[1] = statusbarParts[0] + 70;
+    statusbarParts[1] = statusbarParts[0] + 16 + 16;
     statusbarParts[2] = statusbarParts[1] + 16 + 16;
     statusbarParts[3] = statusbarParts[2] + 16 + 16;
     statusbarParts[4] = statusbarParts[3] + 16 + 16;
-    statusbarParts[5] = statusbarParts[4] + 16 + 16;
+    statusbarParts[5] = statusbarParts[4] + 45;
     statusbarParts[6] = -1;
     SendMessage(m_hwndStatusbar, SB_SETPARTS, sizeof(statusbarParts)/sizeof(int), (LPARAM) statusbarParts);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ0, 0);

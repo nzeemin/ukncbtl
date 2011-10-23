@@ -83,11 +83,11 @@ enum ToolbarButtonImages
 enum StatusbarParts
 {
     StatusbarPartMessage = 0,
-    StatusbarPartFPS = 1,
-    StatusbarPartMZ0 = 2,
-    StatusbarPartMZ1 = 3,
-    StatusbarPartMZ2 = 4,
-    StatusbarPartMZ3 = 5,
+    StatusbarPartMZ0 = 1,
+    StatusbarPartMZ1 = 2,
+    StatusbarPartMZ2 = 3,
+    StatusbarPartMZ3 = 4,
+    StatusbarPartFPS = 5,
     StatusbarPartUptime = 6,
 };
 
