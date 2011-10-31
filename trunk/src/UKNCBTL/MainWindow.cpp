@@ -955,7 +955,10 @@ void MainWindow_DoFileScreenshot()
         bufFileName);
     if (! okResult) return;
 
-    ScreenView_SaveScreenshot(bufFileName);
+    if (!ScreenView_SaveScreenshot(bufFileName))
+    {
+        AlertWarning(_T("Failed to save screenshot bitmap."));
+    }
 }
 
 void MainWindow_DoFileCreateDisk()

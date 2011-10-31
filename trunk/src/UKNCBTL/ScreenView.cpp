@@ -287,11 +287,9 @@ void ScreenView_RedrawScreen()
     ::ReleaseDC(g_hwndScreen, hdc);
 }
 
-void ScreenView_PrepareScreen()
+// Choose color palette depending of screen mode
+const DWORD* ScreenView_GetPalette()
 {
-    if (m_bits == NULL) return;
-
-    // Choose color palette depending of screen mode
     //TODO: Вынести switch в ScreenView_SetMode()
     const DWORD* colors;
     switch (m_ScreenMode)
@@ -301,6 +299,15 @@ void ScreenView_PrepareScreen()
         case GRBScreen:   colors = ScreenView_StandardGRBColors; break;
         default:          colors = ScreenView_StandardRGBColors; break;
     }
+
+    return colors;
+}
+
+void ScreenView_PrepareScreen()
+{
+    if (m_bits == NULL) return;
+
+    const DWORD* colors = ScreenView_GetPalette();
 
     Emulator_PrepareScreenRGB32(m_bits, colors);
 }
@@ -633,7 +640,7 @@ void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed)
 //    return 0;
 //}
 
-void ScreenView_SaveScreenshot(LPCTSTR sFileName)
+BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
     ASSERT(m_bits != NULL);
@@ -642,7 +649,8 @@ void ScreenView_SaveScreenshot(LPCTSTR sFileName)
     HANDLE hFile = ::CreateFile(sFileName,
             GENERIC_WRITE, FILE_SHARE_READ, NULL,
             CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    //TODO: Check if hFile == INVALID_HANDLE_VALUE
+    if (hFile == INVALID_HANDLE_VALUE)
+        return FALSE;
 
     BITMAPFILEHEADER hdr;
     ::ZeroMemory(&hdr, sizeof(hdr));
@@ -652,25 +660,71 @@ void ScreenView_SaveScreenshot(LPCTSTR sFileName)
     bih.biSize = sizeof( BITMAPINFOHEADER );
     bih.biWidth = m_cxScreenWidth;
     bih.biHeight = m_cyScreenHeight;
-    bih.biSizeImage = bih.biWidth * bih.biHeight * 4;
+    bih.biSizeImage = bih.biWidth * bih.biHeight / 2;
     bih.biPlanes = 1;
-    bih.biBitCount = 32;
+    bih.biBitCount = 4;
     bih.biCompression = BI_RGB;
     bih.biXPelsPerMeter = bih.biXPelsPerMeter = 2000;
     hdr.bfSize = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + bih.biSizeImage;
-    hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize;
+    hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + sizeof(RGBQUAD) * 16;
 
     DWORD dwBytesWritten = 0;
 
+    BYTE * pData = (BYTE *) ::malloc(bih.biSizeImage);
+
+    // Prepare the image data
+    const DWORD * psrc = m_bits;
+    BYTE * pdst = pData;
+    const DWORD * palette = ScreenView_GetPalette();
+    for (int i = 0; i < 640 * 288; i++)
+    {
+        DWORD rgb = *psrc;
+        psrc++;
+        BYTE color = 0;
+        for (BYTE c = 0; c < 16; c++)
+        {
+            if (palette[c] == rgb)
+            {
+                color = c;
+                break;
+            }
+        }
+        if ((i & 1) == 0)
+            *pdst = (color << 4);
+        else
+        {
+            *pdst = (*pdst) & 0xf0 | color;
+            pdst++;
+        }
+    }
+
     WriteFile(hFile, &hdr, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
-    //TODO: Check if dwBytesWritten != sizeof(BITMAPFILEHEADER)
+    if (dwBytesWritten != sizeof(BITMAPFILEHEADER))
+    {
+        ::free(pData);
+        return FALSE;
+    }
     WriteFile(hFile, &bih, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
-    //TODO: Check if dwBytesWritten != sizeof(BITMAPINFOHEADER)
-    WriteFile(hFile, m_bits, bih.biSizeImage, &dwBytesWritten, NULL);
-    //TODO: Check if dwBytesWritten != bih.biSizeImage
+    if (dwBytesWritten != sizeof(BITMAPINFOHEADER))
+    {
+        ::free(pData);
+        return FALSE;
+    }
+    WriteFile(hFile, palette, sizeof(RGBQUAD) * 16, &dwBytesWritten, NULL);
+    if (dwBytesWritten != sizeof(RGBQUAD) * 16)
+    {
+        ::free(pData);
+        return FALSE;
+    }
+    WriteFile(hFile, pData, bih.biSizeImage, &dwBytesWritten, NULL);
+    ::free(pData);
+    if (dwBytesWritten != bih.biSizeImage)
+        return FALSE;
 
     // Close file
     CloseHandle(hFile);
+
+    return TRUE;
 }
 
 
