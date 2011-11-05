@@ -626,7 +626,7 @@ BOOL CMotherboard::SystemFrame()
                 BYTE b;
                 if (m_SerialInCallback(&b))
                 {
-                    if (pMemCtl->SerialInput(b))
+                    if (pMemCtl->SerialInput(b) && (pMemCtl->m_Port176570 & 0100))
                         m_pCPU->InterruptVIRQ(3, 0370);
                 }
             }
@@ -643,7 +643,7 @@ BOOL CMotherboard::SystemFrame()
                         (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
                     else  // Loopback
                     {
-                        if (pMemCtl->SerialInput(pMemCtl->m_Port176576 & 0xff))
+                        if (pMemCtl->SerialInput(pMemCtl->m_Port176576 & 0xff) && (pMemCtl->m_Port176570 & 0100))
                             m_pCPU->InterruptVIRQ(3, 0370);
                     }
                     pMemCtl->m_Port176574 |= 0200;  // Set Ready flag
