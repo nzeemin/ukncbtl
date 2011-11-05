@@ -116,7 +116,7 @@ BEGIN
         MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL
         MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
     END
-    POPUP "&Drives"
+    POPUP "&Configuration"
     BEGIN
         MENUITEM "Floppy MZ0:",                 ID_EMULATOR_FLOPPY0
         MENUITEM "Floppy MZ1:",                 ID_EMULATOR_FLOPPY1
