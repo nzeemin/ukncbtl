@@ -111,9 +111,9 @@ public:  // CPU specific
 protected:  // Implementation
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
-    WORD		m_Port176644;
-	WORD		m_Port176646;
-	WORD        m_Port176570;  // RS-232 receiver state
+    WORD        m_Port176644;
+    WORD        m_Port176646;
+    WORD        m_Port176570;  // RS-232 receiver state
     WORD        m_Port176572;  // RS-232 receiver data (bits 0-7)
     WORD        m_Port176574;  // RS-232 translator state
     WORD        m_Port176576;  // RS-232 translator data (bits 0-7)
@@ -149,17 +149,17 @@ protected:  // Implementation
     WORD        m_Port177012;  // Plane 0 data register
     WORD        m_Port177014;  // Plane 1 & 2 data register
 
-    WORD		m_Port177026;  // Plane mask
-    WORD		m_Port177024;  // SpriteByte
-    WORD		m_Port177020;  // Background color 1
-    WORD		m_Port177022;  // Background color 2
-    WORD		m_Port177016;  // Pixel Color
+    WORD        m_Port177026;  // Plane mask
+    WORD        m_Port177024;  // SpriteByte
+    WORD        m_Port177020;  // Background color 1
+    WORD        m_Port177022;  // Background color 2
+    WORD        m_Port177016;  // Pixel Color
 
     WORD        m_Port177700;  // Keyboard status
     WORD        m_Port177702;  // Keyboard data
     WORD        m_Port177716;  // System control register
 
-    WORD		m_Port177054;  // address space control
+    WORD        m_Port177054;  // address space control
 
     BYTE        m_Port177100;  // i8255 port A -- Parallel port output data
     BYTE        m_Port177101;  // i8255 port B
