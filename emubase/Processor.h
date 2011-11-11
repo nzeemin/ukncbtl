@@ -158,7 +158,7 @@ public:  // Processor control
     void		CommandExecution();
     
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
-    void        SaveToImage(BYTE* pImage);
+    void        SaveToImage(BYTE* pImage) const;
     void        LoadFromImage(const BYTE* pImage);
 
 protected:  // Implementation
