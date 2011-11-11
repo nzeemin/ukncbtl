@@ -122,7 +122,7 @@ WORD SOB_TIMING=0x002D;
 WORD SOB_LAST_TIMING=0x0019; //last iteration of SOB
 WORD BR_TIMING=0x0025;
 WORD MARK_TIMING=0x0041;
-WORD RESET_TIMING=0x0433;
+WORD RESET_TIMING = 105 + 968;  // ÒÎ ÊÌ1801ÂÌ2 ñòð. 134
 
 
 //////////////////////////////////////////////////////////////////////
@@ -610,7 +610,6 @@ void CProcessor::ExecuteRSEL()
     }
 
     SetReg(0, GetMemoryController()->GetSelRegister());
-    //ASSERT(0);
 }
 
 void CProcessor::Execute000030()  // Unknown command
@@ -627,7 +626,10 @@ void CProcessor::Execute000030()  // Unknown command
 
 void CProcessor::ExecuteFIS()  // Floating point instruction set
 {
-    m_FIS_rq = TRUE;
+    if (GetMemoryController()->GetSelRegister() & 0200)
+        m_RSVDrq = TRUE;
+    else
+        m_FIS_rq = TRUE;
 }
 
 void CProcessor::ExecuteRUN()
@@ -2510,38 +2512,48 @@ void CProcessor::ExecuteMARK ()  // MARK
 //////////////////////////////////////////////////////////////////////
 //
 // CPU image format (32 bytes):
-//   2 bytes        PSW
+//   2   bytes      PSW
 //   2*8 bytes      Registers R0..R7
 //   2*2 bytes      Saved PC and PSW
-//   2 bytes        Stopped flag: !0 - stopped, 0 - not stopped
+//   2   byte       Stopped flag: 1 - stopped, 0 - not stopped
+//   2   bytes      Internal tick count
+//   1*6 bytes      Step mode, Bus error, HALT, DCLO, ACLO, WAIT
 
-void CProcessor::SaveToImage(BYTE* pImage)
+void CProcessor::SaveToImage(BYTE* pImage) const
 {
     WORD* pwImage = (WORD*) pImage;
-    // PSW
-    *pwImage++ = m_psw;
-    // Registers R0..R7
-    memcpy(pwImage, m_R, 2 * 8);
+    *pwImage++ = m_psw;  // PSW
+    memcpy(pwImage, m_R, 2 * 8);  // Registers R0..R7
     pwImage += 2 * 8;
-    // Saved PC and PSW
     *pwImage++ = m_savepc;
     *pwImage++ = m_savepsw;
-    // Stopped flag
     *pwImage++ = (m_okStopped ? 1 : 0);
+    *pwImage++ = m_internalTick;
+    BYTE* pbImage = (BYTE*) pwImage;
+    *pbImage++ = (m_stepmode  ? 1 : 0);
+    *pbImage++ = (m_buserror  ? 1 : 0);
+    *pbImage++ = (m_haltpin   ? 1 : 0);
+    *pbImage++ = (m_DCLOpin   ? 1 : 0);
+    *pbImage++ = (m_ACLOpin   ? 1 : 0);
+    *pbImage++ = (m_waitmode  ? 1 : 0);
 }
 
 void CProcessor::LoadFromImage(const BYTE* pImage)
 {
-    WORD* pwImage = (WORD*) pImage;
-    // PSW
-    m_psw = *pwImage++;
-    // Registers R0..R7
-    memcpy(m_R, pwImage, 2 * 8);
-    // Saved PC and PSW
-    m_savepc= *pwImage++;
-    m_savepsw= *pwImage++;
-    // Stopped flag
+    const WORD* pwImage = (const WORD*) pImage;
+    m_psw = *pwImage++;  // PSW
+    memcpy(m_R, pwImage, 2 * 8);  // Registers R0..R7
+    m_savepc    = *pwImage++;
+    m_savepsw   = *pwImage++;
     m_okStopped = (*pwImage++ != 0);
+    m_internalTick = *pwImage++;
+    const BYTE* pbImage = (const BYTE*) pwImage;
+    m_stepmode  = (*pbImage++ != 0);
+    m_buserror  = (*pbImage++ != 0);
+    m_haltpin   = (*pbImage++ != 0);
+    m_DCLOpin   = (*pbImage++ != 0);
+    m_ACLOpin   = (*pbImage++ != 0);
+    m_waitmode  = (*pbImage++ != 0);
 }
 
 WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
