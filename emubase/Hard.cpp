@@ -127,7 +127,7 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
         return FALSE;
 
     // Read first sector
-    DWORD dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
+    size_t dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
     if (dwBytesRead != 512)
         return FALSE;
 
@@ -423,7 +423,7 @@ void CHardDrive::ReadSectorDone()
     // Read sector from HDD image to the buffer
     DWORD fileOffset = CalculateOffset();
     ::fseek(m_fpFile, fileOffset, SEEK_SET);
-    DWORD dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
+    size_t dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
     if (dwBytesRead != IDE_DISK_SECTOR_SIZE)
     {
         m_status |= IDE_STATUS_ERROR;
@@ -463,7 +463,7 @@ void CHardDrive::WriteSectorDone()
     }
 
     ::fseek(m_fpFile, fileOffset, SEEK_SET);
-    DWORD dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
+    size_t dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
     if (dwBytesWritten != IDE_DISK_SECTOR_SIZE)
     {
         m_status |= IDE_STATUS_ERROR;
