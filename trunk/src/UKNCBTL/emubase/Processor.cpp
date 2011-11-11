@@ -152,7 +152,7 @@ void CProcessor::Init()
     RegisterMethodRef( 0000021, 0000021, &CProcessor::ExecuteMFUS );
     RegisterMethodRef( 0000022, 0000023, &CProcessor::ExecuteRCPC );
     RegisterMethodRef( 0000024, 0000027, &CProcessor::ExecuteRCPS );
-    RegisterMethodRef( 0000030, 0000030, &CProcessor::Execute000030 );
+    RegisterMethodRef( 0000030, 0000030, &CProcessor::ExecuteRSEL );
     RegisterMethodRef( 0000031, 0000031, &CProcessor::ExecuteMTUS );
     RegisterMethodRef( 0000032, 0000033, &CProcessor::ExecuteWCPC );
     RegisterMethodRef( 0000034, 0000037, &CProcessor::ExecuteWCPS );
@@ -588,40 +588,28 @@ void CProcessor::ExecuteWAIT ()  // WAIT - Wait for an interrupt
     m_waitmode = TRUE;
 }
 
-void CProcessor::ExecuteSTEP()
+void CProcessor::ExecuteSTEP()  // ШАГ
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
+    SetPC(m_savepc);        // СК <- КРСК
+    SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
     m_stepmode = TRUE;
-    SetPC(m_savepc);
-    SetPSW(m_savepsw);
 }
 
-void CProcessor::ExecuteRSEL()
+void CProcessor::ExecuteRSEL()  // ЧПТ
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    SetReg(0, GetMemoryController()->GetSelRegister());
-}
-
-void CProcessor::Execute000030()  // Unknown command
-{
-    if ((m_psw & PSW_HALT) == 0)
-    {
-        m_RSVDrq = TRUE;
-        return;
-    }
-
-    //TODO: Реализовать команду
-    //m_RPLYrq = TRUE;
+    SetReg(0, GetMemoryController()->GetSelRegister());  // R0 <- (SEL)
 }
 
 void CProcessor::ExecuteFIS()  // Floating point instruction set
@@ -632,71 +620,73 @@ void CProcessor::ExecuteFIS()  // Floating point instruction set
         m_FIS_rq = TRUE;
 }
 
-void CProcessor::ExecuteRUN()
+void CProcessor::ExecuteRUN()  // ПУСК
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    SetPC(m_savepc);
-    SetPSW(m_savepsw);
+    SetPC(m_savepc);        // СК <- КРСК
+    SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
 }
 
 void CProcessor::ExecuteHALT ()  // HALT - Останов
 {
     m_HALTrq = TRUE;
 }
-void CProcessor::ExecuteRCPC	()
+
+void CProcessor::ExecuteRCPC()  // ЧКСК
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    SetReg(0,m_savepc);
-    m_internalTick=NOP_TIMING;
+    SetReg(0, m_savepc);        // R0 <- КРСК
+    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteRCPS	()
+void CProcessor::ExecuteRCPS()  // ЧКСП
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    SetReg(0,m_savepsw);
-    m_internalTick=NOP_TIMING;
+    SetReg(0, m_savepsw);       // R0 <- КРСП
+    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteWCPC	()
+void CProcessor::ExecuteWCPC()  // ЗКСК
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    m_savepc=GetReg(0);
-    m_internalTick=NOP_TIMING;
+    m_savepc = GetReg(0);       // КРСК <- R0
+    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteWCPS	()
+void CProcessor::ExecuteWCPS()  // ЗКСП
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    m_savepsw=GetReg(0);
-    m_internalTick=NOP_TIMING;
+    m_savepsw = GetReg(0);      // КРСП <- R0
+    m_internalTick = NOP_TIMING;
 }
 
-void CProcessor::ExecuteMFUS () //move from user space
+void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
 {
     WORD word;
-    if ((m_psw & PSW_HALT) == 0)
+
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
@@ -709,23 +699,23 @@ void CProcessor::ExecuteMFUS () //move from user space
     SetReg(5,GetReg(5)+2);
     if (!m_RPLYrq) 	SetReg(0, word);
 
-    m_internalTick=MOV_TIMING[0][2];
+    m_internalTick = MOV_TIMING[0][2];
 }
 
-void CProcessor::ExecuteMTUS () //move to user space
+void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space
 {
-    if ((m_psw & PSW_HALT) == 0)
+    if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
         return;
     }
 
-    //-(r5)=r0
-    SetReg(5,GetReg(5)-2);
+    // -(r5) = r0
+    SetReg(5, GetReg(5) - 2);
     SetHALT(FALSE);
-    SetWord(GetReg(5),GetReg(0));
+    SetWord(GetReg(5), GetReg(0));
     SetHALT(TRUE);
-    m_internalTick=MOV_TIMING[0][2];
+    m_internalTick = MOV_TIMING[0][2];
 }
 
 void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
