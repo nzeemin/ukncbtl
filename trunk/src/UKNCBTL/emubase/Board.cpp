@@ -20,28 +20,20 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 CMotherboard::CMotherboard ()
 {
+    memset(freq_per, 0, sizeof(freq_per));
+    memset(freq_out, 0, sizeof(freq_out));
+    memset(freq_enable, 0, sizeof(freq_enable));
+    m_multiply = 1;
+
+    m_TapeReadCallback = NULL;
+    m_TapeWriteCallback = NULL;
+    m_nTapeSampleRate = 0;
+    m_SoundGenCallback = NULL;
+    m_SerialInCallback = NULL;
+    m_SerialOutCallback = NULL;
+    m_ParallelOutCallback = NULL;
+
     // Create devices
-    freq_per[0]=0;
-    freq_per[1]=0;
-    freq_per[2]=0;
-    freq_per[3]=0;
-    freq_per[4]=0;
-
-    freq_out[0]=0;
-    freq_out[1]=0;
-    freq_out[2]=0;
-    freq_out[3]=0;
-    freq_out[4]=0;
-
-    freq_enable[0]=0;
-    freq_enable[1]=0;
-    freq_enable[2]=0;
-    freq_enable[3]=0;
-    freq_enable[4]=0;
-    freq_enable[5]=0;
-
-    m_multiply=1;
-
     m_pCPU = new CProcessor(_T("CPU"));
     m_pPPU = new CProcessor(_T("PPU"));
     m_pFirstMemCtl = new CFirstMemoryController();
@@ -53,14 +45,6 @@ CMotherboard::CMotherboard ()
     m_pFirstMemCtl->Attach(this, m_pCPU);
     m_pPPU->AttachMemoryController(m_pSecondMemCtl);
     m_pSecondMemCtl->Attach(this, m_pPPU);
-
-    m_TapeReadCallback = NULL;
-    m_TapeWriteCallback = NULL;
-    m_nTapeSampleRate = 0;
-    m_SoundGenCallback = NULL;
-    m_SerialInCallback = NULL;
-    m_SerialOutCallback = NULL;
-    m_ParallelOutCallback = NULL;
 
     // Allocate memory for RAM and ROM
     m_pRAM[0] = (BYTE*) malloc(65536);  memset(m_pRAM[0], 0, 65536);

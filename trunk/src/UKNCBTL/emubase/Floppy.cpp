@@ -382,7 +382,7 @@ void CFloppyController::PrepareTrack()
     FlushChanges();
 
     //TCHAR buffer[512];
-    DWORD count;
+    size_t count;
 
     m_trackchanged = FALSE;
     m_status |= FLOPPY_STATUS_MOREDATA;
@@ -457,7 +457,7 @@ void CFloppyController::FlushChanges()
 
         // Save data into the file
         ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
-        DWORD dwBytesWritten = ::fwrite(&data, 1, 5120, m_pDrive->fpFile);
+        size_t dwBytesWritten = ::fwrite(&data, 1, 5120, m_pDrive->fpFile);
         //TODO: Проверка на ошибки записи
     }
     else {
