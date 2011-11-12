@@ -30,12 +30,11 @@ int m_cxScreenWidth;
 int m_cyScreenHeight;
 BYTE m_ScreenKeyState[256];
 ScreenViewMode m_ScreenMode = RGBScreen;
-int m_ScreenHeightMode = 1;  // 1 - Normal height, 2 - Double height
+int m_ScreenHeightMode = 3;  // 1 - Normal height, 2 - Double height, 3 - Upscaled to 1.5
 
 void ScreenView_CreateDisplay();
 void ScreenView_OnDraw(HDC hdc);
-//BOOL ScreenView_OnKeyEvent(WPARAM vkey, BOOL okExtKey, BOOL okPressed);
-//BYTE TranslateVkeyToUkncScan(WORD vkey, BOOL okExtKey, BOOL orig);
+void ScreenView_UpscaleScreen(void* pImageBits);
 
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
@@ -141,10 +140,16 @@ void ScreenView_CreateDisplay()
 {
     ASSERT(g_hwnd != NULL);
 
+    if (m_hbmp != NULL)
+    {
+        DeleteObject(m_hbmp);
+        m_hbmp = NULL;
+    }
+
     m_cxScreenWidth = UKNC_SCREEN_WIDTH;
     m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
-
-    HDC hdc = GetDC( g_hwnd );
+    if (m_ScreenHeightMode == 3)
+        m_cyScreenHeight = 432;
 
     m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
     m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
@@ -157,6 +162,8 @@ void ScreenView_CreateDisplay()
     m_bmpinfo.bmiHeader.biYPelsPerMeter = 0;
     m_bmpinfo.bmiHeader.biClrUsed = 0;
     m_bmpinfo.bmiHeader.biClrImportant = 0;
+
+    HDC hdc = GetDC( g_hwnd );
     
     m_hbmp = CreateDIBSection( hdc, &m_bmpinfo, DIB_RGB_COLORS, (void **) &m_bits, NULL, 0 );
 
@@ -173,7 +180,7 @@ void CreateScreenView(HWND hwndParent, int x, int y)
     int xLeft = x;
     int yTop = y;
     int cxWidth = UKNC_SCREEN_WIDTH + cxBorder * 2;
-    int cyScreenHeight = UKNC_SCREEN_HEIGHT * m_ScreenHeightMode;
+    int cyScreenHeight = (m_ScreenHeightMode == 3) ? 432 : UKNC_SCREEN_HEIGHT;
     int cyHeight = cyScreenHeight + cyBorder * 2;
 
     g_hwndScreen = CreateWindow(
@@ -196,7 +203,7 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            ScreenView_PrepareScreen();  //DEBUG
+            ScreenView_PrepareScreen();
             ScreenView_OnDraw(hdc);
 
             EndPaint(hWnd, &ps);
@@ -205,14 +212,6 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     case WM_LBUTTONDOWN:
         SetFocus(hWnd);
         break;
-    //case WM_KEYDOWN:
-    //    //if ((lParam & (1 << 30)) != 0)  // Auto-repeats should be ignored
-    //    //    return (LRESULT) TRUE;
-    //    //return (LRESULT) ScreenView_OnKeyEvent(wParam, (lParam & (1 << 24)) != 0, TRUE);
-    //    return (LRESULT) TRUE;
-    //case WM_KEYUP:
-    //    //return (LRESULT) ScreenView_OnKeyEvent(wParam, (lParam & (1 << 24)) != 0, FALSE);
-    //    return (LRESULT) TRUE;
 
 	case WM_KEYDOWN:
 	case WM_SYSKEYDOWN:
@@ -258,8 +257,16 @@ void ScreenView_SetHeightMode(int newHeightMode)
 
     m_ScreenHeightMode = newHeightMode;
 
+    ScreenView_CreateDisplay();
+
+    int cyScreen = UKNC_SCREEN_HEIGHT;
+    if (m_ScreenHeightMode == 2)
+        cyScreen = UKNC_SCREEN_HEIGHT * 2;
+    else if (m_ScreenHeightMode == 3)
+        cyScreen = 432;
+
     int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
-    int cyHeight = UKNC_SCREEN_HEIGHT * m_ScreenHeightMode + cyBorder * 2;
+    int cyHeight = cyScreen + cyBorder * 2;
     RECT rc;  ::GetWindowRect(g_hwndScreen, &rc);
     ::SetWindowPos(g_hwndScreen, NULL, 0,0, rc.right - rc.left, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
 }
@@ -268,8 +275,8 @@ void ScreenView_OnDraw(HDC hdc)
 {
     if (m_bits == NULL) return;
 
-    int dyDst = -1;
-    if (m_ScreenHeightMode > 1) dyDst = UKNC_SCREEN_HEIGHT * m_ScreenHeightMode;
+    int dyDst = m_cyScreenHeight;
+    if (m_ScreenHeightMode == 2) dyDst = m_cyScreenHeight * 2;
 
     DrawDibDraw(m_hdd, hdc,
         0,0, -1, dyDst,
@@ -310,21 +317,40 @@ void ScreenView_PrepareScreen()
     const DWORD* colors = ScreenView_GetPalette();
 
     Emulator_PrepareScreenRGB32(m_bits, colors);
+
+    if (m_ScreenHeightMode == 3)
+        ScreenView_UpscaleScreen(m_bits);
 }
 
-//BOOL ScreenView_OnKeyEvent(WPARAM vkey, BOOL okExtKey, BOOL okPressed)
-//{
-//    if (! g_okEmulatorRunning)
-//        return TRUE;
-//
-//    BYTE scancode = TranslateVkeyToUkncScan((WORD)vkey, okExtKey, FALSE);
-//    if (scancode == 0)
-//        return TRUE;  // The key is not processed
-//
-//    g_pBoard->KeyboardEvent(scancode, okPressed);
-//
-//    return FALSE;
-//}
+// Upscale screen from height 288 to 432
+void ScreenView_UpscaleScreen(void* pImageBits)
+{
+    int ukncline = 287;
+    for (int line = 431; line > 0; line--)
+    {
+        DWORD* pdest = ((DWORD*)pImageBits) + line * UKNC_SCREEN_WIDTH;
+        if (line % 3 == 1)
+        {
+            BYTE* psrc1 = ((BYTE*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH * 4;
+            BYTE* psrc2 = ((BYTE*)pImageBits) + (ukncline + 1) * UKNC_SCREEN_WIDTH * 4;
+            BYTE* pdst1 = (BYTE*)pdest;
+            for (int i = 0; i < UKNC_SCREEN_WIDTH * 4; i++)
+            {
+                if (i % 4 == 3)
+                    *pdst1 = 0;
+                else
+                    *pdst1 = (BYTE)((((WORD)*psrc1) + ((WORD)*psrc2)) / 2);
+                psrc1++;  psrc2++;  pdst1++;
+            }
+        }
+        else
+        {
+            DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
+            memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+            ukncline--;
+        }
+    }
+}
 
 void ScreenView_PutKeyEventToQueue(WORD keyevent)
 {
@@ -451,26 +477,11 @@ void ScreenView_ScanKeyboard()
                     WORD keyevent = MAKEWORD(ukncscan, pressed);
                     ScreenView_PutKeyEventToQueue(keyevent);
                 }
-
-    //#if !defined(PRODUCT)
-    //                TCHAR bufoct[7];  PrintOctalValue(bufoct, ukncscan);
-    //                DebugPrintFormat(_T("KeyEvent: pc:0x%02x uknc:%s %x\r\n"), scan, bufoct, (newstate & 128) != 0);
-    //#endif
             }
         }
-
-        // Save keyboard state
-        //::memcpy(m_ScreenKeyState, keys, 256);
     }
 
-    // Process next event in the keyboard queue
-    // WORD keyevent = ScreenView_GetKeyEventFromQueue();
-    // if (keyevent != 0)
-    // {
-    //    BOOL pressed = ((keyevent & 0x8000) != 0);
-    //    BYTE ukncscan = LOBYTE(keyevent);
-    //    g_pBoard->KeyboardEvent(ukncscan, pressed);
-    //}
+    // Process the keyboard queue
 	WORD keyevent;
 	while ((keyevent = ScreenView_GetKeyEventFromQueue()) != 0)
 	{
@@ -486,164 +497,13 @@ void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed)
     ScreenView_PutKeyEventToQueue(MAKEWORD(keyscan, pressed ? 128 : 0));
 }
 
-//// Translate from Windows virtual key code to UKNC keybord scan code
-//BYTE TranslateVkeyToUkncScan(WORD vkey, BOOL okExtKey, BOOL orig)
-//{
-//    const WORD EXTKEY = 0x8000;
-//
-//    //TCHAR buffer[32];
-//    //wsprintf(buffer, _T("vkey: 0x%x\r\n"), vkey);
-//    //DebugPrint(buffer);
-//
-//    if (okExtKey) vkey |= EXTKEY;
-//
-//    switch (vkey)
-//    {
-//    case VK_ESCAPE:     return 0004;  // STOP key
-//    case VK_LSHIFT: case VK_RSHIFT:
-//                        return 0105;  // HP key
-//    case VK_NUMPAD1:    return 0127;
-//    case VK_NUMPAD2:    return 0147;
-//    case VK_NUMPAD3:    return 0167;
-//    case VK_NUMPAD4:    return 0130;
-//    case VK_NUMPAD5:    return 0150;
-//    case VK_NUMPAD6:    return 0170;
-//    case VK_NUMPAD7:    return 0125;
-//    case VK_NUMPAD8:    return 0145;
-//    case VK_NUMPAD9:    return 0165;
-//    case VK_NUMPAD0:    return 0126;
-//    case VK_ADD:        return 0131;  // Numpad +
-//    //TODO: Numpad . 110
-//    case VK_RETURN | EXTKEY:  return 0166;  // Numpad VVOD (Enter)
-//    case 192 /*~*/:     return 0006;  // AP2 key
-//    case VK_TAB:        return 0026;  // TAB key
-//    case VK_F1:         return 0010;  // K1 / K6
-//    case VK_F2:         return 0011;  // K2 / K7
-//    case VK_F3:         return 0012;  // K3 / K8
-//    case VK_F4:         return 0014;  // K4 / K9
-//    case VK_F5:         return 0015;  // K5 / K10
-//    case VK_F6:         return 0152;  // POM key
-//    case VK_F7:         return 0151;  // ISP key
-//    //case VK_??:         return 0172;  // PS (ENTER) key
-//    case VK_F11:        return 0171;  // SBROS (RESET) key
-//    //case VK_??:         return 0066;  // GRAF key
-//    //case VK_??:         return 0106;  // ALF key
-//    //case VK_??:         return 0107;  // FIKS key
-//    case VK_CONTROL:    return 0046;  // SU (UPR) key
-//    case VK_SPACE:      return 0113;  // SPACE
-//    case VK_BACK:       return 0132;  // ZB (BACKSPACE) key
-//    case VK_RETURN:     return 0153;  // VVOD (ENTER)
-//    case VK_DOWN  | EXTKEY:  return 0134;  // Down arrow
-//    case VK_UP    | EXTKEY:  return 0154;  // Up arrow
-//    case VK_LEFT  | EXTKEY:  return 0116;  // Left arrow
-//    case VK_RIGHT | EXTKEY:  return 0133;  // Right arrow
-//    //TODO:             return 0007;  // ; / +
-//    //TODO: case 0x?? /*?*/:  return 0173;  // / / ?
-//    //TODO: case 0x?? /*?*/:  return 0135;  // . / >
-//    //TODO: case 0x?? /*?*/:  return 0155;  // : / *
-//    //TODO: case 0x?? /*?*/:  return 0175;  // - / =
-//    case 0xBF /*/*/:    return 0117;  // , / <
-//
-//    case 0x31 /*1*/:    return 0030;  // 1 / !
-//    case 0x32 /*2*/:    return 0031;  // 2 / "
-//    case 0x33 /*3*/:    return 0032;  // 3 / #
-//    case 0x34 /*4*/:    return 0013;  // 4 / turtle
-//    case 0x35 /*5*/:    return 0034;  // 5 / %
-//    case 0x36 /*6*/:    return 0035;  // 6 / &
-//    case 0x37 /*7*/:    return 0016;  // 7 / '
-//    case 0x38 /*8*/:    return 0017;  // 8 / (
-//    case 0x39 /*9*/:    return 0177;  // 9 / )
-//    case 0x30 /*0*/:    return 0176;  // 0
-//    }
-//
-//    if (orig)  // Original UKNC key mapping
-//    {
-//        switch (vkey)
-//        {
-//        case 0x51 /*Q*/:    return 0027;  // É / J
-//        case 0x57 /*W*/:    return 0050;  // Ö / C
-//        case 0x45 /*E*/:    return 0051;  // Ó / U
-//        case 0x52 /*R*/:    return 0052;  // Ê / K
-//        case 0x54 /*T*/:    return 0033;  // Å / E
-//        case 0x59 /*Y*/:    return 0054;  // Í / N
-//        case 0x55 /*U*/:    return 0055;  // Ã / G
-//        case 0x49 /*I*/:    return 0036;  // Ø / [
-//        case 0x4F /*O*/:    return 0037;  // Ù / ]
-//        case 0x50 /*P*/:    return 0157;  // Ç / Z
-//        case 0xDB /*[*/:    return 0156;  // Õ / H
-//        case 0xDD /*]*/:    return 0174;  // Ú
-//
-//        case 0x41 /*A*/:    return 0047;  // Ô / F
-//        case 0x53 /*S*/:    return 0070;  // Û / Y
-//        case 0x44 /*D*/:    return 0071;  // Â / W
-//        case 0x46 /*F*/:    return 0072;  // À / A
-//        case 0x47 /*G*/:    return 0053;  // Ï / P
-//        case 0x48 /*H*/:    return 0074;  // Ð / R
-//        case 0x4A /*J*/:    return 0075;  // Î / O
-//        case 0x4B /*K*/:    return 0056;  // Ë / L
-//        case 0x4C /*L*/:    return 0057;  // Ä / D
-//        case 0xBA /*;*/:    return 0137;  // Æ / V
-//        case 0xDE /*?*/:    return 0136;  // Ý / \
-//
-//        case 0x5A /*Z*/:    return 0067;  // ß / Q
-//        case 0x58 /*X*/:    return 0110;  // × / ^
-//        case 0x43 /*C*/:    return 0111;  // Ñ / S
-//        case 0x56 /*V*/:    return 0112;  // Ì / M
-//        case 0x42 /*B*/:    return 0073;  // È / I
-//        case 0x4E /*N*/:    return 0114;  // Ò / T
-//        case 0x4D /*M*/:    return 0115;  // Ü / X
-//        case 0xBC /*,*/:    return 0076;  // Á / B
-//        case 0xBE /*.*/:    return 0077;  // Þ / @
-//        }
-//    }
-//    else  // PC key mapping
-//    {
-//        switch (vkey)
-//        {
-//        case 0x4A /*J*/:    return 0027;  // É / J
-//        case 0x43 /*C*/:    return 0050;  // Ö / C
-//        case 0x55 /*U*/:    return 0051;  // Ó / U
-//        case 0x4B /*K*/:    return 0052;  // Ê / K
-//        case 0x45 /*E*/:    return 0033;  // Å / E
-//        case 0x4E /*N*/:    return 0054;  // Í / N
-//        case 0x47 /*G*/:    return 0055;  // Ã / G
-//        case 0xDB /*[*/:    return 0036;  // Ø / [
-//        case 0xDD /*]*/:    return 0037;  // Ù / ]
-//        case 0x5A /*Z*/:    return 0157;  // Ç / Z
-//        case 0x48 /*H*/:    return 0156;  // Õ / H
-//        //case ???:    return 0174;  // Ú
-//
-//        case 0x46 /*F*/:    return 0047;  // Ô / F
-//        case 0x59 /*Y*/:    return 0070;  // Û / Y
-//        case 0x57 /*W*/:    return 0071;  // Â / W
-//        case 0x41 /*A*/:    return 0072;  // À / A
-//        case 0x50 /*P*/:    return 0053;  // Ï / P
-//        case 0x52 /*R*/:    return 0074;  // Ð / R
-//        case 0x4F /*O*/:    return 0075;  // Î / O
-//        case 0x4C /*L*/:    return 0056;  // Ë / L
-//        case 0x44 /*D*/:    return 0057;  // Ä / D
-//        case 0x56 /*V*/:    return 0137;  // Æ / V
-//        //case ???:    return 0136;  // Ý / \
-//
-//        case 0x51 /*Q*/:    return 0067;  // ß / Q
-//        //case ???:    return 0110;  // × / ^
-//        case 0x53 /*S*/:    return 0111;  // Ñ / S
-//        case 0x4D /*M*/:    return 0112;  // Ì / M
-//        case 0x49 /*I*/:    return 0073;  // È / I
-//        case 0x54 /*T*/:    return 0114;  // Ò / T
-//        case 0x58 /*X*/:    return 0115;  // Ü / X
-//        case 0x42 /*B*/:    return 0076;  // Á / B
-//        //case ???:    return 0077;  // Þ / @
-//        }
-//    }
-//
-//    return 0;
-//}
-
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
-    ASSERT(m_bits != NULL);
+
+    DWORD* pBits = (DWORD*) ::malloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
+    const DWORD* colors = ScreenView_GetPalette();
+    Emulator_PrepareScreenRGB32(pBits, colors);
 
     // Create file
     HANDLE hFile = ::CreateFile(sFileName,
@@ -658,8 +518,8 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
     BITMAPINFOHEADER bih;
     ::ZeroMemory(&bih, sizeof(bih));
     bih.biSize = sizeof( BITMAPINFOHEADER );
-    bih.biWidth = m_cxScreenWidth;
-    bih.biHeight = m_cyScreenHeight;
+    bih.biWidth = UKNC_SCREEN_WIDTH;
+    bih.biHeight = UKNC_SCREEN_HEIGHT;
     bih.biSizeImage = bih.biWidth * bih.biHeight / 2;
     bih.biPlanes = 1;
     bih.biBitCount = 4;
@@ -673,7 +533,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
     BYTE * pData = (BYTE *) ::malloc(bih.biSizeImage);
 
     // Prepare the image data
-    const DWORD * psrc = m_bits;
+    const DWORD * psrc = pBits;
     BYTE * pdst = pData;
     const DWORD * palette = ScreenView_GetPalette();
     for (int i = 0; i < 640 * 288; i++)

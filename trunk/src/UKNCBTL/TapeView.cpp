@@ -450,6 +450,7 @@ void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples)
     for (UINT i = 0; i < samples; i++)
     {
         WavPcmFile_WriteOne(m_hTapeWavPcmFile, value);
+        //TODO: Check WavPcmFile_WriteOne result
         *(m_TapeBuffer + TAPE_BUFFER_SIZE - samples + i) = (BYTE)((value >> 24) & 0xff);
     }
 

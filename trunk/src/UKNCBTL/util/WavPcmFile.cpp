@@ -271,24 +271,27 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
     ::free(pWavPcm);
 }
 
-void WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
+BOOL WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
 {
     if (wavpcmfile == INVALID_HANDLE_VALUE)
-        return;
+        return FALSE;
 
     WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
     if (!pWavPcm->okWriting)
-        return;
+        return FALSE;
     ASSERT(pWavPcm->nBitsPerSample == 8);
     ASSERT(pWavPcm->nChannels == 1);
 
     BYTE data = (value >> 24) & 0xff;
 
-    DWORD bytesWritten = ::fwrite(&data, 1, 1, pWavPcm->fpFile);
-    //TODO: Проверка на ошибки записи
+    size_t bytesWritten = ::fwrite(&data, 1, 1, pWavPcm->fpFile);
+    if (bytesWritten != 1)
+        return FALSE;
 
     pWavPcm->dwCurrentPosition++;
     pWavPcm->dwDataSize += pWavPcm->nBlockAlign;
+
+    return TRUE;
 }
 
 unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
