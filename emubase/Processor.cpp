@@ -152,7 +152,7 @@ void CProcessor::Init()
     RegisterMethodRef( 0000021, 0000021, &CProcessor::ExecuteMFUS );
     RegisterMethodRef( 0000022, 0000023, &CProcessor::ExecuteRCPC );
     RegisterMethodRef( 0000024, 0000027, &CProcessor::ExecuteRCPS );
-    RegisterMethodRef( 0000030, 0000030, &CProcessor::ExecuteRSEL );
+    RegisterMethodRef( 0000030, 0000030, &CProcessor::Execute000030 );
     RegisterMethodRef( 0000031, 0000031, &CProcessor::ExecuteMTUS );
     RegisterMethodRef( 0000032, 0000033, &CProcessor::ExecuteWCPC );
     RegisterMethodRef( 0000034, 0000037, &CProcessor::ExecuteWCPS );
@@ -612,7 +612,42 @@ void CProcessor::ExecuteRSEL()  // „ѕ“
     SetReg(0, GetMemoryController()->GetSelRegister());  // R0 <- (SEL)
 }
 
-void CProcessor::ExecuteFIS()  // Floating point instruction set
+void CProcessor::Execute000030()  // Unknown command
+{
+    if ((m_psw & PSW_HALT) == 0)  // Ёта команда выполн€етс€ только в режиме HALT
+    {
+        m_RSVDrq = TRUE;
+        return;
+    }
+
+    // ќписание: ѕо этой команде сперва очищаетс€ регистр R0. ƒалее исполн€етс€ цикл, окончанием которого
+    //           €вл€етс€ установка в разр€де 07 R0 или R2 единицы. ¬ цикле над регистрами провод€тс€
+    //           следующие действи€: регистры с R1 по R3 сдвигаютс€ влево, при этом в R1 в младший разр€д
+    //           вдвигаетс€ ноль, а в R2 и R3 Ц содержимое разр€да C, при этом старша€ часть R2 расшир€етс€
+    //           знаковым разр€дом младшей части, R0 инкрементируетс€. “ак как останов исполнени€ команды
+    //           производитс€ при наличии единицы в разр€де 7 в R0 или R2, то после исполнени€ команды R0
+    //           может принимать значени€ от 0 до 108 или 2008. «начение 2008 получаетс€ в том случае,
+    //           если до исполнени€ операции младша€ часть R2 была равна нулю и был сброшен бит —.
+    // ѕризнаки: N Ц очищаетс€,
+    //           Z Ц устанавливаетс€, если значение в R0 равно нулю, в противном случае очищаетс€,
+    //           V Ц очищаетс€,
+    //           C Ц очищаетс€.
+
+    SetReg(0, 0);
+    while ((GetReg(0) & 0200) == 0 && (GetReg(2) & 0200) == 0)
+    {
+        SetReg(1, GetReg(1) << 1);
+        SetReg(2, ((GetReg(2) & 0200) ? 0xff00 : 0) | ((GetReg(2) & 0x7f << 1) | (GetC() ? 1 : 0)));
+        SetReg(3, (GetReg(3) << 1) | (GetC() ? 1 : 0));
+        SetReg(0, GetReg(0) + 1);
+    }
+    SetN(0);
+    SetZ(GetReg(0) == 0);
+    SetV(0);
+    SetC(0);
+}
+
+void CProcessor::ExecuteFIS()  // Floating point instruction set: FADD, FSUB, FMUL, FDIV
 {
     if (GetMemoryController()->GetSelRegister() & 0200)
         m_RSVDrq = TRUE;
@@ -735,7 +770,7 @@ void CProcessor::ExecuteRTI ()  // RTI - ¬озврат из прерывани€
     m_internalTick=RTI_TIMING;
 }
 
-void CProcessor::ExecuteRTT ()  // RTT - return from trace trap
+void CProcessor::ExecuteRTT ()  // RTT - Return from Trace Trap -- ¬озврат из прерывани€
 {
     WORD word;
     word = GetWord(GetSP());
