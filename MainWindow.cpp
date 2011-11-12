@@ -293,8 +293,7 @@ void MainWindow_RestoreSettings()
 
     // Restore ScreenHeightMode
     int heimode = Settings_GetScreenHeightMode();
-    if (heimode < 1) heimode = 1;
-    if (heimode > 2) heimode = 2;
+    if (heimode < 1 || heimode > 3) heimode = 3;
     ScreenView_SetHeightMode(heimode);
 
     // Restore Serial flag
@@ -644,8 +643,9 @@ void MainWindow_UpdateMenu()
     {
     case 1: scrheimodecmd = ID_VIEW_NORMALHEIGHT; break;
     case 2: scrheimodecmd = ID_VIEW_DOUBLEHEIGHT; break;
+    case 3: scrheimodecmd = ID_VIEW_UPSCALED; break;
     }
-    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_DOUBLEHEIGHT, scrheimodecmd, MF_BYCOMMAND);
+    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_UPSCALED, scrheimodecmd, MF_BYCOMMAND);
 
     // Emulator menu options
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
@@ -730,6 +730,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_DOUBLEHEIGHT:
         MainWindow_DoViewHeightMode(2);
+        break;
+    case ID_VIEW_UPSCALED:
+        MainWindow_DoViewHeightMode(3);
         break;
     case ID_EMULATOR_RUN:
         MainWindow_DoEmulatorRun();
@@ -839,7 +842,7 @@ void MainWindow_DoViewScreenMode(ScreenViewMode newMode)
 
 void MainWindow_DoViewHeightMode(int newMode)
 {
-    if (Settings_GetDebug() && newMode == 2) return;  // Deny switching to Double Height in Debug mode
+    if (Settings_GetDebug() && newMode != 1) return;  // Deny switching from Single Height in Debug mode
 
     ScreenView_SetHeightMode(newMode);
 
