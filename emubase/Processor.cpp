@@ -637,7 +637,8 @@ void CProcessor::Execute000030()  // Unknown command
     while ((GetReg(0) & 0200) == 0 && (GetReg(2) & 0200) == 0)
     {
         SetReg(1, GetReg(1) << 1);
-        SetReg(2, ((GetReg(2) & 0200) ? 0xff00 : 0) | ((GetReg(2) & 0x7f << 1) | (GetC() ? 1 : 0)));
+        SetReg(2, (((WORD)GetLReg(2)) << 1) | (GetC() ? 1 : 0));
+        SetReg(2, ((GetReg(2) & 0200) ? 0xff00 : 0) | GetLReg(2));
         SetReg(3, (GetReg(3) << 1) | (GetC() ? 1 : 0));
         SetReg(0, GetReg(0) + 1);
     }
