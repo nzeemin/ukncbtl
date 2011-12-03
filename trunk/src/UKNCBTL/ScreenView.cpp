@@ -35,6 +35,7 @@ int m_ScreenHeightMode = 3;  // 1 - Normal height, 2 - Double height, 3 - Upscal
 void ScreenView_CreateDisplay();
 void ScreenView_OnDraw(HDC hdc);
 void ScreenView_UpscaleScreen(void* pImageBits);
+void ScreenView_UpscaleScreen2(void* pImageBits);
 
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
@@ -148,7 +149,9 @@ void ScreenView_CreateDisplay()
 
     m_cxScreenWidth = UKNC_SCREEN_WIDTH;
     m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
-    if (m_ScreenHeightMode == 3)
+    if (m_ScreenHeightMode == 2)
+        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
+    else if (m_ScreenHeightMode == 3)
         m_cyScreenHeight = 432;
 
     m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
@@ -180,7 +183,7 @@ void CreateScreenView(HWND hwndParent, int x, int y)
     int xLeft = x;
     int yTop = y;
     int cxWidth = UKNC_SCREEN_WIDTH + cxBorder * 2;
-    int cyScreenHeight = (m_ScreenHeightMode == 3) ? 432 : UKNC_SCREEN_HEIGHT;
+    int cyScreenHeight = m_cyScreenHeight;
     int cyHeight = cyScreenHeight + cyBorder * 2;
 
     g_hwndScreen = CreateWindow(
@@ -275,11 +278,8 @@ void ScreenView_OnDraw(HDC hdc)
 {
     if (m_bits == NULL) return;
 
-    int dyDst = m_cyScreenHeight;
-    if (m_ScreenHeightMode == 2) dyDst = m_cyScreenHeight * 2;
-
     DrawDibDraw(m_hdd, hdc,
-        0,0, -1, dyDst,
+        0,0, -1, -1,
         &m_bmpinfo.bmiHeader, m_bits, 0,0,
         m_cxScreenWidth, m_cyScreenHeight,
         0);
@@ -318,7 +318,9 @@ void ScreenView_PrepareScreen()
 
     Emulator_PrepareScreenRGB32(m_bits, colors);
 
-    if (m_ScreenHeightMode == 3)
+    if (m_ScreenHeightMode == 2)
+        ScreenView_UpscaleScreen2(m_bits);
+    else if (m_ScreenHeightMode == 3)
         ScreenView_UpscaleScreen(m_bits);
 }
 
@@ -349,6 +351,20 @@ void ScreenView_UpscaleScreen(void* pImageBits)
             memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
             ukncline--;
         }
+    }
+}
+
+// Upscale screen from height 288 to 576 with "interlaced" effect
+void ScreenView_UpscaleScreen2(void* pImageBits)
+{
+    for (int ukncline = 287; ukncline >= 0; ukncline--)
+    {
+        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
+        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+
+        pdest += UKNC_SCREEN_WIDTH;
+        memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
     }
 }
 
