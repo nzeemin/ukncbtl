@@ -117,6 +117,8 @@ BOOL CreateMainWindow()
     if (!MainWindow_InitStatusbar())
         return FALSE;
 
+    ScreenView_Init();
+
     // Create screen window as a child of the main window
     CreateScreenView(g_hwnd, 4, 4);
 
@@ -127,8 +129,6 @@ BOOL CreateMainWindow()
 	MainWindow_ShowHideTape();
     MainWindow_ShowHideDebug();
     MainWindow_AdjustWindowSize();
-
-    ScreenView_Init();
 
     ShowWindow(g_hwnd, SW_SHOW);
     UpdateWindow(g_hwnd);
