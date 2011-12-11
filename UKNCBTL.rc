@@ -89,7 +89,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT
         MENUITEM "Create Disk...",              ID_FILE_CREATEDISK
-        MENUITEM "Settings",                    32813
+        MENUITEM "Settings",                    ID_FILE_SETTINGS
         MENUITEM SEPARATOR
         MENUITEM "E&xit\tAlt+F4",               IDM_EXIT
     END

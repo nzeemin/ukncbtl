@@ -24,6 +24,10 @@ CMotherboard::CMotherboard ()
     memset(freq_out, 0, sizeof(freq_out));
     memset(freq_enable, 0, sizeof(freq_enable));
     m_multiply = 1;
+    memset(m_chancputx, 0, sizeof(m_chancputx));
+    memset(m_chancpurx, 0, sizeof(m_chancpurx));
+    memset(m_chanpputx, 0, sizeof(m_chanpputx));
+    memset(m_chanppurx, 0, sizeof(m_chanppurx));
 
     m_TapeReadCallback = NULL;
     m_TapeWriteCallback = NULL;
@@ -245,16 +249,8 @@ void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
 
 // Memory control ////////////////////////////////////////////////////
 
-WORD CMotherboard::GetRAMWord(int plan, WORD offset)
-{
-    ASSERT(plan >= 0 && plan <= 2);
-    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))); 
-}
-BYTE CMotherboard::GetRAMByte(int plan, WORD offset) 
-{ 
-    ASSERT(plan >= 0 && plan <= 2);
-    return m_pRAM[plan][offset]; 
-}
+//NOTE: GetRAMWord() and GetRAMByte() are inline, see Processor.h
+
 void CMotherboard::SetRAMWord(int plan, WORD offset, WORD word) 
 {
     ASSERT(plan >= 0 && plan <= 2);
@@ -450,17 +446,17 @@ void CMotherboard::DebugTicks()
 {
     if (!m_pPPU->IsStopped())
     {
-        while (m_pPPU->InterruptProcessing());
+        while (m_pPPU->InterruptProcessing()) {}
         m_pPPU->CommandExecution();
-        while (m_pPPU->InterruptProcessing());
+        while (m_pPPU->InterruptProcessing()) {}
     }
     if (!m_pCPU->IsStopped())
     {
-        while (m_pCPU->InterruptProcessing());
+        while (m_pCPU->InterruptProcessing()) {}
         m_pCPU->CommandExecution();
-        while (m_pCPU->InterruptProcessing());
+        while (m_pCPU->InterruptProcessing()) {}
     }
-    if (!m_pPPU->IsStopped()) while (m_pPPU->InterruptProcessing());
+    if (!m_pPPU->IsStopped()) while (m_pPPU->InterruptProcessing()) {}
 }
 
 /*
@@ -677,8 +673,13 @@ void CMotherboard::KeyboardEvent(BYTE scancode, BOOL okPressed)
 //   32 bytes  - PPU status
 //   64 bytes  - CPU memory/IO controller status
 //   64 bytes  - PPU memory/IO controller status
+//TODO: 256 bytes * 2 - Cartridge 1..2 path
+//TODO: 256 bytes * 4 - Floppy 1..4 path
+//TODO: 256 bytes * 2 - Hard 1..2 path
 //   32 Kbytes - ROM image
 //   64 Kbytes * 3  - RAM planes 0, 1, 2
+//TODO: Floppy drive state
+//TODO: Hard drive state
 
 void CMotherboard::SaveToImage(BYTE* pImage)
 {
