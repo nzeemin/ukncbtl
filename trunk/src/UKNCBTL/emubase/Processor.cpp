@@ -272,6 +272,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_STRTrq = m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
     m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
     m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+    m_DCLOpin = m_ACLOpin = TRUE;
     m_haltpin = FALSE;
 }
 

@@ -220,12 +220,12 @@ public:  // Saving/loading emulator status
     void        LoadFromImage(const BYTE* pImage);
     void        SetSound(WORD val);
 private: // Timing
-    int m_multiply;
-    int freq_per[6];
-    int freq_out[6];
-    int freq_enable[6];
-    int m_pputicks;
-    int m_cputicks;
+    int         m_multiply;
+    int         freq_per[6];
+    int         freq_out[6];
+    int         freq_enable[6];
+    int         m_pputicks;
+    int         m_cputicks;
     unsigned int m_lineticks;
 private:
     WORD        m_CPUbp;
@@ -260,5 +260,15 @@ private:
     
 };
 
+inline WORD CMotherboard::GetRAMWord(int plan, WORD offset)
+{
+    ASSERT(plan >= 0 && plan <= 2);
+    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))); 
+}
+inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset) 
+{ 
+    ASSERT(plan >= 0 && plan <= 2);
+    return m_pRAM[plan][offset]; 
+}
 
 //////////////////////////////////////////////////////////////////////

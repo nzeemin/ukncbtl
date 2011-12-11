@@ -64,10 +64,6 @@ WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, 
 
 WORD CMemoryController::GetWord(WORD address, BOOL okHaltMode, BOOL okExec)
 {
-//#if !defined(PRODUCT)
-//	TCHAR buf[40];
-//#endif
-
     WORD offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset);
 
@@ -86,17 +82,6 @@ WORD CMemoryController::GetWord(WORD address, BOOL okHaltMode, BOOL okExec)
     case ADDRTYPE_ROMCART2:
         return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_ROM:
-//#if !defined(PRODUCT)
-//		//136064 =< 136274
-//		//ASSERT( (address<0136064) || (address>0136273));
-//		if((address>=0136064)&&(address<0136274))
-//		{
-//			PrintOctalValue(buf,m_pBoard->GetPPU()->GetPC()-2);
-//			DebugLog(_T("R ACC PC: "));
-//			DebugLog(buf);
-//			DebugLog(_T("\r\n"));
-//		}
-//#endif
         return m_pBoard->GetROMWord(offset);
     case ADDRTYPE_IO:
         //TODO: What to do if okExec == TRUE ?
@@ -151,7 +136,6 @@ void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
     WORD offset;
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
-    //ASSERT( (address!=0157552) || (word!=0157272));
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
@@ -637,20 +621,32 @@ BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
 //////////////////////////////////////////////////////////////////////
 //
 // CPU memory/IO controller image format (64 bytes):
-//   2*10 bytes     10 port registers
-//   46 bytes       Not used
+//   2*8 bytes      8 port registers
+//    48 bytes      Reserved
 
 void CFirstMemoryController::SaveToImage(BYTE* pImage)
 {
     WORD* pwImage = (WORD*) pImage;
     *pwImage++ = m_Port176640;
     *pwImage++ = m_Port176642;
+    *pwImage++ = m_Port176644;
+    *pwImage++ = m_Port176646;
+    *pwImage++ = m_Port176570;
+    *pwImage++ = m_Port176572;
+    *pwImage++ = m_Port176574;
+    *pwImage++ = m_Port176576;
 }
 void CFirstMemoryController::LoadFromImage(const BYTE* pImage)
 {
     WORD* pwImage = (WORD*) pImage;
     m_Port176640 = *pwImage++;
     m_Port176642 = *pwImage++;
+    m_Port176644 = *pwImage++;
+    m_Port176646 = *pwImage++;
+    m_Port176570 = *pwImage++;
+    m_Port176572 = *pwImage++;
+    m_Port176574 = *pwImage++;
+    m_Port176576 = *pwImage++;
 }
 
 
@@ -779,12 +775,12 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOO
 WORD CSecondMemoryController::GetPortWord(WORD address)
 {
     WORD value;
- #if !defined(PRODUCT)
-    TCHAR oct1[7];
-    TCHAR oct2[7];
-    PrintOctalValue(oct1, address);
-    PrintOctalValue(oct2, m_pBoard->GetPPU()->GetPC());
-#endif
+// #if !defined(PRODUCT)
+//    TCHAR oct1[7];
+//    TCHAR oct2[7];
+//    PrintOctalValue(oct1, address);
+//    PrintOctalValue(oct2, m_pBoard->GetPPU()->GetPC());
+//#endif
 
     switch (address) {
         case 0177010:
@@ -1103,15 +1099,15 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
 
 void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 {
-#if !defined(PRODUCT)
-    TCHAR oct[7];
-    TCHAR oct1[7];
-    TCHAR oct2[7];
-    PrintOctalValue(oct, word);
-    PrintOctalValue(oct1, address);
-    PrintOctalValue(oct2, m_pBoard->GetPPU()->GetPC());
-//    TCHAR str[1024];
-#endif
+//#if !defined(PRODUCT)
+//    TCHAR oct[7];
+//    TCHAR oct1[7];
+//    TCHAR oct2[7];
+//    PrintOctalValue(oct, word);
+//    PrintOctalValue(oct1, address);
+//    PrintOctalValue(oct2, m_pBoard->GetPPU()->GetPC());
+////    TCHAR str[1024];
+//#endif
 
     if ((address>=0110000) && (address<0120000))
         address &= 0110016;
@@ -1274,9 +1270,9 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             break;
         case 0177704: // fdd params:
         case 0177705:
-#if !defined(PRODUCT)
-            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
-#endif
+//#if !defined(PRODUCT)
+//            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
+//#endif
             break;
 
         case 0177710: //timer status
@@ -1408,8 +1404,9 @@ void CSecondMemoryController::Init_177716()
 //////////////////////////////////////////////////////////////////////
 //
 // PPU memory/IO controller image format (64 bytes):
-//   2*17 bytes     17 port registers
-//   42 bytes       Not used
+//   2*12 bytes     12 port registers
+//      3 bytes     3 port registers
+//     37 bytes     Reserved
 
 void CSecondMemoryController::SaveToImage(BYTE* pImage)
 {
@@ -1429,6 +1426,11 @@ void CSecondMemoryController::SaveToImage(BYTE* pImage)
     *pwImage++ = m_Port177716;
 
     *pwImage++ = m_Port177054;
+
+    BYTE* pbImage = (BYTE*) pwImage;
+    *pbImage++ = m_Port177100;
+    *pbImage++ = m_Port177101;
+    *pbImage++ = m_Port177102;
 }
 void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
 {
@@ -1448,6 +1450,11 @@ void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
     m_Port177716 = *pwImage++;
 
     m_Port177054 = *pwImage++;
+
+    BYTE* pbImage = (BYTE*) pwImage;
+    m_Port177100 = *pbImage++;
+    m_Port177101 = *pbImage++;
+    m_Port177102 = *pbImage++;
 }
 
 
