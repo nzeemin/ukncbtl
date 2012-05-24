@@ -163,9 +163,7 @@ WORD CFloppyController::GetState(void)
 void CFloppyController::SetCommand(WORD cmd)
 {
 //#if !defined(PRODUCT)
-//	TCHAR oct2[7];
-//    PrintOctalValue(oct2, cmd);
-//	DebugLogFormat(_T("Floppy COMMAND %s\r\n"), oct2);
+//	DebugLogFormat(_T("Floppy COMMAND %o06\r\n"), cmd);
 //#endif
 
     BOOL okPrepareTrack = FALSE;  // Нужно ли считывать дорожку в буфер
@@ -175,6 +173,10 @@ void CFloppyController::SetCommand(WORD cmd)
     if (m_drive != newdrive)
     {
         FlushChanges();
+
+//#if !defined(PRODUCT)
+//	DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
+//#endif
 
         m_drive = newdrive;
         m_pDrive = m_drivedata + m_drive;
@@ -213,7 +215,13 @@ void CFloppyController::SetCommand(WORD cmd)
         }
     }
     if (okPrepareTrack)
+    {
         PrepareTrack();
+
+//#if !defined(PRODUCT)
+//    	DebugLogFormat(_T("Floppy DRIVE %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+//#endif
+    }
 
     if(cmd & FLOPPY_CMD_SEARCHSYNC)  // Search for marker
     {
@@ -338,7 +346,7 @@ void CFloppyController::Periodic()
             if (m_shiftmarker)
             {
 //#if !defined(PRODUCT)
-//            DebugLogFormat(_T("Floppy WRITING %04x MARKER\r\n"), m_shiftreg);  //DEBUG
+//            DebugLogFormat(_T("Floppy WRITING %04x MARKER at %04hx SC %hu\r\n"), m_shiftreg, m_pDrive->dataptr, (m_pDrive->dataptr - 0x5e) / 614 + 1);  //DEBUG
 //#endif
                 m_pDrive->marker[m_pDrive->dataptr / 2] = TRUE;
                 m_shiftmarker = FALSE;
@@ -364,7 +372,7 @@ void CFloppyController::Periodic()
                 if (m_crccalculus)  // Stop CRC calclation
                 {
                     m_shiftreg = 0x4444;  //STUB
-                    m_shiftflag = TRUE;
+                    m_shiftflag = FALSE; //Should be TRUE, but temporarily disabled
                     m_shiftmarker = FALSE;
                     m_crccalculus = FALSE;
                     m_status |= FLOPPY_STATUS_CHECKSUMOK;
@@ -373,13 +381,15 @@ void CFloppyController::Periodic()
 
         }
     }
-
 }
 
 // Read track data from file and fill m_data
 void CFloppyController::PrepareTrack()
 {
     FlushChanges();
+//#if !defined(PRODUCT)
+//    DebugLogFormat(_T("Floppy PREP  %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+//#endif
 
     //TCHAR buffer[512];
     size_t count;
@@ -429,7 +439,7 @@ void CFloppyController::FlushChanges()
     if (!m_trackchanged) return;
 
 //#if !defined(PRODUCT)
-//    DebugLog(_T("Floppy FLUSH\r\n"));  //DEBUG
+//    DebugLogFormat(_T("Floppy FLUSH %hu TR %hu SD %hu\r\n"), m_drive, m_pDrive->datatrack, m_pDrive->dataside);
 //#endif
 
     // Decode track data from m_data
@@ -462,7 +472,7 @@ void CFloppyController::FlushChanges()
     }
     else {
 //#if !defined(PRODUCT)
-//    DebugLog(_T("Floppy FLUSH FAILED\r\n"));  //DEBUG
+//        DebugLog(_T("Floppy FLUSH FAILED\r\n"));  //DEBUG
 //#endif
     }
 
@@ -543,7 +553,8 @@ static BOOL DecodeTrackData(const BYTE* pRaw, BYTE* pDest)
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
-        if (pRaw[dataptr++] != 0xfe) return FALSE;  // Marker not found
+        if (pRaw[dataptr++] != 0xfe)
+            return FALSE;  // Marker not found
 
         BYTE sectcyl, secthd, sectsec, sectno;
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectcyl = pRaw[dataptr++];
@@ -570,15 +581,18 @@ static BOOL DecodeTrackData(const BYTE* pRaw, BYTE* pDest)
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
-        if (pRaw[dataptr++] != 0xfb) return FALSE;  // Marker not found
+        if (pRaw[dataptr++] != 0xfb)
+            return FALSE;  // Marker not found
 
         for (int count = 0; count < sectorsize; count++)  // Copy sector data
         {
             if (destptr >= 5120) break;  // End of track or error
             pDest[destptr++] = pRaw[dataptr++];
-            if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+            if (dataptr >= FLOPPY_RAWTRACKSIZE)
+                return FALSE;  // Something wrong
         }
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE)
+            return FALSE;  // Something wrong
         // crc
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
