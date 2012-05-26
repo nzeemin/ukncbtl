@@ -109,7 +109,7 @@ public:
     void DetachImage(int drive);
     BOOL IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
     BOOL IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
-    BOOL IsEngineOn() { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
+    BOOL IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
 	WORD GetData(void);         // Reading port 177132 - data
 	WORD GetState(void);        // Reading port 177130 - device status
 	void SetCommand(WORD cmd);  // Writing to port 177130 - commands

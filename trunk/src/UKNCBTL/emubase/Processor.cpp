@@ -2548,21 +2548,22 @@ void CProcessor::ExecuteMARK ()  // MARK
 
 void CProcessor::SaveToImage(BYTE* pImage) const
 {
-    WORD* pwImage = (WORD*) pImage;
-    *pwImage++ = m_psw;  // PSW
-    memcpy(pwImage, m_R, 2 * 8);  // Registers R0..R7
+    // Processor data                               // Offset Size
+    WORD* pwImage = (WORD*) pImage;                 //    0    --
+    *pwImage++ = m_psw;  // PSW                     //    0     2
+    memcpy(pwImage, m_R, 2 * 8); // Registers R0-R7 //    2    16
     pwImage += 2 * 8;
-    *pwImage++ = m_savepc;
-    *pwImage++ = m_savepsw;
-    *pwImage++ = (m_okStopped ? 1 : 0);
-    *pwImage++ = m_internalTick;
+    *pwImage++ = m_savepc;                          //   18     2
+    *pwImage++ = m_savepsw;                         //   20     2
+    *pwImage++ = (m_okStopped ? 1 : 0);             //   22     2
+    *pwImage++ = m_internalTick;                    //   24     2
     BYTE* pbImage = (BYTE*) pwImage;
-    *pbImage++ = (m_stepmode  ? 1 : 0);
-    *pbImage++ = (m_buserror  ? 1 : 0);
-    *pbImage++ = (m_haltpin   ? 1 : 0);
-    *pbImage++ = (m_DCLOpin   ? 1 : 0);
-    *pbImage++ = (m_ACLOpin   ? 1 : 0);
-    *pbImage++ = (m_waitmode  ? 1 : 0);
+    *pbImage++ = (m_stepmode  ? 1 : 0);             //   26     1
+    *pbImage++ = (m_buserror  ? 1 : 0);             //   27     1
+    *pbImage++ = (m_haltpin   ? 1 : 0);             //   28     1
+    *pbImage++ = (m_DCLOpin   ? 1 : 0);             //   29     1
+    *pbImage++ = (m_ACLOpin   ? 1 : 0);             //   30     1
+    *pbImage++ = (m_waitmode  ? 1 : 0);             //   31     1
 }
 
 void CProcessor::LoadFromImage(const BYTE* pImage)

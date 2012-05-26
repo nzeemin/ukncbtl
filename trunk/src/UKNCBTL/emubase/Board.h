@@ -25,11 +25,11 @@ class CMemoryController;
 #define FLOPPY_FSM_WAITFORTERM2	3
 
 // Emulator image constants
-#define UKNCIMAGE_HEADER_SIZE 256
+#define UKNCIMAGE_HEADER_SIZE 512
 #define UKNCIMAGE_SIZE (UKNCIMAGE_HEADER_SIZE + (32 + 64 * 3) * 1024)
 #define UKNCIMAGE_HEADER1 0x434E4B55  // "UKNC"
 #define UKNCIMAGE_HEADER2 0x214C5442  // "BTL!"
-#define UKNCIMAGE_VERSION 0x00010000  // 1.0
+#define UKNCIMAGE_VERSION 0x00010001  // 1.1
 
 #define KEYB_RUS		0x01
 #define KEYB_LAT		0x02
@@ -45,7 +45,7 @@ typedef struct chan_tag
 
 typedef struct kbd_row_tag
 {
-	BOOL	processed;
+	BYTE	processed;
 	BYTE	row_Y;
 } kbd_row;
 
@@ -194,6 +194,7 @@ public:  // System control
     void        DetachFloppyImage(int slot);
     BOOL        IsFloppyImageAttached(int slot) const;
     BOOL        IsFloppyReadOnly(int slot) const;
+    BOOL        IsFloppyEngineOn() const;
     WORD        GetFloppyState();
     WORD        GetFloppyData();
     void        SetFloppyState(WORD val);
@@ -220,10 +221,10 @@ public:  // Saving/loading emulator status
     void        LoadFromImage(const BYTE* pImage);
     void        SetSound(WORD val);
 private: // Timing
-    int         m_multiply;
-    int         freq_per[6];
-    int         freq_out[6];
-    int         freq_enable[6];
+    WORD        m_multiply;
+    WORD        freq_per[6];
+    WORD        freq_out[6];
+    WORD        freq_enable[6];
     int         m_pputicks;
     int         m_cputicks;
     unsigned int m_lineticks;
