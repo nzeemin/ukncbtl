@@ -378,6 +378,9 @@ int Emulator_SystemFrame()
         _stprintf(buffer, _T("%03.f%%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
+        BOOL floppyEngine = g_pBoard->IsFloppyEngineOn();
+        MainWindow_SetStatusbarText(StatusbarPartFloppyEngine, floppyEngine ? _T("Motor") : NULL);
+
         m_nFrameCount = 0;
         m_dwTickCount = dwCurrentTicks;
     }
@@ -472,6 +475,8 @@ BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     // Free memory, close file
     ::free(pImage);
     ::fclose(fpFile);
+
+    //TODO: Save the file name for a future SaveImage() call
 
     return TRUE;
 }
@@ -602,6 +607,9 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
 //   4 bytes        UKNC_IMAGE_SIZE
 //   4 bytes        UKNC uptime
 //   12 bytes       Not used
+//TODO: 256 bytes * 2 - Cartridge 1..2 path
+//TODO: 256 bytes * 4 - Floppy 1..4 path
+//TODO: 256 bytes * 2 - Hard 1..2 path
 
 void Emulator_SaveImage(LPCTSTR sFilePath)
 {

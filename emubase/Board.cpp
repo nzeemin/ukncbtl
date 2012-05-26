@@ -158,6 +158,11 @@ BOOL CMotherboard::IsFloppyReadOnly(int slot) const
     return m_pFloppyCtl->IsReadOnly(slot);
 }
 
+BOOL CMotherboard::IsFloppyEngineOn() const
+{
+    return m_pFloppyCtl->IsEngineOn();
+}
+
 BOOL CMotherboard::AttachFloppyImage(int slot, LPCTSTR sFileName)
 {
     ASSERT(slot >= 0 && slot < 4);
@@ -667,32 +672,50 @@ void CMotherboard::KeyboardEvent(BYTE scancode, BOOL okPressed)
 //////////////////////////////////////////////////////////////////////
 //
 // Emulator image format:
-//   32 bytes  - Header
-//   32 bytes  - Board status
-//   32 bytes  - CPU status
-//   32 bytes  - PPU status
-//   64 bytes  - CPU memory/IO controller status
-//   64 bytes  - PPU memory/IO controller status
+//  Offset Size
+//     0    32 bytes  - Header
+//    32   128 bytes  - Board status
+//   160    32 bytes  - CPU status
+//   192    32 bytes  - PPU status
+//   224    64 bytes  - CPU memory/IO
+//   288    64 bytes  - PPU memory/IO
+//   352   160 bytes  - reserved
+//   512    --        - end of the header
+//   512   32 Kbytes  - ROM image
+//         64 Kbytes * 3  - RAM planes 0, 1, 2
 //TODO: 256 bytes * 2 - Cartridge 1..2 path
 //TODO: 256 bytes * 4 - Floppy 1..4 path
 //TODO: 256 bytes * 2 - Hard 1..2 path
-//   32 Kbytes - ROM image
-//   64 Kbytes * 3  - RAM planes 0, 1, 2
 //TODO: Floppy drive state
 //TODO: Hard drive state
 
 void CMotherboard::SaveToImage(BYTE* pImage)
 {
-    // Board data
-    WORD* pwImage = (WORD*) (pImage + 32);
-    *pwImage++ = m_timer;
-    *pwImage++ = m_timerreload;
-    *pwImage++ = m_timerflags;
-    *pwImage++ = m_timerdivider;
-    *pwImage++ = (WORD) m_chan0disabled;
+    // Board data                                       // Offset Size
+    WORD* pwImage = (WORD*) (pImage + 32);              //   32    --
+    *pwImage++ = m_timer;                               //   32     2
+    *pwImage++ = m_timerreload;                         //   34     2
+    *pwImage++ = m_timerflags;                          //   36     2
+    *pwImage++ = m_timerdivider;                        //   38     2
+    DWORD* pdwImage = (DWORD*)pwImage;                  //   40    --
+    memcpy(pdwImage, m_chancputx, 3 * 4); pwImage += 3; //   40    12
+    memcpy(pdwImage, m_chancpurx, 2 * 4); pwImage += 2; //   52     8
+    memcpy(pdwImage, m_chanpputx, 2 * 4); pwImage += 2; //   60     8
+    memcpy(pdwImage, m_chanppurx, 3 * 4); pwImage += 3; //   68    12
+    BYTE* pbImage = (BYTE*) pdwImage;                   //   80    --
+    *pbImage++ = m_chan0disabled;                       //   80     1
+    *pbImage++ = m_irq_cpureset;                        //   81     1
+    *pbImage++ = 0;                                     //   82     1  // not used
+    *pbImage++ = m_scanned_key;                         //   83     1
+    memcpy(pbImage, m_kbd_matrix, 2*16); pbImage += 32; //   84    32
+    pwImage = (WORD*) pbImage;                          //  116    --
+    *pwImage++ = m_multiply;                            //  116     2
+    memcpy(pwImage, freq_per, 12); pwImage += 6;        //  118    12
+    memcpy(pwImage, freq_out, 12); pwImage += 6;        //  130    12
+    memcpy(pwImage, freq_enable, 12); pwImage += 6;     //  142    12
 
     // CPU status
-    BYTE* pImageCPU = pImage + 64;
+    BYTE* pImageCPU = pImage + 160;
     m_pCPU->SaveToImage(pImageCPU);
     // PPU status
     BYTE* pImagePPU = pImageCPU + 32;
@@ -705,7 +728,7 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     m_pSecondMemCtl->SaveToImage(pImagePpuMem);
 
     // ROM
-    BYTE* pImageRom = pImage + 256;
+    BYTE* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE;
     memcpy(pImageRom, m_pROM, 32 * 1024);
     // RAM planes 0, 1, 2
     BYTE* pImageRam = pImageRom + 32 * 1024;
@@ -717,16 +740,31 @@ void CMotherboard::SaveToImage(BYTE* pImage)
 }
 void CMotherboard::LoadFromImage(const BYTE* pImage)
 {
-    // Board data
-    WORD* pwImage = (WORD*) (pImage + 32);
+    // Board data                                       // Offset Size
+    const WORD* pwImage = (const WORD*) (pImage + 32);
     m_timer = *pwImage++;
     m_timerreload = *pwImage++;
     m_timerflags = *pwImage++;
     m_timerdivider = *pwImage++;
-    m_chan0disabled = (BYTE) *pwImage++;
+    DWORD* pdwImage = (DWORD*)pwImage;                  //   40    --
+    memcpy(m_chancputx, pdwImage, 3 * 4); pwImage += 3; //   40    12
+    memcpy(m_chancpurx, pdwImage, 2 * 4); pwImage += 2; //   52     8
+    memcpy(m_chanpputx, pdwImage, 2 * 4); pwImage += 2; //   60     8
+    memcpy(m_chanppurx, pdwImage, 3 * 4); pwImage += 3; //   68    12
+    const BYTE* pbImage = (const BYTE*) pdwImage;       //   80    --
+    m_chan0disabled = *pbImage++;                       //   80     1
+    m_irq_cpureset = *pbImage++;                        //   81     1
+    pbImage++;                                          //   82     1  // not used
+    m_scanned_key = *pbImage++;                         //   83     1
+    memcpy(m_kbd_matrix, pbImage, 2*16); pbImage += 32; //   84    32
+    pwImage = (const WORD*) pbImage;                    //  116    --
+    m_multiply = *pwImage++;                            //  116     2
+    memcpy(freq_per, pwImage, 12); pwImage += 6;        //  118    12
+    memcpy(freq_out, pwImage, 12); pwImage += 6;        //  130    12
+    memcpy(freq_enable, pwImage, 12); pwImage += 6;     //  142    12
 
     // CPU status
-    const BYTE* pImageCPU = pImage + 64;
+    const BYTE* pImageCPU = pImage + 160;
     m_pCPU->LoadFromImage(pImageCPU);
     // PPU status
     const BYTE* pImagePPU = pImageCPU + 32;
@@ -739,7 +777,7 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     m_pSecondMemCtl->LoadFromImage(pImagePpuMem);
 
     // ROM
-    const BYTE* pImageRom = pImage + 256;
+    const BYTE* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE;
     memcpy(m_pROM, pImageRom, 32 * 1024);
     // RAM planes 0, 1, 2
     const BYTE* pImageRam = pImageRom + 32 * 1024;
