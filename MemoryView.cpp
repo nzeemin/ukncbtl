@@ -263,7 +263,12 @@ void MemoryView_OnDraw(HDC hdc)
     DeleteObject(hFont);
 
     if (::GetFocus() == m_hwndMemoryViewer)
-        DrawFocusRect(hdc, &rcClient);
+    {
+        RECT rcFocus = rcClient;
+        rcFocus.top += cyLine;
+        rcFocus.right = cxChar * (63 + 16);
+        DrawFocusRect(hdc, &rcFocus);
+    }
 }
 
 LPCTSTR MemoryView_GetMemoryModeName()
