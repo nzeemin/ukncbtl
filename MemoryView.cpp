@@ -143,6 +143,10 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         return (LRESULT) MemoryView_OnMouseWheel(wParam, lParam);
     case WM_VSCROLL:
         return (LRESULT) MemoryView_OnVScroll(wParam, lParam);
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+        ::InvalidateRect(hWnd, NULL, TRUE);
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -257,6 +261,9 @@ void MemoryView_OnDraw(HDC hdc)
     SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
     DeleteObject(hFont);
+
+    if (::GetFocus() == m_hwndMemoryViewer)
+        DrawFocusRect(hdc, &rcClient);
 }
 
 LPCTSTR MemoryView_GetMemoryModeName()

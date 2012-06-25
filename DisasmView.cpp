@@ -147,6 +147,10 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         break;
     case WM_KEYDOWN:
         return (LRESULT) DisasmView_OnKeyDown(wParam, lParam);
+    case WM_SETFOCUS:
+    case WM_KILLFOCUS:
+        ::InvalidateRect(hWnd, NULL, TRUE);
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -434,6 +438,13 @@ void DoDrawDisasmView(HDC hdc)
     SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
     DeleteObject(hFont);
+
+    if (::GetFocus() == m_hwndDisasmViewer)
+    {
+        RECT rcClient;
+        GetClientRect(m_hwndDisasmViewer, &rcClient);
+        DrawFocusRect(hdc, &rcClient);
+    }
 }
 
 DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
