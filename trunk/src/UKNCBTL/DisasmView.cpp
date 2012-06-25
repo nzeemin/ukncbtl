@@ -37,7 +37,7 @@ WORD m_wDisasmBaseAddr = 0;
 WORD m_wDisasmNextBaseAddr = 0;
 
 void DoDrawDisasmView(HDC hdc);
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
+int  DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DisasmView_SetBaseAddr(WORD base);
@@ -432,7 +432,7 @@ void DoDrawDisasmView(HDC hdc)
 
     // Draw disasseble for the current processor
     WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
-    DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
+    int yFocus = DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -441,9 +441,14 @@ void DoDrawDisasmView(HDC hdc)
 
     if (::GetFocus() == m_hwndDisasmViewer)
     {
-        RECT rcClient;
-        GetClientRect(m_hwndDisasmViewer, &rcClient);
-        DrawFocusRect(hdc, &rcClient);
+        RECT rcFocus;
+        GetClientRect(m_hwndDisasmViewer, &rcFocus);
+        if (yFocus >= 0)
+        {
+            rcFocus.top = yFocus;
+            rcFocus.bottom = yFocus + cyLine;
+        }
+        DrawFocusRect(hdc, &rcFocus);
     }
 }
 
@@ -460,8 +465,9 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
     return NULL;
 }
 
-void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
+int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
+    int result = -1;
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
 
@@ -511,7 +517,10 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
 
         // Current position
         if (address == current)
+        {
             TextOut(hdc, x + 1 * cxChar, y, _T("  >"), 3);
+            result = y;  // Remember line for the focus rect
+        }
         if (address == proccurrent)
             TextOut(hdc, x + 1 * cxChar, y, _T("PC>>"), 4);
         else if (address == previous)
@@ -570,6 +579,8 @@ void DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x
     }
 
     m_wDisasmNextBaseAddr = wNextBaseAddr;
+    
+    return result;
 }
 
 
