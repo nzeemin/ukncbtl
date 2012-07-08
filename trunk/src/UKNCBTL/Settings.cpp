@@ -17,8 +17,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-const TCHAR m_Settings_RegKeyName[] = _T("Software\\UKNCBTL");
-HKEY m_Settings_RegKey = (HKEY) INVALID_HANDLE_VALUE;
+const TCHAR m_Settings_IniAppName[] = _T("UKNCBTL");
+TCHAR m_Settings_IniPath[MAX_PATH];
 
 BOOL m_Settings_Toolbar = TRUE;
 BOOL m_Settings_Debug = FALSE;
@@ -46,57 +46,63 @@ BOOL m_Settings_CartridgeMode_Valid = FALSE;
 
 void Settings_Init()
 {
-    LONG lResult;
-    lResult = ::RegCreateKeyEx(HKEY_CURRENT_USER, m_Settings_RegKeyName, 0, NULL, 0, KEY_ALL_ACCESS,
-            NULL, &m_Settings_RegKey, NULL);
+    // Prepare m_Settings_IniPath: get .exe file path and change extension to .ini
+    ::GetModuleFileName(GetModuleHandle(NULL), m_Settings_IniPath, MAX_PATH);
+    TCHAR* pExt = m_Settings_IniPath + _tcslen(m_Settings_IniPath) - 3;
+    *pExt++ = _T('i');
+    *pExt++ = _T('n');
+    *pExt++ = _T('i');
 }
 void Settings_Done()
 {
-    ::RegCloseKey(m_Settings_RegKey);
 }
 
 BOOL Settings_SaveStringValue(LPCTSTR sName, LPCTSTR sValue)
 {
-    LONG lResult;
-    if (sValue == NULL)
-        lResult = ::RegSetValueEx(m_Settings_RegKey, sName, 0, REG_SZ, (const BYTE*) "", sizeof(TCHAR));
-    else
-        lResult = ::RegSetValueEx(m_Settings_RegKey, sName, 0, REG_SZ, (const BYTE*) sValue,
-                (lstrlen(sValue) + 1) * sizeof(TCHAR));
-    return (lResult == ERROR_SUCCESS);
+    BOOL result = WritePrivateProfileString(
+        m_Settings_IniAppName, sName, sValue, m_Settings_IniPath);
+    return result;
 }
 BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthChars)
 {
-    DWORD dwType;
-    DWORD dwBufLength = nBufferLengthChars * sizeof(TCHAR);
-    LONG lResult;
-    lResult = ::RegQueryValueEx(m_Settings_RegKey, sName, NULL, &dwType, (LPBYTE) sBuffer, &dwBufLength);
-    if (lResult == ERROR_SUCCESS && dwType == REG_SZ)
+    DWORD result = GetPrivateProfileString(
+        m_Settings_IniAppName, sName, NULL, sBuffer, nBufferLengthChars, m_Settings_IniPath);
+    if (result > 0)
         return TRUE;
-    else
-    {
-        sBuffer[0] = '\0';
-        return FALSE;
-    }
+
+    sBuffer[0] = _T('\0');
+    return FALSE;
 }
 
 BOOL Settings_SaveDwordValue(LPCTSTR sName, DWORD dwValue)
 {
-    LONG lResult;
-    lResult = ::RegSetValueEx(m_Settings_RegKey, sName, 0, REG_DWORD, (const BYTE*) (&dwValue), sizeof(DWORD));
-    return (lResult == ERROR_SUCCESS);
+    TCHAR buffer[12];
+    wsprintf(buffer, _T("%lu"), dwValue);
+
+    return Settings_SaveStringValue(sName, buffer);
 }
 BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
 {
-    DWORD dwType;
-    DWORD dwBufLength = sizeof(DWORD);
-    LONG lResult;
-    lResult = ::RegQueryValueEx(m_Settings_RegKey, sName, NULL, &dwType, (LPBYTE) dwValue, &dwBufLength);
-    if (lResult == ERROR_SUCCESS && dwType == REG_DWORD)
-        return TRUE;
-    else
+    TCHAR buffer[12];
+    if (!Settings_LoadStringValue(sName, buffer, 12))
+    {
+        *dwValue = 0;
         return FALSE;
+    }
+
+    int result = swscanf(buffer, _T("%lu"), dwValue);
+    if (result == 0)
+    {
+        *dwValue = 0;
+        return FALSE;
+    }
+
+    return TRUE;
 }
+
+
+//////////////////////////////////////////////////////////////////////
+
 
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
