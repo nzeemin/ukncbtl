@@ -13,7 +13,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "WavPcmFile.h"
 #include <stdio.h>
-#include <Share.h>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -89,7 +88,7 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
     const int channels = 1;
     const int blockAlign = channels * bitsPerSample / 8;
 
-    FILE* fpFileNew = ::_tfsopen(filename, _T("w+b"), _SH_DENYWR);
+    FILE* fpFileNew = ::_tfopen(filename, _T("w+b"));
     if (fpFileNew == NULL)
         return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to create file
 
@@ -137,7 +136,7 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 {
-    FILE* fpFileOpen = ::_tfsopen(filename, _T("rb"), _SH_DENYWR);
+    FILE* fpFileOpen = ::_tfopen(filename, _T("rb"));
     if (fpFileOpen == NULL)
         return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to open file
 
@@ -163,10 +162,10 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
         statedSize = fileSize;
 
     BYTE tagHeader[8];
-    BYTE formatTag[16];
+    WORD formatTag[8];
     BOOL formatSpecified = FALSE;
-    int formatType, channels, bitsPerSample, blockAlign;
-    DWORD sampleFrequency, bytesPerSecond, dataOffset, dataSize;
+    int formatType, channels = 1, bitsPerSample, blockAlign;
+    DWORD sampleFrequency, bytesPerSecond, dataOffset, dataSize = 0;
     while (offset < statedSize)
     {
         bytesRead = ::fread(tagHeader, 1, sizeof(tagHeader), fpFileOpen);
@@ -194,12 +193,12 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
                 return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to read format tag
             }
 
-            formatType = *(WORD*)(formatTag);
-            channels = *(WORD*)(formatTag + 2);
-            sampleFrequency = *(DWORD*)(formatTag + 4);
-            bytesPerSecond = *(DWORD*)(formatTag + 8);
-            blockAlign = *(WORD*)(formatTag + 12);
-            bitsPerSample = *(WORD*)(formatTag + 14);
+            formatType = formatTag[0];
+            channels = formatTag[1];
+            sampleFrequency = formatTag[2];
+            bytesPerSecond = formatTag[4];
+            blockAlign = formatTag[6];
+            bitsPerSample = formatTag[7];
 
             if (formatType != WAV_FORMAT_PCM)
             {
@@ -314,7 +313,7 @@ unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
     pWavPcm->dwCurrentPosition++;
 
     // Decode first channel
-    unsigned int value;
+    unsigned int value = 0;
     switch (pWavPcm->nBitsPerSample)
     {
     case 8:
