@@ -84,8 +84,8 @@ IDC_UKNCBTL MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "Load State…",                 ID_FILE_LOADSTATE
         MENUITEM "Save State…",                 ID_FILE_SAVESTATE
+        MENUITEM "Load State…",                 ID_FILE_LOADSTATE
         MENUITEM SEPARATOR
         MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT
         MENUITEM "Create Disk...",              ID_FILE_CREATEDISK
@@ -106,6 +106,7 @@ BEGIN
         MENUITEM "Normal Height",               ID_VIEW_NORMALHEIGHT
         MENUITEM "Double Intrlaced",            ID_VIEW_DOUBLEHEIGHT
         MENUITEM "Upscaled to 1.5",             ID_VIEW_UPSCALED
+        MENUITEM "Interlaced Upscaled",         ID_VIEW_UPSCALED3
     END
     POPUP "&Emulator"
     BEGIN
