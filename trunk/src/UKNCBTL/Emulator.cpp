@@ -653,6 +653,8 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
         return;
     }
 
+    Emulator_Stop();
+
     // Read header
     DWORD bufHeader[UKNCIMAGE_HEADER_SIZE / sizeof(DWORD)];
     DWORD dwBytesRead = ::fread(bufHeader, 1, UKNCIMAGE_HEADER_SIZE, fpFile);
@@ -676,8 +678,6 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
     // Free memory, close file
     ::free(pImage);
     ::fclose(fpFile);
-
-    g_okEmulatorRunning = FALSE;
 
     MainWindow_UpdateAllViews();
 }

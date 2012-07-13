@@ -698,10 +698,10 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     *pwImage++ = m_timerflags;                          //   36     2
     *pwImage++ = m_timerdivider;                        //   38     2
     DWORD* pdwImage = (DWORD*)pwImage;                  //   40    --
-    memcpy(pdwImage, m_chancputx, 3 * 4); pwImage += 3; //   40    12
-    memcpy(pdwImage, m_chancpurx, 2 * 4); pwImage += 2; //   52     8
-    memcpy(pdwImage, m_chanpputx, 2 * 4); pwImage += 2; //   60     8
-    memcpy(pdwImage, m_chanppurx, 3 * 4); pwImage += 3; //   68    12
+    memcpy(pdwImage, m_chancputx, 3 * 4); pdwImage += 3;//   40    12
+    memcpy(pdwImage, m_chancpurx, 2 * 4); pdwImage += 2;//   52     8
+    memcpy(pdwImage, m_chanpputx, 2 * 4); pdwImage += 2;//   60     8
+    memcpy(pdwImage, m_chanppurx, 3 * 4); pdwImage += 3;//   68    12
     BYTE* pbImage = (BYTE*) pdwImage;                   //   80    --
     *pbImage++ = m_chan0disabled;                       //   80     1
     *pbImage++ = m_irq_cpureset;                        //   81     1
@@ -737,20 +737,22 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     memcpy(pImageRam, m_pRAM[1], 64 * 1024);
     pImageRam += 64 * 1024;
     memcpy(pImageRam, m_pRAM[2], 64 * 1024);
+    pImageRam += 64 * 1024;
+    ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
 }
 void CMotherboard::LoadFromImage(const BYTE* pImage)
 {
     // Board data                                       // Offset Size
-    const WORD* pwImage = (const WORD*) (pImage + 32);
-    m_timer = *pwImage++;
-    m_timerreload = *pwImage++;
-    m_timerflags = *pwImage++;
-    m_timerdivider = *pwImage++;
+    const WORD* pwImage = (const WORD*) (pImage + 32);  //   32    --
+    m_timer = *pwImage++;                               //   32     2
+    m_timerreload = *pwImage++;                         //   34     2
+    m_timerflags = *pwImage++;                          //   36     2
+    m_timerdivider = *pwImage++;                        //   38     2
     DWORD* pdwImage = (DWORD*)pwImage;                  //   40    --
-    memcpy(m_chancputx, pdwImage, 3 * 4); pwImage += 3; //   40    12
-    memcpy(m_chancpurx, pdwImage, 2 * 4); pwImage += 2; //   52     8
-    memcpy(m_chanpputx, pdwImage, 2 * 4); pwImage += 2; //   60     8
-    memcpy(m_chanppurx, pdwImage, 3 * 4); pwImage += 3; //   68    12
+    memcpy(m_chancputx, pdwImage, 3 * 4); pdwImage += 3;//   40    12
+    memcpy(m_chancpurx, pdwImage, 2 * 4); pdwImage += 2;//   52     8
+    memcpy(m_chanpputx, pdwImage, 2 * 4); pdwImage += 2;//   60     8
+    memcpy(m_chanppurx, pdwImage, 3 * 4); pdwImage += 3;//   68    12
     const BYTE* pbImage = (const BYTE*) pdwImage;       //   80    --
     m_chan0disabled = *pbImage++;                       //   80     1
     m_irq_cpureset = *pbImage++;                        //   81     1
@@ -764,20 +766,20 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     memcpy(freq_enable, pwImage, 12); pwImage += 6;     //  142    12
 
     // CPU status
-    const BYTE* pImageCPU = pImage + 160;
+    const BYTE* pImageCPU = pImage + 160;               //  160    32
     m_pCPU->LoadFromImage(pImageCPU);
     // PPU status
-    const BYTE* pImagePPU = pImageCPU + 32;
+    const BYTE* pImagePPU = pImageCPU + 32;             //  192    32
     m_pPPU->LoadFromImage(pImagePPU);
     // CPU memory/IO controller status
-    const BYTE* pImageCpuMem = pImagePPU + 32;
+    const BYTE* pImageCpuMem = pImagePPU + 32;          //  224    64
     m_pFirstMemCtl->LoadFromImage(pImageCpuMem);
     // PPU memory/IO controller status
-    const BYTE* pImagePpuMem = pImageCpuMem + 64;
+    const BYTE* pImagePpuMem = pImageCpuMem + 64;       //  288    64
     m_pSecondMemCtl->LoadFromImage(pImagePpuMem);
 
     // ROM
-    const BYTE* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE;
+    const BYTE* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE; // 512
     memcpy(m_pROM, pImageRom, 32 * 1024);
     // RAM planes 0, 1, 2
     const BYTE* pImageRam = pImageRom + 32 * 1024;
@@ -786,6 +788,8 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     memcpy(m_pRAM[1], pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
     memcpy(m_pRAM[2], pImageRam, 64 * 1024);
+    pImageRam += 64 * 1024;
+    ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
 }
 
 void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
