@@ -30,12 +30,13 @@ int m_cxScreenWidth;
 int m_cyScreenHeight;
 BYTE m_ScreenKeyState[256];
 ScreenViewMode m_ScreenMode = RGBScreen;
-int m_ScreenHeightMode = 3;  // 1 - Normal height, 2 - Double height, 3 - Upscaled to 1.5
+int m_ScreenHeightMode = 1;  // 1 - Normal height, 2 - Double height, 3 - Upscaled to 1.5
 
 void ScreenView_CreateDisplay();
 void ScreenView_OnDraw(HDC hdc);
 void ScreenView_UpscaleScreen(void* pImageBits);
 void ScreenView_UpscaleScreen2(void* pImageBits);
+void ScreenView_UpscaleScreen3(void* pImageBits);
 
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
@@ -153,6 +154,11 @@ void ScreenView_CreateDisplay()
         m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
     else if (m_ScreenHeightMode == 3)
         m_cyScreenHeight = 432;
+    else if (m_ScreenHeightMode == 4)
+    {
+        m_cxScreenWidth = 960;
+        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
+    }
 
     m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
     m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
@@ -182,7 +188,7 @@ void CreateScreenView(HWND hwndParent, int x, int y)
     int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     int xLeft = x;
     int yTop = y;
-    int cxWidth = UKNC_SCREEN_WIDTH + cxBorder * 2;
+    int cxWidth = m_cxScreenWidth + cxBorder * 2;
     int cyScreenHeight = m_cyScreenHeight;
     int cyHeight = cyScreenHeight + cyBorder * 2;
 
@@ -262,16 +268,21 @@ void ScreenView_SetHeightMode(int newHeightMode)
 
     ScreenView_CreateDisplay();
 
+    int cxScreen = UKNC_SCREEN_WIDTH;
     int cyScreen = UKNC_SCREEN_HEIGHT;
     if (m_ScreenHeightMode == 2)
         cyScreen = UKNC_SCREEN_HEIGHT * 2;
     else if (m_ScreenHeightMode == 3)
         cyScreen = 432;
+    else if (m_ScreenHeightMode == 4)
+    {
+        cxScreen = 960;
+        cyScreen = UKNC_SCREEN_HEIGHT * 2;
+    }
 
     int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     int cyHeight = cyScreen + cyBorder * 2;
-    RECT rc;  ::GetWindowRect(g_hwndScreen, &rc);
-    ::SetWindowPos(g_hwndScreen, NULL, 0,0, rc.right - rc.left, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
+    ::SetWindowPos(g_hwndScreen, NULL, 0,0, cxScreen, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
 }
 
 void ScreenView_OnDraw(HDC hdc)
@@ -322,6 +333,8 @@ void ScreenView_PrepareScreen()
         ScreenView_UpscaleScreen2(m_bits);
     else if (m_ScreenHeightMode == 3)
         ScreenView_UpscaleScreen(m_bits);
+    else if (m_ScreenHeightMode == 4)
+        ScreenView_UpscaleScreen3(m_bits);
 }
 
 // Upscale screen from height 288 to 432
@@ -365,6 +378,33 @@ void ScreenView_UpscaleScreen2(void* pImageBits)
 
         pdest += UKNC_SCREEN_WIDTH;
         memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
+    }
+}
+
+// Upscale screen width 640->960, height 288->576 with "interlaced" effect
+void ScreenView_UpscaleScreen3(void* pImageBits)
+{
+    for (int ukncline = 287; ukncline >= 0; ukncline--)
+    {
+        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
+        psrc += UKNC_SCREEN_WIDTH - 1;
+        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 2) * 960;
+        pdest += 960 - 1;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
+        {
+            DWORD c1 = *psrc;  psrc--;
+            DWORD c2 = *psrc;  psrc--;
+            DWORD c12 =
+                (((c1 & 0xff) + (c2 & 0xff)) >> 1) |
+                (((c1 & 0xff00) + (c2 & 0xff00)) >> 1) & 0xff00 |
+                (((c1 & 0xff0000) + (c2 & 0xff0000)) >> 1) & 0xff0000;
+            *pdest = c1;  pdest--;
+            *pdest = c12; pdest--;
+            *pdest = c2;  pdest--;
+        }
+
+        pdest += 960;
+        memset(pdest, 0, 960 * 4);
     }
 }
 

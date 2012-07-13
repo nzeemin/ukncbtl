@@ -48,9 +48,10 @@
 #define ID_VIEW_NORMALHEIGHT            32791
 #define ID_VIEW_DOUBLEHEIGHT            32792
 #define ID_VIEW_UPSCALED                32793
-#define ID_VIEW_RGBSCREEN               32794
-#define ID_VIEW_GRBSCREEN               32795
-#define ID_VIEW_GRAYSCREEN              32796
+#define ID_VIEW_UPSCALED3               32794
+#define ID_VIEW_RGBSCREEN               32795
+#define ID_VIEW_GRBSCREEN               32796
+#define ID_VIEW_GRAYSCREEN              32797
 #define ID_EMULATOR_AUTOSTART           32800
 #define ID_EMULATOR_REALSPEED           32801
 #define ID_VIEW_KEYBOARD                32802
@@ -72,7 +73,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        146
-#define _APS_NEXT_COMMAND_VALUE         32816
+#define _APS_NEXT_COMMAND_VALUE         32817
 #define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
