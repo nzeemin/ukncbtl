@@ -37,6 +37,7 @@ void ScreenView_OnDraw(HDC hdc);
 void ScreenView_UpscaleScreen(void* pImageBits);
 void ScreenView_UpscaleScreen2(void* pImageBits);
 void ScreenView_UpscaleScreen3(void* pImageBits);
+void ScreenView_UpscaleScreen4(void* pImageBits);
 
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
@@ -159,6 +160,11 @@ void ScreenView_CreateDisplay()
         m_cxScreenWidth = 960;
         m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
     }
+    else if (m_ScreenHeightMode == 5)
+    {
+        m_cxScreenWidth = UKNC_SCREEN_WIDTH * 2;
+        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 3;
+    }
 
     m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
     m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
@@ -279,6 +285,11 @@ void ScreenView_SetHeightMode(int newHeightMode)
         cxScreen = 960;
         cyScreen = UKNC_SCREEN_HEIGHT * 2;
     }
+    else if (m_ScreenHeightMode == 5)
+    {
+        cxScreen = UKNC_SCREEN_WIDTH * 2;
+        cyScreen = UKNC_SCREEN_HEIGHT * 3;
+    }
 
     int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     int cyHeight = cyScreen + cyBorder * 2;
@@ -335,6 +346,8 @@ void ScreenView_PrepareScreen()
         ScreenView_UpscaleScreen(m_bits);
     else if (m_ScreenHeightMode == 4)
         ScreenView_UpscaleScreen3(m_bits);
+    else if (m_ScreenHeightMode == 5)
+        ScreenView_UpscaleScreen4(m_bits);
 }
 
 // Upscale screen from height 288 to 432
@@ -405,6 +418,30 @@ void ScreenView_UpscaleScreen3(void* pImageBits)
 
         pdest += 960;
         memset(pdest, 0, 960 * 4);
+    }
+}
+
+// Upscale screen width 640->1280, height 288->864 with "interlaced" effect
+void ScreenView_UpscaleScreen4(void* pImageBits)
+{
+    for (int ukncline = 287; ukncline >= 0; ukncline--)
+    {
+        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 3) * 1280;
+        psrc += UKNC_SCREEN_WIDTH - 1;
+        pdest += 1280 - 1;
+        DWORD* pdest2 = pdest + 1280;
+        DWORD* pdest3 = pdest2 + 1280;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
+        {
+            DWORD color = *psrc;  psrc--;
+            *pdest = color;  pdest--;
+            *pdest = color;  pdest--;
+            *pdest2 = color;  pdest2--;
+            *pdest2 = color;  pdest2--;
+            *pdest3 = 0;  pdest3--;
+            *pdest3 = 0;  pdest3--;
+        }
     }
 }
 

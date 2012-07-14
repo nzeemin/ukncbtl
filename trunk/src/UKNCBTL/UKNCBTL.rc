@@ -107,6 +107,7 @@ BEGIN
         MENUITEM "Double Intrlaced",            ID_VIEW_DOUBLEHEIGHT
         MENUITEM "Upscaled to 1.5",             ID_VIEW_UPSCALED
         MENUITEM "Interlaced Upscaled",         ID_VIEW_UPSCALED3
+        MENUITEM "Screen Mode 5",               ID_VIEW_UPSCALED4
     END
     POPUP "&Emulator"
     BEGIN
