@@ -49,9 +49,10 @@
 #define ID_VIEW_DOUBLEHEIGHT            32792
 #define ID_VIEW_UPSCALED                32793
 #define ID_VIEW_UPSCALED3               32794
-#define ID_VIEW_RGBSCREEN               32795
-#define ID_VIEW_GRBSCREEN               32796
-#define ID_VIEW_GRAYSCREEN              32797
+#define ID_VIEW_UPSCALED4               32795
+#define ID_VIEW_RGBSCREEN               32796
+#define ID_VIEW_GRBSCREEN               32797
+#define ID_VIEW_GRAYSCREEN              32798
 #define ID_EMULATOR_AUTOSTART           32800
 #define ID_EMULATOR_REALSPEED           32801
 #define ID_VIEW_KEYBOARD                32802

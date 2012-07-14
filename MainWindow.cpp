@@ -294,7 +294,7 @@ void MainWindow_RestoreSettings()
 
     // Restore ScreenHeightMode
     int heimode = Settings_GetScreenHeightMode();
-    if (heimode < 1 || heimode > 4) heimode = 4;
+    if (heimode < 1 || heimode > 5) heimode = 1;
     ScreenView_SetHeightMode(heimode);
 
     // Restore Serial flag
@@ -646,8 +646,9 @@ void MainWindow_UpdateMenu()
     case 2: scrheimodecmd = ID_VIEW_DOUBLEHEIGHT; break;
     case 3: scrheimodecmd = ID_VIEW_UPSCALED; break;
     case 4: scrheimodecmd = ID_VIEW_UPSCALED3; break;
+    case 5: scrheimodecmd = ID_VIEW_UPSCALED4; break;
     }
-    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_UPSCALED3, scrheimodecmd, MF_BYCOMMAND);
+    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_UPSCALED4, scrheimodecmd, MF_BYCOMMAND);
 
     // Emulator menu options
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
@@ -738,6 +739,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_UPSCALED3:
         MainWindow_DoViewHeightMode(4);
+        break;
+    case ID_VIEW_UPSCALED4:
+        MainWindow_DoViewHeightMode(5);
         break;
     case ID_EMULATOR_RUN:
         MainWindow_DoEmulatorRun();
