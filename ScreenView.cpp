@@ -15,6 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "UKNCBTL.h"
 #include "Views.h"
 #include "Emulator.h"
+#include "util\BitmapFile.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -598,86 +599,13 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
     const DWORD* colors = ScreenView_GetPalette();
     Emulator_PrepareScreenRGB32(pBits, colors);
 
-    // Create file
-    HANDLE hFile = ::CreateFile(sFileName,
-            GENERIC_WRITE, FILE_SHARE_READ, NULL,
-            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (hFile == INVALID_HANDLE_VALUE)
-        return FALSE;
-
-    BITMAPFILEHEADER hdr;
-    ::ZeroMemory(&hdr, sizeof(hdr));
-    hdr.bfType = 0x4d42;  // "BM"
-    BITMAPINFOHEADER bih;
-    ::ZeroMemory(&bih, sizeof(bih));
-    bih.biSize = sizeof( BITMAPINFOHEADER );
-    bih.biWidth = UKNC_SCREEN_WIDTH;
-    bih.biHeight = UKNC_SCREEN_HEIGHT;
-    bih.biSizeImage = bih.biWidth * bih.biHeight / 2;
-    bih.biPlanes = 1;
-    bih.biBitCount = 4;
-    bih.biCompression = BI_RGB;
-    bih.biXPelsPerMeter = bih.biXPelsPerMeter = 2000;
-    hdr.bfSize = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + bih.biSizeImage;
-    hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + sizeof(RGBQUAD) * 16;
-
-    DWORD dwBytesWritten = 0;
-
-    BYTE * pData = (BYTE *) ::malloc(bih.biSizeImage);
-
-    // Prepare the image data
-    const DWORD * psrc = pBits;
-    BYTE * pdst = pData;
     const DWORD * palette = ScreenView_GetPalette();
-    for (int i = 0; i < 640 * 288; i++)
-    {
-        DWORD rgb = *psrc;
-        psrc++;
-        BYTE color = 0;
-        for (BYTE c = 0; c < 16; c++)
-        {
-            if (palette[c] == rgb)
-            {
-                color = c;
-                break;
-            }
-        }
-        if ((i & 1) == 0)
-            *pdst = (color << 4);
-        else
-        {
-            *pdst = (*pdst) & 0xf0 | color;
-            pdst++;
-        }
-    }
 
-    WriteFile(hFile, &hdr, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
-    if (dwBytesWritten != sizeof(BITMAPFILEHEADER))
-    {
-        ::free(pData);
-        return FALSE;
-    }
-    WriteFile(hFile, &bih, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
-    if (dwBytesWritten != sizeof(BITMAPINFOHEADER))
-    {
-        ::free(pData);
-        return FALSE;
-    }
-    WriteFile(hFile, palette, sizeof(RGBQUAD) * 16, &dwBytesWritten, NULL);
-    if (dwBytesWritten != sizeof(RGBQUAD) * 16)
-    {
-        ::free(pData);
-        return FALSE;
-    }
-    WriteFile(hFile, pData, bih.biSizeImage, &dwBytesWritten, NULL);
-    ::free(pData);
-    if (dwBytesWritten != bih.biSizeImage)
-        return FALSE;
-
-    // Close file
-    CloseHandle(hFile);
-
-    return TRUE;
+    LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
+    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".png")) == 0)
+        return PngFile_SaveScreenshot(pBits, palette, sFileName);
+    else
+        return BmpFile_SaveScreenshot(pBits, palette, sFileName);
 }
 
 
