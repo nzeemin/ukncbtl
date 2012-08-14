@@ -28,3 +28,18 @@ BOOL PngFile_SaveScreenshot(
 
 
 //////////////////////////////////////////////////////////////////////
+
+DECLARE_HANDLE(HAPNGFILE);
+
+// Create new APNG file
+HAPNGFILE ApngFile_Create(LPCTSTR filename);
+// Close APNG file
+void ApngFile_Close(HAPNGFILE apngfile);
+// Append one frame to the APNG file
+BOOL ApngFile_WriteFrame(
+    HAPNGFILE apngfile,
+    const DWORD* bits,
+    const DWORD* colors);
+
+
+//////////////////////////////////////////////////////////////////////
