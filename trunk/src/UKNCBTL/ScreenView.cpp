@@ -602,11 +602,15 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
     const DWORD * palette = ScreenView_GetPalette();
 
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
+    BOOL result = FALSE;
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".png")) == 0)
-        return PngFile_SaveScreenshot(pBits, palette, sFileName);
+        result = PngFile_SaveScreenshot(pBits, palette, sFileName);
     else
-        return BmpFile_SaveScreenshot(pBits, palette, sFileName);
-    //NOTE: Memory leak with bits?
+        result = BmpFile_SaveScreenshot(pBits, palette, sFileName);
+
+    ::free(pBits);
+
+    return result;
 }
 
 BOOL ScreenView_SaveApngFrame(HANDLE hFile)
@@ -622,7 +626,6 @@ BOOL ScreenView_SaveApngFrame(HANDLE hFile)
     ::free(pBits);
 
     return result;
-
 }
 
 

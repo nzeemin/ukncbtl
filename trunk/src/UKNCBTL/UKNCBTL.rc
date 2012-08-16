@@ -151,7 +151,7 @@ IDR_SCREENSHOT_MENU MENU
 BEGIN
     POPUP "Screenshot"
     BEGIN
-        MENUITEM "Save Screenshot as...",            ID_FILE_SAVESCREENSHOTAS
+        MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS
         MENUITEM "Save Animation...",           ID_FILE_SCREENSHOTANIMATED
     END
 END
