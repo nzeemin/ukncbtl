@@ -20,6 +20,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Dialogs.h"
 #include "Views.h"
 #include "ToolWindow.h"
+#include "util\BitmapFile.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -30,6 +31,8 @@ TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 
 HWND m_hwndToolbar = NULL;
 HWND m_hwndStatusbar = NULL;
+
+HANDLE g_hAnimatedScreenshot = INVALID_HANDLE_VALUE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -59,12 +62,15 @@ void MainWindow_DoEmulatorFloppy(int slot);
 void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
+void MainWindow_DoFileScreenshotSaveAs();
+void MainWindow_DoFileScreenshotAnimated();
+void MainWindow_DoFileScreenshotAnimatedStop();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
-
+void MainWindow_OnToolbarDropDown(LPNMTOOLBAR);
 
 //////////////////////////////////////////////////////////////////////
 
@@ -152,7 +158,7 @@ BOOL MainWindow_InitToolbar()
     if (! m_hwndToolbar)
         return FALSE;
 
-    SendMessage(m_hwndToolbar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) (DWORD) TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(m_hwndToolbar, TB_SETEXTENDEDSTYLE, 0, (LPARAM) (DWORD) TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_DRAWDDARROWS);
     SendMessage(m_hwndToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
     SendMessage(m_hwndToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26)); 
 
@@ -161,7 +167,7 @@ BOOL MainWindow_InitToolbar()
     addbitmap.nID = IDB_TOOLBAR;
     SendMessage(m_hwndToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
 
-    TBBUTTON buttons[14];
+    TBBUTTON buttons[15];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -213,6 +219,9 @@ BOOL MainWindow_InitToolbar()
     buttons[13].iBitmap = 8;
     buttons[13].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
     buttons[13].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
+    buttons[14].idCommand = ID_FILE_SCREENSHOT;
+    buttons[14].iBitmap = 13;
+    buttons[14].fsStyle = BTNS_DROPDOWN;
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 
@@ -224,8 +233,10 @@ BOOL MainWindow_InitToolbar()
 
 BOOL MainWindow_InitStatusbar()
 {
+    TCHAR sWelcome[100];
+    LoadString(g_hInst, IDS_WELCOME, sWelcome, 100);
     m_hwndStatusbar = CreateStatusWindow(WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS,
-            _T("Welcome to UKNC Back to Life emulator!"),
+            sWelcome,
             g_hwnd, 101);
     if (! m_hwndStatusbar)
         return FALSE;
@@ -352,6 +363,10 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             else if (hwndFrom == m_hwndToolbar && code == TBN_GETINFOTIP)
             {
                 MainWindow_OnToolbarGetInfoTip((LPNMTBGETINFOTIP) lParam);
+            }
+            else if (hwndFrom == m_hwndToolbar && code == TBN_DROPDOWN)
+            {
+                MainWindow_OnToolbarDropDown((LPNMTOOLBAR) lParam);
             }
             else
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -621,14 +636,23 @@ void MainWindow_UpdateMenu()
     // Get main menu
     HMENU hMenu = GetMenu(g_hwnd);
 
+    // Screenshot menu commands
+    BOOL okAnimatedScreenshot = (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE);
+    CheckMenuItem(hMenu, ID_FILE_SCREENSHOTANIMATED, (okAnimatedScreenshot ? MF_CHECKED : MF_UNCHECKED));
+    EnableMenuItem(hMenu, ID_FILE_SCREENSHOT, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
+    EnableMenuItem(hMenu, ID_FILE_SAVESCREENSHOTAS, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
+    MainWindow_SetToolbarImage(ID_FILE_SCREENSHOT, okAnimatedScreenshot ? ToolbarImageReset : ToolbarImageScreenshot);
+
     // Emulator|Run check
     CheckMenuItem(hMenu, ID_EMULATOR_RUN, (g_okEmulatorRunning ? MF_CHECKED : MF_UNCHECKED));
     SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_RUN, (g_okEmulatorRunning ? 1 : 0));
+
     // View|Debug check
     CheckMenuItem(hMenu, ID_VIEW_TOOLBAR, (Settings_GetToolbar() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_DEBUG, (Settings_GetDebug() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_KEYBOARD, (Settings_GetKeyboard() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_TAPE, (Settings_GetTape() ? MF_CHECKED : MF_UNCHECKED));
+
     // View|Color and View|Grayscale radio
     UINT scrmodecmd = 0;
     switch (ScreenView_GetMode())
@@ -638,6 +662,7 @@ void MainWindow_UpdateMenu()
     case GrayScreen: scrmodecmd = ID_VIEW_GRAYSCREEN; break;
     }
     CheckMenuRadioItem(hMenu, ID_VIEW_RGBSCREEN, ID_VIEW_GRAYSCREEN, scrmodecmd, MF_BYCOMMAND);
+
     // View|Normal Height and View|Double Height radio
     UINT scrheimodecmd = 0;
     switch (ScreenView_GetHeightMode())
@@ -805,6 +830,12 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SCREENSHOT:
         MainWindow_DoFileScreenshot();
         break;
+    case ID_FILE_SAVESCREENSHOTAS:
+        MainWindow_DoFileScreenshotSaveAs();
+        break;
+    case ID_FILE_SCREENSHOTANIMATED:
+        MainWindow_DoFileScreenshotAnimated();
+        break;
     case ID_FILE_CREATEDISK:
         MainWindow_DoFileCreateDisk();
         break;
@@ -959,6 +990,26 @@ void MainWindow_DoFileSaveState()
 
 void MainWindow_DoFileScreenshot()
 {
+    if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
+    {
+        MainWindow_DoFileScreenshotAnimatedStop();
+        return;
+    }
+
+    TCHAR bufFileName[MAX_PATH];
+    SYSTEMTIME st;
+    ::GetSystemTime(&st);
+    wsprintf(bufFileName, _T("%04d%02d%02d%02d%02d%02d%03d.png"),
+        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+
+    if (!ScreenView_SaveScreenshot(bufFileName))
+    {
+        AlertWarning(_T("Failed to save screenshot bitmap."));
+    }
+}
+
+void MainWindow_DoFileScreenshotSaveAs()
+{
     TCHAR bufFileName[MAX_PATH];
     BOOL okResult = ShowSaveDialog(g_hwnd,
         _T("Save screenshot as"),
@@ -971,6 +1022,36 @@ void MainWindow_DoFileScreenshot()
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
     }
+}
+
+void MainWindow_DoFileScreenshotAnimated()
+{
+    if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
+    {
+        MainWindow_DoFileScreenshotAnimatedStop();
+        return;
+    }
+
+    TCHAR bufFileName[MAX_PATH];
+    BOOL okResult = ShowSaveDialog(g_hwnd,
+        _T("Save screenshot series as"),
+        _T("Animated PNGs (*.apng)\0*.apng\0All Files (*.*)\0*.*\0\0"),
+        _T("png"),
+        bufFileName);
+    if (! okResult) return;
+
+    g_hAnimatedScreenshot = ApngFile_Create(bufFileName);
+
+    ScreenView_SaveApngFrame(g_hAnimatedScreenshot);
+
+    MainWindow_UpdateMenu();
+}
+void MainWindow_DoFileScreenshotAnimatedStop()
+{
+    ApngFile_Close((HAPNGFILE) g_hAnimatedScreenshot);
+    g_hAnimatedScreenshot = INVALID_HANDLE_VALUE;
+
+    MainWindow_UpdateMenu();
 }
 
 void MainWindow_DoFileCreateDisk()
@@ -1138,6 +1219,29 @@ void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP lpnm)
             LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
             _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);
         }
+    }
+}
+
+void MainWindow_OnToolbarDropDown(LPNMTOOLBAR lpnm)
+{
+    int commandId = lpnm->iItem;
+    if (commandId == ID_FILE_SCREENSHOT)
+    {
+        if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
+        {
+            MainWindow_DoFileScreenshotAnimatedStop();
+            return;
+        }
+
+        HMENU hMenu = ::LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_SCREENSHOT_MENU));
+        HMENU hMenuPopup = ::GetSubMenu(hMenu, 0);
+
+        POINT pt;  pt.x = lpnm->rcButton.left;  pt.y = lpnm->rcButton.bottom;
+        ::ClientToScreen(g_hwnd, &pt);
+        TrackPopupMenu(hMenuPopup, TPM_LEFTALIGN | TPM_TOPALIGN,
+            pt.x, pt.y, 0, g_hwnd, NULL);
+
+        ::DestroyMenu(hMenu);
     }
 }
 

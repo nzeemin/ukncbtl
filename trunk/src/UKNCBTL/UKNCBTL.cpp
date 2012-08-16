@@ -88,7 +88,12 @@ int APIENTRY _tWinMain(
             else
             {
                 if (Emulator_SystemFrame())
+                {
                     ScreenView_RedrawScreen();
+
+                    if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
+                        ScreenView_SaveApngFrame(g_hAnimatedScreenshot);
+                }
             }
         }
 
