@@ -220,7 +220,7 @@ BOOL MainWindow_InitToolbar()
     buttons[13].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
     buttons[13].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
     buttons[14].idCommand = ID_FILE_SCREENSHOT;
-    buttons[14].iBitmap = 13;
+    buttons[14].iBitmap = ToolbarImageScreenshot;
     buttons[14].fsStyle = BTNS_DROPDOWN;
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
@@ -641,7 +641,7 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_FILE_SCREENSHOTANIMATED, (okAnimatedScreenshot ? MF_CHECKED : MF_UNCHECKED));
     EnableMenuItem(hMenu, ID_FILE_SCREENSHOT, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
     EnableMenuItem(hMenu, ID_FILE_SAVESCREENSHOTAS, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
-    MainWindow_SetToolbarImage(ID_FILE_SCREENSHOT, okAnimatedScreenshot ? ToolbarImageReset : ToolbarImageScreenshot);
+    MainWindow_SetToolbarImage(ID_FILE_SCREENSHOT, okAnimatedScreenshot ? ToolbarImageScreenshotStop : ToolbarImageScreenshot);
 
     // Emulator|Run check
     CheckMenuItem(hMenu, ID_EMULATOR_RUN, (g_okEmulatorRunning ? MF_CHECKED : MF_UNCHECKED));
