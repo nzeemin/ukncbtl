@@ -28,6 +28,7 @@ extern HINSTANCE g_hInst; // current instance
 // Main Window
 
 extern HWND g_hwnd;  // Main window handle
+extern HANDLE g_hAnimatedScreenshot;
 
 void MainWindow_RegisterClass();
 BOOL CreateMainWindow();
@@ -61,6 +62,7 @@ enum ToolbarButtons
     ToolbarButtonHard2 = 11,
     // Separator
     ToolbarButtonSound = 13,
+    ToolbarButtonScreenshot = 14,
 };
 
 enum ToolbarButtonImages
@@ -78,6 +80,7 @@ enum ToolbarButtonImages
     ToolbarImageHardSlot = 10,
     ToolbarImageHardDrive = 11,
     ToolbarImageHardDriveWP = 12,
+    ToolbarImageScreenshot = 13,
 };
 
 enum StatusbarParts

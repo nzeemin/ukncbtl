@@ -49,6 +49,7 @@ void ScreenView_RedrawScreen();  // Force to call PrepareScreen and to draw the 
 void CreateScreenView(HWND hwndParent, int x, int y);
 LRESULT CALLBACK ScreenViewWndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName);
+BOOL ScreenView_SaveApngFrame(HANDLE hFile);
 void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 
