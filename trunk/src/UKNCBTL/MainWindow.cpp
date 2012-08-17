@@ -389,6 +389,9 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 void MainWindow_AdjustWindowSize()
 {
+    const int MAX_DEBUG_WIDTH = 1450;
+    const int MAX_DEBUG_HEIGHT = 1400;
+
     // Get metrics
     RECT rcWorkArea;  SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
     int cxBorder  = ::GetSystemMetrics(SM_CXBORDER);
@@ -426,7 +429,9 @@ void MainWindow_AdjustWindowSize()
     if (Settings_GetDebug())
     {
         cxWidth = rcWorkArea.right - rcWorkArea.left;
+        if (cxWidth > MAX_DEBUG_WIDTH) cxWidth = MAX_DEBUG_WIDTH;
         cyHeight = rcWorkArea.bottom - rcWorkArea.top;
+        if (cyHeight > MAX_DEBUG_HEIGHT) cyHeight = MAX_DEBUG_HEIGHT;
     }
     else
     {
@@ -455,10 +460,11 @@ void MainWindow_AdjustWindowLayout()
     RECT rcToolbar;  GetWindowRect(m_hwndToolbar, &rcToolbar);
     int cyToolbar = rcToolbar.bottom - rcToolbar.top;
 
-    int cyKeyboard = 0;
+    int cxKeyboard = 0, cyKeyboard = 0;
     if (Settings_GetKeyboard())
     {
         RECT rcKeyboard;  GetWindowRect(g_hwndKeyboard, &rcKeyboard);
+        cxKeyboard = rcKeyboard.right - rcKeyboard.left;
         cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
     }
     int cyTape = 0;
@@ -490,13 +496,16 @@ void MainWindow_AdjustWindowLayout()
 
     if (Settings_GetKeyboard())
     {
-        SetWindowPos(g_hwndKeyboard, NULL, 4, yKeyboard, 0,0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
+        int xKeyboard = 4 + (cxScreen - cxKeyboard) / 2;
+        SetWindowPos(g_hwndKeyboard, NULL, xKeyboard, yKeyboard, 0,0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
         yTape     += cyKeyboard + 4;
         yConsole  += cyKeyboard + 4;
     }
     if (Settings_GetTape())
     {
-        SetWindowPos(g_hwndTape, NULL, 4, yTape, 0,0, SWP_NOZORDER | SWP_NOSIZE);
+        RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
+        int cyTape = rcTape.bottom - rcTape.top;
+        SetWindowPos(g_hwndTape, NULL, 4, yTape, cxScreen, cyTape, SWP_NOZORDER);
         yConsole  += cyTape + 4;
     }
     if (Settings_GetDebug())
@@ -586,7 +595,7 @@ void MainWindow_ShowHideKeyboard()
         RECT rc;  GetClientRect(g_hwnd, &rc);
         RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
         int yKeyboardTop = rcScreen.bottom - rcScreen.top + 8;
-        int cxKeyboardWidth = rcScreen.right - rcScreen.left;
+        int cxKeyboardWidth = 640;
         int cyKeyboardHeight = 204;
 
         if (g_hwndKeyboard == INVALID_HANDLE_VALUE)
@@ -610,6 +619,8 @@ void MainWindow_ShowHideTape()
     }
     else
     {
+        RECT rcScreen;  GetWindowRect(g_hwndScreen, &rcScreen);
+
         RECT rcPrev;
         if (Settings_GetKeyboard())
             GetWindowRect(g_hwndKeyboard, &rcPrev);
@@ -619,7 +630,7 @@ void MainWindow_ShowHideTape()
         // Calculate children positions
         RECT rc;  GetClientRect(g_hwnd, &rc);
         int yTapeTop = rcPrev.bottom + 4;
-        int cxTapeWidth = rcPrev.right - rcPrev.left;
+        int cxTapeWidth = rcScreen.right - rcScreen.left;
         int cyTapeHeight = 100;
 
         if (g_hwndTape == INVALID_HANDLE_VALUE)

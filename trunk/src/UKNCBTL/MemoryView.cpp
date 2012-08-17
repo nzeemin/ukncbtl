@@ -266,7 +266,7 @@ void MemoryView_OnDraw(HDC hdc)
     {
         RECT rcFocus = rcClient;
         rcFocus.top += cyLine;
-        rcFocus.right = cxChar * (63 + 16);
+        rcFocus.right = cxChar * (63 + 22);
         DrawFocusRect(hdc, &rcFocus);
     }
 }
