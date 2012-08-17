@@ -206,7 +206,7 @@ void CFloppyController::SetCommand(WORD cmd)
 //#if !defined(PRODUCT)
 //        DebugLog(_T("Floppy STEP\r\n"));  //DEBUG
 //#endif
-        m_side = (m_flags & FLOPPY_CMD_SIDEUP) ? 1 : 0;
+        m_side = (m_flags & FLOPPY_CMD_SIDEUP) ? 1 : 0; // DO WE NEED IT HERE?
 
         if (m_flags & FLOPPY_CMD_DIR)
         {
@@ -245,7 +245,6 @@ void CFloppyController::SetCommand(WORD cmd)
         m_writemarker = TRUE;
         m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
     }
-    
 }
 
 WORD CFloppyController::GetData(void)
