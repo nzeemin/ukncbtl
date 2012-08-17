@@ -149,6 +149,9 @@ WORD CFloppyController::GetState(void)
 
     WORD res = m_status;
 
+    if (m_drivedata[m_drive].fpFile == NULL)
+        res |= FLOPPY_STATUS_MOREDATA;
+
 //#if !defined(PRODUCT)
 //    if (res & FLOPPY_STATUS_MOREDATA)
 //    {
