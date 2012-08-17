@@ -32,28 +32,28 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg)
 //////////////////////////////////////////////////////////////////////
 // CFloppy
 
-#define SAMPLERATE			22050
+#define SAMPLERATE                      22050
 
 
-#define FLOPPY_FSM_IDLE			0
+#define FLOPPY_FSM_IDLE                 0
 
-#define FLOPPY_CMD_CORRECTION250		04
-#define FLOPPY_CMD_ENGINESTART			020
-#define FLOPPY_CMD_CORRECTION500		010
-#define FLOPPY_CMD_SIDEUP				040
-#define FLOPPY_CMD_DIR					0100
-#define FLOPPY_CMD_STEP					0200
-#define FLOPPY_CMD_SEARCHSYNC			0400
-#define FLOPPY_CMD_SKIPSYNC				01000
+#define FLOPPY_CMD_CORRECTION250             04
+#define FLOPPY_CMD_ENGINESTART              020
+#define FLOPPY_CMD_CORRECTION500            010
+#define FLOPPY_CMD_SIDEUP                   040
+#define FLOPPY_CMD_DIR                     0100
+#define FLOPPY_CMD_STEP                    0200
+#define FLOPPY_CMD_SEARCHSYNC              0400
+#define FLOPPY_CMD_SKIPSYNC               01000
 //dir == 0 to center (towards trk0)
 //dir == 1 from center (towards trk80)
 
-#define FLOPPY_STATUS_TRACK0			01
-#define FLOPPY_STATUS_RDY				02
-#define FLOPPY_STATUS_WRITEPROTECT		04
-#define FLOPPY_STATUS_MOREDATA			0200
-#define FLOPPY_STATUS_CHECKSUMOK		040000
-#define FLOPPY_STATUS_INDEXMARK			0100000
+#define FLOPPY_STATUS_TRACK0                 01
+#define FLOPPY_STATUS_RDY                    02
+#define FLOPPY_STATUS_WRITEPROTECT           04
+#define FLOPPY_STATUS_MOREDATA             0200
+#define FLOPPY_STATUS_CHECKSUMOK         040000
+#define FLOPPY_STATUS_INDEXMARK         0100000
 
 #define FLOPPY_RAWTRACKSIZE             6250
 #define FLOPPY_RAWMARKERSIZE            (FLOPPY_RAWTRACKSIZE / 2)
@@ -64,10 +64,10 @@ struct CFloppyDrive
     FILE* fpFile;
     BOOL okNetRT11Image;  // TRUE - .rtd image, FALSE - .dsk image
     BOOL okReadOnly;    // Write protection flag
-	WORD track;         // Track number: from 0 to 79
-	WORD side;          // Disk side: 0 or 1
-	WORD dataptr;       // Data offset within m_data - "head" position
-	BYTE data[FLOPPY_RAWTRACKSIZE];  // Raw track image for the current track
+    WORD track;         // Track number: from 0 to 79
+    WORD side;          // Disk side: 0 or 1
+    WORD dataptr;       // Data offset within m_data - "head" position
+    BYTE data[FLOPPY_RAWTRACKSIZE];  // Raw track image for the current track
     BYTE marker[FLOPPY_RAWMARKERSIZE];  // Marker positions
     WORD datatrack;     // Track number of data in m_data array
     WORD dataside;      // Disk side of data in m_data array
@@ -83,11 +83,11 @@ protected:
     CFloppyDrive m_drivedata[4];
     WORD m_drive;       // Drive number: from 0 to 3
     CFloppyDrive* m_pDrive;  // Current drive
-	WORD m_track;       // Track number: from 0 to 79
-	WORD m_side;        // Disk side: 0 or 1
-	WORD m_status;      // See FLOPPY_STATUS_XXX defines
-	WORD m_flags;       // See FLOPPY_CMD_XXX defines
-	WORD m_datareg;     // Read mode data register
+    WORD m_track;       // Track number: from 0 to 79
+    WORD m_side;        // Disk side: 0 or 1
+    WORD m_status;      // See FLOPPY_STATUS_XXX defines
+    WORD m_flags;       // See FLOPPY_CMD_XXX defines
+    WORD m_datareg;     // Read mode data register
     WORD m_writereg;    // Write mode data register
     BOOL m_writeflag;   // Write mode data register has data
     BOOL m_writemarker; // Write marker in m_marker
@@ -110,14 +110,14 @@ public:
     BOOL IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
     BOOL IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     BOOL IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
-	WORD GetData(void);         // Reading port 177132 - data
-	WORD GetState(void);        // Reading port 177130 - device status
-	void SetCommand(WORD cmd);  // Writing to port 177130 - commands
-	void WriteData(WORD Data);  // Writing to port 177132 - data
-	void Periodic();            // Rotate disk; call it each 64 us - 15625 times per second
+    WORD GetData(void);         // Reading port 177132 - data
+    WORD GetState(void);        // Reading port 177130 - device status
+    void SetCommand(WORD cmd);  // Writing to port 177130 - commands
+    void WriteData(WORD Data);  // Writing to port 177132 - data
+    void Periodic();            // Rotate disk; call it each 64 us - 15625 times per second
 
 private:
-	void PrepareTrack();
+    void PrepareTrack();
     void FlushChanges();  // If current track was changed - save it
 
 };
@@ -126,7 +126,7 @@ private:
 //////////////////////////////////////////////////////////////////////
 // CHardDrive
 
-#define IDE_DISK_SECTOR_SIZE			512
+#define IDE_DISK_SECTOR_SIZE      512
 
 class CHardDrive
 {
