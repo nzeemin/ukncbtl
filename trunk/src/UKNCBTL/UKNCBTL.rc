@@ -147,15 +147,6 @@ BEGIN
     END
 END
 
-IDR_SCREENSHOT_MENU MENU 
-BEGIN
-    POPUP "Screenshot"
-    BEGIN
-        MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS
-        MENUITEM "Save Animation...",           ID_FILE_SCREENSHOTANIMATED
-    END
-END
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -290,7 +281,7 @@ IDB_TOOLBAR             BITMAP                  "Toolbar.bmp"
 STRINGTABLE 
 BEGIN
     IDS_APP_TITLE           "UKNC Back to Life"
-    IDS_WELCOME             "UKNC Back to Life emulator - Beta 30"
+    IDS_WELCOME             "UKNC Back to Life emulator - Beta 31"
     IDC_UKNCBTL             "UKNCBTL"
 END
 

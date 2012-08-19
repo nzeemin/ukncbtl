@@ -22,7 +22,6 @@
 #define IDB_TOOLBAR                     143
 #define IDD_CREATEDISK                  144
 #define IDD_SETTINGS                    145
-#define IDR_SCREENSHOT_MENU             146
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002
