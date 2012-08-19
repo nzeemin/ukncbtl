@@ -93,9 +93,9 @@ CHardDrive::~CHardDrive()
 
 void CHardDrive::Reset()
 {
-#if !defined(PRODUCT)
-    DebugPrint(_T("HDD Reset\r\n"));
-#endif
+//#if !defined(PRODUCT)
+//    DebugPrint(_T("HDD Reset\r\n"));
+//#endif
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
@@ -185,9 +185,9 @@ WORD CHardDrive::ReadPort(WORD port)
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
-#if !defined(PRODUCT)
-                DebugPrint(_T("HDD Read sector complete\r\n"));
-#endif
+//#if !defined(PRODUCT)
+//                DebugPrint(_T("HDD Read sector complete\r\n"));
+//#endif
                 ContinueRead();
             }
         }
@@ -310,10 +310,10 @@ void CHardDrive::HandleCommand(BYTE command)
     {
         case IDE_COMMAND_READ_MULTIPLE:
         case IDE_COMMAND_READ_MULTIPLE1:
-#if !defined(PRODUCT)
-            DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-#endif
+//#if !defined(PRODUCT)
+//            DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+//#endif
             m_status |= IDE_STATUS_BUSY;
 
             m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
@@ -321,28 +321,28 @@ void CHardDrive::HandleCommand(BYTE command)
             break;
 
         case IDE_COMMAND_SET_CONFIG:
-#if !defined(PRODUCT)
-            DebugPrintFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
-                    command, m_curhead, m_sectorcount);
-#endif
+//#if !defined(PRODUCT)
+//            DebugPrintFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
+//                    command, m_curhead, m_sectorcount);
+//#endif
             m_numsectors = m_sectorcount;
             m_numheads = m_curhead + 1;
             break;
 
         case IDE_COMMAND_WRITE_MULTIPLE:
         case IDE_COMMAND_WRITE_MULTIPLE1:
-#if !defined(PRODUCT)
-            DebugPrintFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-#endif
+//#if !defined(PRODUCT)
+//            DebugPrintFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+//#endif
             m_bufferoffset = 0;
             m_status |= IDE_STATUS_BUFFER_READY;
             break;
 
         case IDE_COMMAND_IDENTIFY:
-#if !defined(PRODUCT)
-            DebugPrintFormat(_T("HDD COMMAND %02x (IDENTIFY)\r\n"), command);
-#endif
+//#if !defined(PRODUCT)
+//            DebugPrintFormat(_T("HDD COMMAND %02x (IDENTIFY)\r\n"), command);
+//#endif
             IdentifyDrive();  // Prepare the buffer
             m_bufferoffset = 0;
             m_sectorcount = 1;
@@ -352,11 +352,11 @@ void CHardDrive::HandleCommand(BYTE command)
             break;
 
         default:
-#if !defined(PRODUCT)
-            DebugPrintFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-            //DebugBreak();  // Implement this IDE command!
-#endif
+//#if !defined(PRODUCT)
+//            DebugPrintFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+//            //DebugBreak();  // Implement this IDE command!
+//#endif
             break;
     }
 }
@@ -452,9 +452,9 @@ void CHardDrive::WriteSectorDone()
 
     // Write buffer to the HDD image
     DWORD fileOffset = CalculateOffset();
-#if !defined(PRODUCT)
-    DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);  //DEBUG
-#endif
+//#if !defined(PRODUCT)
+//    DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);  //DEBUG
+//#endif
     if (m_okReadOnly)
     {
         m_status |= IDE_STATUS_ERROR;

@@ -70,7 +70,7 @@ void MainWindow_DoFileSettings();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
-void MainWindow_OnToolbarDropDown(LPNMTOOLBAR);
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -221,7 +221,7 @@ BOOL MainWindow_InitToolbar()
     buttons[13].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
     buttons[14].idCommand = ID_FILE_SCREENSHOT;
     buttons[14].iBitmap = ToolbarImageScreenshot;
-    buttons[14].fsStyle = BTNS_DROPDOWN;
+    buttons[14].fsStyle = BTNS_BUTTON;
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 
@@ -364,10 +364,10 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             {
                 MainWindow_OnToolbarGetInfoTip((LPNMTBGETINFOTIP) lParam);
             }
-            else if (hwndFrom == m_hwndToolbar && code == TBN_DROPDOWN)
-            {
-                MainWindow_OnToolbarDropDown((LPNMTOOLBAR) lParam);
-            }
+            //else if (hwndFrom == m_hwndToolbar && code == TBN_DROPDOWN)
+            //{
+            //    MainWindow_OnToolbarDropDown((LPNMTOOLBAR) lParam);
+            //}
             else
                 return DefWindowProc(hWnd, message, wParam, lParam);
         }
@@ -1230,29 +1230,6 @@ void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP lpnm)
             LPCTSTR lpFileName = GetFileNameFromFilePath(buffilepath);
             _tcsncpy_s(lpnm->pszText, 80, lpFileName, _TRUNCATE);
         }
-    }
-}
-
-void MainWindow_OnToolbarDropDown(LPNMTOOLBAR lpnm)
-{
-    int commandId = lpnm->iItem;
-    if (commandId == ID_FILE_SCREENSHOT)
-    {
-        if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
-        {
-            MainWindow_DoFileScreenshotAnimatedStop();
-            return;
-        }
-
-        HMENU hMenu = ::LoadMenu(g_hInst, MAKEINTRESOURCE(IDR_SCREENSHOT_MENU));
-        HMENU hMenuPopup = ::GetSubMenu(hMenu, 0);
-
-        POINT pt;  pt.x = lpnm->rcButton.left;  pt.y = lpnm->rcButton.bottom;
-        ::ClientToScreen(g_hwnd, &pt);
-        TrackPopupMenu(hMenuPopup, TPM_LEFTALIGN | TPM_TOPALIGN,
-            pt.x, pt.y, 0, g_hwnd, NULL);
-
-        ::DestroyMenu(hMenu);
     }
 }
 
