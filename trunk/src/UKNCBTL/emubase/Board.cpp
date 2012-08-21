@@ -103,13 +103,8 @@ void CMotherboard::Reset ()
 
     m_chan0disabled = 0;
 
-    int i;
     m_scanned_key = 0;
-    for (i=0; i<=15; i++)
-    {
-        m_kbd_matrix[i].processed = FALSE;
-        m_kbd_matrix[i].row_Y = 0;
-    }
+    memset(m_kbd_matrix, 0, sizeof(m_kbd_matrix));
     m_kbd_matrix[3].row_Y = 0xFF;
 
     //ChanResetByCPU();
@@ -675,11 +670,11 @@ void CMotherboard::KeyboardEvent(BYTE scancode, BOOL okPressed)
 //  Offset Size
 //     0    32 bytes  - Header
 //    32   128 bytes  - Board status
-//   160    32 bytes  - CPU status
-//   192    32 bytes  - PPU status
-//   224    64 bytes  - CPU memory/IO
-//   288    64 bytes  - PPU memory/IO
-//   352   160 bytes  - reserved
+//   160    64 bytes  - CPU status
+//   224    64 bytes  - PPU status
+//   288    64 bytes  - CPU memory/IO
+//   352    64 bytes  - PPU memory/IO
+//   416    96 bytes  - reserved
 //   512    --        - end of the header
 //   512   32 Kbytes  - ROM image
 //         64 Kbytes * 3  - RAM planes 0, 1, 2
@@ -718,10 +713,10 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     BYTE* pImageCPU = pImage + 160;
     m_pCPU->SaveToImage(pImageCPU);
     // PPU status
-    BYTE* pImagePPU = pImageCPU + 32;
+    BYTE* pImagePPU = pImageCPU + 64;
     m_pPPU->SaveToImage(pImagePPU);
     // CPU memory/IO controller status
-    BYTE* pImageCpuMem = pImagePPU + 32;
+    BYTE* pImageCpuMem = pImagePPU + 64;
     m_pFirstMemCtl->SaveToImage(pImageCpuMem);
     // PPU memory/IO controller status
     BYTE* pImagePpuMem = pImageCpuMem + 64;
@@ -769,13 +764,13 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     const BYTE* pImageCPU = pImage + 160;               //  160    32
     m_pCPU->LoadFromImage(pImageCPU);
     // PPU status
-    const BYTE* pImagePPU = pImageCPU + 32;             //  192    32
+    const BYTE* pImagePPU = pImageCPU + 64;             //  224    32
     m_pPPU->LoadFromImage(pImagePPU);
     // CPU memory/IO controller status
-    const BYTE* pImageCpuMem = pImagePPU + 32;          //  224    64
+    const BYTE* pImageCpuMem = pImagePPU + 64;          //  288    64
     m_pFirstMemCtl->LoadFromImage(pImageCpuMem);
     // PPU memory/IO controller status
-    const BYTE* pImagePpuMem = pImageCpuMem + 64;       //  288    64
+    const BYTE* pImagePpuMem = pImageCpuMem + 64;       //  352    64
     m_pSecondMemCtl->LoadFromImage(pImagePpuMem);
 
     // ROM

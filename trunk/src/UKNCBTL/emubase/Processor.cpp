@@ -2538,13 +2538,16 @@ void CProcessor::ExecuteMARK ()  // MARK
 
 //////////////////////////////////////////////////////////////////////
 //
-// CPU image format (32 bytes):
+// CPU image format (64 bytes):
 //   2   bytes      PSW
 //   2*8 bytes      Registers R0..R7
 //   2*2 bytes      Saved PC and PSW
 //   2   byte       Stopped flag: 1 - stopped, 0 - not stopped
 //   2   bytes      Internal tick count
-//   1*6 bytes      Step mode, Bus error, HALT, DCLO, ACLO, WAIT
+//   3   bytes      Flags
+//   1   byte       VIRQ reset request
+//   2   bytes      Reserved
+//  32   bytes      VIRQ vectors
 
 void CProcessor::SaveToImage(BYTE* pImage) const
 {
@@ -2552,36 +2555,80 @@ void CProcessor::SaveToImage(BYTE* pImage) const
     WORD* pwImage = (WORD*) pImage;                 //    0    --
     *pwImage++ = m_psw;                             //    0     2   PSW
     memcpy(pwImage, m_R, 2 * 8);  pwImage += 8;     //    2    16   Registers R0-R7
-    pwImage += 2 * 8;
-    *pwImage++ = m_savepc;                          //   18     2
-    *pwImage++ = m_savepsw;                         //   20     2
-    *pwImage++ = (m_okStopped ? 1 : 0);             //   22     2
-    *pwImage++ = m_internalTick;                    //   24     2
+    *pwImage++ = m_savepc;                          //   18     2   PC'
+    *pwImage++ = m_savepsw;                         //   20     2   PSW'
+    *pwImage++ = (m_okStopped ? 1 : 0);             //   22     2   Stopped
+    *pwImage++ = m_internalTick;                    //   24     2   Internal tick count
     BYTE* pbImage = (BYTE*) pwImage;
-    *pbImage++ = (m_stepmode  ? 1 : 0);             //   26     1
-    *pbImage++ = (m_buserror  ? 1 : 0);             //   27     1
-    *pbImage++ = (m_haltpin   ? 1 : 0);             //   28     1
-    *pbImage++ = (m_DCLOpin   ? 1 : 0);             //   29     1
-    *pbImage++ = (m_ACLOpin   ? 1 : 0);             //   30     1
-    *pbImage++ = (m_waitmode  ? 1 : 0);             //   31     1
+    BYTE flags0 = 0;
+    flags0 |= (m_stepmode ?   1 : 0);
+    flags0 |= (m_buserror ?   2 : 0);
+    flags0 |= (m_haltpin  ?   4 : 0);
+    flags0 |= (m_DCLOpin  ?   8 : 0);
+    flags0 |= (m_ACLOpin  ?  16 : 0);
+    flags0 |= (m_waitmode ?  32 : 0);
+    *pbImage++ = flags0;                            //   26     1   Flags
+    BYTE flags1 = 0;
+    flags1 |= (m_STRTrq ?   1 : 0);
+    flags1 |= (m_RPLYrq ?   2 : 0);
+    flags1 |= (m_ILLGrq ?   4 : 0);
+    flags1 |= (m_RSVDrq ?   8 : 0);
+    flags1 |= (m_TBITrq ?  16 : 0);
+    flags1 |= (m_ACLOrq ?  32 : 0);
+    flags1 |= (m_HALTrq ?  64 : 0);
+    flags1 |= (m_EVNTrq ? 128 : 0);
+    *pbImage++ = flags1;                            //   27     1   Flags
+    BYTE flags2 = 0;
+    flags2 |= (m_FIS_rq ?   1 : 0);
+    flags2 |= (m_BPT_rq ?   2 : 0);
+    flags2 |= (m_IOT_rq ?   4 : 0);
+    flags2 |= (m_EMT_rq ?   8 : 0);
+    flags2 |= (m_TRAPrq ?  16 : 0);
+    flags2 |= (m_ACLOreset ? 32 : 0);
+    flags2 |= (m_EVNTreset ? 64 : 0);
+    *pbImage++ = flags2;                            //   28     1   Flags
+    *pbImage++ = (BYTE)m_VIRQreset;                 //   29     1   VIRQ reset request
+    //                                              //   30     2   Reserved
+    memcpy(pImage + 32, m_virq, 2 * 16);            //   32    32   VIRQ vectors
 }
 
 void CProcessor::LoadFromImage(const BYTE* pImage)
 {
-    const WORD* pwImage = (const WORD*) pImage;
-    m_psw = *pwImage++;  // PSW
-    memcpy(m_R, pwImage, 2 * 8);  pwImage += 8;  // Registers R0..R7
-    m_savepc    = *pwImage++;
-    m_savepsw   = *pwImage++;
-    m_okStopped = (*pwImage++ != 0);
-    m_internalTick = *pwImage++;
+    const WORD* pwImage = (const WORD*) pImage;     //    0    --
+    m_psw = *pwImage++;                             //    0     2   PSW
+    memcpy(m_R, pwImage, 2 * 8);  pwImage += 8;     //    2    16   Registers R0-R7
+    m_savepc    = *pwImage++;                       //   18     2   PC'
+    m_savepsw   = *pwImage++;                       //   20     2   PSW'
+    m_okStopped = (*pwImage++ != 0);                //   22     2   Stopped
+    m_internalTick = *pwImage++;                    //   24     2   Internal tick count
     const BYTE* pbImage = (const BYTE*) pwImage;
-    m_stepmode  = (*pbImage++ != 0);
-    m_buserror  = (*pbImage++ != 0);
-    m_haltpin   = (*pbImage++ != 0);
-    m_DCLOpin   = (*pbImage++ != 0);
-    m_ACLOpin   = (*pbImage++ != 0);
-    m_waitmode  = (*pbImage++ != 0);
+    BYTE flags0 = *pbImage++;                       //   26     1   Flags
+    m_stepmode  = ((flags0 &  1) != 0);
+    m_buserror  = ((flags0 &  2) != 0);
+    m_haltpin   = ((flags0 &  4) != 0);
+    m_DCLOpin   = ((flags0 &  8) != 0);
+    m_ACLOpin   = ((flags0 & 16) != 0);
+    m_waitmode  = ((flags0 & 32) != 0);
+    BYTE flags1 = *pbImage++;                       //   27     1   Flags
+    m_STRTrq    = ((flags1 &   1) != 0);
+    m_RPLYrq    = ((flags1 &   2) != 0);
+    m_ILLGrq    = ((flags1 &   4) != 0);
+    m_RSVDrq    = ((flags1 &   8) != 0);
+    m_TBITrq    = ((flags1 &  16) != 0);
+    m_ACLOrq    = ((flags1 &  32) != 0);
+    m_HALTrq    = ((flags1 &  64) != 0);
+    m_EVNTrq    = ((flags1 & 128) != 0);
+    BYTE flags2 = *pbImage++;                       //   28     1   Flags
+    m_FIS_rq    = ((flags2 &  1) != 0);
+    m_BPT_rq    = ((flags2 &  2) != 0);
+    m_IOT_rq    = ((flags2 &  4) != 0);
+    m_EMT_rq    = ((flags2 &  8) != 0);
+    m_TRAPrq    = ((flags2 & 16) != 0);
+    m_ACLOreset = ((flags2 & 32) != 0);
+    m_EVNTreset = ((flags2 & 64) != 0);
+    m_VIRQreset = (int)*pbImage++;                  //   29     1   VIRQ reset request
+    //                                              //   30     2   Reserved
+    memcpy(m_virq, pImage + 32, 2 * 16);            //   32    32   VIRQ vectors
 }
 
 WORD CProcessor::GetWordAddr (BYTE meth, BYTE reg)
