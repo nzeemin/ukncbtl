@@ -552,7 +552,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             //   Translate value to 24-bit RGB
             //   Put value to m_bits; repeat using scale value
 
-            int x = 0;
+            int xr = 640;
             int y = yy - 19;
             DWORD* pBits = ((DWORD*)pImageBits) + (288 - 1 - y) * 640;
             for (int pos = 0; ; pos++)
@@ -564,31 +564,29 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 // Loop through the bits of the byte
                 for (int bit = 0; bit < 8; bit++)
                 {
-                    // Make 3-bit value from the bits
-                    //BYTE value012 = (src0 & 1) | (src1 & 1) * 2 | (src2 & 1) * 4;
-					BYTE value012;
-					// Map value to palette; result is 4-bit value YRGB
                     BYTE valueYRGB;
                     if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
                         valueYRGB = cursorYRGB;
                     else
 					{
-						value012 = (src0 & 1) | (src1 & 1) * 2 | (src2 & 1) * 4;
-						valueYRGB = (BYTE) (palette >> (value012 * 4)) & 15;
+	                    // Make 3-bit value from the bits
+						BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
+						// Map value to palette; result is 4-bit value YRGB
+						valueYRGB = (BYTE) (palette >> (value012 << 2)) & 15;
 					}
                     DWORD valueRGB = colors[valueYRGB];
 
                     // Put value to m_bits; repeat using scale value
                     for (int s = 0; s < scale; s++)
                         *pBits++ = valueRGB;
-                    x += scale;
+                    xr -= scale;
 
                     // Shift to the next bit
                     src0 = src0 >> 1;
                     src1 = src1 >> 1;
                     src2 = src2 >> 1;
                 }
-                if (x >= 640)
+                if (xr <= 0)
                     break;  // End of line
                 addressBits++;  // Go to the next byte
             }
