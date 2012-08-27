@@ -35,7 +35,7 @@ void ClearConsole();
 void PrintConsolePrompt();
 void PrintRegister(LPCTSTR strName, WORD value);
 void PrintMemoryDump(CProcessor* pProc, WORD address, int lines);
-void SaveMemoryDump(CProcessor* pProc);
+BOOL SaveMemoryDump(CProcessor* pProc);
 void DoConsoleCommand();
 void ConsoleView_AdjustWindowLayout();
 LRESULT CALLBACK ConsoleEditWndProc(HWND, UINT, WPARAM, LPARAM);
@@ -231,32 +231,32 @@ void PrintRegister(LPCTSTR strName, WORD value)
     ConsoleView_Print(buffer);
 }
 
-void SaveMemoryDump(CProcessor *pProc)
-{ //
+BOOL SaveMemoryDump(CProcessor *pProc)
+{
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    BYTE buf[65536];
-    HANDLE file;
-    TCHAR fname[256];
+    BYTE * pData = (BYTE *) ::malloc(65536);
+    if (pData == NULL)
+        return false;
 
-    for(int i=0;i<65536;i++)
+    for (int i = 0; i < 65536; i++)  //TODO: Get memory by words instead of bytes
     {
-        buf[i]=pMemCtl->GetByte(i,1);
+        pData[i] = pMemCtl->GetByte(i, pProc->IsHaltMode());
     }
 
-    wsprintf(fname,_T("memdump%s.bin"),pProc->GetName());
-    
-        // Create file
-        file = CreateFile(fname,
-                GENERIC_WRITE, FILE_SHARE_READ, NULL,
-                OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-    
-    //SetFilePointer(Common_LogFile, 0, NULL, FILE_END);
+    TCHAR fname[20];
+    wsprintf(fname, _T("memdump%s.bin"), pProc->GetName());
+    HANDLE file = ::CreateFile(fname,
+        GENERIC_WRITE, FILE_SHARE_READ, NULL,
+        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    DWORD dwLength = 65536;
     DWORD dwBytesWritten = 0;
-    WriteFile(file, buf, dwLength, &dwBytesWritten, NULL);
-    CloseHandle(file);
-
+    ::WriteFile(file, pData, 65536, &dwBytesWritten, NULL);
+    ::free(pData);
+    ::CloseHandle(file);
+    if (dwBytesWritten != 65536)
+        return false;
+    
+    return true;
 }
 // Print memory dump
 void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
