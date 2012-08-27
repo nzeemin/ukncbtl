@@ -736,6 +736,10 @@
 			>
 		</File>
 		<File
+			RelativePath=".\uknc_rom.bin"
+			>
+		</File>
+		<File
 			RelativePath=".\UKNCBTL.cpp"
 			>
 		</File>
