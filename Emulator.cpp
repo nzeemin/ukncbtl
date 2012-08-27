@@ -94,6 +94,8 @@ BOOL Emulator_Init()
 {
     ASSERT(g_pBoard == NULL);
 
+    ::memset(g_pEmulatorRam, 0, sizeof(g_pEmulatorRam));
+    ::memset(g_pEmulatorChangedRam, 0, sizeof(g_pEmulatorChangedRam));
     CProcessor::Init();
 
     g_pBoard = new CMotherboard();
@@ -118,12 +120,14 @@ BOOL Emulator_Init()
     // Allocate memory for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        g_pEmulatorRam[i] = (BYTE*) ::malloc(65536);  memset(g_pEmulatorRam[i], 0, 65536);
-        g_pEmulatorChangedRam[i] = (BYTE*) ::malloc(65536);  memset(g_pEmulatorChangedRam[i], 0, 65536);
+        g_pEmulatorRam[i] = (BYTE*) ::malloc(65536);
+        if (g_pEmulatorRam[i] != NULL) memset(g_pEmulatorRam[i], 0, 65536);
+        g_pEmulatorChangedRam[i] = (BYTE*) ::malloc(65536);
+        if (g_pEmulatorChangedRam[i] != NULL) memset(g_pEmulatorChangedRam[i], 0, 65536);
     }
 
     g_okEmulatorInitialized = TRUE;
-    return TRUE;
+    return true;
 }
 
 void Emulator_Done()
@@ -237,9 +241,9 @@ void Emulator_SetSound(BOOL soundOnOff)
 BOOL CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
-    ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, NULL);
+    BOOL result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, NULL);
 
-    return (dwBytesRead == 1);
+    return result && (dwBytesRead == 1);
 }
 
 BOOL CALLBACK Emulator_SerialOut_Callback(BYTE byte)
@@ -485,7 +489,11 @@ BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 
     // Allocate memory
     BYTE* pImage = (BYTE*) ::malloc(24 * 1024);
-
+    if (pImage == NULL)
+    {
+        ::fclose(fpFile);
+        return FALSE;
+    }
     DWORD dwBytesRead = ::fread(pImage, 1, 24 * 1024, fpFile);
     ASSERT(dwBytesRead == 24 * 1024);
 
@@ -640,6 +648,12 @@ void Emulator_SaveImage(LPCTSTR sFilePath)
 
     // Allocate memory
     BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
+    if (pImage == NULL)
+    {
+        AlertWarning(_T("Failed to save image file."));
+        ::fclose(fpFile);
+        return;
+    }
     memset(pImage, 0, UKNCIMAGE_SIZE);
     // Prepare header
     DWORD* pHeader = (DWORD*) pImage;
@@ -681,6 +695,12 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
 
     // Allocate memory
     BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
+    if (pImage == NULL)
+    {
+        ::fclose(fpFile);
+        AlertWarning(_T("Failed to load image file."));
+        return;
+    }
 
     // Read image
     ::fseek(fpFile, 0, SEEK_SET);
