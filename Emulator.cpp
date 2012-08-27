@@ -60,6 +60,36 @@ WORD g_wEmulatorPrevPpuPC = 0177777;  // Previous PC value
 
 const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
+BOOL Emulator_LoadUkncRom()
+{
+    HRSRC hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_UKNC_ROM), _T("BIN"));
+    if (hRes == NULL)
+        return false;
+    DWORD dwDataSize = ::SizeofResource(NULL, hRes);
+    if (dwDataSize < 32256)
+        return false;
+    HGLOBAL hResLoaded = ::LoadResource(NULL, hRes);
+    if (hResLoaded == NULL)
+        return false;
+    void * pData = ::malloc(32768);
+    if (pData == NULL)
+        return false;
+    ::memset(pData, 0, 32768);
+    void * pResData = ::LockResource(hResLoaded);
+    if (pResData == NULL)
+    {
+        ::free(pData);
+        return false;
+    }
+    ::memcpy(pData, pResData, 32256);
+
+    g_pBoard->LoadROM((const BYTE *)pData);
+
+    ::free(pData);
+
+    return true;
+}
+
 BOOL Emulator_Init()
 {
     ASSERT(g_pBoard == NULL);
@@ -68,22 +98,11 @@ BOOL Emulator_Init()
 
     g_pBoard = new CMotherboard();
 
-    BYTE buffer[32768];
-    DWORD dwBytesRead;
-
-    // Load ROM file
-    memset(buffer, 0, 32768);
-    FILE* fpRomFile = ::_tfsopen(FILE_NAME_UKNC_ROM, _T("rb"), _SH_DENYWR);
-    if (fpRomFile == NULL)
+    if (! Emulator_LoadUkncRom())
     {
-        AlertWarning(_T("Failed to load ROM file."));
+        AlertWarning(_T("Failed to load UKNC ROM from resources."));
         return false;
     }
-    dwBytesRead = ::fread(buffer, 1, 32256, fpRomFile);
-    ASSERT(dwBytesRead == 32256);
-    ::fclose(fpRomFile);
-
-    g_pBoard->LoadROM(buffer);
 
     g_pBoard->Reset();
 
