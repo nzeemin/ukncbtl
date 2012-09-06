@@ -524,9 +524,10 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
     BOOL okTagType = FALSE;  // Type of 4-word tag: TRUE - set palette, FALSE - set params
     int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
     DWORD palette = 0;       // Palette
+    DWORD palettecurrent[8];  memset(palettecurrent, 0, sizeof(palettecurrent)); // Current palette; update each time we change the "palette" variable
 	BYTE pbpgpr = 7;         // 3-bit Y-value modifier
-    for (int yy = 0; yy < 307; yy++) {
-
+    for (int yy = 0; yy < 307; yy++)
+    {
         if (okTagSize) {  // 4-word tag
             WORD tag1 = g_pBoard->GetRAMWord(0, address);
             address += 2;
@@ -536,20 +537,22 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             if (okTagType)  // 4-word palette tag
             {
                 palette = MAKELONG(tag1, tag2);
+                for (BYTE c = 0; c < 8; c++)  // Update palettecurrent
+                {
+                    BYTE valueYRGB = (BYTE) (palette >> (c << 2)) & 15;
+                    palettecurrent[c] = colors[valueYRGB];
+                }
             }
             else  // 4-word params tag
             {
                 scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                //TODO: use Y-value modifier
                 pbpgpr = tag2 & 7;  // Y-value modifier
                 cursorYRGB = tag1 & 15;  // Cursor color
                 okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, FALSE - symbolic cursor
                 ASSERT(okCursorType==0);  //DEBUG
                 cursorPos = ((tag1 >> 8) >> scale) & 0x7f;  // Cursor position in the line
-                //TODO: Use cursorAddress
                 cursorAddress = (tag1 >> 5) & 7;
                 scale = 1 << scale;
-
             }
         }
 
@@ -589,24 +592,44 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
                 BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
                 // Loop through the bits of the byte
-                for (int bit = 0; bit < 8; bit++)
+                int bit = 0;
+                while (true)
                 {
-                    BYTE valueYRGB;
+                    DWORD valueRGB;
                     if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
-                        valueYRGB = cursorYRGB;
+                        valueRGB = colors[cursorYRGB];  // 4-bit to 32-bit color
                     else
 					{
 	                    // Make 3-bit value from the bits
 						BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
-						// Map value to palette; result is 4-bit value YRGB
-						valueYRGB = (BYTE) (palette >> (value012 << 2)) & 15;
+                        valueRGB = palettecurrent[value012];  // 3-bit to 32-bit color
 					}
-                    DWORD valueRGB = colors[valueYRGB];
 
                     // Put value to m_bits; repeat using scale value
-                    for (int s = 0; s < scale; s++)
+                    switch (scale)
+                    {
+                    case 8:
                         *pBits++ = valueRGB;
+                        *pBits++ = valueRGB;
+                        *pBits++ = valueRGB;
+                        *pBits++ = valueRGB;
+                    case 4:
+                        *pBits++ = valueRGB;
+                        *pBits++ = valueRGB;
+                    case 2:
+                        *pBits++ = valueRGB;
+                    case 1:
+                        *pBits++ = valueRGB;
+                    default:
+                        break;
+                    }
+                    //WAS: for (int s = 0; s < scale; s++) *pBits++ = valueRGB;
+
                     xr -= scale;
+
+                    if (bit == 7)
+                        break;
+                    bit++;
 
                     // Shift to the next bit
                     src0 = src0 >> 1;
