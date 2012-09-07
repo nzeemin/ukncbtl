@@ -219,7 +219,7 @@ void CProcessor::Init()
     RegisterMethodRef( 0104000, 0104377, &CProcessor::ExecuteEMT );
     RegisterMethodRef( 0104400, 0104777, &CProcessor::ExecuteTRAP );
     
-    RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLR );  // CLRB
+    RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLRB );  // CLRB
     RegisterMethodRef( 0105100, 0105177, &CProcessor::ExecuteCOM );  // COMB
     RegisterMethodRef( 0105200, 0105277, &CProcessor::ExecuteINC );  // INCB
     RegisterMethodRef( 0105300, 0105377, &CProcessor::ExecuteDEC );  // DECB
@@ -236,7 +236,7 @@ void CProcessor::Init()
     RegisterMethodRef( 0106700, 0106777, &CProcessor::ExecuteMFPS );
 
     RegisterMethodRef( 0110000, 0117777, &CProcessor::ExecuteMOVB );  // MOVB
-    RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMP );  // CMPB
+    RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMPB );  // CMPB
     RegisterMethodRef( 0130000, 0137777, &CProcessor::ExecuteBIT );  // BITB
     RegisterMethodRef( 0140000, 0147777, &CProcessor::ExecuteBIC );  // BICB
     RegisterMethodRef( 0150000, 0157777, &CProcessor::ExecuteBIS );  // BISB
@@ -721,8 +721,6 @@ void CProcessor::ExecuteWCPS()  // ЗКСП
 
 void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
 {
-    WORD word;
-
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
         m_RSVDrq = TRUE;
@@ -731,9 +729,10 @@ void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
 
     //r0 = (r5)+
     SetHALT(FALSE);
-    word = GetWord(GetReg(5));
+	WORD addr = GetReg(5);
+    WORD word = GetWord(addr);
     SetHALT(TRUE);
-    SetReg(5,GetReg(5)+2);
+    SetReg(5, addr + 2);
     if (!m_RPLYrq) 	SetReg(0, word);
 
     m_internalTick = MOV_TIMING[0][2];
@@ -885,38 +884,39 @@ void CProcessor::ExecuteSWAB ()
 void CProcessor::ExecuteCLR ()  // CLR
 {
     WORD dst_addr;
-    if(m_instruction&0100000)
+
+    if (m_methdest)
     {
-        if(m_methdest)
-        {
-            dst_addr = GetByteAddr(m_methdest,m_regdest);
-            if (m_RPLYrq) return;
-            GetByte(dst_addr);
-            if (m_RPLYrq) return;
-            SetByte(dst_addr, 0);
-            if (m_RPLYrq) return;
-        }
-        else
-            SetLReg(m_regdest, 0);
-        
-        SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
-        m_internalTick=CLR_TIMING[m_methdest];
+        dst_addr = GetWordAddr(m_methdest, m_regdest);
+        if (m_RPLYrq) return;
+        SetWord(dst_addr, 0);
+        if (m_RPLYrq) return;
     }
     else
-    {
-        if(m_methdest)
-        {
-            dst_addr = GetWordAddr(m_methdest,m_regdest);
-            if (m_RPLYrq) return;
-            SetWord(dst_addr, 0);
-            if (m_RPLYrq) return;
-        }
-        else
-            SetReg(m_regdest,0);
+        SetReg(m_regdest,0);
 
-        SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
-        m_internalTick=CLR_TIMING[m_methdest];
+    SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
+    m_internalTick = CLR_TIMING[m_methdest];
+}
+
+void CProcessor::ExecuteCLRB ()  // CLRB
+{
+    WORD dst_addr;
+
+    if (m_methdest)
+    {
+        dst_addr = GetByteAddr(m_methdest, m_regdest);
+        if (m_RPLYrq) return;
+        GetByte(dst_addr);
+        if (m_RPLYrq) return;
+        SetByte(dst_addr, 0);
+        if (m_RPLYrq) return;
     }
+    else
+        SetLReg(m_regdest, 0);
+        
+    SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
+    m_internalTick = CLR_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteCOM ()  // COM
@@ -2081,83 +2081,84 @@ void CProcessor::ExecuteCMP ()
     WORD src_addr, dst_addr;
     BYTE new_psw = GetLPSW() & 0xF0;
 
-    if(m_instruction&0100000)
+    WORD src;
+    WORD src2;
+    WORD dst;
+
+    if (m_methsrc)
     {
-        BYTE src;
-        BYTE src2;
-        BYTE dst;
-
-        if (m_methsrc)
-        {
-            src_addr = GetByteAddr(m_methsrc,m_regsrc);
-            if (m_RPLYrq) return;
-            src = GetByte(src_addr);
-            if (m_RPLYrq) return;
-        }
-        else
-            src = GetLReg(m_regsrc);
-
-        if (m_methdest)
-        {
-            dst_addr = GetByteAddr(m_methdest,m_regdest);
-            if (m_RPLYrq) return;
-            src2 = GetByte(dst_addr);
-            if (m_RPLYrq) return;
-        }
-        else
-            src2 = GetLReg(m_regdest);
-        
-        dst = src - src2;
-        //SetN( CheckForNegative((BYTE)(src - src2)) );
-        //SetZ( CheckForZero((BYTE)(src - src2)) );
-        //SetV( CheckSubForOverflow (src, src2) );
-        //SetC( CheckSubForCarry (src, src2) );
-        if (dst & 0200) new_psw |= PSW_N;
-        if (dst == 0) new_psw |= PSW_Z;
-        if (((src ^ src2) & ~(dst ^ src2)) & 0200) new_psw |= PSW_V;
-        if (((~src & src2) | (~(src ^ src2) & dst)) & 0200) new_psw |= PSW_C;
-        SetLPSW(new_psw);
-        m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
+        src_addr = GetWordAddr(m_methsrc, m_regsrc);
+        if (m_RPLYrq) return;
+        src = GetWord(src_addr);
+        if (m_RPLYrq) return;
     }
     else
+        src = GetReg(m_regsrc);
+
+    if (m_methdest)
     {
-        WORD src;
-        WORD src2;
-        WORD dst;
-
-        if (m_methsrc)
-        {
-            src_addr = GetWordAddr(m_methsrc,m_regsrc);
-            if (m_RPLYrq) return;
-            src = GetWord(src_addr);
-            if (m_RPLYrq) return;
-        }
-        else
-            src = GetReg(m_regsrc);
-
-        if (m_methdest)
-        {
-            dst_addr = GetWordAddr(m_methdest,m_regdest);
-            if (m_RPLYrq) return;
-            src2 = GetWord(dst_addr);
-            if (m_RPLYrq) return;
-        }
-        else
-            src2 = GetReg(m_regdest);
-        
-        dst = src - src2;
-        
-        //SetN( CheckForNegative ((WORD)(src - src2)) );
-        //SetZ( CheckForZero ((WORD)(src - src2)) );
-        //SetV( CheckSubForOverflow (src, src2) );
-        //SetC( CheckSubForCarry (src, src2) );
-        if (dst & 0100000) new_psw |= PSW_N;
-        if (dst == 0) new_psw |= PSW_Z;
-        if (((src ^ src2) & ~(dst ^ src2)) & 0100000) new_psw |= PSW_V;
-        if (((~src & src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
-        SetLPSW(new_psw);
-        m_internalTick=CMP_TIMING[m_methsrc][m_methdest];
+        dst_addr = GetWordAddr(m_methdest,m_regdest);
+        if (m_RPLYrq) return;
+        src2 = GetWord(dst_addr);
+        if (m_RPLYrq) return;
     }
+    else
+        src2 = GetReg(m_regdest);
+        
+    dst = src - src2;
+        
+    //SetN( CheckForNegative ((WORD)(src - src2)) );
+    //SetZ( CheckForZero ((WORD)(src - src2)) );
+    //SetV( CheckSubForOverflow (src, src2) );
+    //SetC( CheckSubForCarry (src, src2) );
+    if (dst & 0100000) new_psw |= PSW_N;
+    if (dst == 0) new_psw |= PSW_Z;
+    if (((src ^ src2) & ~(dst ^ src2)) & 0100000) new_psw |= PSW_V;
+    if (((~src & src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
+    SetLPSW(new_psw);
+    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
+}
+
+void CProcessor::ExecuteCMPB ()
+{
+    WORD src_addr, dst_addr;
+    BYTE new_psw = GetLPSW() & 0xF0;
+
+    BYTE src;
+    BYTE src2;
+    BYTE dst;
+
+    if (m_methsrc)
+    {
+        src_addr = GetByteAddr(m_methsrc, m_regsrc);
+        if (m_RPLYrq) return;
+        src = GetByte(src_addr);
+        if (m_RPLYrq) return;
+    }
+    else
+        src = GetLReg(m_regsrc);
+
+    if (m_methdest)
+    {
+        dst_addr = GetByteAddr(m_methdest, m_regdest);
+        if (m_RPLYrq) return;
+        src2 = GetByte(dst_addr);
+        if (m_RPLYrq) return;
+    }
+    else
+        src2 = GetLReg(m_regdest);
+        
+    dst = src - src2;
+    //SetN( CheckForNegative((BYTE)(src - src2)) );
+    //SetZ( CheckForZero((BYTE)(src - src2)) );
+    //SetV( CheckSubForOverflow (src, src2) );
+    //SetC( CheckSubForCarry (src, src2) );
+    if (dst & 0200) new_psw |= PSW_N;
+    if (dst == 0) new_psw |= PSW_Z;
+    if (((src ^ src2) & ~(dst ^ src2)) & 0200) new_psw |= PSW_V;
+    if (((~src & src2) | (~(src ^ src2) & dst)) & 0200) new_psw |= PSW_C;
+    SetLPSW(new_psw);
+    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteBIT ()  // BIT{B} - bit test

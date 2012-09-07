@@ -578,73 +578,75 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             cursorOn = !cursorOn;
 
         // Draw bits into the bitmap, from line 20 to line 307
-        if (yy >= 19 && yy <= 306)
+        if (yy < 19 /*|| yy > 306*/)
+            continue;
+
+        // Loop thru bits from addressBits, planes 0,1,2
+        // For each pixel:
+        //   Get bit from planes 0,1,2 and make value
+        //   Map value to palette; result is 4-bit value YRGB
+        //   Translate value to 24-bit RGB
+        //   Put value to m_bits; repeat using scale value
+
+        int xr = 640;
+        int y = yy - 19;
+        DWORD* pBits = ((DWORD*)pImageBits) + (288 - 1 - y) * 640;
+        int pos = 0;
+        while (true)
         {
-            // Loop thru bits from addressBits, planes 0,1,2
-            // For each pixel:
-            //   Get bit from planes 0,1,2 and make value
-            //   Map value to palette; result is 4-bit value YRGB
-            //   Translate value to 24-bit RGB
-            //   Put value to m_bits; repeat using scale value
-
-            int xr = 640;
-            int y = yy - 19;
-            DWORD* pBits = ((DWORD*)pImageBits) + (288 - 1 - y) * 640;
-            for (int pos = 0; ; pos++)
+            // Get bit from planes 0,1,2
+            BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
+            BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
+            BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
+            // Loop through the bits of the byte
+            int bit = 0;
+            while (true)
             {
-                // Get bit from planes 0,1,2
-                BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
-                BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
-                BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
-                // Loop through the bits of the byte
-                int bit = 0;
-                while (true)
+                DWORD valueRGB;
+                if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
+                    valueRGB = colors[cursorYRGB];  // 4-bit to 32-bit color
+                else
+				{
+                    // Make 3-bit value from the bits
+					BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
+                    valueRGB = palettecurrent[value012];  // 3-bit to 32-bit color
+				}
+
+                // Put value to m_bits; repeat using scale value
+                //WAS: for (int s = 0; s < scale; s++) *pBits++ = valueRGB;
+                switch (scale)
                 {
-                    DWORD valueRGB;
-                    if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
-                        valueRGB = colors[cursorYRGB];  // 4-bit to 32-bit color
-                    else
-					{
-	                    // Make 3-bit value from the bits
-						BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
-                        valueRGB = palettecurrent[value012];  // 3-bit to 32-bit color
-					}
-
-                    // Put value to m_bits; repeat using scale value
-                    switch (scale)
-                    {
-                    case 8:
-                        *pBits++ = valueRGB;
-                        *pBits++ = valueRGB;
-                        *pBits++ = valueRGB;
-                        *pBits++ = valueRGB;
-                    case 4:
-                        *pBits++ = valueRGB;
-                        *pBits++ = valueRGB;
-                    case 2:
-                        *pBits++ = valueRGB;
-                    case 1:
-                        *pBits++ = valueRGB;
-                    default:
-                        break;
-                    }
-                    //WAS: for (int s = 0; s < scale; s++) *pBits++ = valueRGB;
-
-                    xr -= scale;
-
-                    if (bit == 7)
-                        break;
-                    bit++;
-
-                    // Shift to the next bit
-                    src0 = src0 >> 1;
-                    src1 = src1 >> 1;
-                    src2 = src2 >> 1;
+                case 8:
+                    *pBits++ = valueRGB;
+                    *pBits++ = valueRGB;
+                    *pBits++ = valueRGB;
+                    *pBits++ = valueRGB;
+                case 4:
+                    *pBits++ = valueRGB;
+                    *pBits++ = valueRGB;
+                case 2:
+                    *pBits++ = valueRGB;
+                case 1:
+                    *pBits++ = valueRGB;
+                default:
+                    break;
                 }
-                if (xr <= 0)
-                    break;  // End of line
-                addressBits++;  // Go to the next byte
+
+                xr -= scale;
+
+                if (bit == 7)
+                    break;
+                bit++;
+
+                // Shift to the next bit
+                src0 >>= 1;
+                src1 >>= 1;
+                src2 >>= 1;
             }
+            if (xr <= 0)
+                break;  // End of line
+            addressBits++;  // Go to the next byte
+            pos++;
         }
     }
 }
