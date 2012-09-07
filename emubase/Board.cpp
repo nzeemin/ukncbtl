@@ -477,7 +477,7 @@ void CMotherboard::DebugTicks()
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
-    int audioticks = 20286/(SAMPLERATE/25);
+    const int audioticks = 20286 / (SAMPLERATE / 25);
     const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
 
@@ -493,9 +493,7 @@ BOOL CMotherboard::SystemFrame()
         TimerTick();  // System timer tick
 
         if (frameticks % 10000 == 0)
-        {
             Tick50();  // 1/50 timer event
-        }
 
         // CPU - 16 times, PPU - 12.5 times
         /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
@@ -510,16 +508,14 @@ BOOL CMotherboard::SystemFrame()
         /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
         /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
         /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        if (frameticks % 2 == 0)  // PPU extra ticks
+        if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
             SYSTEMFRAME_EXECUTE_PPU;
 
-        if (frameticks % 32 == 0)  // FDD tick
+        if ((frameticks & 31) == 0)  // (frameticks % 32 == 0)
         {
-            m_pFloppyCtl->Periodic();
-        }
+            m_pFloppyCtl->Periodic();  // Each 32nd tick -- FDD tick
 
-        if (frameticks % 32 == 0)	// Keyboard tick
-        {
+            // Keyboard processing
             CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
             if ((pMemCtl->m_Port177700 & 0200) == 0)
             {

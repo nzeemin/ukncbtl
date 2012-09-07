@@ -217,6 +217,7 @@ protected:  // Implementation - instruction execution
     void        ExecuteJMP ();
     void        ExecuteSWAB ();
     void        ExecuteCLR ();
+    void        ExecuteCLRB ();
     void        ExecuteCOM ();
     void        ExecuteINC ();
     void        ExecuteDEC ();
@@ -267,6 +268,7 @@ protected:  // Implementation - instruction execution
     void        ExecuteMOV ();
     void        ExecuteMOVB ();
     void        ExecuteCMP ();
+    void        ExecuteCMPB ();
     void        ExecuteBIT ();
     void        ExecuteBIC ();
     void        ExecuteBIS ();
