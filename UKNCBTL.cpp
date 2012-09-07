@@ -112,6 +112,10 @@ int APIENTRY _tWinMain(
 
         if (g_okEmulatorRunning && !Settings_GetSound())
             Sleep(1);  // We should not consume 100% of CPU
+
+        //// Time bomb for perfomance analysis
+        //if (Emulator_GetUptime() >= 300)  // 5 minutes
+        //    ::PostQuitMessage(0);
     }
 endprog:
 

@@ -427,6 +427,11 @@ int Emulator_SystemFrame()
     return 1;
 }
 
+DWORD Emulator_GetUptime()
+{
+    return m_dwEmulatorUptime;
+}
+
 // Update cached values after Run or Step
 void Emulator_OnUpdate()
 {

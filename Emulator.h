@@ -44,6 +44,7 @@ void Emulator_Start();
 void Emulator_Stop();
 void Emulator_Reset();
 int Emulator_SystemFrame();
+DWORD Emulator_GetUptime();  // UKNC uptime, in seconds
 
 void Emulator_PrepareScreenRGB32(void* pBits, const DWORD* colors);
 

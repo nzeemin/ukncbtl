@@ -472,6 +472,8 @@ void CMotherboard::DebugTicks()
 * 625 тиков FDD - каждый 32-й тик
 * 48 тиков обмена с COM-портом - каждый 416 тик
 */
+#define SYSTEMFRAME_EXECUTE_CPU     { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_PPU     { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
@@ -496,26 +498,20 @@ BOOL CMotherboard::SystemFrame()
         }
 
         // CPU - 16 times, PPU - 12.5 times
-        for (int procticks = 0; procticks < 12; procticks++)
-        {
-            // CPU
-            if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  // Breakpoint
-            m_pCPU->Execute();
-            // PPU
-            if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  // Breakpoint
-            m_pPPU->Execute();
-            // CPU - extra ticks
-            if (procticks % 3 == 0)  // CPU
-            {
-                if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  // Breakpoint
-                m_pCPU->Execute();
-            }
-        }
+        /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+        /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+        /*  4 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+        /*  7 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+        /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+        /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
         if (frameticks % 2 == 0)  // PPU extra ticks
-        {
-            if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  // Breakpoint
-            m_pPPU->Execute();
-        }
+            SYSTEMFRAME_EXECUTE_PPU;
 
         if (frameticks % 32 == 0)  // FDD tick
         {
