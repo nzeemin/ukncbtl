@@ -224,6 +224,7 @@ protected:  // Implementation - instruction execution
     void        ExecuteADC ();
     void        ExecuteSBC ();
     void        ExecuteTST ();
+    void        ExecuteTSTB ();
     void        ExecuteROR ();
     void        ExecuteROL ();
     void        ExecuteASR ();
@@ -264,6 +265,7 @@ protected:  // Implementation - instruction execution
 
     // Four fields
     void        ExecuteMOV ();
+    void        ExecuteMOVB ();
     void        ExecuteCMP ();
     void        ExecuteBIT ();
     void        ExecuteBIC ();
