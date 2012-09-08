@@ -690,14 +690,14 @@ void CSecondMemoryController::ResetDevices()
 
 int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/)
 {
-    if (address < 0100000)  // 000000-077777 - PPU RAM
+    switch ((address >> 13) & 7)
     {
-        *pOffset = address;
-        return ADDRTYPE_RAM0;
-    }
-    else if (address < 0177000)  // 100000-176777 - Window
-    {
-        if (address < 0120000)  // 100000-117777 - Window block 0
+    default:  // case 0..3 - 000000-077777 - PPU RAM
+        {
+            *pOffset = address;
+            return ADDRTYPE_RAM0;
+        }
+    case 4:  // 100000-117777 - Window block 0
         {
             if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
             {
@@ -726,7 +726,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
             }
             return ADDRTYPE_NONE;
         }
-        else if (address < 0140000)  // 120000-137777 - Window block 1
+    case 5:  // 120000-137777 - Window block 1
         {
             if ((m_Port177054 & 32) != 0)  // Port 177054 bit 5 set => RAM selected
             {
@@ -736,7 +736,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
             *pOffset = address - 0100000;
             return ADDRTYPE_ROM;
         }
-        else if (address < 0160000)  // 140000-157777 - Window block 2
+    case 6:  // 140000-157777 - Window block 2
         {
             if ((m_Port177054 & 64) != 0)  // Port 177054 bit 6 set => RAM selected
             {
@@ -746,8 +746,21 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
             *pOffset = address - 0100000;
             return ADDRTYPE_ROM;
         }
-        else if (address < 0177000)  // 160000-176777 - Window block 3
+    case 7:  // 160000-177777 - Window block 3 and I/O
         {
+            if (address >= 0177000)  // 177000-177777 - I/O addresses
+            {
+                if (okExec) {  // Execution on this address is denied
+                    *pOffset = 0;
+                    return ADDRTYPE_DENY;
+                }
+                else {
+                    *pOffset = address;
+                    return ADDRTYPE_IO;
+                }
+            }
+
+            // 160000-176777 - Window block 3
             if ((m_Port177054 & 128) != 0)  // Port 177054 bit 7 set => RAM selected
             {
                 *pOffset = address;
@@ -757,20 +770,9 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
             return ADDRTYPE_ROM;
         }
     }
-    else  // 177000-177777 - I/O addresses
-    {
-        if (okExec) {  // Execution on this address is denied
-            *pOffset = 0;
-            return ADDRTYPE_DENY;
-        }
-        else {
-            *pOffset = address;
-            return ADDRTYPE_IO;
-        }
-    }
 
-    ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
-    return ADDRTYPE_NONE;
+    //ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
+    //return ADDRTYPE_NONE;
 }
 
 WORD CSecondMemoryController::GetPortWord(WORD address)
