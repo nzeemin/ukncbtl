@@ -104,7 +104,7 @@ LRESULT CALLBACK DebugViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM
     default:
         return CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
     }
-    return (LRESULT)FALSE;
+    //return (LRESULT)FALSE;
 }
 
 LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -137,7 +137,7 @@ LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, 
     return (LRESULT)FALSE;
 }
 
-BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam)
+BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 {
     switch (vkey)
     {
@@ -331,7 +331,7 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
     for (int idx = 0; idx < 16; idx++) {
         BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-                current + idx * 2 - 16, pProc->IsHaltMode(), okExec, &okValidAddress);
+            (WORD)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, &okValidAddress);
     }
 
     WORD address = current - 16;
@@ -424,10 +424,10 @@ void DrawChannels(HDC hdc, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
-    CProcessor* pCPU = g_pBoard->GetCPU();
-    CProcessor* pPPU = g_pBoard->GetPPU();
-    CMemoryController* pCPUMemCtl = pCPU->GetMemoryController();
-    CMemoryController* pPPUMemCtl = pPPU->GetMemoryController();
+    //CProcessor* pCPU = g_pBoard->GetCPU();
+    //CProcessor* pPPU = g_pBoard->GetPPU();
+    //CMemoryController* pCPUMemCtl = pCPU->GetMemoryController();
+    //CMemoryController* pPPUMemCtl = pPPU->GetMemoryController();
 
     TextOut(hdc, x, y, _T("Channels:"), 9);
 

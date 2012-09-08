@@ -196,19 +196,19 @@ WORD CHardDrive::ReadPort(WORD port)
         data = 0xff00 | m_error;
         break;
     case IDE_PORT_SECTOR_COUNT:
-        data = 0xff00 | m_sectorcount;
+        data = 0xff00 | (WORD)m_sectorcount;
         break;
     case IDE_PORT_SECTOR_NUMBER:
-        data = 0xff00 | m_cursector;
+        data = 0xff00 | (WORD)m_cursector;
         break;
     case IDE_PORT_CYLINDER_LSB:
-        data = 0xff00 | (m_curcylinder & 0xff);
+        data = 0xff00 | (WORD)(m_curcylinder & 0xff);
         break;
     case IDE_PORT_CYLINDER_MSB:
-        data = 0xff00 | ((m_curcylinder >> 8) & 0xff);
+        data = 0xff00 | (WORD)((m_curcylinder >> 8) & 0xff);
         break;
     case IDE_PORT_HEAD_NUMBER:
-        data = 0xff00 | m_curheadreg;
+        data = 0xff00 | (WORD)m_curheadreg;
         break;
     case IDE_PORT_STATUS_COMMAND:
         data = 0xff00 | m_status;

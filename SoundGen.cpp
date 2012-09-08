@@ -40,7 +40,7 @@ int bufcurpos;
 //////////////////////////////////////////////////////////////////////
 
 
-static void CALLBACK WaveCallback(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
+static void CALLBACK WaveCallback(HWAVEOUT /*hwo*/, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR /*dwParam1*/, DWORD_PTR /*dwParam2*/)
 {
     int* freeBlockCounter = (int*)dwInstance;
     if (uMsg != WOM_DONE)

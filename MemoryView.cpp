@@ -116,7 +116,7 @@ LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     default:
         return CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
     }
-    return (LRESULT)FALSE;
+    //return (LRESULT)FALSE;
 }
 
 LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -292,7 +292,7 @@ void MemoryView_UpdateWindowText()
 	::SetWindowText(g_hwndMemory, buffer);
 }
 
-BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
+BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 {
     switch (vkey)
     {
@@ -346,7 +346,7 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam)
     return FALSE;
 }
 
-BOOL MemoryView_OnMouseWheel(WPARAM wParam, LPARAM lParam)
+BOOL MemoryView_OnMouseWheel(WPARAM wParam, LPARAM /*lParam*/)
 {
     short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
 
@@ -359,7 +359,7 @@ BOOL MemoryView_OnMouseWheel(WPARAM wParam, LPARAM lParam)
     return FALSE;
 }
 
-BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM lParam)
+BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 {
     WORD scrollpos = HIWORD(wParam);
     WORD scrollcmd = LOWORD(wParam);
@@ -398,7 +398,7 @@ void MemoryView_Scroll(int nDelta)
 {
     if (nDelta == 0) return;
 
-    m_wBaseAddress += nDelta;
+    m_wBaseAddress = (WORD)(m_wBaseAddress + nDelta);
     m_wBaseAddress = m_wBaseAddress & ((WORD)~1);
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
     

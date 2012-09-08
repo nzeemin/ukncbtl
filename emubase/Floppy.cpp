@@ -510,7 +510,7 @@ static void EncodeTrackData(const BYTE* pSrc, BYTE* data, BYTE* marker, WORD tra
         data[ptr++] = 0xfe;
         
         data[ptr++] = (BYTE) track;  data[ptr++] = (side != 0);
-        data[ptr++] = sect + 1;  data[ptr++] = 2; // Assume 512 bytes per sector;
+        data[ptr++] = (BYTE)sect + 1;  data[ptr++] = 2; // Assume 512 bytes per sector;
         // crc
         //TODO: Calculate CRC
         data[ptr++] = 0x12;  data[ptr++] = 0x34;  // CRC stub
@@ -558,7 +558,7 @@ static BOOL DecodeTrackData(const BYTE* pRaw, BYTE* pDest)
         if (pRaw[dataptr++] != 0xfe)
             return FALSE;  // Marker not found
 
-        BYTE sectcyl, secthd, sectsec, sectno;
+        BYTE sectcyl, secthd, sectsec, sectno = 0;
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectcyl = pRaw[dataptr++];
         if (dataptr < FLOPPY_RAWTRACKSIZE) secthd  = pRaw[dataptr++];
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectsec = pRaw[dataptr++];

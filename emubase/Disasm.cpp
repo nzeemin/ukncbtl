@@ -300,7 +300,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     okByte = (instr & 0100000);
 
     length += ConvertSrcToString(instr, addr + 2, strSrc, pMemory[1]);
-    length += ConvertDstToString(instr, addr + 2 + (length - 1) * 2, strDst, pMemory[length]);
+    length += ConvertDstToString(instr, (WORD)(addr + 2 + (length - 1) * 2), strDst, pMemory[length]);
 
     switch(instr & ~(WORD)0107777) {
     case PI_MOV:

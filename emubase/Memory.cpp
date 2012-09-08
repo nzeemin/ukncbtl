@@ -242,7 +242,7 @@ void CFirstMemoryController::ResetDevices()
     //TODO
 }
 
-int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView)
+int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL /*okExec*/, WORD* pOffset, BOOL okView)
 {
     if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
     {
@@ -266,8 +266,8 @@ int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL
         }
     }
 
-    ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
-    return 0;
+    //ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
+    //return 0;
 }
 
 BYTE CFirstMemoryController::GetPortByte(WORD address)
@@ -359,8 +359,9 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
                 m_pProcessor->MemoryError();
             return 0x0;
     }
+
     //ASSERT(0);
-    return 0; 
+    //return 0; 
 }
 
 
@@ -687,7 +688,7 @@ void CSecondMemoryController::ResetDevices()
     //TODO
 }
 
-int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView)
+int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/)
 {
     if (address < 0100000)  // 000000-077777 - PPU RAM
     {
@@ -719,7 +720,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOO
                 else
                 {
                     int bank = (m_Port177054 & 6) >> 1;
-                    *pOffset = address - 0100000 + ((bank - 1) << 13);
+                    *pOffset = address - 0100000 + (((WORD)bank - 1) << 13);
                     return (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
                 }
             }
@@ -1034,12 +1035,12 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
             break;
 
         case 0177100:  // i8255 port A -- Parallel port output data
-            m_Port177100 = word & 0xff;
+            m_Port177100 = (BYTE)(word & 0xff);
             break;
         case 0177101:  // i8255 port B
             break;
         case 0177102:  // i8255 port C
-            m_Port177102 = (m_Port177102 & 0x0f) | (word & 0xf0);
+            m_Port177102 = (BYTE)((m_Port177102 & 0x0f) | (word & 0xf0));
             break;
         case 0177103:  // i8255 control byte
             break;
@@ -1233,12 +1234,12 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             break;
 
         case 0177100:  // i8255 port A -- Parallel port output data
-            m_Port177100 = word & 0xff;
+            m_Port177100 = (BYTE)(word & 0xff);
             break;
         case 0177101:  // i8255 port B
             break;
         case 0177102:  // i8255 port C
-            m_Port177102 = (m_Port177102 & 0x0f) | (word & 0xf0);
+            m_Port177102 = BYTE((m_Port177102 & 0x0f) | (word & 0xf0));
             break;
         case 0177103:  // i8255 control byte
             m_Port177100 = 0377;  // Writing to control register resets port A

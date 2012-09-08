@@ -551,12 +551,12 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             else  // 4-word params tag
             {
                 scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                pbpgpr = tag2 & 7;  // Y-value modifier
-                cursorYRGB = tag1 & 15;  // Cursor color
+                pbpgpr = (BYTE)(tag2 & 7);  // Y-value modifier
+                cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
                 okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, FALSE - symbolic cursor
                 ASSERT(okCursorType==0);  //DEBUG
-                cursorPos = ((tag1 >> 8) >> scale) & 0x7f;  // Cursor position in the line
-                cursorAddress = (tag1 >> 5) & 7;
+                cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
+                cursorAddress = (BYTE)((tag1 >> 5) & 7);
                 scale = 1 << scale;
             }
         }
@@ -592,7 +592,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
         int y = yy - 19;
         DWORD* pBits = ((DWORD*)pImageBits) + (288 - 1 - y) * 640;
         int pos = 0;
-        while (true)
+        for (;;)
         {
             // Get bit from planes 0,1,2
             BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
@@ -600,7 +600,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
             // Loop through the bits of the byte
             int bit = 0;
-            while (true)
+            for (;;)
             {
                 DWORD valueRGB;
                 if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))

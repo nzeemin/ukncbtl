@@ -150,7 +150,7 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     default:
         return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
     }
-    return (LRESULT)FALSE;
+    //return (LRESULT)FALSE;
 }
 
 LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -238,7 +238,7 @@ BOOL SaveMemoryDump(CProcessor *pProc)
     if (pData == NULL)
         return false;
 
-    for (int i = 0; i < 65536; i++)  //TODO: Get memory by words instead of bytes
+    for (WORD i = 0; i <= 65535; i++)  //TODO: Get memory by words instead of bytes
     {
         pData[i] = pMemCtl->GetByte(i, pProc->IsHaltMode());
     }
@@ -269,7 +269,7 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
     for (int line = 0; line < lines; line++)
     {
         WORD dump[8];
-        for (int i = 0; i < 8; i++)
+        for (WORD i = 0; i < 8; i++)
             dump[i] = pMemCtl->GetWord(address + i*2, okHaltMode);
 
         TCHAR buffer[2+6+2 + 7*8 + 1 + 16 + 1 + 2];
@@ -314,7 +314,7 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
     BOOL okValid;
-    for (int i = 0; i < nWindowSize + 2; i++)
+    for (WORD i = 0; i < nWindowSize + 2; i++)
         memory[i] = pMemCtl->GetWordView(address + i*2, okHaltMode, TRUE, &okValid);
 
     TCHAR bufaddr[7];
@@ -496,7 +496,7 @@ void DoConsoleCommand()
         else if (command[1] == _T('o'))  // "so" - Step Over
         {
             int instrLength = PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
-            WORD bpaddress = pProc->GetPC() + instrLength * 2;
+            WORD bpaddress = (WORD)(pProc->GetPC() + instrLength * 2);
 
             if (m_okCurrentProc)
                 Emulator_SetCPUBreakpoint(bpaddress);
