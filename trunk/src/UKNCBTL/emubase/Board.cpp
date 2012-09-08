@@ -232,7 +232,7 @@ WORD CMotherboard::GetHardPortWord(int slot, WORD port)
     ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return 0;
-    port = (~(port >> 1) & 7) | 0x1f0;
+    port = (WORD) (~(port >> 1) & 7) | 0x1f0;
     WORD data = m_pHardDrives[slot - 1]->ReadPort(port);
     return ~data;  // QBUS inverts the bits
 }
@@ -241,7 +241,7 @@ void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
     ASSERT(slot >= 1 && slot <= 2);
 
     if (m_pHardDrives[slot - 1] == NULL) return;
-    port = (~(port >> 1) & 7) | 0x1f0;
+    port = (WORD) (~(port >> 1) & 7) | 0x1f0;
     data = ~data;  // QBUS inverts the bits
     m_pHardDrives[slot - 1]->WritePort(port, data);
 }
@@ -481,7 +481,7 @@ BOOL CMotherboard::SystemFrame()
     const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
 
-    int tapeSamplesPerFrame, tapeBrasErr;
+    int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
     {
         tapeSamplesPerFrame = m_nTapeSampleRate / 25;
@@ -603,10 +603,10 @@ BOOL CMotherboard::SystemFrame()
                 if (serialTxCount == 0)  // Translation countdown finished - the byte translated
                 {
                     if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
-                        (*m_SerialOutCallback)(pMemCtl->m_Port176576 & 0xff);
+                        (*m_SerialOutCallback)((BYTE)(pMemCtl->m_Port176576 & 0xff));
                     else  // Loopback
                     {
-                        if (pMemCtl->SerialInput(pMemCtl->m_Port176576 & 0xff) && (pMemCtl->m_Port176570 & 0100))
+                        if (pMemCtl->SerialInput((BYTE)(pMemCtl->m_Port176576 & 0xff)) && (pMemCtl->m_Port176570 & 0100))
                             m_pCPU->InterruptVIRQ(3, 0370);
                     }
                     pMemCtl->m_Port176574 |= 0200;  // Set Ready flag

@@ -108,14 +108,14 @@ void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[8];
     lstrcpy(bufValueName, _T("Floppy0"));
-    bufValueName[6] = slot + _T('0');
+    bufValueName[6] = _T('0') + (TCHAR)slot;
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath)
 {
     TCHAR bufValueName[8];
     lstrcpy(bufValueName, _T("Floppy0"));
-    bufValueName[6] = slot + _T('0');
+    bufValueName[6] = _T('0') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
@@ -123,14 +123,14 @@ void Settings_GetHardFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[6];
     lstrcpy(bufValueName, _T("Hard1"));
-    bufValueName[4] = slot + _T('1');
+    bufValueName[4] = _T('1') + (TCHAR)slot;
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath)
 {
     TCHAR bufValueName[6];
     lstrcpy(bufValueName, _T("Hard1"));
-    bufValueName[4] = slot + _T('1');
+    bufValueName[4] = _T('1') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
@@ -138,14 +138,14 @@ void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[11];
     lstrcpy(bufValueName, _T("Cartridge0"));
-    bufValueName[9] = slot + _T('0');
+    bufValueName[9] = _T('0') + (TCHAR)slot;
     Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
 }
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath)
 {
     TCHAR bufValueName[11];
     lstrcpy(bufValueName, _T("Cartridge0"));
-    bufValueName[9] = slot + _T('0');
+    bufValueName[9] = _T('0') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 

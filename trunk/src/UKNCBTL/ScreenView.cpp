@@ -542,7 +542,7 @@ void ScreenView_ScanKeyboard()
 			bEntPressed = FALSE;
 		}
         // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
-        WORD ukncRegister = g_pBoard->GetKeyboardRegister();
+        BYTE ukncRegister = (BYTE) g_pBoard->GetKeyboardRegister();
         const BYTE* pTable;
 
         // Check every key for state change

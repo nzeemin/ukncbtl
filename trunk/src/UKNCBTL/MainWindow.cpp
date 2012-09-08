@@ -338,7 +338,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_COMMAND:
         {
             int wmId    = LOWORD(wParam);
-            int wmEvent = HIWORD(wParam);
+            //int wmEvent = HIWORD(wParam);
             bool okProcessed = MainWindow_DoCommand(wmId);
             if (!okProcessed)
                 return DefWindowProc(hWnd, message, wParam, lParam);
@@ -349,7 +349,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         break;
     case WM_NOTIFY:
         {
-            int idCtrl = (int) wParam;
+            //int idCtrl = (int) wParam;
             HWND hwndFrom = ((LPNMHDR) lParam)->hwndFrom;
             UINT code = ((LPNMHDR) lParam)->code;
             if (hwndFrom == m_hwndStatusbar && code == NM_CLICK)
@@ -374,7 +374,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         break;
     case WM_DRAWITEM:
         {
-            int idCtrl = (int) wParam;
+            //int idCtrl = (int) wParam;
             HWND hwndItem = ((LPDRAWITEMSTRUCT) lParam)->hwndItem;
             if (hwndItem == m_hwndStatusbar)
                 MainWindow_OnStatusbarDrawItem((LPDRAWITEMSTRUCT) lParam);
@@ -394,8 +394,8 @@ void MainWindow_AdjustWindowSize()
 
     // Get metrics
     RECT rcWorkArea;  SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
-    int cxBorder  = ::GetSystemMetrics(SM_CXBORDER);
-    int cyBorder  = ::GetSystemMetrics(SM_CYBORDER);
+    //int cxBorder  = ::GetSystemMetrics(SM_CXBORDER);
+    //int cyBorder  = ::GetSystemMetrics(SM_CYBORDER);
     int cxFrame   = ::GetSystemMetrics(SM_CXDLGFRAME);
     int cyFrame   = ::GetSystemMetrics(SM_CYDLGFRAME);
     int cyCaption = ::GetSystemMetrics(SM_CYCAPTION);
@@ -1256,7 +1256,7 @@ void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT lpDrawItem)
 
     // Draw floppy drive number
     TCHAR text[2];
-    text[0] = _T('0') + lpDrawItem->itemID - StatusbarPartMZ0;
+    text[0] = _T('0') + (TCHAR)(lpDrawItem->itemID - StatusbarPartMZ0);
     text[1] = 0;
     ::DrawStatusText(hdc, &lpDrawItem->rcItem, text, SBT_NOBORDERS);
 

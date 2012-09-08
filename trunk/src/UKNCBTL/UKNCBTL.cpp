@@ -75,7 +75,7 @@ int APIENTRY _tWinMain(
 
     // Main message loop
     MSG msg;
-    while (true)
+    for (;;)
     {
         ::QueryPerformanceCounter(&nFrameStartTime);
 
@@ -140,7 +140,7 @@ endprog:
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
-BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
+BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
 {
     INITCOMMONCONTROLSEX ics;  ics.dwSize = sizeof(ics);
     ics.dwICC = ICC_WIN95_CLASSES;

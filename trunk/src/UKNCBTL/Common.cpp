@@ -177,7 +177,7 @@ void PrintOctalValue(TCHAR* buffer, WORD value)
 {
     for (int p = 0; p < 6; p++) {
         int digit = value & 7;
-        buffer[5 - p] = _T('0') + digit;
+        buffer[5 - p] = _T('0') + (TCHAR)digit;
         value = (value >> 3);
     }
     buffer[6] = 0;
@@ -188,7 +188,7 @@ void PrintHexValue(TCHAR* buffer, WORD value)
 {
     for (int p = 0; p < 4; p++) {
         int digit = value & 15;
-        buffer[3 - p] = (digit < 10) ? _T('0') + digit : _T('a') + digit - 10;
+        buffer[3 - p] = (digit < 10) ? _T('0') + (TCHAR)digit : _T('a') + (TCHAR)(digit - 10);
         value = (value >> 4);
     }
     buffer[4] = 0;
@@ -215,8 +215,8 @@ BOOL ParseOctalValue(LPCTSTR text, WORD* pValue)
         if (ch == 0) break;
         if (ch < _T('0') || ch > _T('7')) return FALSE;
         value = (value << 3);
-        int digit = ch - _T('0');
-        value += digit;
+        TCHAR digit = ch - _T('0');
+        value = value + digit;
     }
     *pValue = value;
     return TRUE;

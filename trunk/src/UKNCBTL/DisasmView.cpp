@@ -124,7 +124,7 @@ LRESULT CALLBACK DisasmViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     default:
         return CallWindowProc(m_wndprocDisasmToolWindow, hWnd, message, wParam, lParam);
     }
-    return (LRESULT)FALSE;
+    //return (LRESULT)FALSE;
 }
 
 LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -157,7 +157,7 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     return (LRESULT)FALSE;
 }
 
-BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam)
+BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 {
     switch (vkey)
     {
@@ -481,7 +481,7 @@ int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x,
     for (int idx = 0; idx < nWindowSize; idx++) {
         BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-                current + idx * 2 - 10, pProc->IsHaltMode(), TRUE, &okValidAddress);
+            (WORD)(current + idx * 2 - 10), pProc->IsHaltMode(), TRUE, &okValidAddress);
     }
 
     WORD address = current - 10;
@@ -570,7 +570,7 @@ int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x,
             }
             ::SetTextColor(hdc, colorText);
             if (wNextBaseAddr == 0)
-                wNextBaseAddr = address + length * 2;
+                wNextBaseAddr = (WORD)(address + length * 2);
         }
         if (length > 0) length--;
 

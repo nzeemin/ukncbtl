@@ -293,7 +293,7 @@ BOOL WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
     ASSERT(pWavPcm->nBitsPerSample == 8);
     ASSERT(pWavPcm->nChannels == 1);
 
-    BYTE data = (value >> 24) & 0xff;
+    BYTE data = (BYTE)((value >> 24) & 0xff);
 
     size_t bytesWritten = ::fwrite(&data, 1, 1, pWavPcm->fpFile);
     if (bytesWritten != 1)
