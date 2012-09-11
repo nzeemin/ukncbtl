@@ -366,7 +366,7 @@ void CHardDrive::HandleCommand(BYTE command)
 static void swap_strncpy(BYTE* dst, const char* src, int words)
 {
 	int i;
-	for (i = 0; i < (int)strlen(src); i++)
+	for (i = 0; src[i] != 0; i++)
 		dst[i ^ 1] = src[i];
 	for ( ; i < words * 2; i++)
 		dst[i ^ 1] = ' ';
