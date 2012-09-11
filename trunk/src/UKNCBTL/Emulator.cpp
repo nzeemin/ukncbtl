@@ -666,23 +666,19 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
 //TODO: 256 bytes * 4 - Floppy 1..4 path
 //TODO: 256 bytes * 2 - Hard 1..2 path
 
-void Emulator_SaveImage(LPCTSTR sFilePath)
+BOOL Emulator_SaveImage(LPCTSTR sFilePath)
 {
     // Create file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR);
     if (fpFile == NULL)
-    {
-        AlertWarning(_T("Failed to save image file."));
-        return;
-    }
+        return FALSE;
 
     // Allocate memory
     BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
     if (pImage == NULL)
     {
-        AlertWarning(_T("Failed to save image file."));
         ::fclose(fpFile);
-        return;
+        return FALSE;
     }
     memset(pImage, 0, UKNCIMAGE_SIZE);
     // Prepare header
@@ -697,29 +693,31 @@ void Emulator_SaveImage(LPCTSTR sFilePath)
 
     // Save image to the file
     DWORD dwBytesWritten = ::fwrite(pImage, 1, UKNCIMAGE_SIZE, fpFile);
-    //TODO: Check if dwBytesWritten != UKNCIMAGE_SIZE
-
-    // Free memory, close file
     ::free(pImage);
     ::fclose(fpFile);
+    if (dwBytesWritten != UKNCIMAGE_SIZE)
+        return FALSE;
+
+    return TRUE;
 }
 
-void Emulator_LoadImage(LPCTSTR sFilePath)
+BOOL Emulator_LoadImage(LPCTSTR sFilePath)
 {
+    Emulator_Stop();
+
     // Open file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
     if (fpFile == NULL)
-    {
-        AlertWarning(_T("Failed to load image file."));
-        return;
-    }
-
-    Emulator_Stop();
+        return FALSE;
 
     // Read header
     DWORD bufHeader[UKNCIMAGE_HEADER_SIZE / sizeof(DWORD)];
     DWORD dwBytesRead = ::fread(bufHeader, 1, UKNCIMAGE_HEADER_SIZE, fpFile);
-    //TODO: Check if dwBytesRead != UKNCIMAGE_HEADER_SIZE
+    if (dwBytesRead != UKNCIMAGE_HEADER_SIZE)
+    {
+        ::fclose(fpFile);
+        return FALSE;
+    }
     
     //TODO: Check version and size
 
@@ -728,14 +726,18 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
     if (pImage == NULL)
     {
         ::fclose(fpFile);
-        AlertWarning(_T("Failed to load image file."));
-        return;
+        return FALSE;
     }
 
     // Read image
     ::fseek(fpFile, 0, SEEK_SET);
     dwBytesRead = ::fread(pImage, 1, UKNCIMAGE_SIZE, fpFile);
-    //TODO: Check if dwBytesRead != UKNCIMAGE_SIZE
+    if (dwBytesRead != UKNCIMAGE_SIZE)
+    {
+        ::free(pImage);
+        ::fclose(fpFile);
+        return FALSE;
+    }
 
     // Restore emulator state from the image
     g_pBoard->LoadFromImage(pImage);
@@ -746,7 +748,7 @@ void Emulator_LoadImage(LPCTSTR sFilePath)
     ::free(pImage);
     ::fclose(fpFile);
 
-    MainWindow_UpdateAllViews();
+    return TRUE;
 }
 
 

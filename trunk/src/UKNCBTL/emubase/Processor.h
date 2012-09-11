@@ -21,68 +21,70 @@ class CMemoryController;
 
 //////////////////////////////////////////////////////////////////////
 
-
-class CProcessor  // KM1801VM2 processor
+/// \brief KM1801VM2 processor
+class CProcessor
 {
 
 public:  // Constructor / initialization
                 CProcessor(LPCTSTR name);
+    /// \brief Link the processor and memory controller.
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
     void        SetHALTPin(BOOL value);
     void        SetDCLOPin(BOOL value);
     void        SetACLOPin(BOOL value);
     void        MemoryError();
+    /// \brief Get the processor name, assigned in the constructor.
     LPCTSTR     GetName() const { return m_name; }
 
 public:
-    static void Init();  // Initialize static tables
-    static void Done();  // Release memory used for static tables
+    static void Init();  ///< Initialize static tables
+    static void Done();  ///< Release memory used for static tables
 protected:  // Statics
     typedef void ( CProcessor::*ExecuteMethodRef )();
     static ExecuteMethodRef* m_pExecuteMethodMap;
     static void RegisterMethodRef(WORD start, WORD end, CProcessor::ExecuteMethodRef methodref);
 
 protected:  // Processor state
-    TCHAR       m_name[5];          // Processor name (DO NOT use it inside the processor code!!!)
-    WORD        m_internalTick;     // How many ticks waiting to the end of current instruction
-    WORD        m_psw;              // Processor Status Word (PSW)
-    WORD        m_R[8];             // Registers (R0..R5, R6=SP, R7=PC)
-    BOOL        m_okStopped;        // "Processor stopped" flag
-    WORD        m_savepc;           // CPC register
-    WORD        m_savepsw;          // CPSW register
-    BOOL        m_stepmode;         // Read TRUE if it's step mode
-    BOOL        m_buserror;         // Read TRUE if occured bus error for implementing double bus error if needed
-    BOOL        m_haltpin;          // HALT pin
-    BOOL        m_DCLOpin;          // DCLO pin
-    BOOL        m_ACLOpin;          // ACLO pin
-    BOOL        m_waitmode;         // WAIT
+    TCHAR       m_name[5];          ///< Processor name (DO NOT use it inside the processor code!!!)
+    WORD        m_internalTick;     ///< How many ticks waiting to the end of current instruction
+    WORD        m_psw;              ///< Processor Status Word (PSW)
+    WORD        m_R[8];             ///< Registers (R0..R5, R6=SP, R7=PC)
+    BOOL        m_okStopped;        ///< "Processor stopped" flag
+    WORD        m_savepc;           ///< CPC register
+    WORD        m_savepsw;          ///< CPSW register
+    BOOL        m_stepmode;         ///< Read TRUE if it's step mode
+    BOOL        m_buserror;         ///< Read TRUE if occured bus error for implementing double bus error if needed
+    BOOL        m_haltpin;          ///< HALT pin
+    BOOL        m_DCLOpin;          ///< DCLO pin
+    BOOL        m_ACLOpin;          ///< ACLO pin
+    BOOL        m_waitmode;         ///< WAIT
 
 protected:  // Current instruction processing
-    WORD        m_instruction;      // Curent instruction
-    int         m_regsrc;           // Source register number
-    int         m_methsrc;          // Source address mode
-    WORD        m_addrsrc;          // Source address
-    int         m_regdest;          // Destination register number
-    int         m_methdest;         // Destination address mode
-    WORD        m_addrdest;         // Destination address
+    WORD        m_instruction;      ///< Curent instruction
+    int         m_regsrc;           ///< Source register number
+    int         m_methsrc;          ///< Source address mode
+    WORD        m_addrsrc;          ///< Source address
+    int         m_regdest;          ///< Destination register number
+    int         m_methdest;         ///< Destination address mode
+    WORD        m_addrdest;         ///< Destination address
 protected:  // Interrupt processing
-    BOOL        m_STRTrq;           // Start interrupt pending
-    BOOL        m_RPLYrq;           // Hangup interrupt pending
-    BOOL        m_ILLGrq;           // Illegal instruction interrupt pending
-    BOOL        m_RSVDrq;           // Reserved instruction interrupt pending
-    BOOL        m_TBITrq;           // T-bit interrupt pending
-    BOOL        m_ACLOrq;           // Power down interrupt pending
-    BOOL        m_HALTrq;           // HALT command or HALT signal
-    BOOL        m_EVNTrq;           // Timer event interrupt pending
-    BOOL        m_FIS_rq;           // FIS command interrupt pending
-    BOOL        m_BPT_rq;           // BPT command interrupt pending
-    BOOL        m_IOT_rq;           // IOT command interrupt pending
-    BOOL        m_EMT_rq;           // EMT command interrupt pending
-    BOOL        m_TRAPrq;           // TRAP command interrupt pending
-    WORD        m_virq[16];         // VIRQ vector
-    BOOL        m_ACLOreset;        // Power fail interrupt request reset
-    BOOL        m_EVNTreset;        // EVNT interrupt request reset;
-    int         m_VIRQreset;        // VIRQ request reset for given device
+    BOOL        m_STRTrq;           ///< Start interrupt pending
+    BOOL        m_RPLYrq;           ///< Hangup interrupt pending
+    BOOL        m_ILLGrq;           ///< Illegal instruction interrupt pending
+    BOOL        m_RSVDrq;           ///< Reserved instruction interrupt pending
+    BOOL        m_TBITrq;           ///< T-bit interrupt pending
+    BOOL        m_ACLOrq;           ///< Power down interrupt pending
+    BOOL        m_HALTrq;           ///< HALT command or HALT signal
+    BOOL        m_EVNTrq;           ///< Timer event interrupt pending
+    BOOL        m_FIS_rq;           ///< FIS command interrupt pending
+    BOOL        m_BPT_rq;           ///< BPT command interrupt pending
+    BOOL        m_IOT_rq;           ///< IOT command interrupt pending
+    BOOL        m_EMT_rq;           ///< EMT command interrupt pending
+    BOOL        m_TRAPrq;           ///< TRAP command interrupt pending
+    WORD        m_virq[16];         ///< VIRQ vector
+    BOOL        m_ACLOreset;        ///< Power fail interrupt request reset
+    BOOL        m_EVNTreset;        ///< EVNT interrupt request reset;
+    int         m_VIRQreset;        ///< VIRQ request reset for given device
 protected:
     CMemoryController* m_pMemoryController;
 
@@ -90,9 +92,10 @@ public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
 
 public:  // Register control
-    WORD        GetPSW() const { return m_psw; }
+    WORD        GetPSW() const { return m_psw; }  ///< Get the processor status word register value
     WORD        GetCPSW() const { return m_savepsw; }
     BYTE        GetLPSW() const { return LOBYTE(m_psw); }
+    /// \brief Set the processor status word register value
     void        SetPSW(WORD word)
     {
         m_psw = word & 0777;
@@ -104,7 +107,8 @@ public:  // Register control
         m_psw = (m_psw & 0xFF00) | (WORD)byte;
         if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
     }
-    WORD        GetReg(int regno) const { return m_R[regno]; }
+    WORD        GetReg(int regno) const { return m_R[regno]; }  ///< Get register value
+    /// \brief Set register value
     void        SetReg(int regno, WORD word)
     {
         m_R[regno] = word;
@@ -140,18 +144,18 @@ public:  // PSW bits control
     WORD        GetHALT() const { return (m_psw & PSW_HALT) != 0; }
 
 public:  // Processor state
-    // "Processor stopped" flag
+    /// \brief "Processor stopped" flag
     BOOL        IsStopped() const { return m_okStopped; }
-    // HALT flag (TRUE - HALT mode, FALSE - USER mode)
+    /// \brief HALT flag (TRUE - HALT mode, FALSE - USER mode)
     BOOL        IsHaltMode() const
     { 
             return ((m_psw & 0400) != 0);
     }
 public:  // Processor control
-    void        TickEVNT();  // EVNT signal
-    void        InterruptVIRQ(int que, WORD interrupt);  // External interrupt via VIRQ signal
+    void        TickEVNT();  ///< EVNT signal
+    void        InterruptVIRQ(int que, WORD interrupt);  ///< External interrupt via VIRQ signal
     WORD        GetVIRQ(int que);
-    void        Execute();   // Execute one instruction - for debugger only
+    void        Execute();   ///< Execute one instruction - for debugger only
     BOOL        InterruptProcessing();
     void        CommandExecution();
     
@@ -160,8 +164,8 @@ public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        LoadFromImage(const BYTE* pImage);
 
 protected:  // Implementation
-    void        FetchInstruction();      // Read next instruction
-    void        TranslateInstruction();  // Execute the instruction
+    void        FetchInstruction();      ///< Read next instruction
+    void        TranslateInstruction();  ///< Execute the instruction
 protected:  // Implementation - memory access
     WORD        GetWordExec(WORD address) { return m_pMemoryController->GetWordExec(address, IsHaltMode()); }
     WORD        GetWord(WORD address) { return m_pMemoryController->GetWord(address, IsHaltMode()); }

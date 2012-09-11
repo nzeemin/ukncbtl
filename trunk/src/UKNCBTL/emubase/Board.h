@@ -90,7 +90,8 @@ class CHardDrive;
 
 //////////////////////////////////////////////////////////////////////
 
-class CMotherboard  // UKNC computer
+/// \brief UKNC computer
+class CMotherboard
 {
 
 public:  // Construct / destruct
@@ -98,22 +99,22 @@ public:  // Construct / destruct
     ~CMotherboard();
 
 protected:  // Devices
-    CProcessor*     m_pCPU;  // CPU device
-    CProcessor*     m_pPPU;  // PPU device
-    CMemoryController*  m_pFirstMemCtl;  // CPU memory control
-    CMemoryController*  m_pSecondMemCtl;  // PPU memory control
-    CFloppyController*  m_pFloppyCtl;  // FDD control
-    CHardDrive* m_pHardDrives[2];  // HDD control
+    CProcessor*     m_pCPU;  ///< CPU device
+    CProcessor*     m_pPPU;  ///< PPU device
+    CMemoryController*  m_pFirstMemCtl;  ///< CPU memory control
+    CMemoryController*  m_pSecondMemCtl;  ///< PPU memory control
+    CFloppyController*  m_pFloppyCtl;  ///< FDD control
+    CHardDrive* m_pHardDrives[2];  ///< HDD control
 public:  // Getting devices
-    CProcessor*     GetCPU() { return m_pCPU; }
-    CProcessor*     GetPPU() { return m_pPPU; }
-    CMemoryController*  GetCPUMemoryController() { return m_pFirstMemCtl; }
-    CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl; }
+    CProcessor*     GetCPU() { return m_pCPU; }  ///< Getter for m_pCPU
+    CProcessor*     GetPPU() { return m_pPPU; }  ///< Getter for m_pPPU
+    CMemoryController*  GetCPUMemoryController() { return m_pFirstMemCtl; }  ///< Get CPU memory controller
+    CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl; }  ///< Get PPU memory controller
 
 protected:  // Memory
-    BYTE*           m_pRAM[3];  // RAM, three planes, 64 KB each
-    BYTE*           m_pROM;     // System ROM, 32 KB
-    BYTE*           m_pROMCart[2];  // ROM cartridges #1 and #2, 24 KB each
+    BYTE*           m_pRAM[3];  ///< RAM, three planes, 64 KB each
+    BYTE*           m_pROM;     ///< System ROM, 32 KB
+    BYTE*           m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
 public:  // Memory access
     WORD        GetRAMWord(int plan, WORD offset);
     BYTE        GetRAMByte(int plan, WORD offset);
@@ -124,9 +125,9 @@ public:  // Memory access
     WORD        GetROMCartWord(int cartno, WORD offset);
     BYTE        GetROMCartByte(int cartno, WORD offset);
 public:  // Debug
-    void        DebugTicks();  // One Debug PPU tick -- use for debug step or debug breakpoint
-    void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } // Set CPU breakpoint
-    void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } // Set PPU breakpoint
+    void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
+    void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set CPU breakpoint
+    void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } ///< Set PPU breakpoint
     chan_stc	GetChannelStruct(unsigned char cpu,unsigned char chan, unsigned char tx)
     {//cpu==1 ,ppu==0; tx==1, rx==0
         if(cpu)
@@ -146,21 +147,21 @@ public:  // Debug
     }
 
 public:  // System control
-    void        Reset();  // Reset computer
-    void        LoadROM(const BYTE* pBuffer);  // Load 32 KB ROM image from the biffer
-    void        LoadROMCartridge(int cartno, const BYTE* pBuffer);  // Load 24 KB ROM cartridge image
-    void        LoadRAM(int plan, const BYTE* pBuffer);  // Load 32 KB RAM image from the biffer
-    void        Tick8000();  // Tick 8.00 MHz
-    void        Tick6250();  // Tick 6.25 MHz
-    void        Tick50();    // Tick 50 Hz - goes to CPU/PPU EVNT line
-    void		TimerTick();		// Timer Tick, 2uS -- dividers are within timer routine
-    void        ResetFloppy();     // INIT signal for FDD
-    WORD		GetTimerValue();	// returns current timer value
-    WORD		GetTimerValueView() { return m_timer; }	// Returns current timer value for debugger
-    WORD		GetTimerReload();	// returns timer reload value
-    WORD		GetTimerReloadView() { return m_timerreload; }	// Returns timer reload value for debugger
-    WORD		GetTimerState();	// returns timer state
-    WORD		GetTimerStateView() { return m_timerflags; } // Returns timer state for debugger
+    void        Reset();  ///< Reset computer
+    void        LoadROM(const BYTE* pBuffer);  ///< Load 32 KB ROM image from the biffer
+    void        LoadROMCartridge(int cartno, const BYTE* pBuffer);  ///< Load 24 KB ROM cartridge image
+    void        LoadRAM(int plan, const BYTE* pBuffer);  ///< Load 32 KB RAM image from the biffer
+    void        Tick8000();  ///< Tick 8.00 MHz
+    void        Tick6250();  ///< Tick 6.25 MHz
+    void        Tick50();    ///< Tick 50 Hz - goes to CPU/PPU EVNT line
+    void		TimerTick(); ///< Timer Tick, 2uS -- dividers are within timer routine
+    void        ResetFloppy();     ///< INIT signal for FDD
+    WORD		GetTimerValue();	///< Returns current timer value
+    WORD		GetTimerValueView() { return m_timer; }	///< Returns current timer value for debugger
+    WORD		GetTimerReload();	///< Returns timer reload value
+    WORD		GetTimerReloadView() { return m_timerreload; }	///< Returns timer reload value for debugger
+    WORD		GetTimerState();	///< Returns timer state
+    WORD		GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
 
     void		ChanWriteByCPU(BYTE chan, BYTE data);
     void		ChanWriteByPPU(BYTE chan, BYTE data);
@@ -181,39 +182,55 @@ public:  // System control
 
     //void		FloppyDebug(BYTE val);
 
-    void        SetTimerReload(WORD val);	//sets timer reload value
-    void        SetTimerState(WORD val);	//sets timer state
-    void        ExecuteCPU();  // Execute one CPU instruction
-    void        ExecutePPU();  // Execute one PPU instruction
-    BOOL        SystemFrame();  // Do one frame -- use for normal run
-    void        KeyboardEvent(BYTE scancode, BOOL okPressed);  // Key pressed or released
+    void        SetTimerReload(WORD val);	///< Sets timer reload value
+    void        SetTimerState(WORD val);	///< Sets timer state
+    void        ExecuteCPU();  ///< Execute one CPU instruction
+    void        ExecutePPU();  ///< Execute one PPU instruction
+    BOOL        SystemFrame();  ///< Do one frame -- use for normal run
+    void        KeyboardEvent(BYTE scancode, BOOL okPressed);  ///< Key pressed or released
     WORD        GetKeyboardRegister(void);
     WORD        GetScannedKey() {return m_scanned_key; }
 
+    /// \brief Attach floppy image to the slot -- insert the disk.
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
+    /// \brief Empty the floppy slot -- remove the disk.
     void        DetachFloppyImage(int slot);
+    /// \brief Check if the floppy attached.
     BOOL        IsFloppyImageAttached(int slot) const;
+    /// \brief Check if the attached floppy image is read-only.
     BOOL        IsFloppyReadOnly(int slot) const;
+    /// \brief Check if the floppy drive engine rotates the disks.
     BOOL        IsFloppyEngineOn() const;
     WORD        GetFloppyState();
     WORD        GetFloppyData();
     void        SetFloppyState(WORD val);
     void        SetFloppyData(WORD val);
 
+    /// \brief Check if ROM cartridge image assigned to the cartridge slot.
     BOOL        IsROMCartridgeLoaded(int cartno) const;
+    /// \brief Empty the ROM cartridge slot.
     void        UnloadROMCartridge(int cartno);
 
+    /// \brief Attach hard drive image to the slot.
     BOOL        AttachHardImage(int slot, LPCTSTR sFileName);
+    /// \brief Empty hard drive slot.
     void        DetachHardImage(int slot);
+    /// \brief Check if the hard drive attached.
     BOOL        IsHardImageAttached(int slot) const;
+    /// \brief Check if the attached hard drive image is read-only.
     BOOL        IsHardImageReadOnly(int slot) const;
-    WORD        GetHardPortWord(int slot, WORD port);  // To use from CSecondMemoryController only
-    void        SetHardPortWord(int slot, WORD port, WORD data);  // To use from CSecondMemoryController only
+    WORD        GetHardPortWord(int slot, WORD port);  ///< To use from CSecondMemoryController only
+    void        SetHardPortWord(int slot, WORD port, WORD data);  ///< To use from CSecondMemoryController only
 
+    /// \brief Assign tape read callback function.
     void        SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
+    /// \brief Assign write read callback function.
     void        SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate);
+    /// \brief Assign sound output callback function.
     void        SetSoundGenCallback(SOUNDGENCALLBACK callback);
+    /// \brief Assign serial port input/output callback functions.
     void        SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
+    /// \brief Assign parallel port output callback function.
     void        SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
 
 public:  // Saving/loading emulator status
@@ -229,8 +246,8 @@ private: // Timing
     int         m_cputicks;
     unsigned int m_lineticks;
 private:
-    WORD        m_CPUbp;
-    WORD        m_PPUbp;
+    WORD        m_CPUbp;  ///< CPU breakpoint, 177777 if not set
+    WORD        m_PPUbp;  ///< PPU breakpoint, 177777 if not set
 
     WORD		m_timer;
     WORD		m_timerreload;

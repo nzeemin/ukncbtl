@@ -297,7 +297,7 @@ BOOL CProcessor::InterruptProcessing ()
 {
     WORD intrVector = 0xFFFF;
     BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
-    BOOL intrMode;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
+    BOOL intrMode = FALSE;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
 
     if (m_stepmode)
         m_stepmode = FALSE;
@@ -1931,7 +1931,7 @@ void CProcessor::ExecuteASH ()  // ASH
       if (dst & 0100000) new_psw |= PSW_C; else new_psw &= ~PSW_C;
       dst <<= 1;
       if ((dst<0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
-      m_internalTick+=ASH_S_TIMING;
+      m_internalTick = m_internalTick + ASH_S_TIMING;
      }
     }
     else
@@ -1940,7 +1940,7 @@ void CProcessor::ExecuteASH ()  // ASH
      {
       if (dst & 1) new_psw |= PSW_C; else new_psw &= ~PSW_C;
       dst >>= 1;
-      m_internalTick+=ASH_S_TIMING;
+      m_internalTick = m_internalTick + ASH_S_TIMING;
      }
     }
     
@@ -1972,7 +1972,7 @@ void CProcessor::ExecuteASHC ()  // ASHC
       if (dst & 0x80000000L) new_psw |= PSW_C; else new_psw &= ~PSW_C;
       dst <<= 1;
       if ((dst<0) != ((new_psw & PSW_C)!=0)) new_psw |= PSW_V;
-      m_internalTick+=ASHC_S_TIMING;
+      m_internalTick = m_internalTick + ASHC_S_TIMING;
      }
     }
     else
@@ -1981,7 +1981,7 @@ void CProcessor::ExecuteASHC ()  // ASHC
      {
       if (dst & 1) new_psw |= PSW_C; else new_psw &= ~PSW_C;
       dst >>= 1;
-      m_internalTick+=ASHC_S_TIMING;
+      m_internalTick = m_internalTick + ASHC_S_TIMING;
      }
     }
         

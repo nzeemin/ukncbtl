@@ -54,8 +54,8 @@ BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 void Emulator_OnUpdate();
 WORD Emulator_GetChangeRamStatus(int addrtype, WORD address);
 
-void Emulator_SaveImage(LPCTSTR sFilePath);
-void Emulator_LoadImage(LPCTSTR sFilePath);
+BOOL Emulator_SaveImage(LPCTSTR sFilePath);
+BOOL Emulator_LoadImage(LPCTSTR sFilePath);
 
 
 //////////////////////////////////////////////////////////////////////
