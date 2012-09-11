@@ -983,7 +983,12 @@ void MainWindow_DoFileLoadState()
         bufFileName);
     if (! okResult) return;
 
-    Emulator_LoadImage(bufFileName);
+    if (!Emulator_LoadImage(bufFileName))
+    {
+        AlertWarning(_T("Failed to load image file."));
+    }
+
+    MainWindow_UpdateAllViews();
 }
 
 void MainWindow_DoFileSaveState()
@@ -996,7 +1001,10 @@ void MainWindow_DoFileSaveState()
         bufFileName);
     if (! okResult) return;
 
-    Emulator_SaveImage(bufFileName);
+    if (!Emulator_SaveImage(bufFileName))
+    {
+        AlertWarning(_T("Failed to save image file."));
+    }
 }
 
 void MainWindow_DoFileScreenshot()
