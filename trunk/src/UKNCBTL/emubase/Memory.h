@@ -14,9 +14,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "Defines.h"
+#include "Board.h"
 
 class CProcessor;
-class CMotherboard;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -26,10 +26,10 @@ class CMotherboard;
 #define ADDRTYPE_RAM1  1    // RAM plane 1
 #define ADDRTYPE_RAM2  2    // RAM plane 2
 #define ADDRTYPE_RAM12 4    // RAM plane 1 & 2 - a special case for CPU memory
-#define ADDRTYPE_ROM   8    // ROM
-#define ADDRTYPE_IO    16   // I/O port
-#define ADDRTYPE_ROMCART1  32  // ROM cartridge #1
-#define ADDRTYPE_ROMCART2  64  // ROM cartridge #2
+#define ADDRTYPE_ROM   32   // ROM
+#define ADDRTYPE_ROMCART1 40  // ADDRTYPE_ROM + 8  -- ROM cartridge #1
+#define ADDRTYPE_ROMCART2 48  // ADDRTYPE_ROM + 16 -- ROM cartridge #2
+#define ADDRTYPE_IO    64   // I/O port; bits 5..0 -- device number
 #define ADDRTYPE_NONE  128  // No data
 #define ADDRTYPE_DENY  255  // Access denied
 #define ADDRTYPE_MASK_RAM  7  // Mask to get memory plane number
@@ -44,10 +44,17 @@ class CMemoryController
 protected:
     CMotherboard*   m_pBoard;
     CProcessor*     m_pProcessor;
+    BYTE*           m_pMapping;  // Memory mapping
+    CBusDevice**    m_pDevices;  // Attached bus devices
+    int             m_nDeviceCount;
 public:
     CMemoryController();
+    ~CMemoryController();
     void        Attach(CMotherboard* board, CProcessor* processor)
                     { m_pBoard = board;  m_pProcessor = processor; }
+    // Attach/reattach bus devices
+    void        AttachDevices(const CBusDevice** pDevices);
+    virtual void UpdateMemoryMap();
     // Reset to initial state
     virtual void DCLO_Signal() = 0;  // DCLO signal
     virtual void ResetDevices() = 0;  // INIT signal
@@ -124,6 +131,7 @@ class CSecondMemoryController : public CMemoryController  // PPU memory control 
     friend class CMotherboard;
 public:
     CSecondMemoryController();
+    virtual void UpdateMemoryMap();
     virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
     virtual void DCLO_177716();
