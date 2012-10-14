@@ -17,6 +17,135 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 //////////////////////////////////////////////////////////////////////
+// Bus devices
+
+static const WORD ProcessorTimerAddressRanges[] = {
+    0177710, 6,  // 177710-177715
+    0, 0
+};
+class CBusDeviceProcessorTimer : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Processor timer"); }
+    virtual const WORD* GetAddressRanges() const { return ProcessorTimerAddressRanges; }
+};
+
+static const WORD CpuChannelsAddressRanges[] = {
+    0176660, 16,
+    0177560, 8,
+    0, 0
+};
+class CBusDeviceCpuChannels : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("CPU-PPU channels"); }
+    virtual const WORD* GetAddressRanges() const { return CpuChannelsAddressRanges; }
+};
+
+static const WORD PpuChannelsAddressRanges[] = {
+    0177060, 16,
+    0177100, 4,
+    0, 0
+};
+class CBusDevicePpuChannels : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("CPU-PPU channels"); }
+    virtual const WORD* GetAddressRanges() const { return PpuChannelsAddressRanges; }
+};
+
+static const WORD NetworkAdapterAddressRanges[] = {
+    0176560, 8,
+    0, 0
+};
+class CBusDeviceNetworkAdapter : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Network adapter"); }
+    virtual const WORD* GetAddressRanges() const { return NetworkAdapterAddressRanges; }
+};
+
+static const WORD SerialPortAddressRanges[] = {
+    0176570, 8,
+    0, 0
+};
+class CBusDeviceSerialPort : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Serial port"); }
+    virtual const WORD* GetAddressRanges() const { return SerialPortAddressRanges; }
+};
+
+static const WORD CpuMemoryAccessAddressRanges[] = {
+    0176640, 8,
+    0176564, 4,  // Регистры пультового терминала
+    0, 0
+};
+class CBusDeviceCpuMemoryAccess : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Memory access"); }
+    virtual const WORD* GetAddressRanges() const { return CpuMemoryAccessAddressRanges; }
+};
+
+static const WORD PpuMemoryAccessAddressRanges[] = {
+    0177010, 16,
+    0177054, 2,
+    0, 0
+};
+class CBusDevicePpuMemoryAccess : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Memory access"); }
+    virtual const WORD* GetAddressRanges() const { return PpuMemoryAccessAddressRanges; }
+};
+
+static const WORD ProgrammablePortAddressRanges[] = {
+    0177100, 4,  // i8255 ports
+    0, 0
+};
+class CBusDeviceProgrammablePort : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Programmable port"); }
+    virtual const WORD* GetAddressRanges() const { return ProgrammablePortAddressRanges; }
+};
+
+static const WORD KeyboardAddressRanges[] = {
+    0177700, 6,
+    0, 0
+};
+class CBusDeviceKeyboard : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Keyboard"); }
+    virtual const WORD* GetAddressRanges() const { return KeyboardAddressRanges; }
+};
+
+static const WORD FloppyControllerAddressRanges[] = {
+    0177130, 4,
+    0, 0
+};
+class CBusDeviceFloppyController : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Floppy controller"); }
+    virtual const WORD* GetAddressRanges() const { return FloppyControllerAddressRanges; }
+};
+
+static const WORD HardDriveAddressRanges[] = {
+    0110000, 010000,
+    0, 0
+};
+class CBusDeviceHardDrive : public CBusDevice
+{
+public:
+    virtual LPCTSTR GetName() const { return _T("Hard drive"); }
+    virtual const WORD* GetAddressRanges() const { return HardDriveAddressRanges; }
+};
+
+
+//////////////////////////////////////////////////////////////////////
 
 CMotherboard::CMotherboard ()
 {
@@ -59,10 +188,49 @@ CMotherboard::CMotherboard ()
     m_pROMCart[1] = NULL;
     m_pHardDrives[0] = NULL;
     m_pHardDrives[1] = NULL;
+
+    // Prepare bus devices
+    m_pCpuDevices = (CBusDevice**) malloc(6 * sizeof(CBusDevice*));
+    m_pCpuDevices[0] = new CBusDeviceProcessorTimer();
+    m_pCpuDevices[1] = new CBusDeviceCpuChannels();
+    m_pCpuDevices[2] = new CBusDeviceNetworkAdapter();
+    m_pCpuDevices[3] = new CBusDeviceSerialPort();
+    m_pCpuDevices[4] = new CBusDeviceCpuMemoryAccess();
+    m_pCpuDevices[5] = NULL;
+    m_pPpuDevices = (CBusDevice**) malloc(8 * sizeof(CBusDevice*));
+    m_pPpuDevices[0] = new CBusDeviceProcessorTimer();
+    m_pPpuDevices[1] = new CBusDevicePpuChannels();
+    m_pPpuDevices[2] = new CBusDevicePpuMemoryAccess();
+    m_pPpuDevices[3] = new CBusDeviceProgrammablePort();
+    m_pPpuDevices[4] = new CBusDeviceKeyboard();
+    m_pPpuDevices[5] = new CBusDeviceFloppyController();
+    m_pPpuDevices[6] = new CBusDeviceHardDrive();
+    m_pPpuDevices[7] = NULL;
+
+    m_pFirstMemCtl->AttachDevices((const CBusDevice**)m_pCpuDevices);
+    m_pSecondMemCtl->AttachDevices((const CBusDevice**)m_pPpuDevices);
 }
 
 CMotherboard::~CMotherboard ()
 {
+    // Delete bus devices
+    CBusDevice** ppDevice = m_pCpuDevices;
+    while (*ppDevice != NULL)
+    {
+        delete *ppDevice;
+        *ppDevice = NULL;
+        ppDevice++;
+    }
+    free(m_pCpuDevices);
+    ppDevice = m_pPpuDevices;
+    while (*ppDevice != NULL)
+    {
+        delete *ppDevice;
+        *ppDevice = NULL;
+        ppDevice++;
+    }
+    free(m_pPpuDevices);
+
     // Delete devices
     delete m_pCPU;
     delete m_pPPU;
@@ -215,7 +383,10 @@ BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
     m_pHardDrives[slot - 1] = new CHardDrive();
     BOOL success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
     if (success)
+    {
         m_pHardDrives[slot - 1]->Reset();
+        m_pSecondMemCtl->UpdateMemoryMap();
+    }
 
     return success;
 }

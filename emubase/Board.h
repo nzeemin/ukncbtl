@@ -90,6 +90,17 @@ class CHardDrive;
 
 //////////////////////////////////////////////////////////////////////
 
+
+// \brief Bus device
+class CBusDevice
+{
+public:
+    // Name of the device
+    virtual LPCTSTR GetName() const = 0;
+    // Device address ranges: [address, length] pairs, last pair is [0,0]
+    virtual const WORD* GetAddressRanges() const = 0;
+};
+
 /// \brief UKNC computer
 class CMotherboard
 {
@@ -105,11 +116,19 @@ protected:  // Devices
     CMemoryController*  m_pSecondMemCtl;  ///< PPU memory control
     CFloppyController*  m_pFloppyCtl;  ///< FDD control
     CHardDrive* m_pHardDrives[2];  ///< HDD control
+
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU; }  ///< Getter for m_pCPU
     CProcessor*     GetPPU() { return m_pPPU; }  ///< Getter for m_pPPU
     CMemoryController*  GetCPUMemoryController() { return m_pFirstMemCtl; }  ///< Get CPU memory controller
     CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl; }  ///< Get PPU memory controller
+
+protected:
+    CBusDevice** m_pCpuDevices;
+    CBusDevice** m_pPpuDevices;
+public:
+    const CBusDevice** GetCPUBusDevices() { return (const CBusDevice**) m_pCpuDevices; }
+    const CBusDevice** GetPPUBusDevices() { return (const CBusDevice**) m_pPpuDevices; }
 
 protected:  // Memory
     BYTE*           m_pRAM[3];  ///< RAM, three planes, 64 KB each

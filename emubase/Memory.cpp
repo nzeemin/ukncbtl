@@ -23,6 +23,65 @@ CMemoryController::CMemoryController ()
 {
     m_pProcessor = NULL;
     m_pBoard = NULL;
+    m_pMapping = (BYTE*) malloc(65536);
+    memset(m_pMapping, ADDRTYPE_NONE, 65536);
+    m_pDevices = NULL;
+}
+
+CMemoryController::~CMemoryController ()
+{
+    free(m_pMapping);
+
+    if (m_pDevices != NULL)
+        free(m_pDevices);
+}
+
+void CMemoryController::AttachDevices(const CBusDevice **pDevices)
+{
+    // Free the previously allocated memory
+    if (m_pDevices != NULL)
+    {
+        free(m_pDevices);  m_pDevices = NULL;
+    }
+
+    // Calculate device count
+    const CBusDevice ** p = pDevices;
+    int deviceCount = 0;
+    while (*p != NULL)
+    {
+        deviceCount++;
+        p++;
+    }
+
+    // Allocate memory and store the devices
+    m_pDevices = (CBusDevice **) malloc((deviceCount + 1) * sizeof(CBusDevice*));
+    m_pDevices[0] = NULL;
+    memcpy(m_pDevices + 1, pDevices, deviceCount * sizeof(CBusDevice*));
+    m_nDeviceCount = deviceCount;
+
+    // Update the memory map
+    UpdateMemoryMap();
+}
+
+void CMemoryController::UpdateMemoryMap()
+{
+    memset(m_pMapping, ADDRTYPE_NONE, 65536);
+
+    CBusDevice ** pDevices = m_pDevices;
+    for (int device = 1; device <= m_nDeviceCount; device++, pDevices++)
+    {
+        CBusDevice * pDevice = *pDevices;
+        if (pDevice == NULL) continue;
+        BYTE deviceIndex = (BYTE)device | ADDRTYPE_IO;
+        const WORD * pRanges = (*pDevices)->GetAddressRanges();
+        while (*pRanges != 0)
+        {
+            WORD start = *pRanges;  pRanges++;
+            WORD length = *pRanges;  pRanges++;
+            for (WORD addr = start; addr < start + length; addr++)
+                m_pMapping[addr] = deviceIndex;
+        }
+    }
 }
 
 // Read word from memory for debugger
@@ -688,8 +747,82 @@ void CSecondMemoryController::ResetDevices()
     //TODO
 }
 
+void CSecondMemoryController::UpdateMemoryMap()
+{
+    CMemoryController::UpdateMemoryMap();
+
+    // 000000-077777 - PPU RAM
+    memset(m_pMapping, ADDRTYPE_RAM0, 0100000);
+
+    // 100000-117777 - Window block 0
+    BYTE filler = ADDRTYPE_NONE;
+    if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
+        memset(m_pMapping + 0100000, ADDRTYPE_RAM0, 020000);
+    else if ((m_Port177054 & 1) != 0)  // ROM selected
+        memset(m_pMapping + 0100000, ADDRTYPE_ROM, 020000);
+    else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
+    {
+        int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
+        filler = (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
+        memset(m_pMapping + 0100000, filler, 010000);
+        if (!m_pBoard->IsHardImageAttached(slot))
+            memset(m_pMapping + 0110000, filler, 010000);
+    }
+
+    // 120000-137777 - Window block 1
+    filler = ((m_Port177054 & 32) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 5 set => RAM selected
+    memset(m_pMapping + 0120000, filler, 020000);
+
+    // 140000-157777 - Window block 2
+    filler = ((m_Port177054 & 64) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 6 set => RAM selected
+    memset(m_pMapping + 0140000, filler, 020000);
+
+    // 160000-176777 - Window block 3
+    filler = ((m_Port177054 & 128) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 7 set => RAM selected
+    memset(m_pMapping + 0160000, filler, 017000);
+
+    // 177000-177777 - I/O addresses
+    for (WORD addr = 0177777; addr >= 0177000; addr--)
+        if ((m_pMapping[addr] & (128+64)) != ADDRTYPE_IO)
+            m_pMapping[addr] = ADDRTYPE_IO;
+}
+
 int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/)
 {
+    //BYTE addrtype = m_pMapping[address];
+    //switch (addrtype)
+    //{
+    //case ADDRTYPE_ROM:
+    //    *pOffset = address - 0100000;
+    //    return ADDRTYPE_ROM;
+    //case ADDRTYPE_RAM0:
+    //    *pOffset = address;
+    //    return ADDRTYPE_RAM0;
+    //case ADDRTYPE_ROMCART1: case ADDRTYPE_ROMCART2:
+    //    {
+    //        int bank = (m_Port177054 & 6) >> 1;
+    //        *pOffset = address - 0100000 + (((WORD)bank - 1) << 13);
+    //        return addrtype;
+    //    }
+    //default:
+    //    if ((addrtype & (128+64)) == ADDRTYPE_IO)
+    //    {
+    //        if (okExec) {  // Execution on this address is denied
+    //            *pOffset = 0;
+    //            return ADDRTYPE_DENY;
+    //        }
+    //        else {
+    //            *pOffset = address;
+    //            return ADDRTYPE_IO;
+    //        }
+    //    }
+    //    else
+    //    {
+    //        *pOffset = 0;
+    //        return ADDRTYPE_NONE;
+    //    }
+    //}
+
     switch ((address >> 13) & 7)
     {
     default:  // case 0..3 - 000000-077777 - PPU RAM
@@ -772,7 +905,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
     }
 
     //ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
-    //return ADDRTYPE_NONE;
+    return ADDRTYPE_NONE;
 }
 
 WORD CSecondMemoryController::GetPortWord(WORD address)
@@ -1205,7 +1338,12 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         case 0177055:
             //wsprintf(str,_T("W %s, %s\r\n"),oct1,oct);
             //DebugPrint(str);
-            m_Port177054 = word & 01777;
+            {
+                WORD oldvalue = m_Port177054;
+                m_Port177054 = word & 01777;
+                if (oldvalue != m_Port177054)
+                    UpdateMemoryMap();
+            }
             break;
 
         case 0177060:
@@ -1458,6 +1596,8 @@ void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
     m_Port177100 = *pbImage++;
     m_Port177101 = *pbImage++;
     m_Port177102 = *pbImage++;
+
+    UpdateMemoryMap();
 }
 
 
