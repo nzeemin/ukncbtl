@@ -116,6 +116,7 @@ public:  // CPU specific
     BOOL SerialInput(BYTE inputByte);
     
 protected:  // Implementation
+    int         m_NetStation;  // Network station number
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
     WORD        m_Port176644;

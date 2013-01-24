@@ -306,6 +306,12 @@ void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM ima
     memcpy(m_pRAM[plan], pBuffer, 32768);
 }
 
+void CMotherboard::SetNetStation(int station)
+{
+    CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+    pMemCtl->m_NetStation = station;
+}
+
 
 // Floppy ////////////////////////////////////////////////////////////
 

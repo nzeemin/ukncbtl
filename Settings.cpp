@@ -39,6 +39,8 @@ BOOL m_Settings_Parallel = FALSE;
 BOOL m_Settings_Parallel_Valid = FALSE;
 DWORD m_Settings_CartridgeMode = 0;
 BOOL m_Settings_CartridgeMode_Valid = FALSE;
+WORD m_Settings_NetStation = 1;
+BOOL m_Settings_NetStation_Valid = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -362,6 +364,24 @@ void Settings_GetSerialPort(LPTSTR buffer)
 void Settings_SetSerialPort(LPCTSTR sValue)
 {
     Settings_SaveStringValue(_T("SerialPort"), sValue);
+}
+
+void Settings_SetNetStation(int value)
+{
+    m_Settings_NetStation = (WORD)value;
+    m_Settings_NetStation_Valid = TRUE;
+    Settings_SaveDwordValue(_T("NetStation"), (DWORD) value);
+}
+int Settings_GetNetStation()
+{
+    if (!m_Settings_NetStation_Valid)
+    {
+        DWORD dwValue = (DWORD) 1;
+        Settings_LoadDwordValue(_T("NetStation"), &dwValue);
+        m_Settings_NetStation = (WORD)dwValue;
+        m_Settings_NetStation_Valid = TRUE;
+    }
+    return (int)m_Settings_NetStation;
 }
 
 

@@ -170,6 +170,7 @@ public:  // System control
     void        LoadROM(const BYTE* pBuffer);  ///< Load 32 KB ROM image from the biffer
     void        LoadROMCartridge(int cartno, const BYTE* pBuffer);  ///< Load 24 KB ROM cartridge image
     void        LoadRAM(int plan, const BYTE* pBuffer);  ///< Load 32 KB RAM image from the biffer
+    void        SetNetStation(int station);  // Network station number
     void        Tick8000();  ///< Tick 8.00 MHz
     void        Tick6250();  ///< Tick 6.25 MHz
     void        Tick50();    ///< Tick 50 Hz - goes to CPU/PPU EVNT line
