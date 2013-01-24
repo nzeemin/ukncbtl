@@ -285,6 +285,7 @@ CFirstMemoryController::CFirstMemoryController() : CMemoryController()
     m_Port176646 = 0;
     m_Port176570 = m_Port176572 = m_Port176576 = 0;  // RS-232 ports
     m_Port176574 = 0200;
+    m_NetStation = 1;
 }
 
 void CFirstMemoryController::DCLO_Signal()

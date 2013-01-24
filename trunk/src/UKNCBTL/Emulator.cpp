@@ -106,6 +106,8 @@ BOOL Emulator_Init()
         return false;
     }
 
+    g_pBoard->SetNetStation(Settings_GetNetStation());
+
     g_pBoard->Reset();
 
     if (m_okEmulatorSound)

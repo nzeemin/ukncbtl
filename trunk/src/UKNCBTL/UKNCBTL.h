@@ -137,6 +137,8 @@ void Settings_GetSerialPort(LPTSTR buffer);
 void Settings_SetSerialPort(LPCTSTR sValue);
 void Settings_SetParallel(BOOL flag);
 BOOL Settings_GetParallel();
+int  Settings_GetNetStation();
+void Settings_SetNetStation(int value);
 
 
 //////////////////////////////////////////////////////////////////////
