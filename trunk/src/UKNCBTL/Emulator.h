@@ -40,6 +40,7 @@ BOOL Emulator_IsBreakpoint();
 void Emulator_SetSound(BOOL soundOnOff);
 BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort);
 void Emulator_SetParallel(BOOL parallelOnOff);
+BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort);
 void Emulator_Start();
 void Emulator_Stop();
 void Emulator_Reset();

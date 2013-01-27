@@ -64,6 +64,19 @@ typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, unsigned int samples);
 // Sound generator callback function type
 typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 
+// Network port callback for receiving
+// Output:
+//   pbyte      Byte received
+//   result     TRUE means we have a new byte, FALSE means not ready yet
+typedef BOOL (CALLBACK* NETWORKINCALLBACK)(BYTE* pbyte);
+
+// Network port callback for translating
+// Input:
+//   byte       A byte to translate
+// Output:
+//   result     TRUE means we translated the byte successfully, FALSE means we have an error
+typedef BOOL (CALLBACK* NETWORKOUTCALLBACK)(BYTE byte);
+
 // Serial port callback for receiving
 // Output:
 //   pbyte      Byte received
@@ -252,7 +265,8 @@ public:  // System control
     void        SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALLBACK outcallback);
     /// \brief Assign parallel port output callback function.
     void        SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
-
+    /// \brief Assign network port input/output callback functions.
+    void        SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTCALLBACK outcallback);
 public:  // Saving/loading emulator status
     void        SaveToImage(BYTE* pImage);
     void        LoadFromImage(const BYTE* pImage);
@@ -293,6 +307,8 @@ private:
     SERIALINCALLBACK    m_SerialInCallback;
     SERIALOUTCALLBACK   m_SerialOutCallback;
     PARALLELOUTCALLBACK m_ParallelOutCallback;
+    NETWORKINCALLBACK   m_NetworkInCallback;
+    NETWORKOUTCALLBACK  m_NetworkOutCallback;
 
     void DoSound(void);
     

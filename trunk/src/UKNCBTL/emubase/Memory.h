@@ -114,9 +114,13 @@ public:  // Saving/loading emulator status (64 bytes)
     virtual void LoadFromImage(const BYTE* pImage);
 public:  // CPU specific
     BOOL SerialInput(BYTE inputByte);
-    
+    BOOL NetworkInput(BYTE inputByte);
 protected:  // Implementation
     int         m_NetStation;  // Network station number
+    WORD        m_Port176560;  // Network receiver state
+    WORD        m_Port176562;  // Network receiver data (bits 0-7)
+    WORD        m_Port176564;  // Network translator state
+    WORD        m_Port176566;  // Network translator data (bits 0-7)
     WORD        m_Port176640;  // Plane address register
     WORD        m_Port176642;  // Plane 1 & 2 data register
     WORD        m_Port176644;

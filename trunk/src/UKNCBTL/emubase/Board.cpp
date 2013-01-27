@@ -165,6 +165,8 @@ CMotherboard::CMotherboard ()
     m_SerialInCallback = NULL;
     m_SerialOutCallback = NULL;
     m_ParallelOutCallback = NULL;
+    m_NetworkInCallback = NULL;
+    m_NetworkOutCallback = NULL;
 
     // Create devices
     m_pCPU = new CProcessor(_T("CPU"));
@@ -648,6 +650,7 @@ void CMotherboard::DebugTicks()
 ** Первая видимая строка (#18) начинает рисоваться на 672-й тик
 * 625 тиков FDD - каждый 32-й тик
 * 48 тиков обмена с COM-портом - каждый 416 тик
+* 8?? тиков обмена с NET-портом - каждый 64 тик ???
 */
 #define SYSTEMFRAME_EXECUTE_CPU     { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
@@ -655,8 +658,10 @@ BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
     const int audioticks = 20286 / (SAMPLERATE / 25);
-    const int serialOutTicks = 20000 / (9600 / 25);
+    const int serialOutTicks = 20000 / (9600 / 8 / 25);
     int serialTxCount = 0;
+    const int networkOutTicks = 20000 / (57600 / 8 / 25);
+    int networkTxCount = 0;
 
     int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
@@ -771,7 +776,7 @@ BOOL CMotherboard::SystemFrame()
                 }
             }
         }
-        if (m_SerialOutCallback != NULL && frameticks % serialOutTicks)
+        if (m_SerialOutCallback != NULL && frameticks % serialOutTicks == 0)
         {
             CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
             if (serialTxCount > 0)
@@ -794,6 +799,32 @@ BOOL CMotherboard::SystemFrame()
             else if ((pMemCtl->m_Port176574 & 0200) == 0)  // Ready is 0?
             {
                 serialTxCount = 8;  // Start translation countdown
+            }
+        }
+
+        if (m_NetworkOutCallback != NULL && frameticks % networkOutTicks == 0)
+        {
+            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            if (networkTxCount > 0)
+            {
+                networkTxCount--;
+                if (networkTxCount == 0)  // Translation countdown finished - the byte translated
+                {
+                    if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
+                        (*m_NetworkOutCallback)((BYTE)(pMemCtl->m_Port176566 & 0xff));
+                    else  // Loopback
+                    {
+                        if (pMemCtl->NetworkInput((BYTE)(pMemCtl->m_Port176566 & 0xff)) && (pMemCtl->m_Port176560 & 0100))
+                            m_pCPU->InterruptVIRQ(3, 0360);
+                    }
+                    pMemCtl->m_Port176564 |= 0200;  // Set Ready flag
+                    if (pMemCtl->m_Port176564 & 0100)  // Interrupt?
+                         m_pCPU->InterruptVIRQ(3, 0364);
+                }
+            }
+            else if ((pMemCtl->m_Port176564 & 0200) == 0)  // Ready is 0?
+            {
+                networkTxCount = 8;  // Start translation countdown
             }
         }
 
@@ -1584,6 +1615,22 @@ void CMotherboard::SetParallelOutCallback(PARALLELOUTCALLBACK outcallback)
     {
         pMemCtl->m_Port177101 |= 2;  // Set OnLine flag
         m_ParallelOutCallback = outcallback;
+    }
+}
+
+void CMotherboard::SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTCALLBACK outcallback)
+{
+    if (incallback == NULL || outcallback == NULL)  // Reset callbacks
+    {
+        m_NetworkInCallback = NULL;
+        m_NetworkOutCallback = NULL;
+        //TODO: Set port value to indicate we are not ready to translate
+    }
+    else
+    {
+        m_NetworkInCallback = incallback;
+        m_NetworkOutCallback = outcallback;
+        //TODO: Set port value to indicate we are ready to translate
     }
 }
 
