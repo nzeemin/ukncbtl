@@ -283,13 +283,17 @@ CFirstMemoryController::CFirstMemoryController() : CMemoryController()
     m_Port176642 = 0;
     m_Port176644 = 0;
     m_Port176646 = 0;
+    m_Port176560 = m_Port176562 = m_Port176566 = 0;  // Network СА
+    m_Port176564 = 0200;
     m_Port176570 = m_Port176572 = m_Port176576 = 0;  // RS-232 ports
     m_Port176574 = 0200;
-    m_NetStation = 1;
+    m_NetStation = 0;
 }
 
 void CFirstMemoryController::DCLO_Signal()
 {
+    m_Port176564 = 0200;
+    m_Port176574 = 0200;
 }
 
 void CFirstMemoryController::ResetDevices()
@@ -297,6 +301,8 @@ void CFirstMemoryController::ResetDevices()
     m_pBoard->ChanResetByCPU();
     m_Port176644 = 0;
     m_pProcessor->InterruptVIRQ(6,0);
+    m_Port176560 = 0;
+    m_Port176564 = 0200;
     m_Port176570 = 0;
     m_Port176574 = 0200;
     //TODO
@@ -387,18 +393,18 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
             return 0;
 
         case 0176560: //network 
-        case 0176561:
-        case 0176562:
-        case 0176563:
-            return 0;
-        
-        case 0176564:
+        case 0176561: // СА: Регистр состояния приемника
+            return (m_Port176560 + m_NetStation);
+		case 0176562: // СА: Регистр данных приемника
+        case 0176563: // нижние 8 бит доступны по чтению
+            m_Port176560 &= ~010200;  // Reset bit 12 and bit 7
+            return (m_Port176562 + m_NetStation);
+        case 0176564: // СА: Регистр состояния источника
         case 0176565:
-            return 0x80; //ready for tx
-        
-        case 0176566:
+            return (m_Port176564 + m_NetStation);
+        case 0176566: // СА: Регистр данных источника
         case 0176567:
-            return 0;
+            return (0360 + m_NetStation);
         
         case 0176570:  // Стык С2: Регистр состояния приемника
         case 0176571:
@@ -526,14 +532,22 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
             break;
 
         case 0176560: //network 
-        case 0176561:
-        case 0176562:
-        case 0176563:
-        case 0176564:
-        case 0176565:
-        case 0176566:
-        case 0176567:
+        case 0176561: //СА: Регистр состояния приемника
+            m_Port176560 = (m_Port176560 & ~0100) | (word & 0100);  // Bit 6 only
+            break;
+		case 0176562: // СА: Регистр данных приемника
+        case 0176563: // недоступен по записи
             return ;
+		case 0176564: // СА: Регистр состояния источника
+        case 0176565:
+            m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
+            break;
+		case 0176566: // СА: Регистр данных источника
+        case 0176567: // нижние 8 бит доступны по записи
+            m_Port176566 = word & 0xff;
+            m_Port176564 &= ~128;  // Reset bit 7 (Ready)
+            break;
+
         case 0176570:  // Стык С2: Регистр состояния приемника
         case 0176571:
         case 0176572:  // Стык С2: Регистр данных приемника
@@ -631,14 +645,22 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             break;
 
         case 0176560: //network 
-        case 0176561:
-        case 0176562:
-        case 0176563:
-        case 0176564:
-        case 0176565:
-        case 0176566:
-        case 0176567:
+        case 0176561: // СА: Регистр состояния приемника
+            m_Port176560 = (m_Port176560 & ~0100) | (word & 0100);  // Bit 6 only
+            break;
+		case 0176562:  // СА: Регистр данных приемника
+        case 0176563:  // недоступен по записи
             return ;
+        case 0176564:  // СА: Регистр состояния источника
+        case 0176565:
+            m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
+            break;
+		case 0176566:  // СА: Регистр данных источника
+        case 0176567:  // нижние 8 бит доступны по записи
+            m_Port176566 = word & 0xff;
+            m_Port176564 &= ~128;  // Reset bit 7 (Ready)
+            break;
+
         case 0176570:  // Стык С2: Регистр состояния приемника
         case 0176571:
             m_Port176570 = (m_Port176570 & ~0100) | (word & 0100);  // Bit 6 only
@@ -662,6 +684,21 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 //			ASSERT(0);
             break;
     }
+}
+
+BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
+{
+    this->m_Port176562 = (WORD)inputByte;
+    if (this->m_Port176560 & 0200)  // Ready?
+        this->m_Port176560 |= 010000;  // Set Overflow flag
+    else
+    {
+        this->m_Port176560 |= 0200;  // Set Ready flag
+        if (this->m_Port176560 & 0200)  // Interrupt?
+            return TRUE;
+    }
+
+    return FALSE;
 }
 
 BOOL CFirstMemoryController::SerialInput(BYTE inputByte)

@@ -36,6 +36,10 @@ WORD m_wEmulatorPPUBreakpoint = 0177777;
 
 BOOL m_okEmulatorSound = FALSE;
 
+WORD m_Settings_NetStation_Bits = 0;
+BOOL m_okEmulatorNetwork = FALSE;
+HANDLE m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
+
 BOOL m_okEmulatorSerial = FALSE;
 HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
 
@@ -148,6 +152,13 @@ void Emulator_Done()
         m_hEmulatorComPort = INVALID_HANDLE_VALUE;
     }
 
+    g_pBoard->SetNetworkCallbacks(NULL, NULL);
+    if (m_hEmulatorNetPort != INVALID_HANDLE_VALUE)
+    {
+        ::CloseHandle(m_hEmulatorNetPort);
+        m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
+    }
+
     delete g_pBoard;
     g_pBoard = NULL;
 
@@ -238,6 +249,116 @@ void Emulator_SetSound(BOOL soundOnOff)
     }
 
     m_okEmulatorSound = soundOnOff;
+}
+
+BOOL CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
+{
+    DWORD dwBytesRead;
+    BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, NULL);
+
+    return result && (dwBytesRead == 1);
+}
+
+BOOL CALLBACK Emulator_NetworkOut_Callback(BYTE byte)
+{
+    DWORD dwBytesWritten;
+    ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, NULL);
+
+    return (dwBytesWritten == 1);
+}
+
+BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
+{
+    if (m_okEmulatorNetwork != networkOnOff)
+    {
+        m_Settings_NetStation_Bits = (WORD)Settings_GetNetStation();
+        WORD rotateBits = (m_Settings_NetStation_Bits/16);
+        m_Settings_NetStation_Bits = (256 * (16 * rotateBits + m_Settings_NetStation_Bits));
+        g_pBoard->SetNetStation(m_Settings_NetStation_Bits);
+
+        if (networkOnOff)
+        {
+            // Prepare port name
+            TCHAR port[15];
+            wsprintf(port, _T("\\\\.\\%s"), networkPort);
+
+            // Open port
+            m_hEmulatorNetPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (m_hEmulatorNetPort == INVALID_HANDLE_VALUE)
+            {
+                DWORD dwError = ::GetLastError();
+                AlertWarningFormat(_T("Failed to open COM port (0x%08lx)."), dwError);
+                return FALSE;
+            }
+
+            // Set port settings
+            DCB dcb;
+            //::GetCommState(m_portHandle, &dcb);
+            ::memset(&dcb, 0, sizeof(dcb));
+            dcb.DCBlength = sizeof(dcb);
+            dcb.BaudRate = 57600;
+            dcb.ByteSize = 8;
+            dcb.fBinary = TRUE;
+            dcb.fParity = TRUE;
+            dcb.fOutxCtsFlow = FALSE;
+            dcb.fOutxDsrFlow = FALSE;
+            dcb.fDtrControl = DTR_CONTROL_DISABLE;
+            dcb.fDsrSensitivity = FALSE;
+            dcb.fTXContinueOnXoff = FALSE;
+            dcb.fOutX = dcb.fInX = FALSE;
+            dcb.fErrorChar = FALSE;
+            dcb.fNull = FALSE;
+            dcb.fRtsControl = RTS_CONTROL_DISABLE;
+            dcb.fAbortOnError = FALSE;
+            dcb.Parity = ODDPARITY;
+            dcb.StopBits = TWOSTOPBITS;
+            if (!::SetCommState(m_hEmulatorNetPort, &dcb))
+            {
+                DWORD dwError = ::GetLastError();
+                ::CloseHandle(m_hEmulatorNetPort);
+                m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
+                AlertWarningFormat(_T("Failed to configure the COM port (0x%08lx)."), dwError);
+                return FALSE;
+            }
+
+            // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
+            // and ReadTotalTimeoutMultiplier members, specifies that the read operation is to return immediately with the bytes
+            // that have already been received, even if no bytes have been received.
+            COMMTIMEOUTS timeouts;
+            ::memset(&timeouts, 0, sizeof(timeouts));
+            timeouts.ReadIntervalTimeout = MAXDWORD;
+            timeouts.WriteTotalTimeoutConstant = 100;
+            if (!::SetCommTimeouts(m_hEmulatorNetPort, &timeouts))
+            {
+                DWORD dwError = ::GetLastError();
+                ::CloseHandle(m_hEmulatorNetPort);
+                m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
+                AlertWarningFormat(_T("Failed to set the COM port timeouts (0x%08lx)."), dwError);
+                return FALSE;
+            }
+
+            // Clear port input buffer
+            ::PurgeComm(m_hEmulatorNetPort, PURGE_RXABORT|PURGE_RXCLEAR);
+
+            // Set callbacks
+            g_pBoard->SetNetworkCallbacks(Emulator_NetworkIn_Callback, Emulator_NetworkOut_Callback);
+        }
+        else
+        {
+            g_pBoard->SetNetworkCallbacks(NULL, NULL);  // Reset callbacks
+
+            // Close port
+            if (m_hEmulatorNetPort != INVALID_HANDLE_VALUE)
+            {
+                ::CloseHandle(m_hEmulatorNetPort);
+                m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
+            }
+        }
+    }
+
+    m_okEmulatorNetwork = networkOnOff;
+
+    return TRUE;
 }
 
 BOOL CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)

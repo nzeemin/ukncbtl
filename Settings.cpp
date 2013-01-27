@@ -39,8 +39,11 @@ BOOL m_Settings_Parallel = FALSE;
 BOOL m_Settings_Parallel_Valid = FALSE;
 DWORD m_Settings_CartridgeMode = 0;
 BOOL m_Settings_CartridgeMode_Valid = FALSE;
-WORD m_Settings_NetStation = 1;
+BOOL m_Settings_Network = FALSE;
+BOOL m_Settings_Network_Valid = FALSE;
+WORD m_Settings_NetStation = 0;
 BOOL m_Settings_NetStation_Valid = FALSE;
+DWORD m_Settings_NetComBaudrate = 9600;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -88,14 +91,14 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
     TCHAR buffer[12];
     if (!Settings_LoadStringValue(sName, buffer, 12))
     {
-        *dwValue = 0;
+        //*dwValue = 0;
         return FALSE;
     }
 
     int result = swscanf(buffer, _T("%lu"), dwValue);
     if (result == 0)
     {
-        *dwValue = 0;
+        //*dwValue = 0;
         return FALSE;
     }
 
@@ -366,6 +369,24 @@ void Settings_SetSerialPort(LPCTSTR sValue)
     Settings_SaveStringValue(_T("SerialPort"), sValue);
 }
 
+void Settings_SetNetwork(BOOL flag)
+{
+    m_Settings_Network = flag;
+    m_Settings_Network_Valid = TRUE;
+    Settings_SaveDwordValue(_T("Network"), (DWORD) flag);
+}
+BOOL Settings_GetNetwork()
+{
+    if (!m_Settings_Network_Valid)
+    {
+        DWORD dwValue = (DWORD) FALSE;
+        Settings_LoadDwordValue(_T("Network"), &dwValue);
+        m_Settings_Network = (BOOL) dwValue;
+        m_Settings_Network_Valid = TRUE;
+    }
+    return m_Settings_Network;
+}
+
 void Settings_SetNetStation(int value)
 {
     m_Settings_NetStation = (WORD)value;
@@ -376,12 +397,34 @@ int Settings_GetNetStation()
 {
     if (!m_Settings_NetStation_Valid)
     {
-        DWORD dwValue = (DWORD) 1;
+        DWORD dwValue = (DWORD) 0;
         Settings_LoadDwordValue(_T("NetStation"), &dwValue);
         m_Settings_NetStation = (WORD)dwValue;
         m_Settings_NetStation_Valid = TRUE;
     }
     return (int)m_Settings_NetStation;
+}
+
+void Settings_GetNetComPort(LPTSTR buffer)
+{
+    Settings_LoadStringValue(_T("NetComPort"), buffer, 10);
+}
+void Settings_SetNetComPort(LPCTSTR sValue)
+{
+    Settings_SaveStringValue(_T("NetComPort"), sValue);
+}
+
+DWORD Settings_GetNetComBaudrate()
+{ 
+    DWORD dwValue = (DWORD) 9600;
+    Settings_LoadDwordValue(_T("NetComBaudrate"), &dwValue);
+    m_Settings_NetComBaudrate = (DWORD)dwValue;
+    return m_Settings_NetComBaudrate;
+}
+void Settings_SetNetComBaudrate(DWORD dwValue)
+{
+    m_Settings_NetComBaudrate = dwValue;
+    Settings_SaveDwordValue(_T("NetComBaudrate"), (DWORD) dwValue);
 }
 
 

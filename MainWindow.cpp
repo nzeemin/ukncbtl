@@ -56,6 +56,7 @@ void MainWindow_DoEmulatorRealSpeed();
 void MainWindow_DoEmulatorSound();
 void MainWindow_DoEmulatorSerial();
 void MainWindow_DoEmulatorParallel();
+void MainWindow_DoEmulatorNetwork();
 void MainWindow_DoFileSaveState();
 void MainWindow_DoFileLoadState();
 void MainWindow_DoEmulatorFloppy(int slot);
@@ -315,6 +316,15 @@ void MainWindow_RestoreSettings()
         Settings_GetSerialPort(portname);
         if (!Emulator_SetSerial(TRUE, portname))
             Settings_SetSerial(FALSE);
+    }
+
+    // Restore Network flag
+    if (Settings_GetNetwork())
+    {
+        TCHAR portname[10];
+        Settings_GetNetComPort(portname);
+        if (!Emulator_SetNetwork(TRUE, portname))
+            Settings_SetNetwork(FALSE);
     }
 
     // Restore Parallel
@@ -692,6 +702,7 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
     MainWindow_SetToolbarImage(ID_EMULATOR_SOUND, (Settings_GetSound() ? ToolbarImageSoundOn : ToolbarImageSoundOff));
     CheckMenuItem(hMenu, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hMenu, ID_EMULATOR_NETWORK, (Settings_GetNetwork() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_PARALLEL, (Settings_GetParallel() ? MF_CHECKED : MF_UNCHECKED));
 
     // Emulator|FloppyX
@@ -804,6 +815,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_EMULATOR_SERIAL:
         MainWindow_DoEmulatorSerial();
+        break;
+    case ID_EMULATOR_NETWORK:
+        MainWindow_DoEmulatorNetwork();
         break;
     case ID_EMULATOR_PARALLEL:
         MainWindow_DoEmulatorParallel();
@@ -939,6 +953,7 @@ void MainWindow_DoEmulatorSound()
 
     MainWindow_UpdateMenu();
 }
+
 void MainWindow_DoEmulatorSerial()
 {
     BOOL okSerial = Settings_GetSerial();
@@ -957,6 +972,26 @@ void MainWindow_DoEmulatorSerial()
 
     MainWindow_UpdateMenu();
 }
+
+void MainWindow_DoEmulatorNetwork()
+{
+    BOOL okNetwork = Settings_GetNetwork();
+    if (!okNetwork)
+    {
+        TCHAR portname[10];
+        Settings_GetNetComPort(portname);
+        if (Emulator_SetNetwork(TRUE, portname))
+            Settings_SetNetwork(TRUE);
+    }
+    else
+    {
+        Emulator_SetNetwork(FALSE, NULL);
+        Settings_SetNetwork(FALSE);
+    }
+
+    MainWindow_UpdateMenu();
+}
+
 void MainWindow_DoEmulatorParallel()
 {
     BOOL okParallel = Settings_GetParallel();

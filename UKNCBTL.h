@@ -137,8 +137,14 @@ void Settings_GetSerialPort(LPTSTR buffer);
 void Settings_SetSerialPort(LPCTSTR sValue);
 void Settings_SetParallel(BOOL flag);
 BOOL Settings_GetParallel();
+void Settings_SetNetwork(BOOL flag);
+BOOL Settings_GetNetwork();
 int  Settings_GetNetStation();
 void Settings_SetNetStation(int value);
+void Settings_GetNetComPort(LPTSTR buffer);
+void Settings_SetNetComPort(LPCTSTR sValue);
+DWORD Settings_GetNetComBaudrate();
+void Settings_SetNetComBaudrate(DWORD dwValue);
 
 
 //////////////////////////////////////////////////////////////////////

@@ -13,7 +13,6 @@
 #define IDI_SMALL                       108
 #define IDC_UKNCBTL                     109
 #define IDR_MAINFRAME                   128
-#define IDD_DIALOG1                     129
 #define IDD_INPUTBOX                    129
 #define IDI_DISKETTE                    138
 #define IDB_UKNC                        140
@@ -26,11 +25,12 @@
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002
-#define IDC_RADIO2                      1003
 #define IDC_TRACKS80                    1003
 #define IDC_SERIALPORT                  1004
-#define IDC_SLIDER1                     1005
 #define IDC_VOLUME                      1005
+#define IDC_NETWORKPORT                 1006
+#define IDC_NETWORKSTATION              1007
+#define IDC_BAUDRATE                    1008
 #define ID_VIEW                         32771
 #define ID_VIEW_MEMORY                  32772
 #define ID_EMULATOR                     32773
@@ -70,6 +70,7 @@
 #define ID_EMULATOR_PARALLEL            32814
 #define ID_FILE_SAVESCREENSHOTAS        32817
 #define ID_FILE_SCREENSHOTANIMATED      32818
+#define ID_EMULATOR_NETWORK             32822
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -78,8 +79,8 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        148
-#define _APS_NEXT_COMMAND_VALUE         32821
-#define _APS_NEXT_CONTROL_VALUE         1006
+#define _APS_NEXT_COMMAND_VALUE         32824
+#define _APS_NEXT_CONTROL_VALUE         1012
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

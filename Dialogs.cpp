@@ -150,7 +150,7 @@ BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, LPCTSTR
     ofn.lpstrTitle = strTitle;
     ofn.lpstrFilter = strFilter;
     ofn.lpstrDefExt = strDefExt;
-    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT;
+    ofn.Flags = OFN_PATHMUSTEXIST | OFN_OVERWRITEPROMPT | OFN_NOCHANGEDIR;
     ofn.lpstrFile = bufFileName;
     ofn.nMaxFile = MAX_PATH;
 
@@ -168,7 +168,7 @@ BOOL ShowOpenDialog(HWND /*hwndOwner*/, LPCTSTR strTitle, LPCTSTR strFilter, TCH
     ofn.hInstance = g_hInst;
     ofn.lpstrTitle = strTitle;
     ofn.lpstrFilter = strFilter;
-    ofn.Flags = OFN_FILEMUSTEXIST;
+    ofn.Flags = OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
     ofn.lpstrFile = bufFileName;
     ofn.nMaxFile = MAX_PATH;
 
@@ -258,15 +258,23 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
     {
     case WM_INITDIALOG:
         {
-            TCHAR buffer[10];
-            Settings_GetSerialPort(buffer);
-            SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
-
             HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
             SendMessage(hVolume, TBM_SETRANGEMIN, 0, (LPARAM)0);
             SendMessage(hVolume, TBM_SETRANGEMAX, 0, (LPARAM)0xffff);
             SendMessage(hVolume, TBM_SETTICFREQ, 0x1000, 0);
             SendMessage(hVolume, TBM_SETPOS, TRUE, (LPARAM)Settings_GetSoundVolume());
+
+            TCHAR buffer[10];
+
+            Settings_GetSerialPort(buffer);
+            SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
+
+            SetDlgItemInt(hDlg, IDC_NETWORKSTATION, Settings_GetNetStation(), FALSE);
+
+            Settings_GetNetComPort(buffer);
+            SetDlgItemText(hDlg, IDC_NETWORKPORT, buffer);
+
+            SetDlgItemInt(hDlg, IDC_BAUDRATE, Settings_GetNetComBaudrate(), FALSE);
 
             return (INT_PTR)FALSE;
         }
@@ -275,13 +283,23 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
         {
         case IDOK:
             {
-                TCHAR buffer[10];
-                GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
-                Settings_SetSerialPort(buffer);
-
                 HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
                 DWORD volume = SendMessage(hVolume, TBM_GETPOS, 0, 0);
                 Settings_SetSoundVolume((WORD)volume);
+
+                TCHAR buffer[10];
+
+                GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
+                Settings_SetSerialPort(buffer);
+
+                int netStation = GetDlgItemInt(hDlg, IDC_NETWORKSTATION, 0, FALSE);
+                Settings_SetNetStation(netStation);
+
+                GetDlgItemText(hDlg, IDC_NETWORKPORT, buffer, 10);
+                Settings_SetNetComPort(buffer);
+
+                DWORD baudrate = GetDlgItemInt(hDlg, IDC_BAUDRATE, 0, FALSE);
+                Settings_SetNetComBaudrate(baudrate);
             }
 
             EndDialog(hDlg, LOWORD(wParam));
