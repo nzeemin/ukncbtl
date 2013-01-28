@@ -43,7 +43,10 @@ BOOL m_Settings_Network = FALSE;
 BOOL m_Settings_Network_Valid = FALSE;
 WORD m_Settings_NetStation = 0;
 BOOL m_Settings_NetStation_Valid = FALSE;
-DWORD m_Settings_NetComBaudrate = 9600;
+DCB  m_Settings_SerialConfig;
+BOOL m_Settings_SerialConfig_Valid = FALSE;
+DCB  m_Settings_NetComConfig;
+BOOL m_Settings_NetComConfig_Valid = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -57,6 +60,44 @@ void Settings_Init()
     *pExt++ = _T('i');
     *pExt++ = _T('n');
     *pExt++ = _T('i');
+
+    // Set m_Settings_SerialConfig defaults
+    ::memset(&m_Settings_SerialConfig, 0, sizeof(DCB));
+    m_Settings_SerialConfig.DCBlength = sizeof(DCB);
+    m_Settings_SerialConfig.BaudRate = 9600;
+    m_Settings_SerialConfig.ByteSize = 8;
+    m_Settings_SerialConfig.fBinary = 1;
+    m_Settings_SerialConfig.fParity = 0;
+    m_Settings_SerialConfig.fOutxCtsFlow = m_Settings_SerialConfig.fOutxDsrFlow = 0;
+    m_Settings_SerialConfig.fDtrControl = DTR_CONTROL_ENABLE;
+    m_Settings_SerialConfig.fDsrSensitivity = 0;
+    m_Settings_SerialConfig.fTXContinueOnXoff = 0;
+    m_Settings_SerialConfig.fOutX = m_Settings_SerialConfig.fInX = 0;
+    m_Settings_SerialConfig.fErrorChar = 0;
+    m_Settings_SerialConfig.fNull = 0;
+    m_Settings_SerialConfig.fRtsControl = RTS_CONTROL_HANDSHAKE;
+    m_Settings_SerialConfig.fAbortOnError = 0;
+    m_Settings_SerialConfig.Parity = NOPARITY;
+    m_Settings_SerialConfig.StopBits = TWOSTOPBITS;
+
+    // Set m_Settings_NetComConfig defaults
+    ::memset(&m_Settings_NetComConfig, 0, sizeof(DCB));
+    m_Settings_NetComConfig.DCBlength = sizeof(DCB);
+    m_Settings_NetComConfig.BaudRate = 57600;
+    m_Settings_NetComConfig.ByteSize = 8;
+    m_Settings_NetComConfig.fBinary = 1;
+    m_Settings_NetComConfig.fParity = 1;
+    m_Settings_NetComConfig.fOutxCtsFlow = m_Settings_NetComConfig.fOutxDsrFlow = 0;
+    m_Settings_NetComConfig.fDtrControl = DTR_CONTROL_DISABLE;
+    m_Settings_NetComConfig.fDsrSensitivity = 0;
+    m_Settings_NetComConfig.fTXContinueOnXoff = 0;
+    m_Settings_NetComConfig.fOutX = m_Settings_NetComConfig.fInX = 0;
+    m_Settings_NetComConfig.fErrorChar = 0;
+    m_Settings_NetComConfig.fNull = 0;
+    m_Settings_NetComConfig.fRtsControl = RTS_CONTROL_DISABLE;
+    m_Settings_NetComConfig.fAbortOnError = 0;
+    m_Settings_NetComConfig.Parity = ODDPARITY;
+    m_Settings_NetComConfig.StopBits = TWOSTOPBITS;
 }
 void Settings_Done()
 {
@@ -101,6 +142,77 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
         //*dwValue = 0;
         return FALSE;
     }
+
+    return TRUE;
+}
+
+BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
+{
+    TCHAR* buffer = (TCHAR*) ::malloc((size * 2 + 1) * sizeof(TCHAR));
+    const BYTE* p = (const BYTE*) pData;
+    TCHAR* buf = buffer;
+    for (int i = 0; i < size; i++)
+    {
+        int a = *p;
+        wsprintf(buf, _T("%02X"), a);
+        p++;
+        buf += 2;
+    }
+
+    BOOL result = Settings_SaveStringValue(sName, buffer);
+
+    free(buffer);
+
+    return result;
+}
+
+BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
+{
+    size_t buffersize = (size * 2 + 1) * sizeof(TCHAR);
+    TCHAR* buffer = (TCHAR*) ::malloc(buffersize);
+    if (!Settings_LoadStringValue(sName, buffer, buffersize))
+    {
+        free(buffer);
+        return FALSE;
+    }
+
+    BYTE* p = (BYTE*) pData;
+    TCHAR* buf = buffer;
+    for (int i = 0; i < size; i++)
+    {
+        BYTE v = 0;
+
+        TCHAR ch = *buf;
+        if (ch >= _T('0') && ch <= _T('9'))
+            v = ch - _T('0');
+        else if (ch >= _T('A') && ch <= _T('F'))
+            v = ch - _T('A') + 10;
+        else  // Not hex
+        {
+            free(buffer);
+            return FALSE;
+        }
+        buf++;
+
+        v = v << 4;
+
+        ch = *buf;
+        if (ch >= _T('0') && ch <= _T('9'))
+            v |= ch - _T('0');
+        else if (ch >= _T('A') && ch <= _T('F'))
+            v |= ch - _T('A') + 10;
+        else  // Not hex
+        {
+            free(buffer);
+            return FALSE;
+        }
+        buf++;
+
+        *p = v;
+        p++;
+    }
+
+    free(buffer);
 
     return TRUE;
 }
@@ -369,6 +481,32 @@ void Settings_SetSerialPort(LPCTSTR sValue)
     Settings_SaveStringValue(_T("SerialPort"), sValue);
 }
 
+void Settings_GetSerialConfig(DCB * pDcb)
+{
+    if (!m_Settings_SerialConfig_Valid)
+    {
+        DCB dcb;
+        if (Settings_LoadBinaryValue(_T("SerialConfig"), &dcb, sizeof(DCB)))
+        {
+            ::memcpy(&m_Settings_SerialConfig, &dcb, sizeof(DCB));
+        }
+        //NOTE: else -- use dafaults from m_Settings_SerialConfig
+
+        m_Settings_SerialConfig_Valid = TRUE;
+    }
+    if (m_Settings_SerialConfig_Valid)
+    {
+        ::memcpy(pDcb, &m_Settings_SerialConfig, sizeof(DCB));
+    }
+}
+void Settings_SetSerialConfig(const DCB * pDcb)
+{
+    ::memcpy(&m_Settings_SerialConfig, pDcb, sizeof(DCB));
+    Settings_SaveBinaryValue(_T("SerialConfig"), (const void *)pDcb, sizeof(DCB));
+    m_Settings_SerialConfig_Valid = TRUE;
+}
+
+
 void Settings_SetNetwork(BOOL flag)
 {
     m_Settings_Network = flag;
@@ -414,17 +552,29 @@ void Settings_SetNetComPort(LPCTSTR sValue)
     Settings_SaveStringValue(_T("NetComPort"), sValue);
 }
 
-DWORD Settings_GetNetComBaudrate()
-{ 
-    DWORD dwValue = (DWORD) 9600;
-    Settings_LoadDwordValue(_T("NetComBaudrate"), &dwValue);
-    m_Settings_NetComBaudrate = (DWORD)dwValue;
-    return m_Settings_NetComBaudrate;
-}
-void Settings_SetNetComBaudrate(DWORD dwValue)
+void Settings_GetNetComConfig(DCB * pDcb)
 {
-    m_Settings_NetComBaudrate = dwValue;
-    Settings_SaveDwordValue(_T("NetComBaudrate"), (DWORD) dwValue);
+    if (!m_Settings_NetComConfig_Valid)
+    {
+        DCB dcb;
+        if (Settings_LoadBinaryValue(_T("NetComConfig"), &dcb, sizeof(DCB)))
+        {
+            ::memcpy(&m_Settings_NetComConfig, &dcb, sizeof(DCB));
+        }
+        //NOTE: else -- use dafaults from m_Settings_NetComConfig
+
+        m_Settings_NetComConfig_Valid = TRUE;
+    }
+    if (m_Settings_NetComConfig_Valid)
+    {
+        ::memcpy(pDcb, &m_Settings_NetComConfig, sizeof(DCB));
+    }
+}
+void Settings_SetNetComConfig(const DCB * pDcb)
+{
+    ::memcpy(&m_Settings_NetComConfig, pDcb, sizeof(DCB));
+    Settings_SaveBinaryValue(_T("NetComConfig"), (const void *)pDcb, sizeof(DCB));
+    m_Settings_NetComConfig_Valid = TRUE;
 }
 
 
