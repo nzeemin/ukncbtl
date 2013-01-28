@@ -135,6 +135,8 @@ void Settings_SetSerial(BOOL flag);
 BOOL Settings_GetSerial();
 void Settings_GetSerialPort(LPTSTR buffer);
 void Settings_SetSerialPort(LPCTSTR sValue);
+void Settings_GetSerialConfig(DCB * pDcb);
+void Settings_SetSerialConfig(const DCB * pDcb);
 void Settings_SetParallel(BOOL flag);
 BOOL Settings_GetParallel();
 void Settings_SetNetwork(BOOL flag);
@@ -143,8 +145,8 @@ int  Settings_GetNetStation();
 void Settings_SetNetStation(int value);
 void Settings_GetNetComPort(LPTSTR buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
-DWORD Settings_GetNetComBaudrate();
-void Settings_SetNetComBaudrate(DWORD dwValue);
+void Settings_GetNetComConfig(DCB * pDcb);
+void Settings_SetNetComConfig(const DCB * pDcb);
 
 
 //////////////////////////////////////////////////////////////////////

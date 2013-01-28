@@ -22,6 +22,7 @@
 #define IDD_CREATEDISK                  144
 #define IDD_SETTINGS                    145
 #define IDR_UKNC_ROM                    147
+#define IDD_DCB_EDITOR                  148
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002
@@ -31,6 +32,15 @@
 #define IDC_NETWORKPORT                 1006
 #define IDC_NETWORKSTATION              1007
 #define IDC_BAUDRATE                    1008
+#define IDC_PARITY                      1018
+#define IDC_STOPBITS                    1019
+#define IDC_DTRCONTROL                  1020
+#define IDC_RTSCONTROL                  1021
+#define IDC_OUTXCTSFLOW                 1022
+#define IDC_OUTXDSRFLOW                 1023
+#define IDC_DSRSENSITIVITY              1024
+#define IDC_BUTTON1                     1025
+#define IDC_BUTTON2                     1026
 #define ID_VIEW                         32771
 #define ID_VIEW_MEMORY                  32772
 #define ID_EMULATOR                     32773
@@ -78,9 +88,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        148
+#define _APS_NEXT_RESOURCE_VALUE        149
 #define _APS_NEXT_COMMAND_VALUE         32824
-#define _APS_NEXT_CONTROL_VALUE         1012
+#define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

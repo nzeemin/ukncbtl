@@ -27,5 +27,7 @@ void ShowCreateDiskDialog();
 
 void ShowSettingsDialog();
 
+void ShowSerialPortSettings(DCB * pDCB);
+
 
 //////////////////////////////////////////////////////////////////////
