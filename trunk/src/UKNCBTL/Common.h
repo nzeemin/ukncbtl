@@ -44,6 +44,7 @@ void AlertWarningFormat(LPCTSTR sFormat, ...);
 
 void DebugPrint(LPCTSTR message);
 void DebugPrintFormat(LPCTSTR pszFormat, ...);
+void DebugLogClear();
 void DebugLog(LPCTSTR message);
 void DebugLogFormat(LPCTSTR pszFormat, ...);
 

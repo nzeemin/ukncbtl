@@ -27,7 +27,7 @@ BOOL m_Settings_RealSpeed = FALSE;
 BOOL m_Settings_RealSpeed_Valid = FALSE;
 BOOL m_Settings_Sound = FALSE;
 BOOL m_Settings_Sound_Valid = FALSE;
-WORD m_Settings_SoundVolume = 0x7fff;
+WORD m_Settings_SoundVolume = 0x3fff;
 BOOL m_Settings_SoundVolume_Valid = FALSE;
 BOOL m_Settings_Keyboard = TRUE;
 BOOL m_Settings_Keyboard_Valid = FALSE;
@@ -131,17 +131,11 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
 {
     TCHAR buffer[12];
     if (!Settings_LoadStringValue(sName, buffer, 12))
-    {
-        //*dwValue = 0;
         return FALSE;
-    }
 
     int result = swscanf(buffer, _T("%lu"), dwValue);
     if (result == 0)
-    {
-        //*dwValue = 0;
         return FALSE;
-    }
 
     return TRUE;
 }
@@ -392,7 +386,7 @@ WORD Settings_GetSoundVolume()
 {
     if (!m_Settings_SoundVolume_Valid)
     {
-        DWORD dwValue = (DWORD) 0x7fff;
+        DWORD dwValue = (DWORD) 0x3fff;
         Settings_LoadDwordValue(_T("SoundVolume"), &dwValue);
         m_Settings_SoundVolume = (WORD)dwValue;
         m_Settings_SoundVolume_Valid = TRUE;

@@ -654,14 +654,14 @@ void CMotherboard::DebugTicks()
 */
 #define SYSTEMFRAME_EXECUTE_CPU     { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
+static int networkTxCount = 0;
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
     const int audioticks = 20286 / (SAMPLERATE / 25);
-    const int serialOutTicks = 20000 / (9600 / 8 / 25);
+    const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
-    const int networkOutTicks = 20000 / (57600 / 8 / 25);
-    int networkTxCount = 0;
+    const int networkOutTicks = 8; //20000 / (57600 / 25);
 
     int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != NULL || m_TapeWriteCallback != NULL)
@@ -802,6 +802,22 @@ BOOL CMotherboard::SystemFrame()
             }
         }
 
+        if (m_NetworkInCallback != NULL && frameticks % 69 == 0)
+        {
+            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
+            {
+                BYTE b;
+                if (m_NetworkInCallback(&b))
+                {
+                    if (pMemCtl->NetworkInput(b) && (pMemCtl->m_Port176560 & 0100))
+                    {
+                        m_pCPU->InterruptVIRQ(3, 0360);
+                        //DebugLog(_T("Net INT 0360\r\n"));//DEBUG
+                    }
+                }
+            }
+        }
         if (m_NetworkOutCallback != NULL && frameticks % networkOutTicks == 0)
         {
             CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
@@ -819,12 +835,15 @@ BOOL CMotherboard::SystemFrame()
                     }
                     pMemCtl->m_Port176564 |= 0200;  // Set Ready flag
                     if (pMemCtl->m_Port176564 & 0100)  // Interrupt?
-                         m_pCPU->InterruptVIRQ(3, 0364);
+                    {
+                        m_pCPU->InterruptVIRQ(3, 0364);
+                        //DebugLog(_T("Net INT 0364\r\n"));//DEBUG
+                    }
                 }
             }
             else if ((pMemCtl->m_Port176564 & 0200) == 0)  // Ready is 0?
             {
-                networkTxCount = 8;  // Start translation countdown
+                networkTxCount = 4;  // Start translation countdown
             }
         }
 
