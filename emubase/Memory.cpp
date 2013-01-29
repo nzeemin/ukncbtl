@@ -533,7 +533,7 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 
         case 0176560: //network 
         case 0176561: //СА: Регистр состояния приемника
-            m_Port176560 = (m_Port176560 & ~0100) | (word & 0100);  // Bit 6 only
+            m_Port176560 = (m_Port176560 & ~0104) | (word & 0104);  // Bits 2,6 only
             break;
 		case 0176562: // СА: Регистр данных приемника
         case 0176563: // недоступен по записи
@@ -646,13 +646,15 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
         case 0176560: //network 
         case 0176561: // СА: Регистр состояния приемника
-            m_Port176560 = (m_Port176560 & ~0100) | (word & 0100);  // Bit 6 only
+            m_Port176560 = (m_Port176560 & ~0104) | (word & 0104);  // Bits 2,6 only
             break;
 		case 0176562:  // СА: Регистр данных приемника
         case 0176563:  // недоступен по записи
             return ;
         case 0176564:  // СА: Регистр состояния источника
         case 0176565:
+            if (((m_Port176564 & 0300) == 0200) && (word & 0100))
+                m_pProcessor->InterruptVIRQ(8, 0364);
             m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
             break;
 		case 0176566:  // СА: Регистр данных источника
@@ -670,6 +672,8 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
             return ;
         case 0176574:  // Стык С2: Регистр состояния источника
         case 0176575:
+            if (((m_Port176574 & 0300) == 0200) && (word & 0100))
+                m_pProcessor->InterruptVIRQ(8, 0374);
             m_Port176574 = (m_Port176574 & ~0105) | (word & 0105);  // Bits 0,2,6
             break;
         case 0176576:  // Стык С2: Регистр данных источника
@@ -686,21 +690,6 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
     }
 }
 
-BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
-{
-    this->m_Port176562 = (WORD)inputByte;
-    if (this->m_Port176560 & 0200)  // Ready?
-        this->m_Port176560 |= 010000;  // Set Overflow flag
-    else
-    {
-        this->m_Port176560 |= 0200;  // Set Ready flag
-        if (this->m_Port176560 & 0200)  // Interrupt?
-            return TRUE;
-    }
-
-    return FALSE;
-}
-
 BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
 {
     this->m_Port176572 = (WORD)inputByte;
@@ -709,12 +698,28 @@ BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
     else
     {
         this->m_Port176570 |= 0200;  // Set Ready flag
-        if (this->m_Port176570 & 0200)  // Interrupt?
+        if (this->m_Port176570 & 0100)  // Interrupt?
             return TRUE;
     }
 
     return FALSE;
 }
+
+BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
+{
+    this->m_Port176562 = (WORD)inputByte;
+    if (this->m_Port176560 & 0200)  // Ready?
+        this->m_Port176560 |= 010000;  // Set Overflow flag
+    else
+    {
+        this->m_Port176560 |= 0200;  // Set Ready flag
+        if (this->m_Port176560 & 0100)  // Interrupt?
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 //

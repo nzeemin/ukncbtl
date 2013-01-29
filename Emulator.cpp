@@ -255,6 +255,11 @@ BOOL CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
     BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, NULL);
+    
+#if !defined(PRODUCT)
+    if (result && (dwBytesRead == 1))
+        DebugLogFormat(_T("Net IN %02x\r\n"), (int)(*pByte));//DEBUG
+#endif
 
     return result && (dwBytesRead == 1);
 }
@@ -263,6 +268,9 @@ BOOL CALLBACK Emulator_NetworkOut_Callback(BYTE byte)
 {
     DWORD dwBytesWritten;
     ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, NULL);
+#if !defined(PRODUCT)
+    DebugLogFormat(_T("Net OUT %02x\r\n"), byte);//DEBUG
+#endif
 
     return (dwBytesWritten == 1);
 }
