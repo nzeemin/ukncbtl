@@ -302,30 +302,12 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
             // Set port settings
             DCB dcb;
             Settings_GetNetComConfig(&dcb);
-            //::memset(&dcb, 0, sizeof(dcb));
-            //dcb.DCBlength = sizeof(dcb);
-            //dcb.BaudRate = 57600;
-            //dcb.ByteSize = 8;
-            //dcb.fBinary = TRUE;
-            //dcb.fParity = TRUE;
-            //dcb.fOutxCtsFlow = FALSE;
-            //dcb.fOutxDsrFlow = FALSE;
-            //dcb.fDtrControl = DTR_CONTROL_DISABLE;
-            //dcb.fDsrSensitivity = FALSE;
-            //dcb.fTXContinueOnXoff = FALSE;
-            //dcb.fOutX = dcb.fInX = FALSE;
-            //dcb.fErrorChar = FALSE;
-            //dcb.fNull = FALSE;
-            //dcb.fRtsControl = RTS_CONTROL_DISABLE;
-            //dcb.fAbortOnError = FALSE;
-            //dcb.Parity = ODDPARITY;
-            //dcb.StopBits = TWOSTOPBITS;
             if (!::SetCommState(m_hEmulatorNetPort, &dcb))
             {
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to configure the COM port (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to configure the Network COM port (0x%08lx)."), dwError);
                 return FALSE;
             }
 
@@ -341,7 +323,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to set the COM port timeouts (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to set the Network COM port timeouts (0x%08lx)."), dwError);
                 return FALSE;
             }
 
@@ -407,23 +389,6 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             // Set port settings
             DCB dcb;
             Settings_GetSerialConfig(&dcb);
-            //::memset(&dcb, 0, sizeof(dcb));
-            //dcb.DCBlength = sizeof(dcb);
-            //dcb.BaudRate = 9600;
-            //dcb.ByteSize = 8;
-            //dcb.fBinary = 1;
-            //dcb.fParity = FALSE;
-            //dcb.fOutxCtsFlow = dcb.fOutxDsrFlow = FALSE;
-            //dcb.fDtrControl = DTR_CONTROL_DISABLE;
-            //dcb.fDsrSensitivity = FALSE;
-            //dcb.fTXContinueOnXoff = FALSE;
-            //dcb.fOutX = dcb.fInX = FALSE;
-            //dcb.fErrorChar = FALSE;
-            //dcb.fNull = FALSE;
-            //dcb.fRtsControl = RTS_CONTROL_DISABLE;
-            //dcb.fAbortOnError = FALSE;
-            //dcb.Parity = NOPARITY;
-            //dcb.StopBits = ONESTOPBIT;
             if (!::SetCommState(m_hEmulatorComPort, &dcb))
             {
                 DWORD dwError = ::GetLastError();

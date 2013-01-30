@@ -545,7 +545,7 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 		case 0176566: // СА: Регистр данных источника
         case 0176567: // нижние 8 бит доступны по записи
             m_Port176566 = word & 0xff;
-            m_Port176564 &= ~128;  // Reset bit 7 (Ready)
+            m_Port176564 &= ~0200;  // Reset bit 7 (Ready)
             break;
 
         case 0176570:  // Стык С2: Регистр состояния приемника
@@ -646,6 +646,8 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
         case 0176560: //network 
         case 0176561: // СА: Регистр состояния приемника
+            if (((m_Port176560 & 0300) == 0200) && (word & 0100))
+                m_pProcessor->InterruptVIRQ(9, 0360);
             m_Port176560 = (m_Port176560 & ~0104) | (word & 0104);  // Bits 2,6 only
             break;
 		case 0176562:  // СА: Регистр данных приемника
@@ -654,13 +656,13 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
         case 0176564:  // СА: Регистр состояния источника
         case 0176565:
             if (((m_Port176564 & 0300) == 0200) && (word & 0100))
-                m_pProcessor->InterruptVIRQ(8, 0364);
+                m_pProcessor->InterruptVIRQ(10, 0364);
             m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
             break;
 		case 0176566:  // СА: Регистр данных источника
         case 0176567:  // нижние 8 бит доступны по записи
             m_Port176566 = word & 0xff;
-            m_Port176564 &= ~128;  // Reset bit 7 (Ready)
+            m_Port176564 &= ~0200;  // Reset bit 7 (Ready)
             break;
 
         case 0176570:  // Стык С2: Регистр состояния приемника
