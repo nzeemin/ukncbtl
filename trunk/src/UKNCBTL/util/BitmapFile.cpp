@@ -40,13 +40,13 @@ BOOL BmpFile_SaveScreenshot(
     bih.biSize = sizeof( BITMAPINFOHEADER );
     bih.biWidth = UKNC_SCREEN_WIDTH;
     bih.biHeight = UKNC_SCREEN_HEIGHT;
-    bih.biSizeImage = bih.biWidth * bih.biHeight / 2;
+    bih.biSizeImage = bih.biWidth * bih.biHeight;
     bih.biPlanes = 1;
-    bih.biBitCount = 4;
+    bih.biBitCount = 8;
     bih.biCompression = BI_RGB;
     bih.biXPelsPerMeter = bih.biXPelsPerMeter = 2000;
     hdr.bfSize = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + bih.biSizeImage;
-    hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + sizeof(RGBQUAD) * 16;
+    hdr.bfOffBits = (DWORD) sizeof(BITMAPFILEHEADER) + bih.biSize + sizeof(RGBQUAD) * 256;
 
     DWORD dwBytesWritten = 0;
 
@@ -60,7 +60,7 @@ BOOL BmpFile_SaveScreenshot(
         DWORD rgb = *psrc;
         psrc++;
         BYTE color = 0;
-        for (BYTE c = 0; c < 16; c++)
+        for (BYTE c = 0; c < 128; c++)
         {
             if (palette[c] == rgb)
             {
@@ -68,13 +68,8 @@ BOOL BmpFile_SaveScreenshot(
                 break;
             }
         }
-        if ((i & 1) == 0)
-            *pdst = (color << 4);
-        else
-        {
-            *pdst = (*pdst) & 0xf0 | color;
-            pdst++;
-        }
+        *pdst = color;
+        pdst++;
     }
 
     WriteFile(hFile, &hdr, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
@@ -89,12 +84,20 @@ BOOL BmpFile_SaveScreenshot(
         ::free(pData);
         return FALSE;
     }
-    WriteFile(hFile, palette, sizeof(RGBQUAD) * 16, &dwBytesWritten, NULL);
-    if (dwBytesWritten != sizeof(RGBQUAD) * 16)
+    WriteFile(hFile, palette, sizeof(RGBQUAD) * 128, &dwBytesWritten, NULL);
+    if (dwBytesWritten != sizeof(RGBQUAD) * 128)
     {
         ::free(pData);
         return FALSE;
     }
+    //NOTE: Write the palette for the second time, to fill colors #128-255
+    WriteFile(hFile, palette, sizeof(RGBQUAD) * 128, &dwBytesWritten, NULL);
+    if (dwBytesWritten != sizeof(RGBQUAD) * 128)
+    {
+        ::free(pData);
+        return FALSE;
+    }
+
     WriteFile(hFile, pData, bih.biSizeImage, &dwBytesWritten, NULL);
     ::free(pData);
     if (dwBytesWritten != bih.biSizeImage)
@@ -185,11 +188,11 @@ BOOL PngFile_WriteEnd(FILE * fpFile)
 
 BOOL PngFile_WritePalette(FILE * fpFile, const DWORD* palette)
 {
-    BYTE PLTEchunk[12 + 16*3];
-    SaveValueMSB(PLTEchunk, 16*3);
+    BYTE PLTEchunk[12 + 128*3];
+    SaveValueMSB(PLTEchunk, 128*3);
     memcpy(PLTEchunk + 4, "PLTE", 4);
     BYTE * p = PLTEchunk + 8;
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 128; i++)
     {
         DWORD color = *(palette++);
         *(p++) = (BYTE)(color >> 16);
@@ -204,13 +207,13 @@ BOOL PngFile_WritePalette(FILE * fpFile, const DWORD* palette)
     return TRUE;
 }
 
-BOOL PngFile_WriteImageData4(FILE * fpFile, DWORD framenum, const DWORD* pBits, const DWORD* palette)
+BOOL PngFile_WriteImageData8(FILE * fpFile, DWORD framenum, const DWORD* pBits, const DWORD* palette)
 {
     // The IDAT chunk data format defined by RFC-1950 "ZLIB Compressed Data Format Specification version 3.3"
     // http://www.ietf.org/rfc/rfc1950.txt
     // We use uncomressed DEFLATE format, see RFC-1951
     // http://tools.ietf.org/html/rfc1951
-    DWORD pDataLength = 8 + 2 + (6 + UKNC_SCREEN_WIDTH / 2) * UKNC_SCREEN_HEIGHT + 4/*adler*/ + 4;
+    DWORD pDataLength = 8 + 2 + (6 + UKNC_SCREEN_WIDTH) * UKNC_SCREEN_HEIGHT + 4/*adler*/ + 4;
     if (framenum > 1) pDataLength += 4;
     BYTE * pData = (BYTE *) ::malloc(pDataLength);
     SaveValueMSB(pData, pDataLength - 12);
@@ -226,7 +229,7 @@ BOOL PngFile_WriteImageData4(FILE * fpFile, DWORD framenum, const DWORD* pBits, 
     DWORD adler = 1L;
     for (int line = 0; line < 288; line++)
     {
-        const WORD linelen = 320 + 1;  // Each line is 321-byte block of non-compressed data
+        const WORD linelen = 640 + 1;  // Each line is 641-byte block of non-compressed data
         *(pdst++) = (line < 288-1) ? 0 : 1;  // Last?
         *(pdst++) = linelen & 0xff;
         *(pdst++) = (linelen >> 8) & 0xff;
@@ -240,7 +243,7 @@ BOOL PngFile_WriteImageData4(FILE * fpFile, DWORD framenum, const DWORD* pBits, 
         {
             DWORD rgb = *(psrc++);
             BYTE color = 0;
-            for (BYTE c = 0; c < 16; c++)
+            for (BYTE c = 0; c < 128; c++)
             {
                 if (palette[c] == rgb)
                 {
@@ -248,13 +251,8 @@ BOOL PngFile_WriteImageData4(FILE * fpFile, DWORD framenum, const DWORD* pBits, 
                     break;
                 }
             }
-            if ((i & 1) == 0)
-                *pdst = (color << 4);
-            else
-            {
-                *pdst = (*pdst) & 0xf0 | color;
-                pdst++;
-            }
+            *pdst = color;
+            pdst++;
         }
 
         adler = update_adler32(adler, pline, linelen);
@@ -287,7 +285,7 @@ BOOL PngFile_SaveScreenshot(
     if (fpFile == NULL)
         return FALSE;
 
-    if (!PngFile_WriteHeader(fpFile, 4))
+    if (!PngFile_WriteHeader(fpFile, 8))
     {
         ::fclose(fpFile);
         return FALSE;
@@ -299,7 +297,7 @@ BOOL PngFile_SaveScreenshot(
         return FALSE;
     }
 
-    if (!PngFile_WriteImageData4(fpFile, 0, pBits, palette))
+    if (!PngFile_WriteImageData8(fpFile, 0, pBits, palette))
     {
         ::fclose(fpFile);
         return FALSE;
@@ -432,7 +430,7 @@ BOOL ApngFile_WriteFrame(
     pApng->dwNextFrameNumber++;
 
     // Write IDAT or fdAT chunk
-    if (!PngFile_WriteImageData4(pApng->fpFile, pApng->dwNextFrameNumber, pBits, palette))
+    if (!PngFile_WriteImageData8(pApng->fpFile, pApng->dwNextFrameNumber, pBits, palette))
         return FALSE;
     if (!firstFrame)
         pApng->dwNextFrameNumber++;
