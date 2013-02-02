@@ -550,13 +550,20 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
 
         case 0176570:  // Стык С2: Регистр состояния приемника
         case 0176571:
+            m_Port176570 = (m_Port176570 & ~0100) | (word & 0100);  // Bit 6 only
+            break;
         case 0176572:  // Стык С2: Регистр данных приемника
-        case 0176573:
+        case 0176573:  // недоступен по записи
+            return ;
         case 0176574:  // Стык С2: Регистр состояния источника
         case 0176575:
+            m_Port176574 = (m_Port176574 & ~0105) | (word & 0105);  // Bits 0,2,6
+            break;
         case 0176576:  // Стык С2: Регистр данных источника
-        case 0176577:
-            return ;
+        case 0176577:  // нижние 8 бит доступны по записи
+            m_Port176576 = word & 0xff;
+            m_Port176574 &= ~0200;  // Reset bit 7 (Ready)
+            break;
 
         default:
             if (!(((m_Port176644 & 0x103) == 0x100) && m_Port176646 == address))
