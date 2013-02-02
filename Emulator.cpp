@@ -626,7 +626,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
     int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
     DWORD palette = 0;       // Palette
     DWORD palettecurrent[8];  memset(palettecurrent, 0, sizeof(palettecurrent)); // Current palette; update each time we change the "palette" variable
-	BYTE pbpgpr = 7;         // 3-bit Y-value modifier
+    BYTE pbpgpr = 0;         // 3-bit Y-value modifier
     for (int yy = 0; yy < 307; yy++)
     {
         if (okTagSize) {  // 4-word tag
@@ -638,22 +638,23 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
             if (okTagType)  // 4-word palette tag
             {
                 palette = MAKELONG(tag1, tag2);
-                for (BYTE c = 0; c < 8; c++)  // Update palettecurrent
-                {
-                    BYTE valueYRGB = (BYTE) (palette >> (c << 2)) & 15;
-                    palettecurrent[c] = colors[valueYRGB];
-                }
             }
             else  // 4-word params tag
             {
                 scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                pbpgpr = (BYTE)(tag2 & 7);  // Y-value modifier
+                pbpgpr = (BYTE)((7 - (tag2 & 7)) << 4);  // Y-value modifier
                 cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
                 okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, FALSE - symbolic cursor
                 ASSERT(okCursorType==0);  //DEBUG
                 cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
                 cursorAddress = (BYTE)((tag1 >> 5) & 7);
                 scale = 1 << scale;
+            }
+            for (BYTE c = 0; c < 8; c++)  // Update palettecurrent
+            {
+                BYTE valueYRGB = (BYTE) (palette >> (c << 2)) & 15;
+                palettecurrent[c] = colors[pbpgpr | valueYRGB];
+                //if (pbpgpr != 0) DebugLogFormat(_T("pbpgpr %02x\r\n"), pbpgpr | valueYRGB);
             }
         }
 

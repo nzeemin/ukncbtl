@@ -433,6 +433,7 @@ void DoConsoleCommand()
                 WORD value = pProc->GetReg(r);
                 PrintRegister(name, value);
             }
+            PrintRegister(_T("PS"), pProc->GetPSW());
         }
         else if (command[1] >= _T('0') && command[1] <= _T('7'))  // "r0".."r7"
         {
