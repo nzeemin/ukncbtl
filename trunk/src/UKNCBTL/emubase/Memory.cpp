@@ -686,8 +686,10 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
         default:
             if (!(((m_Port176644 & 0x103) == 0x100) && m_Port176646 == address))
+            {
+                //DebugLogFormat(_T("MemoryError SetPortWord CPU %06o\r\n"), address);
                 m_pProcessor->MemoryError();
-//			ASSERT(0);
+            }
             break;
     }
 }
@@ -1073,6 +1075,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
                 m_pProcessor->InterruptVIRQ(3, 0);
                 return a;
             }
+
         case 0177704:
         case 0177705:
             return 010000; //!!!
@@ -1454,6 +1457,9 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
                 m_pProcessor->InterruptVIRQ(3, 0);
             m_Port177700 = (m_Port177700 & 0177677) | (word & 0100);
             break;
+        case 0177702:  // Keyboard data register
+            break;
+
         case 0177704: // fdd params:
         case 0177705:
 //#if !defined(PRODUCT)
@@ -1500,6 +1506,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
             break;
 
         default:
+            //DebugLogFormat(_T("MemoryError SetPortWord PPU %06o\r\n"), address);
             m_pProcessor->MemoryError();
             //ASSERT(0);
             break;
