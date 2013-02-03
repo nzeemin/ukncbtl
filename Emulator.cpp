@@ -445,11 +445,6 @@ BOOL CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
         ::fwrite(&byte, 1, 1, m_fpEmulatorParallelOut);
     }
 
-    ////DEBUG
-    //TCHAR buffer[32];
-    //_snwprintf_s(buffer, 32, _T("Printer: <%02x>\r\n"), byte);
-    //ConsoleView_Print(buffer);
-
     return TRUE;
 }
 
@@ -582,7 +577,7 @@ BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
-    if (fpFile == INVALID_HANDLE_VALUE)
+    if (fpFile == NULL)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
         return FALSE;
