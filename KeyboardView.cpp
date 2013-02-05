@@ -238,6 +238,8 @@ LRESULT CALLBACK KeyboardViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
 void KeyboardView_OnDraw(HDC hdc)
 {
     HBITMAP hBmp = ::LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_KEYBOARD));
+    HBITMAP hBmpMask = ::LoadBitmap(g_hInst, MAKEINTRESOURCE(IDB_KEYBOARDMASK));
+
     HDC hdcMem = ::CreateCompatibleDC(hdc);
     HGDIOBJ hOldBitmap = ::SelectObject(hdcMem, hBmp);
 
@@ -249,7 +251,8 @@ void KeyboardView_OnDraw(HDC hdc)
     int cyBitmap = (int) bitmap.bmHeight;
     m_nKeyboardBitmapLeft = (rc.right - cxBitmap) / 2;
     m_nKeyboardBitmapTop = (rc.bottom - cyBitmap) / 2;
-    ::BitBlt(hdc, m_nKeyboardBitmapLeft, m_nKeyboardBitmapTop, cxBitmap,cyBitmap, hdcMem, 0,0, SRCCOPY);
+    ::MaskBlt(hdc, m_nKeyboardBitmapLeft, m_nKeyboardBitmapTop, cxBitmap,cyBitmap, hdcMem, 0,0,
+        hBmpMask, 0, 0, MAKEROP4(SRCCOPY, SRCAND));
 
     ::SelectObject(hdcMem, hOldBitmap);
     ::DeleteDC(hdcMem);
