@@ -555,6 +555,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\keyboardmask.bmp"
+				>
+			</File>
+			<File
 				RelativePath=".\manifest.xml"
 				>
 			</File>
