@@ -328,7 +328,7 @@ IDR_UKNC_ROM            BIN                     "uknc_rom.bin"
 STRINGTABLE 
 BEGIN
     IDS_APP_TITLE           "UKNC Back to Life"
-    IDS_WELCOME             "UKNC Back to Life emulator - Beta 39"
+    IDS_WELCOME             "UKNC Back to Life - version %s"
     IDC_UKNCBTL             "UKNCBTL"
 END
 
