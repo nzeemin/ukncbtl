@@ -376,6 +376,8 @@ const DWORD* ScreenView_GetPalette()
     return colors;
 }
 
+#define AVERAGERGB(a, b)  ( (((a) & 0xfefefeffUL) + ((b) & 0xfefefeffUL)) >> 1 )
+
 void ScreenView_PrepareScreen()
 {
     if (m_bits == NULL) return;
@@ -403,15 +405,12 @@ void ScreenView_UpscaleScreen(void* pImageBits)
         DWORD* pdest = ((DWORD*)pImageBits) + line * UKNC_SCREEN_WIDTH;
         if (line % 3 == 1)
         {
-            BYTE* psrc1 = ((BYTE*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH * 4;
-            BYTE* psrc2 = ((BYTE*)pImageBits) + (ukncline + 1) * UKNC_SCREEN_WIDTH * 4;
-            BYTE* pdst1 = (BYTE*)pdest;
-            for (int i = 0; i < UKNC_SCREEN_WIDTH * 4; i++)
+            DWORD* psrc1 = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
+            DWORD* psrc2 = ((DWORD*)pImageBits) + (ukncline + 1) * UKNC_SCREEN_WIDTH;
+            DWORD* pdst1 = (DWORD*)pdest;
+            for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
             {
-                if (i % 4 == 3)
-                    *pdst1 = 0;
-                else
-                    *pdst1 = (BYTE)((((WORD)*psrc1) + ((WORD)*psrc2)) / 2);
+                *pdst1 = AVERAGERGB(*psrc1, *psrc2);
                 psrc1++;  psrc2++;  pdst1++;
             }
         }
@@ -451,10 +450,7 @@ void ScreenView_UpscaleScreen3(void* pImageBits)
         {
             DWORD c1 = *psrc;  psrc--;
             DWORD c2 = *psrc;  psrc--;
-            DWORD c12 =
-                (((c1 & 0xff) + (c2 & 0xff)) >> 1) |
-                (((c1 & 0xff00) + (c2 & 0xff00)) >> 1) & 0xff00 |
-                (((c1 & 0xff0000) + (c2 & 0xff0000)) >> 1) & 0xff0000;
+            DWORD c12 = AVERAGERGB(c1, c2);
             *pdest = c1;  pdest--;
             *pdest = c12; pdest--;
             *pdest = c2;  pdest--;
