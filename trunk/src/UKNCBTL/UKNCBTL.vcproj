@@ -182,6 +182,8 @@
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				Description="Updating Version.h file..."
+				CommandLine="&quot;C:\Program Files\TortoiseSVN\bin\SubWCRev.exe&quot; . Version.tpl Version.h"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
@@ -579,6 +581,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\uknc_rom.bin"
+				>
+			</File>
+			<File
 				RelativePath=".\UKNCBTL.ico"
 				>
 			</File>
@@ -740,15 +746,15 @@
 			>
 		</File>
 		<File
-			RelativePath=".\uknc_rom.bin"
-			>
-		</File>
-		<File
 			RelativePath=".\UKNCBTL.cpp"
 			>
 		</File>
 		<File
 			RelativePath=".\UKNCBTL.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Version.tpl"
 			>
 		</File>
 		<File

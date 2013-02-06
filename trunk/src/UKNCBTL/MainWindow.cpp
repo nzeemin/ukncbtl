@@ -234,13 +234,16 @@ BOOL MainWindow_InitToolbar()
 
 BOOL MainWindow_InitStatusbar()
 {
-    TCHAR sWelcome[100];
-    LoadString(g_hInst, IDS_WELCOME, sWelcome, 100);
+    TCHAR welcomeTemplate[100];
+    LoadString(g_hInst, IDS_WELCOME, welcomeTemplate, 100);
+    TCHAR buffer[100];
+    wsprintf(buffer, welcomeTemplate, _T(UKNCBTL_VERSION_STRING));
     m_hwndStatusbar = CreateStatusWindow(WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS,
-            sWelcome,
+            buffer,
             g_hwnd, 101);
     if (! m_hwndStatusbar)
         return FALSE;
+
     int statusbarParts[8];
     statusbarParts[0] = 300;
     statusbarParts[1] = 350;

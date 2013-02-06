@@ -12,6 +12,15 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
+//////////////////////////////////////////////////////////////////////
+
+#ifdef _DEBUG
+#define UKNCBTL_VERSION_STRING "DEBUG"
+#elif !defined(PRODUCT)
+#define UKNCBTL_VERSION_STRING "RELEASE"
+#else
+#include "Version.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // Assertions checking - MFC-like ASSERT macro
