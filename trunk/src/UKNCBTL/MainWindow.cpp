@@ -406,9 +406,6 @@ void MainWindow_AdjustWindowSize()
     const int MAX_DEBUG_HEIGHT = 1400;
 
     // Get metrics
-    RECT rcWorkArea;  SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
-    //int cxBorder  = ::GetSystemMetrics(SM_CXBORDER);
-    //int cyBorder  = ::GetSystemMetrics(SM_CYBORDER);
     int cxFrame   = ::GetSystemMetrics(SM_CXDLGFRAME);
     int cyFrame   = ::GetSystemMetrics(SM_CYDLGFRAME);
     int cyCaption = ::GetSystemMetrics(SM_CYCAPTION);
@@ -436,11 +433,13 @@ void MainWindow_AdjustWindowSize()
     }
 
     // Adjust main window size
-    int xLeft = rcWorkArea.left;
-    int yTop = rcWorkArea.top;
+    int xLeft, yTop;
     int cxWidth, cyHeight;
     if (Settings_GetDebug())
     {
+        RECT rcWorkArea;  SystemParametersInfo(SPI_GETWORKAREA, 0, &rcWorkArea, 0);
+        xLeft = rcWorkArea.left;
+        yTop = rcWorkArea.top;
         cxWidth = rcWorkArea.right - rcWorkArea.left;
         if (cxWidth > MAX_DEBUG_WIDTH) cxWidth = MAX_DEBUG_WIDTH;
         cyHeight = rcWorkArea.bottom - rcWorkArea.top;
@@ -448,6 +447,9 @@ void MainWindow_AdjustWindowSize()
     }
     else
     {
+        RECT rcCurrent;  ::GetWindowRect(g_hwnd, &rcCurrent);
+        xLeft = rcCurrent.left;
+        yTop = rcCurrent.top;
         cxWidth = cxScreen + cxFrame * 2 + 8;
         cyHeight = cyCaption + cyMenu + 4 + cyScreen + 4 + cyStatus + cyFrame * 2;
         if (Settings_GetToolbar())
