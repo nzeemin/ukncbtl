@@ -359,6 +359,13 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
     return lastLength;
 }
 
+void ConsoleView_SetCurrentProc(BOOL okCPU)
+{
+    m_okCurrentProc = okCPU;
+    ConsoleView_Print(_T("\r\n"));
+    PrintConsolePrompt();
+}
+
 void ConsoleView_StepInto()
 {
     // Put command to console prompt
