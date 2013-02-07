@@ -108,7 +108,7 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndDebugToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
     SendMessage(m_hwndDebugToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26)); 
 
-    TBBUTTON buttons[2];
+    TBBUTTON buttons[3];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -116,10 +116,12 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
         buttons[i].fsStyle = BTNS_BUTTON;
         buttons[i].iString = -1;
     }
-    buttons[0].idCommand = ID_DEBUG_STEPINTO;
-    buttons[0].iBitmap = 15;
-    buttons[1].idCommand = ID_DEBUG_STEPOVER;
-    buttons[1].iBitmap = 16;
+    buttons[0].idCommand = ID_DEBUG_CPUPPU;
+    buttons[0].iBitmap = 17;
+    buttons[1].idCommand = ID_DEBUG_STEPINTO;
+    buttons[1].iBitmap = 15;
+    buttons[2].idCommand = ID_DEBUG_STEPOVER;
+    buttons[2].iBitmap = 16;
 
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 }
@@ -176,10 +178,7 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     switch (vkey)
     {
     case VK_SPACE:
-        m_okDebugProcessor = ! m_okDebugProcessor;
-        InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
-        DebugView_UpdateWindowText();
-        DisasmView_SetCurrentProc(m_okDebugProcessor);   // Switch DisasmView to current processor
+        DebugView_SwitchCpuPpu();
         break;
     case VK_ESCAPE:
         ConsoleView_Activate();
@@ -199,6 +198,16 @@ void DebugView_UpdateWindowText()
     TCHAR buffer[64];
     _stprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
     ::SetWindowText(g_hwndDebug, buffer);
+}
+
+void DebugView_SwitchCpuPpu()
+{
+    m_okDebugProcessor = ! m_okDebugProcessor;
+    InvalidateRect(m_hwndDebugViewer, NULL, TRUE);
+    DebugView_UpdateWindowText();
+
+    DisasmView_SetCurrentProc(m_okDebugProcessor);
+    ConsoleView_SetCurrentProc(m_okDebugProcessor);
 }
 
 

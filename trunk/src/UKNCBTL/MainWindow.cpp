@@ -807,6 +807,10 @@ bool MainWindow_DoCommand(int commandId)
         if (!g_okEmulatorRunning && Settings_GetDebug())
             ConsoleView_StepOver();
         break;
+    case ID_DEBUG_CPUPPU:
+        if (!g_okEmulatorRunning && Settings_GetDebug())
+            DebugView_SwitchCpuPpu();
+        break;
     case ID_EMULATOR_RESET:
         MainWindow_DoEmulatorReset();
         break;

@@ -82,6 +82,7 @@
 #define ID_FILE_SAVESCREENSHOTAS        32817
 #define ID_FILE_SCREENSHOTANIMATED      32818
 #define ID_EMULATOR_NETWORK             32822
+#define ID_DEBUG_CPUPPU                 32825
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -90,7 +91,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32824
+#define _APS_NEXT_COMMAND_VALUE         32826
 #define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

@@ -74,6 +74,7 @@ LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DebugViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DebugView_OnUpdate();
 void DebugView_SetCurrentProc(BOOL okCPU);
+void DebugView_SwitchCpuPpu();
 
 
 //////////////////////////////////////////////////////////////////////
@@ -110,6 +111,7 @@ void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
 void ConsoleView_Print(LPCTSTR message);
 void ConsoleView_Activate();
+void ConsoleView_SetCurrentProc(BOOL okCPU);
 void ConsoleView_StepInto();
 void ConsoleView_StepOver();
 
