@@ -116,11 +116,11 @@ BEGIN
     BEGIN
         MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN
         MENUITEM "Reset",                       ID_EMULATOR_RESET
+        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
         MENUITEM SEPARATOR
         MENUITEM "Sound",                       ID_EMULATOR_SOUND
         MENUITEM "Serial",                      ID_EMULATOR_SERIAL
         MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL
-        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
         MENUITEM "Network",                     ID_EMULATOR_NETWORK
     END
     POPUP "&Configuration"
