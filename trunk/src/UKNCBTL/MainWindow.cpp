@@ -34,6 +34,9 @@ HWND m_hwndStatusbar = NULL;
 
 HANDLE g_hAnimatedScreenshot = INVALID_HANDLE_VALUE;
 
+int m_MainWindowMinCx = UKNC_SCREEN_WIDTH + 16;
+int m_MainWindowMinCy = UKNC_SCREEN_HEIGHT + 40;
+
 
 //////////////////////////////////////////////////////////////////////
 // Forward declarations
@@ -112,7 +115,7 @@ BOOL CreateMainWindow()
     // Create the window    
     g_hwnd = CreateWindow(
             g_szWindowClass, g_szTitle,
-            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_DLGFRAME | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
+            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
             0, 0, 0, 0,
             NULL, NULL, g_hInst, NULL);
     if (!g_hwnd)
@@ -238,7 +241,8 @@ BOOL MainWindow_InitStatusbar()
     LoadString(g_hInst, IDS_WELCOME, welcomeTemplate, 100);
     TCHAR buffer[100];
     wsprintf(buffer, welcomeTemplate, _T(UKNCBTL_VERSION_STRING));
-    m_hwndStatusbar = CreateStatusWindow(WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS,
+    m_hwndStatusbar = CreateStatusWindow(
+            WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
             buffer,
             g_hwnd, 101);
     if (! m_hwndStatusbar)
@@ -360,6 +364,17 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_DESTROY:
         PostQuitMessage(0);
         break;
+    case WM_SIZE:
+        MainWindow_AdjustWindowLayout();
+        break;
+    case WM_GETMINMAXINFO:
+        {
+            DefWindowProc(hWnd, message, wParam, lParam);
+            MINMAXINFO* mminfo = (MINMAXINFO*)lParam;
+            mminfo->ptMinTrackSize.x = m_MainWindowMinCx;
+            mminfo->ptMinTrackSize.y = m_MainWindowMinCy;
+        }
+        break;
     case WM_NOTIFY:
         {
             //int idCtrl = (int) wParam;
@@ -402,12 +417,16 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 void MainWindow_AdjustWindowSize()
 {
-    const int MAX_DEBUG_WIDTH = 1450;
-    const int MAX_DEBUG_HEIGHT = 1400;
+    // If Maximized then do nothing
+    WINDOWPLACEMENT placement;
+    placement.length = sizeof(WINDOWPLACEMENT);
+    ::GetWindowPlacement(g_hwnd, &placement);
+    if (placement.showCmd == SW_MAXIMIZE)
+        return;
 
     // Get metrics
-    int cxFrame   = ::GetSystemMetrics(SM_CXDLGFRAME);
-    int cyFrame   = ::GetSystemMetrics(SM_CYDLGFRAME);
+    int cxFrame   = ::GetSystemMetrics(SM_CXSIZEFRAME);
+    int cyFrame   = ::GetSystemMetrics(SM_CYSIZEFRAME);
     int cyCaption = ::GetSystemMetrics(SM_CYCAPTION);
     int cyMenu    = ::GetSystemMetrics(SM_CYMENU);
 
@@ -441,9 +460,7 @@ void MainWindow_AdjustWindowSize()
         xLeft = rcWorkArea.left;
         yTop = rcWorkArea.top;
         cxWidth = rcWorkArea.right - rcWorkArea.left;
-        if (cxWidth > MAX_DEBUG_WIDTH) cxWidth = MAX_DEBUG_WIDTH;
         cyHeight = rcWorkArea.bottom - rcWorkArea.top;
-        if (cyHeight > MAX_DEBUG_HEIGHT) cyHeight = MAX_DEBUG_HEIGHT;
     }
     else
     {
@@ -460,7 +477,7 @@ void MainWindow_AdjustWindowSize()
             cyHeight += cyTape + 4;
     }
  
-    SetWindowPos(g_hwnd, NULL, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER);
+    SetWindowPos(g_hwnd, NULL, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
 }
 
 void MainWindow_AdjustWindowLayout()
@@ -495,9 +512,13 @@ void MainWindow_AdjustWindowLayout()
 
     RECT rc;  GetClientRect(g_hwnd, &rc);
 
-    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
+    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen + 4, cyStatus, SWP_NOZORDER);
 
     SetWindowPos(m_hwndToolbar, NULL, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
+
+    m_MainWindowMinCx = cxScreen + 8 + ::GetSystemMetrics(SM_CXSIZEFRAME) * 2;
+    m_MainWindowMinCy = ::GetSystemMetrics(SM_CYCAPTION) + ::GetSystemMetrics(SM_CYMENU) +
+        cyScreen + 8 + cyStatus + ::GetSystemMetrics(SM_CYSIZEFRAME) * 2;
 
     if (Settings_GetToolbar())
     {
@@ -505,6 +526,7 @@ void MainWindow_AdjustWindowLayout()
         yKeyboard += cyToolbar + 4;
         yTape     += cyToolbar + 4;
         yConsole  += cyToolbar + 4;
+        m_MainWindowMinCy += cyToolbar + 4;
     }
 
     SetWindowPos(g_hwndScreen, NULL, 4, yScreen, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
@@ -527,6 +549,20 @@ void MainWindow_AdjustWindowLayout()
     {
         int cyConsole = rc.bottom - cyStatus - yConsole - 4;
         SetWindowPos(g_hwndConsole, NULL, 4, yConsole, cxScreen, cyConsole, SWP_NOZORDER);
+
+        RECT rcDebug;  GetWindowRect(g_hwndDebug, &rcDebug);
+        int cxDebug = rc.right - cxScreen - 12;
+        int cyDebug = rcDebug.bottom - rcDebug.top;
+        SetWindowPos(g_hwndDebug, NULL, cxScreen + 8, 4, cxDebug, cyDebug, SWP_NOZORDER);
+
+        RECT rcDisasm;  GetWindowRect(g_hwndDisasm, &rcDisasm);
+        int yDebug = 4 + cyDebug + 4;
+        int cyDisasm = rcDisasm.bottom - rcDisasm.top;
+        SetWindowPos(g_hwndDisasm, NULL, cxScreen + 8, yDebug, cxDebug, cyDisasm, SWP_NOZORDER);
+
+        int yMemory = cyDebug + cyDisasm + 12;
+        int cyMemory = rc.bottom - yMemory - 4;
+        SetWindowPos(g_hwndMemory, NULL, cxScreen + 8, yMemory, cxDebug, cyMemory, SWP_NOZORDER);
     }
 }
 
@@ -549,7 +585,7 @@ void MainWindow_ShowHideDebug()
 
         SetFocus(g_hwndScreen);
     }
-    else
+    else  // Debug Views ON
     {
         MainWindow_AdjustWindowSize();
 

@@ -113,14 +113,28 @@ void CreateDisasmView(HWND hwndParent, int x, int y, int width, int height)
             g_hwndDisasm, NULL, g_hInst, NULL);
 }
 
+// Adjust position of client windows
+void DisasmView_AdjustWindowLayout()
+{
+    RECT rc;  GetClientRect(g_hwndDisasm, &rc);
+
+    if (m_hwndDisasmViewer != (HWND) INVALID_HANDLE_VALUE)
+        SetWindowPos(m_hwndDisasmViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+}
+
 LRESULT CALLBACK DisasmViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
+    LRESULT lResult;
     switch (message)
     {
     case WM_DESTROY:
         g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         return CallWindowProc(m_wndprocDisasmToolWindow, hWnd, message, wParam, lParam);
+    case WM_SIZE:
+        lResult = CallWindowProc(m_wndprocDisasmToolWindow, hWnd, message, wParam, lParam);
+        DisasmView_AdjustWindowLayout();
+        return lResult;
     default:
         return CallWindowProc(m_wndprocDisasmToolWindow, hWnd, message, wParam, lParam);
     }

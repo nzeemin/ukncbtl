@@ -126,14 +126,28 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
 }
 
+// Adjust position of client windows
+void DebugView_AdjustWindowLayout()
+{
+    RECT rc;  GetClientRect(g_hwndDebug, &rc);
+
+    if (m_hwndDebugViewer != (HWND) INVALID_HANDLE_VALUE)
+        SetWindowPos(m_hwndDebugViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+}
+
 LRESULT CALLBACK DebugViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
+    LRESULT lResult;
     switch (message)
     {
     case WM_DESTROY:
         g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         return CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
+    case WM_SIZE:
+        lResult = CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
+        DebugView_AdjustWindowLayout();
+        return lResult;
     default:
         return CallWindowProc(m_wndprocDebugToolWindow, hWnd, message, wParam, lParam);
     }

@@ -39,6 +39,7 @@ void MemoryView_Scroll(int nDeltaLines);
 void MemoryView_UpdateScrollPos();
 void MemoryView_UpdateWindowText();
 LPCTSTR MemoryView_GetMemoryModeName();
+void MemoryView_AdjustWindowLayout();
 
 enum MemoryViewMode {
     MEMMODE_RAM0 = 0,  // RAM plane 0
@@ -105,14 +106,28 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
     MemoryView_ScrollTo(0);
 }
 
+// Adjust position of client windows
+void MemoryView_AdjustWindowLayout()
+{
+    RECT rc;  GetClientRect(g_hwndMemory, &rc);
+
+    if (m_hwndMemoryViewer != (HWND) INVALID_HANDLE_VALUE)
+        SetWindowPos(m_hwndMemoryViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+}
+
 LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
+    LRESULT lResult;
     switch (message)
     {
     case WM_DESTROY:
         g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         return CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
+    case WM_SIZE:
+        lResult = CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
+        MemoryView_AdjustWindowLayout();
+        return lResult;
     default:
         return CallWindowProc(m_wndprocMemoryToolWindow, hWnd, message, wParam, lParam);
     }
