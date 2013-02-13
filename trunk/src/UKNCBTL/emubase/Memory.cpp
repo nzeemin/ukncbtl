@@ -703,13 +703,13 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
 BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
 {
-    this->m_Port176572 = (WORD)inputByte;
-    if (this->m_Port176570 & 0200)  // Ready?
-        this->m_Port176570 |= 010000;  // Set Overflow flag
+    if (m_Port176570 & 0200)  // Ready?
+        m_Port176570 |= 010000;  // Set Overflow flag
     else
     {
-        this->m_Port176570 |= 0200;  // Set Ready flag
-        if (this->m_Port176570 & 0100)  // Interrupt?
+        m_Port176572 = (WORD)inputByte;
+        m_Port176570 |= 0200;  // Set Ready flag
+        if (m_Port176570 & 0100)  // Interrupt?
             return TRUE;
     }
 
@@ -718,13 +718,13 @@ BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
 
 BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
 {
-    this->m_Port176562 = (WORD)inputByte;
-    if (this->m_Port176560 & 0200)  // Ready?
-        this->m_Port176560 |= 010000;  // Set Overflow flag
+    if (m_Port176560 & 0200)  // Ready?
+        m_Port176560 |= 010000;  // Set Overflow flag
     else
     {
-        this->m_Port176560 |= 0200;  // Set Ready flag
-        if (this->m_Port176560 & 0100)  // Interrupt?
+        m_Port176562 = (WORD)inputByte;
+        m_Port176560 |= 0200;  // Set Ready flag
+        if (m_Port176560 & 0100)  // Interrupt?
             return TRUE;
     }
 
