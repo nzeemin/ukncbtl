@@ -20,33 +20,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 const TCHAR m_Settings_IniAppName[] = _T("UKNCBTL");
 TCHAR m_Settings_IniPath[MAX_PATH];
 
-BOOL m_Settings_Toolbar = TRUE;
-BOOL m_Settings_Debug = FALSE;
-BOOL m_Settings_Debug_Valid = FALSE;
-BOOL m_Settings_RealSpeed = FALSE;
-BOOL m_Settings_RealSpeed_Valid = FALSE;
-BOOL m_Settings_Sound = FALSE;
-BOOL m_Settings_Sound_Valid = FALSE;
-WORD m_Settings_SoundVolume = 0x3fff;
-BOOL m_Settings_SoundVolume_Valid = FALSE;
-BOOL m_Settings_Keyboard = TRUE;
-BOOL m_Settings_Keyboard_Valid = FALSE;
-BOOL m_Settings_Tape = FALSE;
-BOOL m_Settings_Tape_Valid = FALSE;
-BOOL m_Settings_Serial = FALSE;
-BOOL m_Settings_Serial_Valid = FALSE;
-BOOL m_Settings_Parallel = FALSE;
-BOOL m_Settings_Parallel_Valid = FALSE;
-DWORD m_Settings_CartridgeMode = 0;
-BOOL m_Settings_CartridgeMode_Valid = FALSE;
-BOOL m_Settings_Network = FALSE;
-BOOL m_Settings_Network_Valid = FALSE;
-WORD m_Settings_NetStation = 0;
-BOOL m_Settings_NetStation_Valid = FALSE;
 DCB  m_Settings_SerialConfig;
-BOOL m_Settings_SerialConfig_Valid = FALSE;
 DCB  m_Settings_NetComConfig;
-BOOL m_Settings_NetComConfig_Valid = FALSE;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -215,6 +190,25 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
 //////////////////////////////////////////////////////////////////////
 
 
+#define SETTINGS_GETSET_DWORD(PARAMNAME, PARAMNAMESTR, OUTTYPE, DEFVALUE) \
+    OUTTYPE m_Settings_##PARAMNAME = DEFVALUE; \
+    BOOL m_Settings_##PARAMNAME##_Valid = FALSE; \
+    void Settings_Set##PARAMNAME(OUTTYPE newvalue) { \
+        m_Settings_##PARAMNAME = newvalue; \
+        m_Settings_##PARAMNAME##_Valid = TRUE; \
+        Settings_SaveDwordValue(PARAMNAMESTR, (DWORD) newvalue); \
+    } \
+    OUTTYPE Settings_Get##PARAMNAME##() { \
+        if (!m_Settings_##PARAMNAME##_Valid) { \
+            DWORD dwValue = (DWORD) DEFVALUE; \
+            Settings_LoadDwordValue(PARAMNAMESTR, &dwValue); \
+            m_Settings_##PARAMNAME = (OUTTYPE) dwValue; \
+            m_Settings_##PARAMNAME##_Valid = TRUE; \
+        } \
+        return m_Settings_##PARAMNAME; \
+    }
+
+
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[8];
@@ -260,211 +254,28 @@ void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath)
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
-void Settings_SetCartridgeMode(DWORD cartridgeMode)
-{
-    m_Settings_CartridgeMode = cartridgeMode;
-    m_Settings_CartridgeMode_Valid = TRUE;
-    Settings_SaveDwordValue(_T("CartridgeMode"), (DWORD) cartridgeMode);
-}
-DWORD Settings_GetCartridgeMode()
-{
-    if (!m_Settings_CartridgeMode_Valid)
-    {
-        DWORD dwValue = (DWORD) 0;
-        Settings_LoadDwordValue(_T("CartridgeMode"), &dwValue);
-        m_Settings_CartridgeMode = dwValue;
-        m_Settings_CartridgeMode_Valid = TRUE;
-    }
-    return m_Settings_CartridgeMode;
-}
+SETTINGS_GETSET_DWORD(ScreenViewMode, _T("ScreenViewMode"), int, 0);
 
-void Settings_SetScreenViewMode(int mode)
-{
-    Settings_SaveDwordValue(_T("ScreenViewMode"), (DWORD) mode);
-}
-int Settings_GetScreenViewMode()
-{
-    DWORD dwValue;
-    Settings_LoadDwordValue(_T("ScreenViewMode"), &dwValue);
-    return (int) dwValue;
-}
+SETTINGS_GETSET_DWORD(ScreenHeightMode, _T("ScreenHeightMode"), int, 0);
 
-void Settings_SetScreenHeightMode(int mode)
-{
-    Settings_SaveDwordValue(_T("ScreenHeightMode"), (DWORD) mode);
-}
-int Settings_GetScreenHeightMode()
-{
-    DWORD dwValue;
-    Settings_LoadDwordValue(_T("ScreenHeightMode"), &dwValue);
-    return (int) dwValue;
-}
+SETTINGS_GETSET_DWORD(Toolbar, _T("Toolbar"), BOOL, TRUE);
 
-void Settings_SetToolbar(BOOL flag)
-{
-    Settings_SaveDwordValue(_T("Toolbar"), (DWORD) flag);
-}
-BOOL Settings_GetToolbar()
-{
-    DWORD dwValue = (DWORD) TRUE;
-    Settings_LoadDwordValue(_T("Toolbar"), &dwValue);
-    return (BOOL) dwValue;
-}
+SETTINGS_GETSET_DWORD(Debug, _T("Debug"), BOOL, FALSE);
 
-void Settings_SetDebug(BOOL flag)
-{
-    m_Settings_Debug = flag;
-    m_Settings_Debug_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Debug"), (DWORD) flag);
-}
-BOOL Settings_GetDebug()
-{
-    if (!m_Settings_Debug_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Debug"), &dwValue);
-        m_Settings_Debug = (BOOL) dwValue;
-        m_Settings_Debug_Valid = TRUE;
-    }
-    return m_Settings_Debug;
-}
+SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 
-void Settings_SetAutostart(BOOL flag)
-{
-    Settings_SaveDwordValue(_T("Autostart"), (DWORD) flag);
-}
-BOOL Settings_GetAutostart()
-{
-    DWORD dwValue = (DWORD) FALSE;
-    Settings_LoadDwordValue(_T("Autostart"), &dwValue);
-    return (BOOL) dwValue;
-}
+SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), BOOL, FALSE);
 
-void Settings_SetRealSpeed(BOOL flag)
-{
-    m_Settings_RealSpeed = flag;
-    m_Settings_RealSpeed_Valid = TRUE;
-    Settings_SaveDwordValue(_T("RealSpeed"), (DWORD) flag);
-}
-BOOL Settings_GetRealSpeed()
-{
-    if (!m_Settings_RealSpeed_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("RealSpeed"), &dwValue);
-        m_Settings_RealSpeed = (BOOL) dwValue;
-        m_Settings_RealSpeed_Valid = TRUE;
-    }
-    return m_Settings_RealSpeed;
-}
+SETTINGS_GETSET_DWORD(Sound, _T("Sound"), BOOL, FALSE);
+SETTINGS_GETSET_DWORD(SoundVolume, _T("SoundVolume"), WORD, 0x3fff);
 
-void Settings_SetSound(BOOL flag)
-{
-    m_Settings_Sound = flag;
-    m_Settings_Sound_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Sound"), (DWORD) flag);
-}
-BOOL Settings_GetSound()
-{
-    if (!m_Settings_Sound_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Sound"), &dwValue);
-        m_Settings_Sound = (BOOL) dwValue;
-        m_Settings_Sound_Valid = TRUE;
-    }
-    return m_Settings_Sound;
-}
+SETTINGS_GETSET_DWORD(Keyboard, _T("Keyboard"), BOOL, TRUE);
 
-void Settings_SetSoundVolume(WORD value)
-{
-    m_Settings_SoundVolume = value;
-    m_Settings_SoundVolume_Valid = TRUE;
-    Settings_SaveDwordValue(_T("SoundVolume"), (DWORD) value);
-}
-WORD Settings_GetSoundVolume()
-{
-    if (!m_Settings_SoundVolume_Valid)
-    {
-        DWORD dwValue = (DWORD) 0x3fff;
-        Settings_LoadDwordValue(_T("SoundVolume"), &dwValue);
-        m_Settings_SoundVolume = (WORD)dwValue;
-        m_Settings_SoundVolume_Valid = TRUE;
-    }
-    return m_Settings_SoundVolume;
-}
+SETTINGS_GETSET_DWORD(Tape, _T("Tape"), BOOL, FALSE);
 
-void Settings_SetKeyboard(BOOL flag)
-{
-    m_Settings_Keyboard = flag;
-    m_Settings_Keyboard_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Keyboard"), (DWORD) flag);
-}
-BOOL Settings_GetKeyboard()
-{
-    if (!m_Settings_Keyboard_Valid)
-    {
-        DWORD dwValue = (DWORD) TRUE;
-        Settings_LoadDwordValue(_T("Keyboard"), &dwValue);
-        m_Settings_Keyboard = (BOOL) dwValue;
-        m_Settings_Keyboard_Valid = TRUE;
-    }
-    return m_Settings_Keyboard;
-}
+SETTINGS_GETSET_DWORD(Serial, _T("Serial"), BOOL, FALSE);
 
-void Settings_SetTape(BOOL flag)
-{
-    m_Settings_Tape = flag;
-    m_Settings_Tape_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Tape"), (DWORD) flag);
-}
-BOOL Settings_GetTape()
-{
-    if (!m_Settings_Tape_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Tape"), &dwValue);
-        m_Settings_Tape = (BOOL) dwValue;
-        m_Settings_Tape_Valid = TRUE;
-    }
-    return m_Settings_Tape;
-}
-
-void Settings_SetSerial(BOOL flag)
-{
-    m_Settings_Serial = flag;
-    m_Settings_Serial_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Serial"), (DWORD) flag);
-}
-BOOL Settings_GetSerial()
-{
-    if (!m_Settings_Serial_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Serial"), &dwValue);
-        m_Settings_Serial = (BOOL) dwValue;
-        m_Settings_Serial_Valid = TRUE;
-    }
-    return m_Settings_Serial;
-}
-
-void Settings_SetParallel(BOOL flag)
-{
-    m_Settings_Parallel = flag;
-    m_Settings_Parallel_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Parallel"), (DWORD) flag);
-}
-BOOL Settings_GetParallel()
-{
-    if (!m_Settings_Parallel_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Parallel"), &dwValue);
-        m_Settings_Parallel = (BOOL) dwValue;
-        m_Settings_Parallel_Valid = TRUE;
-    }
-    return m_Settings_Parallel;
-}
+SETTINGS_GETSET_DWORD(Parallel, _T("Parallel"), BOOL, FALSE);
 
 void Settings_GetSerialPort(LPTSTR buffer)
 {
@@ -475,6 +286,7 @@ void Settings_SetSerialPort(LPCTSTR sValue)
     Settings_SaveStringValue(_T("SerialPort"), sValue);
 }
 
+BOOL m_Settings_SerialConfig_Valid = FALSE;
 void Settings_GetSerialConfig(DCB * pDcb)
 {
     if (!m_Settings_SerialConfig_Valid)
@@ -484,7 +296,7 @@ void Settings_GetSerialConfig(DCB * pDcb)
         {
             ::memcpy(&m_Settings_SerialConfig, &dcb, sizeof(DCB));
         }
-        //NOTE: else -- use dafaults from m_Settings_SerialConfig
+        //NOTE: else -- use defaults from m_Settings_SerialConfig
 
         m_Settings_SerialConfig_Valid = TRUE;
     }
@@ -500,42 +312,9 @@ void Settings_SetSerialConfig(const DCB * pDcb)
     m_Settings_SerialConfig_Valid = TRUE;
 }
 
+SETTINGS_GETSET_DWORD(Network, _T("Network"), BOOL, FALSE);
 
-void Settings_SetNetwork(BOOL flag)
-{
-    m_Settings_Network = flag;
-    m_Settings_Network_Valid = TRUE;
-    Settings_SaveDwordValue(_T("Network"), (DWORD) flag);
-}
-BOOL Settings_GetNetwork()
-{
-    if (!m_Settings_Network_Valid)
-    {
-        DWORD dwValue = (DWORD) FALSE;
-        Settings_LoadDwordValue(_T("Network"), &dwValue);
-        m_Settings_Network = (BOOL) dwValue;
-        m_Settings_Network_Valid = TRUE;
-    }
-    return m_Settings_Network;
-}
-
-void Settings_SetNetStation(int value)
-{
-    m_Settings_NetStation = (WORD)value;
-    m_Settings_NetStation_Valid = TRUE;
-    Settings_SaveDwordValue(_T("NetStation"), (DWORD) value);
-}
-int Settings_GetNetStation()
-{
-    if (!m_Settings_NetStation_Valid)
-    {
-        DWORD dwValue = (DWORD) 0;
-        Settings_LoadDwordValue(_T("NetStation"), &dwValue);
-        m_Settings_NetStation = (WORD)dwValue;
-        m_Settings_NetStation_Valid = TRUE;
-    }
-    return (int)m_Settings_NetStation;
-}
+SETTINGS_GETSET_DWORD(NetStation, _T("NetStation"), int, 0);
 
 void Settings_GetNetComPort(LPTSTR buffer)
 {
@@ -546,6 +325,7 @@ void Settings_SetNetComPort(LPCTSTR sValue)
     Settings_SaveStringValue(_T("NetComPort"), sValue);
 }
 
+BOOL m_Settings_NetComConfig_Valid = FALSE;
 void Settings_GetNetComConfig(DCB * pDcb)
 {
     if (!m_Settings_NetComConfig_Valid)
@@ -555,7 +335,7 @@ void Settings_GetNetComConfig(DCB * pDcb)
         {
             ::memcpy(&m_Settings_NetComConfig, &dcb, sizeof(DCB));
         }
-        //NOTE: else -- use dafaults from m_Settings_NetComConfig
+        //NOTE: else -- use defaults from m_Settings_NetComConfig
 
         m_Settings_NetComConfig_Valid = TRUE;
     }
