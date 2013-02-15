@@ -111,6 +111,8 @@ BEGIN
         MENUITEM "Upscaled to 1.5",             ID_VIEW_UPSCALED
         MENUITEM "Interlaced Upscaled",         ID_VIEW_UPSCALED3
         MENUITEM "Screen Mode 5",               ID_VIEW_UPSCALED4
+        MENUITEM SEPARATOR
+        MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN
     END
     POPUP "&Emulator"
     BEGIN
