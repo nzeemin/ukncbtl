@@ -369,15 +369,15 @@ void MainWindow_SavePosition()
 void MainWindow_RestorePositionAndShow()
 {
     RECT rc;
-    if (!Settings_GetWindowRect(&rc))
-        return;
-
-    HMONITOR hmonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
-    if (hmonitor == NULL)
-        return;
-
-    ::SetWindowPos(g_hwnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
-        SWP_NOACTIVATE | SWP_NOZORDER);
+    if (Settings_GetWindowRect(&rc))
+    {
+        HMONITOR hmonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
+        if (hmonitor != NULL)
+        {
+            ::SetWindowPos(g_hwnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+                SWP_NOACTIVATE | SWP_NOZORDER);
+        }
+    }
 
     ShowWindow(g_hwnd, Settings_GetWindowMaximized() ? SW_SHOWMAXIMIZED : SW_SHOW);
 
