@@ -29,6 +29,8 @@ HBITMAP m_hbmp = NULL;
 DWORD * m_bits = NULL;
 int m_cxScreenWidth;
 int m_cyScreenHeight;
+int m_xScreenOffset = 0;
+int m_yScreenOffset = 0;
 BYTE m_ScreenKeyState[256];
 ScreenViewMode m_ScreenMode = RGBScreen;
 int m_ScreenHeightMode = 1;  // 1 - Normal height, 2 - Double height, 3 - Upscaled to 1.5
@@ -344,8 +346,25 @@ void ScreenView_OnDraw(HDC hdc)
 {
     if (m_bits == NULL) return;
 
+    m_xScreenOffset = 0;
+    m_yScreenOffset = 0;
+    RECT rc;  GetClientRect(g_hwndScreen, &rc);
+    if (rc.right > m_cxScreenWidth)
+    {
+        m_xScreenOffset = (rc.right - m_cxScreenWidth) / 2;
+        ::PatBlt(hdc, 0, 0, m_xScreenOffset, rc.bottom, BLACKNESS);
+        ::PatBlt(hdc, rc.right, 0, m_cxScreenWidth + m_xScreenOffset - rc.right, rc.bottom, BLACKNESS);
+    }
+    if (rc.bottom > m_cyScreenHeight)
+    {
+        m_yScreenOffset = (rc.bottom - m_cyScreenHeight) / 2;
+        ::PatBlt(hdc, m_xScreenOffset, 0, m_cxScreenWidth, m_yScreenOffset, BLACKNESS);
+        int frombottom = rc.bottom - m_yScreenOffset - m_cyScreenHeight;
+        ::PatBlt(hdc, m_xScreenOffset, rc.bottom, m_cxScreenWidth, -frombottom, BLACKNESS);
+    }
+
     DrawDibDraw(m_hdd, hdc,
-        0,0, -1, -1,
+        m_xScreenOffset, m_yScreenOffset, -1, -1,
         &m_bmpinfo.bmiHeader, m_bits, 0,0,
         m_cxScreenWidth, m_cyScreenHeight,
         0);
