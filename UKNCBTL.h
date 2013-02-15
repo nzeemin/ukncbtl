@@ -105,6 +105,12 @@ const DWORD CARTRIDGE2MODE_HARDDRIVE = 0x00010000;
 
 void Settings_Init();
 void Settings_Done();
+BOOL Settings_GetWindowRect(RECT * pRect);
+void Settings_SetWindowRect(const RECT * pRect);
+void Settings_SetWindowMaximized(BOOL flag);
+BOOL Settings_GetWindowMaximized();
+void Settings_SetWindowFullscreen(BOOL flag);
+BOOL Settings_GetWindowFullscreen();
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath);
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer);
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath);
