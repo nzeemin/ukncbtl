@@ -48,6 +48,7 @@ RECT m_MainWindow_FullscreenOldRect;
 
 BOOL MainWindow_InitToolbar();
 BOOL MainWindow_InitStatusbar();
+void MainWindow_RestorePositionAndShow();
 LRESULT CALLBACK MainWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
 void MainWindow_AdjustWindowLayout();
 bool MainWindow_DoCommand(int commandId);
@@ -136,7 +137,7 @@ BOOL CreateMainWindow()
     ScreenView_Init();
 
     // Create screen window as a child of the main window
-    CreateScreenView(g_hwnd, 4, 4);
+    CreateScreenView(g_hwnd, 0, 0);
 
     MainWindow_RestoreSettings();
 
@@ -144,9 +145,9 @@ BOOL CreateMainWindow()
     MainWindow_ShowHideKeyboard();
 	MainWindow_ShowHideTape();
     MainWindow_ShowHideDebug();
-    MainWindow_AdjustWindowSize();
 
-    ShowWindow(g_hwnd, SW_SHOW);
+    MainWindow_RestorePositionAndShow();
+
     UpdateWindow(g_hwnd);
     MainWindow_UpdateAllViews();
     MainWindow_UpdateMenu();
@@ -347,6 +348,43 @@ void MainWindow_RestoreSettings()
     }
 }
 
+void MainWindow_SavePosition()
+{
+    if (m_MainWindow_Fullscreen)
+    {
+        Settings_SetWindowRect(&m_MainWindow_FullscreenOldRect);
+        Settings_SetWindowMaximized(m_MainWindow_FullscreenOldMaximized);
+    }
+    else
+    {
+        WINDOWPLACEMENT placement;
+        placement.length = sizeof(WINDOWPLACEMENT);
+        ::GetWindowPlacement(g_hwnd, &placement);
+
+        Settings_SetWindowRect(&(placement.rcNormalPosition));
+        Settings_SetWindowMaximized(placement.showCmd == SW_SHOWMAXIMIZED);
+    }
+    Settings_SetWindowFullscreen(m_MainWindow_Fullscreen);
+}
+void MainWindow_RestorePositionAndShow()
+{
+    RECT rc;
+    if (!Settings_GetWindowRect(&rc))
+        return;
+
+    HMONITOR hmonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
+    if (hmonitor == NULL)
+        return;
+
+    ::SetWindowPos(g_hwnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+        SWP_NOACTIVATE | SWP_NOZORDER);
+
+    ShowWindow(g_hwnd, Settings_GetWindowMaximized() ? SW_SHOWMAXIMIZED : SW_SHOW);
+
+    if (Settings_GetWindowFullscreen())
+        MainWindow_DoViewFullscreen();
+}
+
 // Processes messages for the main window
 LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -368,6 +406,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         }
         break;
     case WM_DESTROY:
+        MainWindow_SavePosition();
         PostQuitMessage(0);
         break;
     case WM_SIZE:
@@ -772,6 +811,8 @@ void MainWindow_UpdateMenu()
     }
     CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_UPSCALED4, scrheimodecmd, MF_BYCOMMAND);
 
+    CheckMenuItem(hMenu, ID_VIEW_FULLSCREEN, (m_MainWindow_Fullscreen ? MF_CHECKED : MF_UNCHECKED));
+
     // Emulator menu options
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_REALSPEED, (Settings_GetRealSpeed() ? MF_CHECKED : MF_UNCHECKED));
@@ -1039,6 +1080,8 @@ void MainWindow_DoViewFullscreen()
         if (m_MainWindow_FullscreenOldMaximized)
             ::SendMessage(g_hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
     }
+
+    MainWindow_UpdateMenu();
 }
 
 void MainWindow_DoEmulatorRun()

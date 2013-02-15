@@ -209,6 +209,27 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
     }
 
 
+BOOL Settings_GetWindowRect(RECT * pRect)
+{
+    RECT rc;
+    if (Settings_LoadBinaryValue(_T("WindowRect"), &rc, sizeof(RECT)))
+    {
+        ::memcpy(pRect, &rc, sizeof(RECT));
+        return TRUE;
+    }
+
+    return FALSE;
+}
+void Settings_SetWindowRect(const RECT * pRect)
+{
+    Settings_SaveBinaryValue(_T("WindowRect"), (const void *)pRect, sizeof(RECT));
+}
+
+SETTINGS_GETSET_DWORD(WindowMaximized, _T("WindowMaximized"), BOOL, FALSE);
+
+SETTINGS_GETSET_DWORD(WindowFullscreen, _T("WindowFullscreen"), BOOL, FALSE);
+
+
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
     TCHAR bufValueName[8];
