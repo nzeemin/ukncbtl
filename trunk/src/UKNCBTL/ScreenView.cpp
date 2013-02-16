@@ -37,10 +37,10 @@ int m_ScreenHeightMode = 1;  // 1 - Normal height, 2 - Double height, 3 - Upscal
 
 void ScreenView_CreateDisplay();
 void ScreenView_OnDraw(HDC hdc);
-void ScreenView_UpscaleScreen(void* pImageBits);
-void ScreenView_UpscaleScreen2(void* pImageBits);
-void ScreenView_UpscaleScreen3(void* pImageBits);
-void ScreenView_UpscaleScreen4(void* pImageBits);
+void CALLBACK ScreenView_UpscaleScreen(void* pImageBits);
+void CALLBACK ScreenView_UpscaleScreen2(void* pImageBits);
+void CALLBACK ScreenView_UpscaleScreen3(void* pImageBits);
+void CALLBACK ScreenView_UpscaleScreen4(void* pImageBits);
 
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
@@ -137,6 +137,40 @@ const DWORD ScreenView_GrayColors[16*8] = {
 
 //////////////////////////////////////////////////////////////////////
 
+//Прототип функции преобразования экрана
+typedef void (CALLBACK* PREPARE_SCREEN_CALLBACK)(void* pImageBits);
+
+struct ScreenModeStruct
+{
+    int width;
+    int height;
+    PREPARE_SCREEN_CALLBACK callback;
+}
+static ScreenModeReference[] = {
+    {  640,  288, NULL },  // Dummy record for absent mode 0
+    {  640,  288, NULL },
+    {  640,  576, ScreenView_UpscaleScreen2 },
+    {  640,  432, ScreenView_UpscaleScreen },
+    {  960,  576, ScreenView_UpscaleScreen3 },
+    { 1280,  864, ScreenView_UpscaleScreen4 },
+};
+
+void ScreenView_GetScreenSize(int scrmode, int* pwid, int* phei)
+{
+    if (scrmode < 0 || scrmode >= sizeof(ScreenModeReference) / sizeof(ScreenModeStruct))
+    {
+        *pwid = *phei = 0;
+    }
+    else
+    {
+        ScreenModeStruct* pinfo = ScreenModeReference + scrmode;
+        *pwid = pinfo->width;
+        *phei = pinfo->height;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////
 
 
 void ScreenView_RegisterClass()
@@ -195,22 +229,7 @@ void ScreenView_CreateDisplay()
         m_hbmp = NULL;
     }
 
-    m_cxScreenWidth = UKNC_SCREEN_WIDTH;
-    m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
-    if (m_ScreenHeightMode == 2)
-        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
-    else if (m_ScreenHeightMode == 3)
-        m_cyScreenHeight = 432;
-    else if (m_ScreenHeightMode == 4)
-    {
-        m_cxScreenWidth = 960;
-        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 2;
-    }
-    else if (m_ScreenHeightMode == 5)
-    {
-        m_cxScreenWidth = UKNC_SCREEN_WIDTH * 2;
-        m_cyScreenHeight = UKNC_SCREEN_HEIGHT * 3;
-    }
+    ScreenView_GetScreenSize(m_ScreenHeightMode, &m_cxScreenWidth, &m_cyScreenHeight);
 
     m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
     m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
@@ -322,20 +341,7 @@ void ScreenView_SetHeightMode(int newHeightMode)
 
     int cxScreen = UKNC_SCREEN_WIDTH;
     int cyScreen = UKNC_SCREEN_HEIGHT;
-    if (m_ScreenHeightMode == 2)
-        cyScreen = UKNC_SCREEN_HEIGHT * 2;
-    else if (m_ScreenHeightMode == 3)
-        cyScreen = 432;
-    else if (m_ScreenHeightMode == 4)
-    {
-        cxScreen = 960;
-        cyScreen = UKNC_SCREEN_HEIGHT * 2;
-    }
-    else if (m_ScreenHeightMode == 5)
-    {
-        cxScreen = UKNC_SCREEN_WIDTH * 2;
-        cyScreen = UKNC_SCREEN_HEIGHT * 3;
-    }
+    ScreenView_GetScreenSize(m_ScreenHeightMode, &cxScreen, &cyScreen);
 
     int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     int cyHeight = cyScreen + cyBorder * 2;
@@ -405,18 +411,13 @@ void ScreenView_PrepareScreen()
 
     Emulator_PrepareScreenRGB32(m_bits, colors);
 
-    if (m_ScreenHeightMode == 2)
-        ScreenView_UpscaleScreen2(m_bits);
-    else if (m_ScreenHeightMode == 3)
-        ScreenView_UpscaleScreen(m_bits);
-    else if (m_ScreenHeightMode == 4)
-        ScreenView_UpscaleScreen3(m_bits);
-    else if (m_ScreenHeightMode == 5)
-        ScreenView_UpscaleScreen4(m_bits);
+    PREPARE_SCREEN_CALLBACK callback = ScreenModeReference[m_ScreenHeightMode].callback;
+    if (callback != 0)
+        callback(m_bits);
 }
 
 // Upscale screen from height 288 to 432
-void ScreenView_UpscaleScreen(void* pImageBits)
+void CALLBACK ScreenView_UpscaleScreen(void* pImageBits)
 {
     int ukncline = 287;
     for (int line = 431; line > 0; line--)
@@ -443,7 +444,7 @@ void ScreenView_UpscaleScreen(void* pImageBits)
 }
 
 // Upscale screen from height 288 to 576 with "interlaced" effect
-void ScreenView_UpscaleScreen2(void* pImageBits)
+void CALLBACK ScreenView_UpscaleScreen2(void* pImageBits)
 {
     for (int ukncline = 287; ukncline >= 0; ukncline--)
     {
@@ -457,7 +458,7 @@ void ScreenView_UpscaleScreen2(void* pImageBits)
 }
 
 // Upscale screen width 640->960, height 288->576 with "interlaced" effect
-void ScreenView_UpscaleScreen3(void* pImageBits)
+void CALLBACK ScreenView_UpscaleScreen3(void* pImageBits)
 {
     for (int ukncline = 287; ukncline >= 0; ukncline--)
     {
@@ -481,7 +482,7 @@ void ScreenView_UpscaleScreen3(void* pImageBits)
 }
 
 // Upscale screen width 640->1280, height 288->864 with "interlaced" effect
-void ScreenView_UpscaleScreen4(void* pImageBits)
+void CALLBACK ScreenView_UpscaleScreen4(void* pImageBits)
 {
     for (int ukncline = 287; ukncline >= 0; ukncline--)
     {
