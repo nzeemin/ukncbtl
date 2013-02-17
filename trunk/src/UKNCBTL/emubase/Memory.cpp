@@ -1090,9 +1090,6 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
         case 0177710:
         case 0177711:
             return m_pBoard->GetTimerState();
-        case 0177712:
-        case 0177713:
-            return m_pBoard->GetTimerReload();
         case 0177714:
         case 0177715:
             return m_pBoard->GetTimerValue();
