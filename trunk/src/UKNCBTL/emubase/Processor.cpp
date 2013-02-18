@@ -17,14 +17,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // Timings ///////////////////////////////////////////////////////////
 
-//MOV -- 64 
 WORD MOV_TIMING[8][8]=
 {	
-        {0x000B, 0x0021, 0x0027, 0x0033, 0x002B, 0x0037, 0x0033, 0x0043}, 
-        {0x0018, 0x0031, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0054}, 
-        {0x0019, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053}, 
+        {0x000B, 0x0022, 0x0022, 0x0033, 0x0022, 0x0037, 0x0033, 0x0043}, 
+        {0x0020, 0x0031, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0054}, 
+        {0x0020, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053}, 
         {0x0025, 0x0043, 0x0043, 0x004F, 0x0047, 0x0054, 0x004F, 0x0060}, 
-        {0x0019, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053}, 
+        {0x0020, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053}, 
         {0x0025, 0x0043, 0x0043, 0x004F, 0x0047, 0x0054, 0x004F, 0x0060}, 
         {0x0029, 0x0039, 0x003F, 0x004C, 0x003F, 0x004C, 0x004B, 0x005C}, 
         {0x0035, 0x0045, 0x004C, 0x0057, 0x004C, 0x0057, 0x0057, 0x0068}
@@ -44,7 +43,6 @@ WORD MOVB_TIMING[8][8]=
 
 WORD CMP_TIMING[8][8]=
 {
-    
         {0x000B, 0x001C, 0x001D, 0x0029, 0x0021, 0x002D, 0x0035, 0x0041}, 
         {0x0018, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051}, 
         {0x0019, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051}, 
@@ -592,25 +590,23 @@ void CProcessor::ExecuteWAIT ()  // WAIT - Wait for an interrupt
 void CProcessor::ExecuteSTEP()  // ШАГ
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        SetPC(m_savepc);        // СК <- КРСК
+        SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
+        m_stepmode = TRUE;
     }
-
-    SetPC(m_savepc);        // СК <- КРСК
-    SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
-    m_stepmode = TRUE;
 }
 
-void CProcessor::ExecuteRSEL()  // ЧПТ
+void CProcessor::ExecuteRSEL()  // RSEL / ЧПТ - Чтение безадресного регистра
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        SetReg(0, GetMemoryController()->GetSelRegister());  // R0 <- (SEL)
     }
-
-    SetReg(0, GetMemoryController()->GetSelRegister());  // R0 <- (SEL)
 }
 
 void CProcessor::Execute000030()  // Unknown command
@@ -651,22 +647,21 @@ void CProcessor::Execute000030()  // Unknown command
 
 void CProcessor::ExecuteFIS()  // Floating point instruction set: FADD, FSUB, FMUL, FDIV
 {
-    if (GetMemoryController()->GetSelRegister() & 0200)
-        m_RSVDrq = TRUE;
+    if (GetMemoryController()->GetSelRegister() & 0200)  // bit 7 set?
+        m_RSVDrq = TRUE;  // Программа эмуляции FIS отсутствует, прерывание по резервному коду
     else
-        m_FIS_rq = TRUE;
+        m_FIS_rq = TRUE;  // Прерывание обработки FIS
 }
 
-void CProcessor::ExecuteRUN()  // ПУСК
+void CProcessor::ExecuteRUN()  // ПУСК / START
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        SetPC(m_savepc);        // СК <- КРСК
+        SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
     }
-
-    SetPC(m_savepc);        // СК <- КРСК
-    SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
 }
 
 void CProcessor::ExecuteHALT ()  // HALT - Останов
@@ -674,52 +669,48 @@ void CProcessor::ExecuteHALT ()  // HALT - Останов
     m_HALTrq = TRUE;
 }
 
-void CProcessor::ExecuteRCPC()  // ЧКСК
+void CProcessor::ExecuteRCPC()  // ЧКСК - Чтение регистра копии счётчика команд
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        SetReg(0, m_savepc);        // R0 <- КРСК
+        m_internalTick = NOP_TIMING;
     }
-
-    SetReg(0, m_savepc);        // R0 <- КРСК
-    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteRCPS()  // ЧКСП
+void CProcessor::ExecuteRCPS()  // ЧКСП - Чтение регистра копии слова состояния процессора
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        SetReg(0, m_savepsw);       // R0 <- КРСП
+        m_internalTick = NOP_TIMING;
     }
-
-    SetReg(0, m_savepsw);       // R0 <- КРСП
-    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteWCPC()  // ЗКСК
+void CProcessor::ExecuteWCPC()  // ЗКСК - Запись регистра копии счётчика команд
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        m_savepc = GetReg(0);       // КРСК <- R0
+        m_internalTick = NOP_TIMING;
     }
-
-    m_savepc = GetReg(0);       // КРСК <- R0
-    m_internalTick = NOP_TIMING;
 }
-void CProcessor::ExecuteWCPS()  // ЗКСП
+void CProcessor::ExecuteWCPS()  // ЗКСП - Запись регистра копии слова состояния процессора
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-    {
         m_RSVDrq = TRUE;
-        return;
+    else
+    {
+        m_savepsw = GetReg(0);      // КРСП <- R0
+        m_internalTick = NOP_TIMING;
     }
-
-    m_savepsw = GetReg(0);      // КРСП <- R0
-    m_internalTick = NOP_TIMING;
 }
 
-void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
+void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space - Чтение памяти адресного пространства USER
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
@@ -730,7 +721,7 @@ void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
     //r0 = (r5)+
     SetHALT(FALSE);
 	WORD addr = GetReg(5);
-    WORD word = GetWord(addr);
+    WORD word = GetWord(addr);  // Read in USER mode
     SetHALT(TRUE);
     SetReg(5, addr + 2);
     if (!m_RPLYrq) 	SetReg(0, word);
@@ -738,7 +729,7 @@ void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space
     m_internalTick = MOV_TIMING[0][2];
 }
 
-void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space
+void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space - Запись в память адресного пространства USER
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
@@ -749,12 +740,13 @@ void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space
     // -(r5) = r0
     SetReg(5, GetReg(5) - 2);
     SetHALT(FALSE);
-    SetWord(GetReg(5), GetReg(0));
+    SetWord(GetReg(5), GetReg(0));  // Write in USER mode
     SetHALT(TRUE);
+
     m_internalTick = MOV_TIMING[0][2];
 }
 
-void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
+void CProcessor::ExecuteRTI()  // RTI - Return from Interrupt - Возврат из прерывания
 {
     WORD word;
     word = GetWord(GetSP());
@@ -764,11 +756,11 @@ void CProcessor::ExecuteRTI ()  // RTI - Возврат из прерывания
     word = GetWord ( GetSP() );  // Pop PSW --- saving HALT
     SetSP( GetSP() + 2 );
     if (m_RPLYrq) return;
-    if(GetPC() < 0160000)
+    if (GetPC() < 0160000)
         SetLPSW(LOBYTE(word)); 
     else
         SetPSW(word); //load new mode
-    m_internalTick=RTI_TIMING;
+    m_internalTick = RTI_TIMING;
 }
 
 void CProcessor::ExecuteRTT ()  // RTT - Return from Trace Trap -- Возврат из прерывания
@@ -781,12 +773,12 @@ void CProcessor::ExecuteRTT ()  // RTT - Return from Trace Trap -- Возврат из пр
     word = GetWord ( GetSP() );  // Pop PSW --- saving HALT
     SetSP( GetSP() + 2 );
     if (m_RPLYrq) return;
-    if(GetPC() < 0160000)
+    if (GetPC() < 0160000)
         SetLPSW(LOBYTE(word)); 
     else
         SetPSW(word); //load new mode
 
-    m_stepmode = (word & PSW_T)?TRUE:FALSE;
+    m_stepmode = (word & PSW_T) ? TRUE : FALSE;
 
     m_internalTick = RTI_TIMING;
 }
@@ -800,10 +792,10 @@ void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 {
     m_IOT_rq = TRUE;
-    m_internalTick=EMT_TIMING;
+    m_internalTick = EMT_TIMING;
 }
 
-void CProcessor::ExecuteRESET ()  // Reset input/output devices
+void CProcessor::ExecuteRESET ()  // Reset input/output devices -- Сброс внешних устройств
 {
     m_EVNTrq = FALSE;
     m_pMemoryController->ResetDevices();  // INIT signal
@@ -819,7 +811,7 @@ void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из про
     SetSP(GetSP()+2);
     if (m_RPLYrq) return;
     SetReg(m_regdest, word);
-    m_internalTick=RTS_TIMING;
+    m_internalTick = RTS_TIMING;
 }
 
 void CProcessor::ExecuteCCC ()
