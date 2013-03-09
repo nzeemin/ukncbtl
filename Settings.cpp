@@ -229,6 +229,13 @@ SETTINGS_GETSET_DWORD(WindowMaximized, _T("WindowMaximized"), BOOL, FALSE);
 
 SETTINGS_GETSET_DWORD(WindowFullscreen, _T("WindowFullscreen"), BOOL, FALSE);
 
+void Settings_GetRender(LPTSTR buffer)
+{
+    if (!Settings_LoadStringValue(_T("Render"), buffer, 32))
+    {
+        _tcscpy(buffer, _T("RenderVfw.dll"));
+    }
+}
 
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {

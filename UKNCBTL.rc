@@ -106,13 +106,11 @@ BEGIN
         MENUITEM "GRB Screen",                  ID_VIEW_GRBSCREEN
         MENUITEM "Grayscale Screen",            ID_VIEW_GRAYSCREEN
         MENUITEM SEPARATOR
-        MENUITEM "Normal Height",               ID_VIEW_NORMALHEIGHT
-        MENUITEM "Double Intrlaced",            ID_VIEW_DOUBLEHEIGHT
-        MENUITEM "Upscaled to 1.5",             ID_VIEW_UPSCALED
-        MENUITEM "Interlaced Upscaled",         ID_VIEW_UPSCALED3
-        MENUITEM "Screen Mode 5",               ID_VIEW_UPSCALED4
-        MENUITEM SEPARATOR
         MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN
+    END
+    POPUP "Render"
+    BEGIN
+        MENUITEM "Render Mode 0",               32827
     END
     POPUP "&Emulator"
     BEGIN

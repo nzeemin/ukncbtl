@@ -11,7 +11,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ScreenView.cpp
 
 #include "stdafx.h"
-#include <vfw.h>
 #include "UKNCBTL.h"
 #include "Views.h"
 #include "Emulator.h"
@@ -23,25 +22,24 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 HWND g_hwndScreen = NULL;  // Screen View window handle
 
-HDRAWDIB m_hdd = NULL;
-BITMAPINFO m_bmpinfo;
-HBITMAP m_hbmp = NULL;
 DWORD * m_bits = NULL;
 int m_cxScreenWidth;
 int m_cyScreenHeight;
 int m_xScreenOffset = 0;
 int m_yScreenOffset = 0;
-BYTE m_ScreenKeyState[256];
 ScreenViewMode m_ScreenMode = RGBScreen;
-int m_ScreenHeightMode = 1;  // 1 - Normal height, 2 - Double height, 3 - Upscaled to 1.5
+int m_ScreenHeightMode = 0;  // Render mode
 
-void ScreenView_CreateDisplay();
-void ScreenView_OnDraw(HDC hdc);
-void CALLBACK ScreenView_UpscaleScreen(void* pImageBits);
-void CALLBACK ScreenView_UpscaleScreen2(void* pImageBits);
-void CALLBACK ScreenView_UpscaleScreen3(void* pImageBits);
-void CALLBACK ScreenView_UpscaleScreen4(void* pImageBits);
+HMODULE g_hModuleRender = NULL;
+RENDER_INIT_CALLBACK RenderInitProc = NULL;
+RENDER_DONE_CALLBACK RenderDoneProc = NULL;
+RENDER_DRAW_CALLBACK RenderDrawProc = NULL;
+RENDER_ENUM_MODES_CALLBACK RenderEnumModesProc = NULL;
+RENDER_SELECT_MODE_CALLBACK RenderSelectModeProc = NULL;
+HMENU g_hScreenModeMenu = NULL;
+int g_nScreenModeIndex = 0;
 
+BYTE m_ScreenKeyState[256];
 const int KEYEVENT_QUEUE_SIZE = 32;
 WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
 int m_ScreenKeyQueueTop = 0;
@@ -53,6 +51,9 @@ WORD ScreenView_GetKeyEventFromQueue();
 BOOL bEnter = FALSE;
 BOOL bNumpadEnter = FALSE;
 BOOL bEntPressed = FALSE;
+
+void ScreenView_OnDraw(HDC hdc);
+
 
 //////////////////////////////////////////////////////////////////////
 // Colors
@@ -142,31 +143,20 @@ typedef void (CALLBACK* PREPARE_SCREEN_CALLBACK)(void* pImageBits);
 
 struct ScreenModeStruct
 {
+    int modeNum;
     int width;
     int height;
-    PREPARE_SCREEN_CALLBACK callback;
+    TCHAR description[40];
 }
-static ScreenModeReference[] = {
-    {  640,  288, NULL },  // Dummy record for absent mode 0
-    {  640,  288, NULL },
-    {  640,  576, ScreenView_UpscaleScreen2 },
-    {  640,  432, ScreenView_UpscaleScreen },
-    {  960,  576, ScreenView_UpscaleScreen3 },
-    { 1280,  864, ScreenView_UpscaleScreen4 },
-};
+static ScreenModeReference[32];
 
-void ScreenView_GetScreenSize(int scrmode, int* pwid, int* phei)
+LPCTSTR ScreenView_GetRenderModeDescription(int renderMode)
 {
-    if (scrmode < 0 || scrmode >= sizeof(ScreenModeReference) / sizeof(ScreenModeStruct))
-    {
-        *pwid = *phei = 0;
-    }
-    else
-    {
-        ScreenModeStruct* pinfo = ScreenModeReference + scrmode;
-        *pwid = pinfo->width;
-        *phei = pinfo->height;
-    }
+    if (renderMode < 0 || renderMode >= 32)
+        return NULL;
+    LPCTSTR modedesc = ScreenModeReference[renderMode].description;
+    if (*modedesc == 0) return NULL;  // Empty string
+    return modedesc;
 }
 
 
@@ -195,19 +185,16 @@ void ScreenView_RegisterClass()
 
 void ScreenView_Init()
 {
-    m_hdd = DrawDibOpen();
-    ScreenView_CreateDisplay();
+    m_bits = (DWORD*) ::malloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
 }
 
 void ScreenView_Done()
 {
-    if (m_hbmp != NULL)
+    if (m_bits != NULL)
     {
-        DeleteObject(m_hbmp);
-        m_hbmp = NULL;
+        ::free(m_bits);
+        m_bits = NULL;
     }
-
-    DrawDibClose( m_hdd );
 }
 
 ScreenViewMode ScreenView_GetMode()
@@ -219,35 +206,102 @@ void ScreenView_SetMode(ScreenViewMode newMode)
     m_ScreenMode = newMode;
 }
 
-void ScreenView_CreateDisplay()
+void CALLBACK ScreenView_EnumModesProc(int modeNum, LPCTSTR modeDesc, int modeWidth, int modeHeight)
 {
-    ASSERT(g_hwnd != NULL);
+    if (g_nScreenModeIndex >= 32)
+        return;
 
-    if (m_hbmp != NULL)
+    ScreenModeStruct* pmode = ScreenModeReference + g_nScreenModeIndex;
+    pmode->modeNum = modeNum;
+    pmode->width = modeWidth;
+    pmode->height = modeHeight;
+    wcscpy_s(pmode->description, 40, modeDesc);
+
+    g_nScreenModeIndex++;
+}
+
+BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
+{
+    g_hModuleRender = ::LoadLibrary(szRenderLibraryName);
+    if (g_hModuleRender == NULL)
     {
-        DeleteObject(m_hbmp);
-        m_hbmp = NULL;
+        AlertWarningFormat(_T("Failed to load render library \"%s\" (0x%08lx)."),
+            szRenderLibraryName, ::GetLastError());
+        return FALSE;
     }
 
-    ScreenView_GetScreenSize(m_ScreenHeightMode, &m_cxScreenWidth, &m_cyScreenHeight);
+    RenderInitProc = (RENDER_INIT_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderInit");
+    if (RenderInitProc == NULL)
+    {
+        AlertWarningFormat(_T("Failed to retrieve RenderInit address (0x%08lx)."), ::GetLastError());
+        return FALSE;
+    }
+    RenderDoneProc = (RENDER_DONE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDone");
+    if (RenderDoneProc == NULL)
+    {
+        AlertWarningFormat(_T("Failed to retrieve RenderDone address (0x%08lx)."), ::GetLastError());
+        return FALSE;
+    }
+    RenderDrawProc = (RENDER_DRAW_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDraw");
+    if (RenderDrawProc == NULL)
+    {
+        AlertWarningFormat(_T("Failed to retrieve RenderDraw address (0x%08lx)."), ::GetLastError());
+        return FALSE;
+    }
+    RenderEnumModesProc = (RENDER_ENUM_MODES_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderEnumModes");
+    if (RenderEnumModesProc == NULL)
+    {
+        AlertWarningFormat(_T("Failed to retrieve RenderEnumModes address (0x%08lx)."), ::GetLastError());
+        return FALSE;
+    }
+    RenderSelectModeProc = (RENDER_SELECT_MODE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderSelectMode");
+    if (RenderSelectModeProc == NULL)
+    {
+        AlertWarningFormat(_T("Failed to retrieve RenderSelectMode address (0x%08lx)."), ::GetLastError());
+        return FALSE;
+    }
 
-    m_bmpinfo.bmiHeader.biSize = sizeof( BITMAPINFOHEADER );
-    m_bmpinfo.bmiHeader.biWidth = m_cxScreenWidth;
-    m_bmpinfo.bmiHeader.biHeight = m_cyScreenHeight;
-    m_bmpinfo.bmiHeader.biPlanes = 1;
-    m_bmpinfo.bmiHeader.biBitCount = 32;
-    m_bmpinfo.bmiHeader.biCompression = BI_RGB;
-    m_bmpinfo.bmiHeader.biSizeImage = 0;
-    m_bmpinfo.bmiHeader.biXPelsPerMeter = 0;
-    m_bmpinfo.bmiHeader.biYPelsPerMeter = 0;
-    m_bmpinfo.bmiHeader.biClrUsed = 0;
-    m_bmpinfo.bmiHeader.biClrImportant = 0;
+    // Enumerate render modes
+    memset(ScreenModeReference, 0, sizeof(ScreenModeReference));
+    g_nScreenModeIndex = 0;
+    RenderEnumModesProc(ScreenView_EnumModesProc);
+    g_hScreenModeMenu = NULL;
 
-    HDC hdc = GetDC( g_hwnd );
+    // Fill Render Mode menu
+    MainWindow_UpdateRenderModeMenu();
+
+    //ScreenView_CreateScreen();
     
-    m_hbmp = CreateDIBSection( hdc, &m_bmpinfo, DIB_RGB_COLORS, (void **) &m_bits, NULL, 0 );
+    if (!RenderInitProc(UKNC_SCREEN_WIDTH, UKNC_SCREEN_HEIGHT, g_hwndScreen))
+    {
+        AlertWarning(_T("Failed to initialize the render."));
+        //ScreenView_DestroyScreen();
+        return FALSE;
+    }
 
-    ReleaseDC( g_hwnd, hdc );
+    return TRUE;
+}
+
+void ScreenView_DoneRender()
+{
+    if (g_hModuleRender != NULL)
+    {
+        if (RenderDoneProc != NULL)
+            RenderDoneProc();
+
+        RenderInitProc = NULL;
+        RenderDoneProc = NULL;
+        RenderDrawProc = NULL;
+        RenderEnumModesProc = NULL;
+        RenderSelectModeProc = NULL;
+
+        ::FreeLibrary(g_hModuleRender);
+        g_hModuleRender = NULL;
+
+        //DestroyScreen();
+    }
+
+    //TODO: Clear Render Mode menu
 }
 
 // Create Screen View as child of Main Window
@@ -327,53 +381,40 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     return (LRESULT)FALSE;
 }
 
-int ScreenView_GetHeightMode()
+int ScreenView_GetRenderMode()
 {
     return m_ScreenHeightMode;
 }
-void ScreenView_SetHeightMode(int newHeightMode)
+void ScreenView_SetRenderMode(int newRenderMode)
 {
-    if (m_ScreenHeightMode == newHeightMode) return;
+    if (m_ScreenHeightMode == newRenderMode) return;
 
-    m_ScreenHeightMode = newHeightMode;
+    if (RenderSelectModeProc == NULL)
+        return;
 
-    ScreenView_CreateDisplay();
+    ScreenModeStruct* pmode = ScreenModeReference + newRenderMode;
+    RenderSelectModeProc(pmode->modeNum);
 
-    int cxScreen = UKNC_SCREEN_WIDTH;
-    int cyScreen = UKNC_SCREEN_HEIGHT;
-    ScreenView_GetScreenSize(m_ScreenHeightMode, &cxScreen, &cyScreen);
+    m_ScreenHeightMode = newRenderMode;
 
-    int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
-    int cyHeight = cyScreen + cyBorder * 2;
-    ::SetWindowPos(g_hwndScreen, NULL, 0,0, cxScreen, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
+    ScreenView_RedrawScreen();
+
+    //if (pmode->width > 0 && pmode->height > 0)
+    //{
+    //    int cxScreen = pmode->width;
+    //    int cyScreen = pmode->height;
+    //    int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
+    //    int cyHeight = cyScreen + cyBorder * 2;
+    //    ::SetWindowPos(g_hwndScreen, NULL, 0,0, cxScreen, cyScreen, SWP_NOZORDER | SWP_NOMOVE);
+    //}
 }
 
 void ScreenView_OnDraw(HDC hdc)
 {
-    if (m_bits == NULL) return;
-
-    m_xScreenOffset = 0;
-    m_yScreenOffset = 0;
-    RECT rc;  GetClientRect(g_hwndScreen, &rc);
-    if (rc.right > m_cxScreenWidth)
+    if (RenderDrawProc != NULL)
     {
-        m_xScreenOffset = (rc.right - m_cxScreenWidth) / 2;
-        ::PatBlt(hdc, 0, 0, m_xScreenOffset, rc.bottom, BLACKNESS);
-        ::PatBlt(hdc, rc.right, 0, m_cxScreenWidth + m_xScreenOffset - rc.right, rc.bottom, BLACKNESS);
+        RenderDrawProc(m_bits, hdc);
     }
-    if (rc.bottom > m_cyScreenHeight)
-    {
-        m_yScreenOffset = (rc.bottom - m_cyScreenHeight) / 2;
-        ::PatBlt(hdc, m_xScreenOffset, 0, m_cxScreenWidth, m_yScreenOffset, BLACKNESS);
-        int frombottom = rc.bottom - m_yScreenOffset - m_cyScreenHeight;
-        ::PatBlt(hdc, m_xScreenOffset, rc.bottom, m_cxScreenWidth, -frombottom, BLACKNESS);
-    }
-
-    DrawDibDraw(m_hdd, hdc,
-        m_xScreenOffset, m_yScreenOffset, -1, -1,
-        &m_bmpinfo.bmiHeader, m_bits, 0,0,
-        m_cxScreenWidth, m_cyScreenHeight,
-        0);
 }
 
 void ScreenView_RedrawScreen()
@@ -410,99 +451,6 @@ void ScreenView_PrepareScreen()
     const DWORD* colors = ScreenView_GetPalette();
 
     Emulator_PrepareScreenRGB32(m_bits, colors);
-
-    PREPARE_SCREEN_CALLBACK callback = ScreenModeReference[m_ScreenHeightMode].callback;
-    if (callback != 0)
-        callback(m_bits);
-}
-
-// Upscale screen from height 288 to 432
-void CALLBACK ScreenView_UpscaleScreen(void* pImageBits)
-{
-    int ukncline = 287;
-    for (int line = 431; line > 0; line--)
-    {
-        DWORD* pdest = ((DWORD*)pImageBits) + line * UKNC_SCREEN_WIDTH;
-        if (line % 3 == 1)
-        {
-            DWORD* psrc1 = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
-            DWORD* psrc2 = ((DWORD*)pImageBits) + (ukncline + 1) * UKNC_SCREEN_WIDTH;
-            DWORD* pdst1 = (DWORD*)pdest;
-            for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
-            {
-                *pdst1 = AVERAGERGB(*psrc1, *psrc2);
-                psrc1++;  psrc2++;  pdst1++;
-            }
-        }
-        else
-        {
-            DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
-            memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-            ukncline--;
-        }
-    }
-}
-
-// Upscale screen from height 288 to 576 with "interlaced" effect
-void CALLBACK ScreenView_UpscaleScreen2(void* pImageBits)
-{
-    for (int ukncline = 287; ukncline >= 0; ukncline--)
-    {
-        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
-        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-
-        pdest += UKNC_SCREEN_WIDTH;
-        memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
-    }
-}
-
-// Upscale screen width 640->960, height 288->576 with "interlaced" effect
-void CALLBACK ScreenView_UpscaleScreen3(void* pImageBits)
-{
-    for (int ukncline = 287; ukncline >= 0; ukncline--)
-    {
-        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
-        psrc += UKNC_SCREEN_WIDTH - 1;
-        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 2) * 960;
-        pdest += 960 - 1;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
-        {
-            DWORD c1 = *psrc;  psrc--;
-            DWORD c2 = *psrc;  psrc--;
-            DWORD c12 = AVERAGERGB(c1, c2);
-            *pdest = c1;  pdest--;
-            *pdest = c12; pdest--;
-            *pdest = c2;  pdest--;
-        }
-
-        pdest += 960;
-        memset(pdest, 0, 960 * 4);
-    }
-}
-
-// Upscale screen width 640->1280, height 288->864 with "interlaced" effect
-void CALLBACK ScreenView_UpscaleScreen4(void* pImageBits)
-{
-    for (int ukncline = 287; ukncline >= 0; ukncline--)
-    {
-        DWORD* psrc = ((DWORD*)pImageBits) + ukncline * UKNC_SCREEN_WIDTH;
-        DWORD* pdest = ((DWORD*)pImageBits) + (ukncline * 3) * 1280;
-        psrc += UKNC_SCREEN_WIDTH - 1;
-        pdest += 1280 - 1;
-        DWORD* pdest2 = pdest + 1280;
-        DWORD* pdest3 = pdest2 + 1280;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
-        {
-            DWORD color = *psrc;  psrc--;
-            *pdest = color;  pdest--;
-            *pdest = color;  pdest--;
-            *pdest2 = color;  pdest2--;
-            *pdest2 = color;  pdest2--;
-            *pdest3 = 0;  pdest3--;
-            *pdest3 = 0;  pdest3--;
-        }
-    }
 }
 
 void ScreenView_PutKeyEventToQueue(WORD keyevent)

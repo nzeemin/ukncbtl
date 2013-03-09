@@ -34,6 +34,7 @@ void MainWindow_RegisterClass();
 BOOL CreateMainWindow();
 void MainWindow_RestoreSettings();
 void MainWindow_UpdateMenu();
+void MainWindow_UpdateRenderModeMenu();
 void MainWindow_UpdateAllViews();
 void MainWindow_ShowHideDebug();
 void MainWindow_ShowHideToolbar();
@@ -101,6 +102,32 @@ const DWORD CARTRIDGE2MODE_HARDDRIVE = 0x00010000;
 
 
 //////////////////////////////////////////////////////////////////////
+// Renders
+
+/// \brief Initialize the render.
+/// @param width Source bitmap width
+/// @param height Source bitmap height
+/// @return Initialization result
+typedef BOOL (CALLBACK* RENDER_INIT_CALLBACK)(int width, int height, HWND hwndTarget);
+
+/// \brief Finalize the render.
+typedef void (CALLBACK* RENDER_DONE_CALLBACK)();
+
+/// \brief Definition for render mode enumeration procedure.
+typedef void (CALLBACK* RENDER_MODE_ENUM_PROC)(int modeNum, LPCTSTR modeDesc, int modeWidth, int modeHeight);
+
+/// \brief Enumerate available render modes.
+typedef void (CALLBACK* RENDER_ENUM_MODES_CALLBACK)(RENDER_MODE_ENUM_PROC);
+
+/// \brief Select current render mode.
+typedef BOOL (CALLBACK* RENDER_SELECT_MODE_CALLBACK)(int mode);
+
+/// \brief Draw the source bitmap to the target window.
+/// @param pixels Source bitmap
+typedef void (CALLBACK* RENDER_DRAW_CALLBACK)(const void * pixels, HDC hdcTarget);
+
+
+//////////////////////////////////////////////////////////////////////
 // Settings
 
 void Settings_Init();
@@ -111,6 +138,7 @@ void Settings_SetWindowMaximized(BOOL flag);
 BOOL Settings_GetWindowMaximized();
 void Settings_SetWindowFullscreen(BOOL flag);
 BOOL Settings_GetWindowFullscreen();
+void Settings_GetRender(LPTSTR buffer);
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath);
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer);
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath);
