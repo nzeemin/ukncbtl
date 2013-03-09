@@ -39,10 +39,13 @@ extern HWND g_hwndScreen;  // Screen View window handle
 void ScreenView_RegisterClass();
 void ScreenView_Init();
 void ScreenView_Done();
+BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName);
+void ScreenView_DoneRender();
 ScreenViewMode ScreenView_GetMode();
 void ScreenView_SetMode(ScreenViewMode);
-int ScreenView_GetHeightMode();
-void ScreenView_SetHeightMode(int);
+int ScreenView_GetRenderMode();
+void ScreenView_SetRenderMode(int renderMode);
+LPCTSTR ScreenView_GetRenderModeDescription(int renderMode);
 void ScreenView_PrepareScreen();
 void ScreenView_ScanKeyboard();
 void ScreenView_RedrawScreen();  // Force to call PrepareScreen and to draw the image

@@ -58,11 +58,6 @@
 #define ID_FILE_SCREENSHOT              32784
 #define ID_EMULATOR_CARTRIDGE1          32785
 #define ID_EMULATOR_CARTRIDGE2          32786
-#define ID_VIEW_NORMALHEIGHT            32791
-#define ID_VIEW_DOUBLEHEIGHT            32792
-#define ID_VIEW_UPSCALED                32793
-#define ID_VIEW_UPSCALED3               32794
-#define ID_VIEW_UPSCALED4               32795
 #define ID_VIEW_RGBSCREEN               32796
 #define ID_VIEW_GRBSCREEN               32797
 #define ID_VIEW_GRAYSCREEN              32798
@@ -84,6 +79,8 @@
 #define ID_EMULATOR_NETWORK             32822
 #define ID_DEBUG_CPUPPU                 32825
 #define ID_VIEW_FULLSCREEN              32826
+#define ID_VIEW_RENDERMODE              32827
+#define ID_RENDER                       32860
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -92,7 +89,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32827
+#define _APS_NEXT_COMMAND_VALUE         32861
 #define _APS_NEXT_CONTROL_VALUE         1026
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

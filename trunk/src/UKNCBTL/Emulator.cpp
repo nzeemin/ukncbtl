@@ -682,7 +682,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
 
         int xr = 640;
         int y = yy - 19;
-        DWORD* pBits = ((DWORD*)pImageBits) + (288 - 1 - y) * 640;
+        DWORD* pBits = ((DWORD*)pImageBits) + y * 640;
         int pos = 0;
         for (;;)
         {

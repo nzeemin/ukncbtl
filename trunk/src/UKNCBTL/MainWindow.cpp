@@ -58,7 +58,7 @@ void MainWindow_DoViewKeyboard();
 void MainWindow_DoViewTape();
 void MainWindow_DoViewFullscreen();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
-void MainWindow_DoViewHeightMode(int newMode);
+void MainWindow_DoSelectRenderMode(int newMode);
 void MainWindow_DoEmulatorRun();
 void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
@@ -147,6 +147,19 @@ BOOL CreateMainWindow()
     MainWindow_ShowHideDebug();
 
     MainWindow_RestorePositionAndShow();
+
+    TCHAR renderDllName[32];
+    Settings_GetRender(renderDllName);
+    if (!ScreenView_InitRender(renderDllName))
+    {
+        ::PostQuitMessage(0);
+        return FALSE;
+    }
+
+    // Restore Render Mode
+    int heimode = Settings_GetScreenHeightMode();
+    if (heimode < 1 || heimode > 5) heimode = 1;
+    ScreenView_SetRenderMode(heimode);
 
     UpdateWindow(g_hwnd);
     MainWindow_UpdateAllViews();
@@ -318,11 +331,6 @@ void MainWindow_RestoreSettings()
     if (mode <= 0 || mode > 3) mode = RGBScreen;
     ScreenView_SetMode((ScreenViewMode) mode);
 
-    // Restore ScreenHeightMode
-    int heimode = Settings_GetScreenHeightMode();
-    if (heimode < 1 || heimode > 5) heimode = 1;
-    ScreenView_SetHeightMode(heimode);
-
     // Restore Serial flag
     if (Settings_GetSerial())
     {
@@ -407,6 +415,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         break;
     case WM_DESTROY:
         MainWindow_SavePosition();
+        ScreenView_DoneRender();
         PostQuitMessage(0);
         break;
     case WM_SIZE:
@@ -799,17 +808,9 @@ void MainWindow_UpdateMenu()
     }
     CheckMenuRadioItem(hMenu, ID_VIEW_RGBSCREEN, ID_VIEW_GRAYSCREEN, scrmodecmd, MF_BYCOMMAND);
 
-    // View|Normal Height and View|Double Height radio
-    UINT scrheimodecmd = 0;
-    switch (ScreenView_GetHeightMode())
-    {
-    case 1: scrheimodecmd = ID_VIEW_NORMALHEIGHT; break;
-    case 2: scrheimodecmd = ID_VIEW_DOUBLEHEIGHT; break;
-    case 3: scrheimodecmd = ID_VIEW_UPSCALED; break;
-    case 4: scrheimodecmd = ID_VIEW_UPSCALED3; break;
-    case 5: scrheimodecmd = ID_VIEW_UPSCALED4; break;
-    }
-    CheckMenuRadioItem(hMenu, ID_VIEW_NORMALHEIGHT, ID_VIEW_UPSCALED4, scrheimodecmd, MF_BYCOMMAND);
+    // Render Mode
+    UINT rendermodecmd = ID_VIEW_RENDERMODE + ScreenView_GetRenderMode();
+    CheckMenuRadioItem(hMenu, ID_VIEW_RENDERMODE, ID_VIEW_RENDERMODE + 32 - 1, rendermodecmd, MF_BYCOMMAND);
 
     CheckMenuItem(hMenu, ID_VIEW_FULLSCREEN, (m_MainWindow_Fullscreen ? MF_CHECKED : MF_UNCHECKED));
 
@@ -859,6 +860,37 @@ void MainWindow_UpdateMenu()
         g_pBoard->IsHardImageAttached(2) ? (g_pBoard->IsHardImageReadOnly(2) ? ToolbarImageHardDriveWP : ToolbarImageHardDrive) : ToolbarImageHardSlot);
 }
 
+void MainWindow_UpdateRenderModeMenu()
+{
+    HMENU hMenu = ::GetMenu(g_hwnd);
+    HMENU hMenuRender = ::GetSubMenu(hMenu, 2);
+    int count = ::GetMenuItemCount(hMenuRender);
+    // Delete all items except the first one
+    for (int i = 1; i < count; i++)
+        ::DeleteMenu(hMenuRender, 1, MF_BYPOSITION);
+
+    for (UINT i = 0; i < 32; i++)
+    {
+        LPCTSTR cmddesc = ScreenView_GetRenderModeDescription(i);
+        UINT cmd = i + ID_VIEW_RENDERMODE;
+        if (i == 0)
+        {
+            if (cmddesc == NULL)
+                ::ModifyMenu(hMenuRender, i, MF_BYPOSITION | MF_GRAYED, cmd, _T("No Render Modes"));
+            else
+                ::ModifyMenu(hMenuRender, i, MF_BYPOSITION, cmd, cmddesc);
+        }
+        else
+        {
+            if (cmddesc != NULL)
+                ::AppendMenu(hMenuRender, MF_BYPOSITION, (UINT_PTR)cmd, cmddesc);
+        }
+    }
+    ::DrawMenuBar(g_hwnd);
+
+    MainWindow_UpdateMenu();
+}
+
 // Process menu command
 // Returns: true - command was processed, false - command not found
 bool MainWindow_DoCommand(int commandId)
@@ -891,21 +923,6 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_GRAYSCREEN:
         MainWindow_DoViewScreenMode(GrayScreen);
-        break;
-    case ID_VIEW_NORMALHEIGHT:
-        MainWindow_DoViewHeightMode(1);
-        break;
-    case ID_VIEW_DOUBLEHEIGHT:
-        MainWindow_DoViewHeightMode(2);
-        break;
-    case ID_VIEW_UPSCALED:
-        MainWindow_DoViewHeightMode(3);
-        break;
-    case ID_VIEW_UPSCALED3:
-        MainWindow_DoViewHeightMode(4);
-        break;
-    case ID_VIEW_UPSCALED4:
-        MainWindow_DoViewHeightMode(5);
         break;
     case ID_VIEW_FULLSCREEN:
         MainWindow_DoViewFullscreen();
@@ -992,6 +1009,8 @@ bool MainWindow_DoCommand(int commandId)
         MainWindow_DoFileSettings();
         break;
     default:
+        if (commandId >= ID_VIEW_RENDERMODE && commandId < ID_VIEW_RENDERMODE + 32)
+            MainWindow_DoSelectRenderMode(commandId - ID_VIEW_RENDERMODE);
         return false;
     }
     return true;
@@ -999,7 +1018,7 @@ bool MainWindow_DoCommand(int commandId)
 
 void MainWindow_DoViewDebug()
 {
-    MainWindow_DoViewHeightMode(1);  // Switch to Normal Height mode
+    MainWindow_DoSelectRenderMode(0);  // Switch to Normal Height mode
 
     Settings_SetDebug(!Settings_GetDebug());
     MainWindow_ShowHideDebug();
@@ -1029,14 +1048,14 @@ void MainWindow_DoViewScreenMode(ScreenViewMode newMode)
     Settings_SetScreenViewMode(newMode);
 }
 
-void MainWindow_DoViewHeightMode(int newMode)
+void MainWindow_DoSelectRenderMode(int newMode)
 {
     if (Settings_GetDebug() && newMode != 1) return;  // Deny switching from Single Height in Debug mode
 
-    ScreenView_SetHeightMode(newMode);
+    ScreenView_SetRenderMode(newMode);
 
-    MainWindow_AdjustWindowSize();
-    MainWindow_AdjustWindowLayout();
+    //MainWindow_AdjustWindowSize();
+    //MainWindow_AdjustWindowLayout();
     MainWindow_UpdateMenu();
 
     Settings_SetScreenHeightMode(newMode);
