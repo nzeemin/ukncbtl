@@ -54,22 +54,25 @@ BOOL BmpFile_SaveScreenshot(
 
     // Prepare the image data
     const DWORD * psrc = pBits;
-    BYTE * pdst = pData;
-    for (int i = 0; i < 640 * 288; i++)
+    for (int i = 0; i < 288; i++)
     {
-        DWORD rgb = *psrc;
-        psrc++;
-        BYTE color = 0;
-        for (BYTE c = 0; c < 128; c++)
+        BYTE * pdst = pData + (288 - 1 - i) * 640;
+        for (int j = 0; j < 640; j++)
         {
-            if (palette[c] == rgb)
+            DWORD rgb = *psrc;
+            psrc++;
+            BYTE color = 0;
+            for (BYTE c = 0; c < 128; c++)
             {
-                color = c;
-                break;
+                if (palette[c] == rgb)
+                {
+                    color = c;
+                    break;
+                }
             }
+            *pdst = color;
+            pdst++;
         }
-        *pdst = color;
-        pdst++;
     }
 
     WriteFile(hFile, &hdr, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
@@ -238,7 +241,7 @@ BOOL PngFile_WriteImageData8(FILE * fpFile, DWORD framenum, const DWORD* pBits, 
 
         BYTE * pline = pdst;
         *(pdst++) = 0;  // additional "filter-type" byte at the beginning of every scanline
-        const DWORD * psrc = pBits + ((288-1 - line) * 640);
+        const DWORD * psrc = pBits + (line * 640);
         for (int i = 0; i < 640; i++)
         {
             DWORD rgb = *(psrc++);

@@ -158,7 +158,7 @@ BOOL CreateMainWindow()
 
     // Restore Render Mode
     int heimode = Settings_GetScreenHeightMode();
-    if (heimode < 1 || heimode > 5) heimode = 1;
+    if (heimode < 0 || heimode > 32) heimode = 0;
     ScreenView_SetRenderMode(heimode);
 
     UpdateWindow(g_hwnd);
@@ -1050,7 +1050,7 @@ void MainWindow_DoViewScreenMode(ScreenViewMode newMode)
 
 void MainWindow_DoSelectRenderMode(int newMode)
 {
-    if (Settings_GetDebug() && newMode != 1) return;  // Deny switching from Single Height in Debug mode
+    if (Settings_GetDebug() && newMode != 0) return;  // Deny switching from Single Height in Debug mode
 
     ScreenView_SetRenderMode(newMode);
 
