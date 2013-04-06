@@ -45,8 +45,8 @@ typedef struct chan_tag
 
 typedef struct kbd_row_tag
 {
-	BYTE	processed;
-	BYTE	row_Y;
+    BYTE	processed;
+    BYTE	row_Y;
 } kbd_row;
 
 // Tape emulator callback used to read a tape recorded data.
@@ -160,18 +160,19 @@ public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
     void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set CPU breakpoint
     void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } ///< Set PPU breakpoint
-    chan_stc	GetChannelStruct(unsigned char cpu,unsigned char chan, unsigned char tx)
-    {//cpu==1 ,ppu==0; tx==1, rx==0
-        if(cpu)
+    chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
+    {
+        //cpu==1 ,ppu==0; tx==1, rx==0
+        if (cpu)
         {
-            if(tx)
+            if (tx)
                 return m_chancputx[chan];
             else
                 return m_chancpurx[chan];
         }
         else
         {
-            if(tx)
+            if (tx)
                 return m_chanpputx[chan];
             else
                 return m_chanppurx[chan];
@@ -200,7 +201,7 @@ public:  // System control
     void		ChanWriteByPPU(BYTE chan, BYTE data);
     BYTE		ChanReadByCPU(BYTE chan);
     BYTE		ChanReadByPPU(BYTE chan);
-    
+
     BYTE		ChanRxStateGetCPU(BYTE chan);
     BYTE		ChanTxStateGetCPU(BYTE chan);
     BYTE		ChanRxStateGetPPU();
@@ -287,7 +288,7 @@ private:
     WORD		m_timerreload;
     WORD		m_timerflags;
     WORD		m_timerdivider;
-    
+
     chan_stc	m_chancputx[3];
     chan_stc	m_chancpurx[2];
     chan_stc	m_chanpputx[2];
@@ -296,8 +297,8 @@ private:
     BYTE		m_chan0disabled;
     BYTE		m_irq_cpureset;
 
-	BYTE		m_scanned_key;
-	kbd_row		m_kbd_matrix[16];
+    BYTE		m_scanned_key;
+    kbd_row		m_kbd_matrix[16];
 
 private:
     TAPEREADCALLBACK m_TapeReadCallback;
@@ -311,18 +312,18 @@ private:
     NETWORKOUTCALLBACK  m_NetworkOutCallback;
 
     void DoSound(void);
-    
+
 };
 
 inline WORD CMotherboard::GetRAMWord(int plan, WORD offset)
 {
     ASSERT(plan >= 0 && plan <= 2);
-    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))); 
+    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE)));
 }
-inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset) 
-{ 
+inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset)
+{
     ASSERT(plan >= 0 && plan <= 2);
-    return m_pRAM[plan][offset]; 
+    return m_pRAM[plan][offset];
 }
 
 //////////////////////////////////////////////////////////////////////

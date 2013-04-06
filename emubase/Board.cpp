@@ -19,7 +19,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 // Bus devices
 
-static const WORD ProcessorTimerAddressRanges[] = {
+static const WORD ProcessorTimerAddressRanges[] =
+{
     0177710, 6,  // 177710-177715
     0, 0
 };
@@ -30,7 +31,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return ProcessorTimerAddressRanges; }
 };
 
-static const WORD CpuChannelsAddressRanges[] = {
+static const WORD CpuChannelsAddressRanges[] =
+{
     0176660, 16,
     0177560, 8,
     0, 0
@@ -42,7 +44,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return CpuChannelsAddressRanges; }
 };
 
-static const WORD PpuChannelsAddressRanges[] = {
+static const WORD PpuChannelsAddressRanges[] =
+{
     0177060, 16,
     0177100, 4,
     0, 0
@@ -54,7 +57,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return PpuChannelsAddressRanges; }
 };
 
-static const WORD NetworkAdapterAddressRanges[] = {
+static const WORD NetworkAdapterAddressRanges[] =
+{
     0176560, 8,
     0, 0
 };
@@ -65,7 +69,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return NetworkAdapterAddressRanges; }
 };
 
-static const WORD SerialPortAddressRanges[] = {
+static const WORD SerialPortAddressRanges[] =
+{
     0176570, 8,
     0, 0
 };
@@ -76,7 +81,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return SerialPortAddressRanges; }
 };
 
-static const WORD CpuMemoryAccessAddressRanges[] = {
+static const WORD CpuMemoryAccessAddressRanges[] =
+{
     0176640, 8,
     0176564, 4,  // Регистры пультового терминала
     0, 0
@@ -88,7 +94,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return CpuMemoryAccessAddressRanges; }
 };
 
-static const WORD PpuMemoryAccessAddressRanges[] = {
+static const WORD PpuMemoryAccessAddressRanges[] =
+{
     0177010, 16,
     0177054, 2,
     0, 0
@@ -100,7 +107,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return PpuMemoryAccessAddressRanges; }
 };
 
-static const WORD ProgrammablePortAddressRanges[] = {
+static const WORD ProgrammablePortAddressRanges[] =
+{
     0177100, 4,  // i8255 ports
     0, 0
 };
@@ -111,7 +119,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return ProgrammablePortAddressRanges; }
 };
 
-static const WORD KeyboardAddressRanges[] = {
+static const WORD KeyboardAddressRanges[] =
+{
     0177700, 6,
     0, 0
 };
@@ -122,7 +131,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return KeyboardAddressRanges; }
 };
 
-static const WORD FloppyControllerAddressRanges[] = {
+static const WORD FloppyControllerAddressRanges[] =
+{
     0177130, 4,
     0, 0
 };
@@ -133,7 +143,8 @@ public:
     virtual const WORD* GetAddressRanges() const { return FloppyControllerAddressRanges; }
 };
 
-static const WORD HardDriveAddressRanges[] = {
+static const WORD HardDriveAddressRanges[] =
+{
     0110000, 010000,
     0, 0
 };
@@ -251,7 +262,7 @@ CMotherboard::~CMotherboard ()
     if (m_pHardDrives[1] != NULL) delete m_pHardDrives[1];
 }
 
-void CMotherboard::Reset () 
+void CMotherboard::Reset ()
 {
     m_pPPU->SetDCLOPin(TRUE);
     m_pPPU->SetACLOPin(TRUE);
@@ -430,26 +441,26 @@ void CMotherboard::SetHardPortWord(int slot, WORD port, WORD data)
 
 //NOTE: GetRAMWord() and GetRAMByte() are inline, see Processor.h
 
-void CMotherboard::SetRAMWord(int plan, WORD offset, WORD word) 
+void CMotherboard::SetRAMWord(int plan, WORD offset, WORD word)
 {
     ASSERT(plan >= 0 && plan <= 2);
     *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE))) = word;
 }
-void CMotherboard::SetRAMByte(int plan, WORD offset, BYTE byte) 
+void CMotherboard::SetRAMByte(int plan, WORD offset, BYTE byte)
 {
     ASSERT(plan >= 0 && plan <= 2);
-    m_pRAM[plan][offset] = byte; 
+    m_pRAM[plan][offset] = byte;
 }
 
 WORD CMotherboard::GetROMWord(WORD offset)
 {
     ASSERT(offset < 32768);
-    return *((WORD*)(m_pROM + (offset & 0xFFFE))); 
+    return *((WORD*)(m_pROM + (offset & 0xFFFE)));
 }
-BYTE CMotherboard::GetROMByte(WORD offset) 
-{ 
+BYTE CMotherboard::GetROMByte(WORD offset)
+{
     ASSERT(offset < 32768);
-    return m_pROM[offset]; 
+    return m_pROM[offset];
 }
 
 WORD CMotherboard::GetROMCartWord(int cartno, WORD offset)
@@ -492,9 +503,9 @@ void CMotherboard::Tick6250 ()
 }
 void CMotherboard::Tick50 ()
 {
-    if((m_pPPU->GetMemoryController()->GetPortView(0177054)&0400)==0)
+    if ((m_pPPU->GetMemoryController()->GetPortView(0177054) & 0400) == 0)
         m_pPPU->TickEVNT();
-    if((m_pPPU->GetMemoryController()->GetPortView(0177054)&01000)==0)
+    if ((m_pPPU->GetMemoryController()->GetPortView(0177054) & 01000) == 0)
         m_pCPU->TickEVNT();
 }
 
@@ -518,50 +529,50 @@ void CMotherboard::TimerTick() // Timer Tick, 2uS -- dividers are within timer r
     m_timerdivider++;
 
     int flag = 0;
-    switch((m_timerflags >> 1) & 3)
+    switch ((m_timerflags >> 1) & 3)
     {
-        case 0: //2uS
+    case 0: //2uS
+        flag = 1;
+        m_timerdivider = 0;
+        break;
+    case 1: //4uS
+        if (m_timerdivider >= 2)
+        {
             flag = 1;
             m_timerdivider = 0;
-            break;
-        case 1: //4uS
-            if (m_timerdivider >= 2)
-            {
-                flag = 1;
-                m_timerdivider = 0;
-            }
-            break;
-        case 2: //8uS
-            if (m_timerdivider >= 4)
-            {
-                flag = 1;
-                m_timerdivider = 0;
-            }
-            break;
-        case 3:
-            if (m_timerdivider >= 8)
-            {
-                flag = 1;
-                m_timerdivider = 0;
-            }
-            break;
+        }
+        break;
+    case 2: //8uS
+        if (m_timerdivider >= 4)
+        {
+            flag = 1;
+            m_timerdivider = 0;
+        }
+        break;
+    case 3:
+        if (m_timerdivider >= 8)
+        {
+            flag = 1;
+            m_timerdivider = 0;
+        }
+        break;
     }
 
     if (flag == 0)  // Nothing happened
-        return; 
+        return;
 
     m_timer--;
     m_timer &= 07777;  // 12 bit only
 
     if (m_timer == 0)
     {
-        if(m_timerflags & 0200)
+        if (m_timerflags & 0200)
             m_timerflags |= 010;  // Overflow
         m_timerflags |= 0200;  // 0
 
         if ((m_timerflags & 0100) && (m_timerflags & 0200))
         {
-            m_pPPU->InterruptVIRQ(2, 0304); 
+            m_pPPU->InterruptVIRQ(2, 0304);
         }
 
         m_timer = m_timerreload & 07777; // Reload it
@@ -571,7 +582,7 @@ WORD CMotherboard::GetTimerValue()  // Returns current timer value
 {
     if ((m_timerflags & 0240) == 0)
         return m_timer;
-    
+
     m_timerflags &= ~0240;  // Clear flags
     WORD res = m_timer;
     m_timer = m_timerreload & 07777; // Reload it
@@ -604,20 +615,20 @@ void CMotherboard::SetTimerState(WORD val) // Sets timer state
     m_timerflags &= 0250;  // Clear everything but bits 7,5,3
     m_timerflags |= (val & (~0250));  // Preserve bits 753
 
-    switch((m_timerflags >> 1) & 3)
+    switch ((m_timerflags >> 1) & 3)
     {
-        case 0: //2uS
-            m_multiply=8;
-            break;
-        case 1: //4uS
-            m_multiply=4;
-            break;
-        case 2: //8uS
-            m_multiply=2;
-            break;
-        case 3:
-            m_multiply=1;
-            break;
+    case 0: //2uS
+        m_multiply = 8;
+        break;
+    case 1: //4uS
+        m_multiply = 4;
+        break;
+    case 2: //8uS
+        m_multiply = 2;
+        break;
+    case 3:
+        m_multiply = 1;
+        break;
     }
 }
 
@@ -793,7 +804,7 @@ BOOL CMotherboard::SystemFrame()
                     }
                     pMemCtl->m_Port176574 |= 0200;  // Set Ready flag
                     if (pMemCtl->m_Port176574 & 0100)  // Interrupt?
-                         m_pCPU->InterruptVIRQ(8, 0374);
+                        m_pCPU->InterruptVIRQ(8, 0374);
                 }
             }
             else if ((pMemCtl->m_Port176574 & 0200) == 0)  // Ready is 0?
@@ -851,12 +862,14 @@ BOOL CMotherboard::SystemFrame()
         {
             CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
             if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
-            {  // Strobe set, Printer Ack set => reset Printer Ack
+            {
+                // Strobe set, Printer Ack set => reset Printer Ack
                 pMemCtl->m_Port177101 &= ~0x80;
                 // Now printer waits for a next byte
             }
             else if ((pMemCtl->m_Port177102 & 0x80) == 0 && (pMemCtl->m_Port177101 & 0x80) == 0)
-            {  // Strobe reset, Printer Ack reset => byte is ready, print it
+            {
+                // Strobe reset, Printer Ack reset => byte is ready, print it
                 (*m_ParallelOutCallback)(pMemCtl->m_Port177100);
                 pMemCtl->m_Port177101 |= 0x80;  // Set Printer Acknowledge
                 // Now the printer waits for Strobe
@@ -921,7 +934,7 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     *pbImage++ = m_irq_cpureset;                        //   81     1
     *pbImage++ = 0;                                     //   82     1  // not used
     *pbImage++ = m_scanned_key;                         //   83     1
-    memcpy(pbImage, m_kbd_matrix, 2*16); pbImage += 32; //   84    32
+    memcpy(pbImage, m_kbd_matrix, 2 * 16); pbImage += 32; //   84    32
     pwImage = (WORD*) pbImage;                          //  116    --
     *pwImage++ = m_multiply;                            //  116     2
     memcpy(pwImage, freq_per, 12); pwImage += 6;        //  118    12
@@ -972,7 +985,7 @@ void CMotherboard::LoadFromImage(const BYTE* pImage)
     m_irq_cpureset = *pbImage++;                        //   81     1
     pbImage++;                                          //   82     1  // not used
     m_scanned_key = *pbImage++;                         //   83     1
-    memcpy(m_kbd_matrix, pbImage, 2*16); pbImage += 32; //   84    32
+    memcpy(m_kbd_matrix, pbImage, 2 * 16); pbImage += 32; //   84    32
     pwImage = (const WORD*) pbImage;                    //  116    --
     m_multiply = *pwImage++;                            //  116     2
     memcpy(freq_per, pwImage, 12); pwImage += 6;        //  118    12
@@ -1010,7 +1023,7 @@ void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
 {
     BYTE oldp_ready = m_chanppurx[chan].ready;
     chan &= 3;
-    ASSERT(chan<3);
+    ASSERT(chan < 3);
 
 //	if((chan==0)&&(m_chan0disabled))
 //		return;
@@ -1019,18 +1032,18 @@ void CMotherboard::ChanWriteByCPU(BYTE chan, BYTE data)
     m_chanppurx[chan].ready = 1;
     m_chancputx[chan].ready = 0;
     m_chancputx[chan].rdwr = 1;
-    m_pCPU->InterruptVIRQ((chan==2)?5:(2+chan*2),0);
-    if((m_chanppurx[chan].irq) && (oldp_ready==0))
+    m_pCPU->InterruptVIRQ((chan == 2) ? 5 : (2 + chan * 2), 0);
+    if ((m_chanppurx[chan].irq) && (oldp_ready == 0))
     {
         m_chanppurx[chan].rdwr = 0;
-        m_pPPU->InterruptVIRQ(5+chan*2, 0320+(010*chan));
+        m_pPPU->InterruptVIRQ(5 + chan * 2, 0320 + (010 * chan));
     }
 }
 void CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
 {
     BYTE oldc_ready = m_chancpurx[chan].ready;
     chan &= 3;
-    ASSERT(chan<2); 
+    ASSERT(chan < 2);
 
 //	if((chan==0)&&(m_chan0disabled))
 //		return;
@@ -1039,19 +1052,19 @@ void CMotherboard::ChanWriteByPPU(BYTE chan, BYTE data)
     m_chancpurx[chan].ready = 1;
     m_chanpputx[chan].ready = 0;
     m_chanpputx[chan].rdwr = 1;
-    m_pPPU->InterruptVIRQ((chan==0)?6:8,0);
-    if((m_chancpurx[chan].irq) && (oldc_ready==0))
+    m_pPPU->InterruptVIRQ((chan == 0) ? 6 : 8, 0);
+    if ((m_chancpurx[chan].irq) && (oldc_ready == 0))
     {
         m_chancpurx[chan].rdwr = 0;
-        m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
+        m_pCPU->InterruptVIRQ(chan ? 3 : 1, chan ? 0460 : 060);
     }
 }
 BYTE CMotherboard::ChanReadByCPU(BYTE chan)
 {
-    BYTE res,oldp_ready = m_chanpputx[chan].ready;
+    BYTE res, oldp_ready = m_chanpputx[chan].ready;
 
     chan &= 3;
-    ASSERT(chan<2); 
+    ASSERT(chan < 2);
 
 //	if((chan==0)&&(m_chan0disabled))
 //		return 0;
@@ -1060,20 +1073,20 @@ BYTE CMotherboard::ChanReadByCPU(BYTE chan)
     m_chancpurx[chan].ready = 0;
     m_chancpurx[chan].rdwr = 1;
     m_chanpputx[chan].ready = 1;
-    m_pCPU->InterruptVIRQ(chan*2+1,0);
-    if((m_chanpputx[chan].irq) && (oldp_ready==0))
+    m_pCPU->InterruptVIRQ(chan * 2 + 1, 0);
+    if ((m_chanpputx[chan].irq) && (oldp_ready == 0))
     {
         m_chanpputx[chan].rdwr = 0;
-        m_pPPU->InterruptVIRQ(chan?8:6, chan?0334:0324);
+        m_pPPU->InterruptVIRQ(chan ? 8 : 6, chan ? 0334 : 0324);
     }
     return res;
 }
 BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 {
-    BYTE res,oldc_ready = m_chancputx[chan].ready;
+    BYTE res, oldc_ready = m_chancputx[chan].ready;
 
     chan &= 3;
-    ASSERT(chan<3); 
+    ASSERT(chan < 3);
 
     //if((chan==0)&&(m_chan0disabled))
     //	return 0;
@@ -1082,11 +1095,11 @@ BYTE CMotherboard::ChanReadByPPU(BYTE chan)
     m_chanppurx[chan].ready = 0;
     m_chanppurx[chan].rdwr = 1;
     m_chancputx[chan].ready = 1;
-    m_pPPU->InterruptVIRQ(chan*2+5,0);
-    if((m_chancputx[chan].irq) && (oldc_ready==0))
+    m_pPPU->InterruptVIRQ(chan * 2 + 5, 0);
+    if ((m_chancputx[chan].irq) && (oldc_ready == 0))
     {
         m_chancputx[chan].rdwr = 0;
-        switch(chan)
+        switch (chan)
         {
         case 0:
             m_pCPU->InterruptVIRQ(2, 064);
@@ -1106,24 +1119,24 @@ BYTE CMotherboard::ChanReadByPPU(BYTE chan)
 BYTE CMotherboard::ChanRxStateGetCPU(BYTE chan)
 {
     chan &= 3;
-    ASSERT(chan<2);
-    
-    return (m_chancpurx[chan].ready<<7)|(m_chancpurx[chan].irq<<6);
+    ASSERT(chan < 2);
+
+    return (m_chancpurx[chan].ready << 7) | (m_chancpurx[chan].irq << 6);
 }
 
 BYTE CMotherboard::ChanTxStateGetCPU(BYTE chan)
 {
     chan &= 3;
-    ASSERT(chan<3);
-    return (m_chancputx[chan].ready<<7)|(m_chancputx[chan].irq<<6);
+    ASSERT(chan < 3);
+    return (m_chancputx[chan].ready << 7) | (m_chancputx[chan].irq << 6);
 }
 
 BYTE CMotherboard::ChanRxStateGetPPU()
 {
     BYTE res;
 
-    res = (m_irq_cpureset<<6) | (m_chanppurx[2].ready<<5) | (m_chanppurx[1].ready<<4) | (m_chanppurx[0].ready<<3) | 
-           (m_chanppurx[2].irq<<2)   | (m_chanppurx[1].irq<<1)   | (m_chanppurx[0].irq);
+    res = (m_irq_cpureset << 6) | (m_chanppurx[2].ready << 5) | (m_chanppurx[1].ready << 4) | (m_chanppurx[0].ready << 3) |
+          (m_chanppurx[2].irq << 2)   | (m_chanppurx[1].irq << 1)   | (m_chanppurx[0].irq);
 
 
     return res;
@@ -1131,8 +1144,8 @@ BYTE CMotherboard::ChanRxStateGetPPU()
 BYTE CMotherboard::ChanTxStateGetPPU()
 {
     BYTE res;
-    res = (m_chanpputx[1].ready<<4) | (m_chanpputx[0].ready<<3) | (m_chan0disabled<<2) |
-            (m_chanpputx[1].irq<<1)   | (m_chanpputx[0].irq);
+    res = (m_chanpputx[1].ready << 4) | (m_chanpputx[0].ready << 3) | (m_chan0disabled << 2) |
+          (m_chanpputx[1].irq << 1)   | (m_chanpputx[0].irq);
 
 
     return res;
@@ -1141,41 +1154,41 @@ void CMotherboard::ChanRxStateSetCPU(BYTE chan, BYTE state)
 {
     BYTE oldc_irq = m_chancpurx[chan].irq;
     chan &= 3;
-    ASSERT(chan<2);
+    ASSERT(chan < 2);
 
-    if(state&0100) //irq
+    if (state & 0100) //irq
         m_chancpurx[chan].irq = 1;
     else
     {
         m_chancpurx[chan].irq = 0;
-        if ((chan==0) || (m_pCPU->GetVIRQ(chan?3:1))) m_chancpurx[chan].rdwr = 1;
-        m_pCPU->InterruptVIRQ(chan?3:1, 0);
+        if ((chan == 0) || (m_pCPU->GetVIRQ(chan ? 3 : 1))) m_chancpurx[chan].rdwr = 1;
+        m_pCPU->InterruptVIRQ(chan ? 3 : 1, 0);
     }
-    if((m_chancpurx[chan].irq) && (m_chancpurx[chan].ready) && (oldc_irq==0) && (m_chancpurx[chan].rdwr))
+    if ((m_chancpurx[chan].irq) && (m_chancpurx[chan].ready) && (oldc_irq == 0) && (m_chancpurx[chan].rdwr))
     {
         m_chancpurx[chan].rdwr = 0;
-        m_pCPU->InterruptVIRQ(chan?3:1, chan?0460:060);
+        m_pCPU->InterruptVIRQ(chan ? 3 : 1, chan ? 0460 : 060);
     }
 }
 void CMotherboard::ChanTxStateSetCPU(BYTE chan, BYTE state)
 {
     BYTE oldc_irq = m_chancputx[chan].irq;
     chan &= 3;
-    ASSERT(chan<3);
+    ASSERT(chan < 3);
 
-    if(state&0100) //irq
+    if (state & 0100) //irq
         m_chancputx[chan].irq = 1;
     else
     {
         m_chancputx[chan].irq = 0;
-        if ((chan==0) || (m_pCPU->GetVIRQ((chan==2)?5:(chan*2+2)))) m_chancputx[chan].rdwr = 1;
-        m_pCPU->InterruptVIRQ((chan==2)?5:(chan*2+2),0);
+        if ((chan == 0) || (m_pCPU->GetVIRQ((chan == 2) ? 5 : (chan * 2 + 2)))) m_chancputx[chan].rdwr = 1;
+        m_pCPU->InterruptVIRQ((chan == 2) ? 5 : (chan * 2 + 2), 0);
     }
 
-    if((m_chancputx[chan].irq) && (m_chancputx[chan].ready) && (oldc_irq==0) && (m_chancputx[chan].rdwr))
+    if ((m_chancputx[chan].irq) && (m_chancputx[chan].ready) && (oldc_irq == 0) && (m_chancputx[chan].rdwr))
     {
         m_chancputx[chan].rdwr = 0;
-        switch(chan)
+        switch (chan)
         {
         case 0:
             m_pCPU->InterruptVIRQ(2, 064);
@@ -1196,38 +1209,38 @@ void CMotherboard::ChanRxStateSetPPU(BYTE state)
     BYTE oldp_irq1 = m_chanppurx[1].irq;
     BYTE oldp_irq2 = m_chanppurx[2].irq;
 
-    m_chanppurx[0].irq = state&1;
-    m_chanppurx[1].irq = (state>>1)&1;
-    m_chanppurx[2].irq = (state>>2)&1;
-    m_irq_cpureset = (state>>6)&1;
+    m_chanppurx[0].irq = state & 1;
+    m_chanppurx[1].irq = (state >> 1) & 1;
+    m_chanppurx[2].irq = (state >> 2) & 1;
+    m_irq_cpureset = (state >> 6) & 1;
 
-    if (m_chanppurx[0].irq==0)
+    if (m_chanppurx[0].irq == 0)
     {
         if (m_pPPU->GetVIRQ(5)) m_chanppurx[0].rdwr = 1;
         m_pPPU->InterruptVIRQ(5, 0);
     }
-    if (m_chanppurx[1].irq==0)
+    if (m_chanppurx[1].irq == 0)
     {
         if (m_pPPU->GetVIRQ(7)) m_chanppurx[1].rdwr = 1;
         m_pPPU->InterruptVIRQ(7, 0);
     }
-    if (m_chanppurx[2].irq==0)
+    if (m_chanppurx[2].irq == 0)
     {
         if (m_pPPU->GetVIRQ(9)) m_chanppurx[2].rdwr = 1;
         m_pPPU->InterruptVIRQ(9, 0);
     }
-    
-    if((m_chanppurx[0].irq) && (m_chanppurx[0].ready) && (oldp_irq0==0) && (m_chanppurx[0].rdwr))
+
+    if ((m_chanppurx[0].irq) && (m_chanppurx[0].ready) && (oldp_irq0 == 0) && (m_chanppurx[0].rdwr))
     {
         m_chanppurx[0].rdwr = 0;
         m_pPPU->InterruptVIRQ(5, 0320);
     }
-    if((m_chanppurx[1].irq) && (m_chanppurx[1].ready) && (oldp_irq1==0) && (m_chanppurx[1].rdwr))
+    if ((m_chanppurx[1].irq) && (m_chanppurx[1].ready) && (oldp_irq1 == 0) && (m_chanppurx[1].rdwr))
     {
         m_chanppurx[1].rdwr = 0;
         m_pPPU->InterruptVIRQ(7, 0330);
     }
-    if((m_chanppurx[2].irq) && (m_chanppurx[2].ready) && (oldp_irq2==0) && (m_chanppurx[2].rdwr))
+    if ((m_chanppurx[2].irq) && (m_chanppurx[2].ready) && (oldp_irq2 == 0) && (m_chanppurx[2].rdwr))
     {
         m_chanppurx[2].rdwr = 0;
         m_pPPU->InterruptVIRQ(9, 0340);
@@ -1239,27 +1252,27 @@ void CMotherboard::ChanTxStateSetPPU(BYTE state)
     BYTE oldp_irq0 = m_chanpputx[0].irq;
     BYTE oldp_irq1 = m_chanpputx[1].irq;
 
-    m_chanpputx[0].irq = state&1;
-    m_chanpputx[1].irq = (state>>1)&1;
-    m_chan0disabled = (state>>2)&1;
+    m_chanpputx[0].irq = state & 1;
+    m_chanpputx[1].irq = (state >> 1) & 1;
+    m_chan0disabled = (state >> 2) & 1;
 
-    if (m_chanpputx[0].irq==0)
+    if (m_chanpputx[0].irq == 0)
     {
         if (m_pPPU->GetVIRQ(6)) m_chanpputx[0].rdwr = 1;
         m_pPPU->InterruptVIRQ(6, 0);
     }
-    if (m_chanpputx[1].irq==0)
+    if (m_chanpputx[1].irq == 0)
     {
         if (m_pPPU->GetVIRQ(8)) m_chanpputx[1].rdwr = 1;
         m_pPPU->InterruptVIRQ(8, 0);
     }
 
-    if((m_chanpputx[0].irq) && (m_chanpputx[0].ready) && (oldp_irq0==0) && (m_chanpputx[0].rdwr))
+    if ((m_chanpputx[0].irq) && (m_chanpputx[0].ready) && (oldp_irq0 == 0) && (m_chanpputx[0].rdwr))
     {
         m_chanpputx[0].rdwr = 0;
         m_pPPU->InterruptVIRQ(6, 0324);
     }
-    if((m_chanpputx[1].irq) && (m_chanpputx[1].ready) && (oldp_irq1==0) && (m_chanpputx[1].rdwr))
+    if ((m_chanpputx[1].irq) && (m_chanpputx[1].ready) && (oldp_irq1 == 0) && (m_chanpputx[1].rdwr))
     {
         m_chanpputx[1].rdwr = 0;
         m_pPPU->InterruptVIRQ(8, 0334);
@@ -1440,11 +1453,11 @@ void CMotherboard::ChanResetByPPU()
 ////				wsprintf(buffer,_T(" Block %d Len %d\n"),trk*20+side*10+sector-1,par);
 ////				DebugPrint(buffer);
 ////#endif
-//				
+//
 //				m_floppystate=FLOPPY_FSM_WAITFORLSB;
 //			}
 //			break;
-//	
+//
 //	}
 //}
 
@@ -1471,28 +1484,28 @@ void CMotherboard::SetFloppyData(WORD val)
 
 WORD CMotherboard::GetKeyboardRegister(void)
 {
-    WORD w7214 = GetRAMWord(0,07214);
-    BYTE b22556 = GetRAMByte(0,022556);
+    WORD w7214 = GetRAMWord(0, 07214);
+    BYTE b22556 = GetRAMByte(0, 022556);
 
     WORD res = 0;
     switch (w7214)
     {
-        case 010534: //fix
-        case 07234:  //main
-            res=(b22556&0200)?KEYB_RUS:KEYB_LAT;
-            break;
-        case 07514: //lower register
-            res=(b22556&0200)?(KEYB_RUS|KEYB_LOWERREG):(KEYB_LAT|KEYB_LOWERREG);
-            break;
-        case 07774: //graph
-            res=KEYB_RUS;
-            break;
-        case 010254: //control
-            res=KEYB_LAT;
-            break;
-        default:
-            res=KEYB_LAT;
-            break;
+    case 010534: //fix
+    case 07234:  //main
+        res = (b22556 & 0200) ? KEYB_RUS : KEYB_LAT;
+        break;
+    case 07514: //lower register
+        res = (b22556 & 0200) ? (KEYB_RUS | KEYB_LOWERREG) : (KEYB_LAT | KEYB_LOWERREG);
+        break;
+    case 07774: //graph
+        res = KEYB_RUS;
+        break;
+    case 010254: //control
+        res = KEYB_LAT;
+        break;
+    default:
+        res = KEYB_LAT;
+        break;
     }
     return res;
 }
@@ -1501,67 +1514,67 @@ void CMotherboard::DoSound(void)
 {
     int global;
 
-    freq_out[0]=(m_timer>>3)&1; //8000
-    if(m_multiply>=4)
-        freq_out[0]=0;
+    freq_out[0] = (m_timer >> 3) & 1; //8000
+    if (m_multiply >= 4)
+        freq_out[0] = 0;
 
-    freq_out[1]=(m_timer>>6)&1;//1000
+    freq_out[1] = (m_timer >> 6) & 1; //1000
 
-    freq_out[2]=(m_timer>>7)&1;//500
-    freq_out[3]=(m_timer>>8)&1;//250
-    freq_out[4]=(m_timer>>10)&1;//60
+    freq_out[2] = (m_timer >> 7) & 1; //500
+    freq_out[3] = (m_timer >> 8) & 1; //250
+    freq_out[4] = (m_timer >> 10) & 1; //60
 
-    global=0;
-    global= !(freq_out[0]&freq_enable[0]) & ! (freq_out[1]&freq_enable[1]) & !(freq_out[2]&freq_enable[2]) & !(freq_out[3]&freq_enable[3]) & !(freq_out[4]&freq_enable[4]);
-    if(freq_enable[5]==0)
-        global=0;
+    global = 0;
+    global = !(freq_out[0] & freq_enable[0]) & ! (freq_out[1] & freq_enable[1]) & !(freq_out[2] & freq_enable[2]) & !(freq_out[3] & freq_enable[3]) & !(freq_out[4] & freq_enable[4]);
+    if (freq_enable[5] == 0)
+        global = 0;
     else
     {
-        if( (!freq_enable[0]) && (!freq_enable[1]) && (!freq_enable[2]) && (!freq_enable[3]) && (!freq_enable[4]))
-            global=1;
+        if ( (!freq_enable[0]) && (!freq_enable[1]) && (!freq_enable[2]) && (!freq_enable[3]) && (!freq_enable[4]))
+            global = 1;
     }
 
     if (m_SoundGenCallback != NULL)
     {
         if (global)
-            (*m_SoundGenCallback)(0x7fff,0x7fff);
+            (*m_SoundGenCallback)(0x7fff, 0x7fff);
         else
-            (*m_SoundGenCallback)(0x0000,0x0000);
+            (*m_SoundGenCallback)(0x0000, 0x0000);
     }
 }
 
 void CMotherboard::SetSound(WORD val)
 {
-    if(val&(1<<7))
-        freq_enable[5]=1;
+    if (val & (1 << 7))
+        freq_enable[5] = 1;
     else
-        freq_enable[5]=0;
+        freq_enable[5] = 0;
 //12 11 10 9 8
-    
-    if(val&(1<<12))
-        freq_enable[0]=1;
-    else
-        freq_enable[0]=0;
 
-    if(val&(1<<11))
-        freq_enable[1]=1;
+    if (val & (1 << 12))
+        freq_enable[0] = 1;
     else
-        freq_enable[1]=0;
+        freq_enable[0] = 0;
 
-    if(val&(1<<10))
-        freq_enable[2]=1;
+    if (val & (1 << 11))
+        freq_enable[1] = 1;
     else
-        freq_enable[2]=0;
+        freq_enable[1] = 0;
 
-    if(val&(1<<9))
-        freq_enable[3]=1;
+    if (val & (1 << 10))
+        freq_enable[2] = 1;
     else
-        freq_enable[3]=0;
+        freq_enable[2] = 0;
 
-    if(val&(1<<8))
-        freq_enable[4]=1;
+    if (val & (1 << 9))
+        freq_enable[3] = 1;
     else
-        freq_enable[4]=0;
+        freq_enable[3] = 0;
+
+    if (val & (1 << 8))
+        freq_enable[4] = 1;
+    else
+        freq_enable[4] = 0;
 }
 
 void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate)

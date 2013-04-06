@@ -51,7 +51,7 @@ public:
     CMemoryController();
     ~CMemoryController();
     void        Attach(CMotherboard* board, CProcessor* processor)
-                    { m_pBoard = board;  m_pProcessor = processor; }
+    { m_pBoard = board;  m_pProcessor = processor; }
     // Attach/reattach bus devices
     void        AttachDevices(const CBusDevice** pDevices);
     virtual void UpdateMemoryMap();
