@@ -26,7 +26,7 @@ class CProcessor
 {
 
 public:  // Constructor / initialization
-                CProcessor(LPCTSTR name);
+    CProcessor(LPCTSTR name);
     /// \brief Link the processor and memory controller.
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
     void        SetHALTPin(BOOL value);
@@ -112,20 +112,20 @@ public:  // Register control
     void        SetReg(int regno, WORD word)
     {
         m_R[regno] = word;
-        if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = word;
+        if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = word;
     }
     BYTE        GetLReg(int regno) const { return LOBYTE(m_R[regno]); }
     void        SetLReg(int regno, BYTE byte)
     {
         m_R[regno] = (m_R[regno] & 0xFF00) | (WORD)byte;
-        if ((regno == 7) && ((m_psw & 0600)!=0600))	m_savepc = m_R[7];
+        if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = m_R[7];
     }
     WORD        GetSP() const { return m_R[6]; }
     void        SetSP(WORD word) { m_R[6] = word; }
     WORD        GetPC() const { return m_R[7]; }
     WORD        GetCPC() const { return m_savepc; }
     void        SetPC(WORD word)
-    { 
+    {
         m_R[7] = word;
         if ((m_psw & 0600) != 0600) m_savepc = word;
     }
@@ -148,8 +148,8 @@ public:  // Processor state
     BOOL        IsStopped() const { return m_okStopped; }
     /// \brief HALT flag (TRUE - HALT mode, FALSE - USER mode)
     BOOL        IsHaltMode() const
-    { 
-            return ((m_psw & 0400) != 0);
+    {
+        return ((m_psw & 0400) != 0);
     }
 public:  // Processor control
     void        TickEVNT();  ///< EVNT signal
@@ -158,7 +158,7 @@ public:  // Processor control
     void        Execute();   ///< Execute one instruction - for debugger only
     BOOL        InterruptProcessing();
     void        CommandExecution();
-    
+
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(BYTE* pImage) const;
     void        LoadFromImage(const BYTE* pImage);
@@ -238,7 +238,7 @@ protected:  // Implementation - instruction execution
     void        ExecuteSXT ();
     void        ExecuteMTPS ();
     void        ExecuteMFPS ();
-    
+
     // Branchs & interrupts
     void        ExecuteBR ();
     void        ExecuteBNE ();
@@ -318,11 +318,11 @@ inline BOOL CProcessor::CheckAddForOverflow (BYTE a, BYTE b)
     {
         pushf
         push cx
-        mov cl,byte ptr [a]
-        add cl,byte ptr [b]
+        mov cl, byte ptr [a]
+        add cl, byte ptr [b]
         jno end
-        mov dword ptr [bOverflow],1
-    end:
+        mov dword ptr [bOverflow], 1
+        end:
         pop cx
         popf
     }
@@ -342,11 +342,11 @@ inline BOOL CProcessor::CheckAddForOverflow (WORD a, WORD b)
     {
         pushf
         push cx
-        mov cx,word ptr [a]
-        add cx,word ptr [b]
+        mov cx, word ptr [a]
+        add cx, word ptr [b]
         jno end
-        mov dword ptr [bOverflow],1
-    end:
+        mov dword ptr [bOverflow], 1
+        end:
         pop cx
         popf
     }
@@ -367,11 +367,11 @@ inline BOOL CProcessor::CheckSubForOverflow (BYTE a, BYTE b)
     {
         pushf
         push cx
-        mov cl,byte ptr [a]
-        sub cl,byte ptr [b]
+        mov cl, byte ptr [a]
+        sub cl, byte ptr [b]
         jno end
-        mov dword ptr [bOverflow],1
-    end:
+        mov dword ptr [bOverflow], 1
+        end:
         pop cx
         popf
     }
@@ -391,11 +391,11 @@ inline BOOL CProcessor::CheckSubForOverflow (WORD a, WORD b)
     {
         pushf
         push cx
-        mov cx,word ptr [a]
-        sub cx,word ptr [b]
+        mov cx, word ptr [a]
+        sub cx, word ptr [b]
         jno end
-        mov dword ptr [bOverflow],1
-    end:
+        mov dword ptr [bOverflow], 1
+        end:
         pop cx
         popf
     }
