@@ -79,7 +79,8 @@ yrgb  R   G   B  0xRRGGBB
 */
 
 // Table for color conversion yrgb (4 bits) -> DWORD (32 bits)
-const DWORD ScreenView_StandardRGBColors[16*8] = {
+const DWORD ScreenView_StandardRGBColors[16 * 8] =
+{
     0x000000, 0x000080, 0x008000, 0x008080, 0x800000, 0x800080, 0x808000, 0x808080,
     0x000000, 0x0000FF, 0x00FF00, 0x00FFFF, 0xFF0000, 0xFF00FF, 0xFFFF00, 0xFFFFFF,
     0x000000, 0x000060, 0x008000, 0x008060, 0x800000, 0x800060, 0x808000, 0x808060,
@@ -97,7 +98,8 @@ const DWORD ScreenView_StandardRGBColors[16*8] = {
     0x000000, 0x000060, 0x006000, 0x006060, 0x600000, 0x600060, 0x606000, 0x606060,
     0x000000, 0x0000DF, 0x00DF00, 0x00DFDF, 0xDF0000, 0xDF00DF, 0xDFDF00, 0xDFDFDF,
 };
-const DWORD ScreenView_StandardGRBColors[16*8] = {
+const DWORD ScreenView_StandardGRBColors[16 * 8] =
+{
     0x000000, 0x000080, 0x800000, 0x800080, 0x008000, 0x008080, 0x808000, 0x808080,
     0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF,
     0x000000, 0x000060, 0x800000, 0x800060, 0x008000, 0x008060, 0x808000, 0x808060,
@@ -116,7 +118,8 @@ const DWORD ScreenView_StandardGRBColors[16*8] = {
     0x000000, 0x0000DF, 0xDF0000, 0xDF00DF, 0x00DF00, 0x00DFDF, 0xDFDF00, 0xDFDFDF,
 };
 // Table for color conversion, gray (black and white) display
-const DWORD ScreenView_GrayColors[16*8] = {
+const DWORD ScreenView_GrayColors[16 * 8] =
+{
     0x000000, 0x242424, 0x484848, 0x6C6C6C, 0x909090, 0xB4B4B4, 0xD8D8D8, 0xFFFFFF,
     0x000000, 0x242424, 0x484848, 0x6C6C6C, 0x909090, 0xB4B4B4, 0xD8D8D8, 0xFFFFFF,
     0x000000, 0x242424, 0x484848, 0x6C6C6C, 0x909090, 0xB4B4B4, 0xD8D8D8, 0xFFFFFF,
@@ -226,7 +229,7 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     if (g_hModuleRender == NULL)
     {
         AlertWarningFormat(_T("Failed to load render library \"%s\" (0x%08lx)."),
-            szRenderLibraryName, ::GetLastError());
+                szRenderLibraryName, ::GetLastError());
         return FALSE;
     }
 
@@ -271,7 +274,7 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     MainWindow_UpdateRenderModeMenu();
 
     //ScreenView_CreateScreen();
-    
+
     if (!RenderInitProc(UKNC_SCREEN_WIDTH, UKNC_SCREEN_HEIGHT, g_hwndScreen))
     {
         AlertWarning(_T("Failed to initialize the render."));
@@ -347,27 +350,27 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         SetFocus(hWnd);
         break;
 
-	case WM_KEYDOWN:
-	case WM_SYSKEYDOWN:
-		if (wParam == VK_RETURN)
-		{
-			if (lParam & 0x1000000)
-				bNumpadEnter = TRUE;
-			else
-				bEnter = TRUE;
-		}
-		break;
-	case WM_KEYUP:
-	case WM_SYSKEYUP:
-		if (wParam == VK_RETURN)
-		{
-			if (lParam & 0x1000000)
-				bNumpadEnter = FALSE;
-			else
-				bEnter = FALSE;
-		}
-		break;
-	case WM_SETCURSOR:
+    case WM_KEYDOWN:
+    case WM_SYSKEYDOWN:
+        if (wParam == VK_RETURN)
+        {
+            if (lParam & 0x1000000)
+                bNumpadEnter = TRUE;
+            else
+                bEnter = TRUE;
+        }
+        break;
+    case WM_KEYUP:
+    case WM_SYSKEYUP:
+        if (wParam == VK_RETURN)
+        {
+            if (lParam & 0x1000000)
+                bNumpadEnter = FALSE;
+            else
+                bEnter = FALSE;
+        }
+        break;
+    case WM_SETCURSOR:
         if (::GetFocus() == g_hwndScreen)
         {
             SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
@@ -433,10 +436,10 @@ const DWORD* ScreenView_GetPalette()
     const DWORD* colors;
     switch (m_ScreenMode)
     {
-        case RGBScreen:   colors = ScreenView_StandardRGBColors; break;
-        case GrayScreen:  colors = ScreenView_GrayColors; break;
-        case GRBScreen:   colors = ScreenView_StandardGRBColors; break;
-        default:          colors = ScreenView_StandardRGBColors; break;
+    case RGBScreen:   colors = ScreenView_StandardRGBColors; break;
+    case GrayScreen:  colors = ScreenView_GrayColors; break;
+    case GRBScreen:   colors = ScreenView_StandardGRBColors; break;
+    default:          colors = ScreenView_StandardRGBColors; break;
     }
 
     return colors;
@@ -476,43 +479,45 @@ WORD ScreenView_GetKeyEventFromQueue()
     return keyevent;
 }
 
-const BYTE arrPcscan2UkncscanLat[256] = {  // ËÀÒ
-/*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000, 
-/*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000, 
-/*2*/    0113, 0004, 0151, 0152, 0155, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000, 
-/*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*4*/    0000, 0072, 0076, 0050, 0057, 0033, 0047, 0055, 0156, 0073, 0027, 0052, 0056, 0112, 0054, 0075, 
-/*5*/    0053, 0067, 0074, 0111, 0114, 0051, 0137, 0071, 0115, 0070, 0157, 0000, 0000, 0106, 0000, 0000, 
-/*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131, 
-/*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0155, 0000, 0000, 0000, 0000, 
-/*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0174, 0110, 0117, 0175, 0135, 0173, 
-/*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0036, 0136, 0037, 0077, 0000, 
-/*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
+const BYTE arrPcscan2UkncscanLat[256] =    // ËÀÒ
+{
+    /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
+    /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
+    /*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000,
+    /*2*/    0113, 0004, 0151, 0152, 0155, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000,
+    /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*4*/    0000, 0072, 0076, 0050, 0057, 0033, 0047, 0055, 0156, 0073, 0027, 0052, 0056, 0112, 0054, 0075,
+    /*5*/    0053, 0067, 0074, 0111, 0114, 0051, 0137, 0071, 0115, 0070, 0157, 0000, 0000, 0106, 0000, 0000,
+    /*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131,
+    /*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0155, 0000, 0000, 0000, 0000,
+    /*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0174, 0110, 0117, 0175, 0135, 0173,
+    /*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0036, 0136, 0037, 0077, 0000,
+    /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
 };
-const BYTE arrPcscan2UkncscanRus[256] = {  // ÐÓÑ
-/*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-/*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000, 
-/*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000, 
-/*2*/    0113, 0004, 0151, 0152, 0174, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000, 
-/*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*4*/    0000, 0047, 0073, 0111, 0071, 0051, 0072, 0053, 0074, 0036, 0075, 0056, 0057, 0115, 0114, 0037, 
-/*5*/    0157, 0027, 0052, 0070, 0033, 0055, 0112, 0050, 0110, 0054, 0067, 0000, 0000, 0106, 0000, 0000, 
-/*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131, 
-/*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0174, 0000, 0000, 0000, 0000, 
-/*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0137, 0117, 0076, 0175, 0077, 0173, 
-/*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0156, 0135, 0155, 0136, 0000, 
-/*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
-/*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 
+const BYTE arrPcscan2UkncscanRus[256] =    // ÐÓÑ
+{
+    /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
+    /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
+    /*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000,
+    /*2*/    0113, 0004, 0151, 0152, 0174, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000,
+    /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*4*/    0000, 0047, 0073, 0111, 0071, 0051, 0072, 0053, 0074, 0036, 0075, 0056, 0057, 0115, 0114, 0037,
+    /*5*/    0157, 0027, 0052, 0070, 0033, 0055, 0112, 0050, 0110, 0054, 0067, 0000, 0000, 0106, 0000, 0000,
+    /*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131,
+    /*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0174, 0000, 0000, 0000, 0000,
+    /*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0137, 0117, 0076, 0175, 0077, 0173,
+    /*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0156, 0135, 0155, 0136, 0000,
+    /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
+    /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
 };
 
 void ScreenView_ScanKeyboard()
@@ -523,31 +528,31 @@ void ScreenView_ScanKeyboard()
         // Read current keyboard state
         BYTE keys[256];
         VERIFY(::GetKeyboardState(keys));
-		if (keys[VK_RETURN] & 128)
-		{
-			if (bEnter && bNumpadEnter)
-				keys[VK_RETURN+1] = 128;
-			if (!bEnter && bNumpadEnter)
-			{
-				keys[VK_RETURN] = 0;
-				keys[VK_RETURN+1] = 128;
-			}
-			bEntPressed = TRUE;
-		}
-		else
-		{
-			if (bEntPressed)
-			{
-				if (bEnter) keys[VK_RETURN+1] = 128;
-				if (bNumpadEnter) keys[VK_RETURN+1] = 128;
-			}
-			else
-			{
-				bEnter = FALSE;
-				bNumpadEnter = FALSE;
-			}
-			bEntPressed = FALSE;
-		}
+        if (keys[VK_RETURN] & 128)
+        {
+            if (bEnter && bNumpadEnter)
+                keys[VK_RETURN + 1] = 128;
+            if (!bEnter && bNumpadEnter)
+            {
+                keys[VK_RETURN] = 0;
+                keys[VK_RETURN + 1] = 128;
+            }
+            bEntPressed = TRUE;
+        }
+        else
+        {
+            if (bEntPressed)
+            {
+                if (bEnter) keys[VK_RETURN + 1] = 128;
+                if (bNumpadEnter) keys[VK_RETURN + 1] = 128;
+            }
+            else
+            {
+                bEnter = FALSE;
+                bNumpadEnter = FALSE;
+            }
+            bEntPressed = FALSE;
+        }
         // Âûáèðàåì òàáëèöó ìàïïèíãà â çàâèñèìîñòè îò ôëàãà ÐÓÑ/ËÀÒ â ÓÊÍÖ
         BYTE ukncRegister = (BYTE) g_pBoard->GetKeyboardRegister();
         const BYTE* pTable;
@@ -562,17 +567,17 @@ void ScreenView_ScanKeyboard()
                 BYTE pcscan = (BYTE) scan;
                 BYTE ukncscan;
                 if (oldstate & 128)
-				{
-					pTable = ((oldstate & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-					m_ScreenKeyState[scan] = 0;
-				}
-				else
-				{
-					pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-					m_ScreenKeyState[scan] = (newstate & 128) | ukncRegister;
-				}
-				ukncscan = pTable[pcscan];
-				if (ukncscan != 0)
+                {
+                    pTable = ((oldstate & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+                    m_ScreenKeyState[scan] = 0;
+                }
+                else
+                {
+                    pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
+                    m_ScreenKeyState[scan] = (newstate & 128) | ukncRegister;
+                }
+                ukncscan = pTable[pcscan];
+                if (ukncscan != 0)
                 {
                     BYTE pressed = newstate & 128;
                     WORD keyevent = MAKEWORD(ukncscan, pressed);
@@ -583,13 +588,13 @@ void ScreenView_ScanKeyboard()
     }
 
     // Process the keyboard queue
-	WORD keyevent;
-	while ((keyevent = ScreenView_GetKeyEventFromQueue()) != 0)
-	{
-		BOOL pressed = ((keyevent & 0x8000) != 0);
-		BYTE ukncscan = LOBYTE(keyevent);
-		g_pBoard->KeyboardEvent(ukncscan, pressed);
-	}
+    WORD keyevent;
+    while ((keyevent = ScreenView_GetKeyEventFromQueue()) != 0)
+    {
+        BOOL pressed = ((keyevent & 0x8000) != 0);
+        BYTE ukncscan = LOBYTE(keyevent);
+        g_pBoard->KeyboardEvent(ukncscan, pressed);
+    }
 }
 
 // External key event - e.g. from KeyboardView

@@ -123,7 +123,8 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
     return (INT_PTR) FALSE;
 }
 
-BOOL InputBoxValidate(HWND hDlg) {
+BOOL InputBoxValidate(HWND hDlg)
+{
     HWND hEdit = GetDlgItem(hDlg, IDC_EDIT1);
     TCHAR buffer[8];
     GetWindowText(hEdit, buffer, 8);
@@ -223,17 +224,17 @@ void Dialogs_DoCreateDisk(int tracks)
 {
     TCHAR bufFileName[MAX_PATH];
     BOOL okResult = ShowSaveDialog(g_hwnd,
-        _T("Save new disk as"),
-        _T("UKNC disks (*.dsk)\0*.dsk\0All Files (*.*)\0*.*\0\0"),
-        _T("dsk"),
-        bufFileName);
+            _T("Save new disk as"),
+            _T("UKNC disks (*.dsk)\0*.dsk\0All Files (*.*)\0*.*\0\0"),
+            _T("dsk"),
+            bufFileName);
     if (! okResult) return;
 
     // Create the file
     LONG fileSize = tracks * 10240;
-	HANDLE hFile = ::CreateFile(bufFileName,
-		GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE)
+    HANDLE hFile = ::CreateFile(bufFileName,
+            GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (hFile == INVALID_HANDLE_VALUE)
     {
         DWORD dwError = ::GetLastError();
         AlertWarningFormat(_T("Failed to create a file for the new disk (0x%08lx)."), dwError);
@@ -246,7 +247,7 @@ void Dialogs_DoCreateDisk(int tracks)
     ::CloseHandle(hFile);
 
     ::MessageBox(g_hwnd, _T("New disk file created successfully.\nPlease initialize the disk using INIT command."),
-        _T("UKNCBTL"), MB_OK | MB_ICONINFORMATION);
+            _T("UKNCBTL"), MB_OK | MB_ICONINFORMATION);
 }
 
 
@@ -344,7 +345,7 @@ void ShowSerialPortSettings(DCB * pDCB)
     DialogBox(g_hInst, MAKEINTRESOURCE(IDD_DCB_EDITOR), g_hwnd, DcbEditorProc);
 }
 
-const DWORD BaudrateValues[] = 
+const DWORD BaudrateValues[] =
 {
     300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 38400, 57600, 115200, 128000, 256000
 };

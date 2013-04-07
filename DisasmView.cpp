@@ -80,7 +80,7 @@ void DisasmView_RegisterClass()
     wcex.hInstance		= g_hInst;
     wcex.hIcon			= NULL;
     wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName	= NULL;
     wcex.lpszClassName	= CLASSNAME_DISASMVIEW;
     wcex.hIconSm		= NULL;
@@ -257,9 +257,9 @@ void DisasmView_DoSubtitles()
     // File Open dialog
     TCHAR bufFileName[MAX_PATH];
     BOOL okResult = ShowOpenDialog(g_hwnd,
-        _T("Open Disassemble Subtitles"),
-        _T("Subtitles (*.lst)\0*.lst\0All Files (*.*)\0*.*\0\0"),
-        bufFileName);
+            _T("Open Disassemble Subtitles"),
+            _T("Subtitles (*.lst)\0*.lst\0All Files (*.*)\0*.*\0\0"),
+            bufFileName);
     if (! okResult) return;
 
     // Load subtitles text from the file
@@ -322,7 +322,7 @@ BOOL DisasmView_ParseSubtitles()
     {
         // Line starts
         if (*pText == 0) break;
-        if (*pText == _T('\n') || *pText == _T('\r')) 
+        if (*pText == _T('\n') || *pText == _T('\r'))
         {
             pText++;
             continue;
@@ -349,7 +349,7 @@ BOOL DisasmView_ParseSubtitles()
 
             // Пропускаем разделители
             while (*pText != 0 &&
-                (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
+                   (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
                 pText++;
             BOOL okDirective = (*pText == _T('.'));
 
@@ -371,8 +371,8 @@ BOOL DisasmView_ParseSubtitles()
 
             // Сохраняем комментарий в массиве
             DisasmView_AddSubtitle(address,
-                (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
-                pCommentStart);
+                    (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
+                    pCommentStart);
 
             if (*pText == 0) break;
             *pText = 0;  // Обозначаем конец комментария
@@ -475,7 +475,7 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
             return pItem;
         pItem++;
     }
-    
+
     return NULL;
 }
 
@@ -492,10 +492,11 @@ int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x,
     // Читаем из памяти процессора в буфер
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
-    for (int idx = 0; idx < nWindowSize; idx++) {
+    for (int idx = 0; idx < nWindowSize; idx++)
+    {
         BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-            (WORD)(current + idx * 2 - 10), pProc->IsHaltMode(), TRUE, &okValidAddress);
+                (WORD)(current + idx * 2 - 10), pProc->IsHaltMode(), TRUE, &okValidAddress);
     }
 
     WORD address = current - 10;
@@ -593,7 +594,7 @@ int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x,
     }
 
     m_wDisasmNextBaseAddr = wNextBaseAddr;
-    
+
     return result;
 }
 

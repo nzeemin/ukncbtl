@@ -40,10 +40,10 @@ void DoneInstance();
 
 
 int APIENTRY _tWinMain(
-        HINSTANCE hInstance,
-        HINSTANCE hPrevInstance,
-        LPTSTR    lpCmdLine,
-        int       nCmdShow)
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPTSTR    lpCmdLine,
+    int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
@@ -122,8 +122,8 @@ endprog:
     DoneInstance();
 
 #ifdef _DEBUG
-        if (_CrtDumpMemoryLeaks())
-            ::MessageBeep(MB_ICONEXCLAMATION);
+    if (_CrtDumpMemoryLeaks())
+        ::MessageBeep(MB_ICONEXCLAMATION);
 #endif
 
     return (int) msg.wParam;

@@ -123,11 +123,11 @@ unsigned long update_adler32(unsigned long adler, unsigned char *buf, int len);
 
 DWORD ReadValueMSB(const BYTE * buffer)
 {
-  DWORD value = *(buffer++);  value <<= 8;
-  value |= *(buffer++);  value <<= 8;
-  value |= *(buffer++);  value <<= 8;
-  value |= *buffer;
-  return value;
+    DWORD value = *(buffer++);  value <<= 8;
+    value |= *(buffer++);  value <<= 8;
+    value |= *(buffer++);  value <<= 8;
+    value |= *buffer;
+    return value;
 }
 
 void SaveWordMSB(BYTE * buffer, WORD value)
@@ -156,7 +156,7 @@ BOOL PngFile_WriteHeader(FILE * fpFile, BYTE bitdepth)
     const BYTE pngheader[] = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
     size_t dwBytesWritten = ::fwrite(pngheader, 1, sizeof(pngheader), fpFile);
     if (dwBytesWritten != sizeof(pngheader))
-      return FALSE;
+        return FALSE;
 
     BYTE IHDRchunk[12 + 13];
     SaveValueMSB(IHDRchunk, 13);
@@ -172,7 +172,7 @@ BOOL PngFile_WriteHeader(FILE * fpFile, BYTE bitdepth)
     dwBytesWritten = ::fwrite(IHDRchunk, 1, sizeof(IHDRchunk), fpFile);
     if (dwBytesWritten != sizeof(IHDRchunk))
         return FALSE;
-    
+
     return TRUE;
 }
 
@@ -191,8 +191,8 @@ BOOL PngFile_WriteEnd(FILE * fpFile)
 
 BOOL PngFile_WritePalette(FILE * fpFile, const DWORD* palette)
 {
-    BYTE PLTEchunk[12 + 128*3];
-    SaveValueMSB(PLTEchunk, 128*3);
+    BYTE PLTEchunk[12 + 128 * 3];
+    SaveValueMSB(PLTEchunk, 128 * 3);
     memcpy(PLTEchunk + 4, "PLTE", 4);
     BYTE * p = PLTEchunk + 8;
     for (int i = 0; i < 128; i++)
@@ -233,7 +233,7 @@ BOOL PngFile_WriteImageData8(FILE * fpFile, DWORD framenum, const DWORD* pBits, 
     for (int line = 0; line < 288; line++)
     {
         const WORD linelen = 640 + 1;  // Each line is 641-byte block of non-compressed data
-        *(pdst++) = (line < 288-1) ? 0 : 1;  // Last?
+        *(pdst++) = (line < 288 - 1) ? 0 : 1;  // Last?
         *(pdst++) = linelen & 0xff;
         *(pdst++) = (linelen >> 8) & 0xff;
         *(pdst++) = ~linelen & 0xff;
@@ -371,7 +371,7 @@ HAPNGFILE ApngFile_Create(LPCTSTR filename)
 
     // Write IHDR chunk
     if (!PngFile_WriteHeader(fpFileNew, 4))
-      return FALSE;
+        return FALSE;
 
     fpos_t actlOffset;
     ::fgetpos(fpFileNew, &actlOffset);
@@ -390,7 +390,7 @@ HAPNGFILE ApngFile_Create(LPCTSTR filename)
 void ApngFile_Close(HAPNGFILE apngfile)
 {
     if (apngfile == INVALID_HANDLE_VALUE)
-      return;
+        return;
     APNGFILE* pApng = (APNGFILE*) apngfile;
 
     // Write IEND chunk
@@ -448,47 +448,50 @@ BOOL ApngFile_WriteFrame(
 unsigned long crc_table[256];
 /* Flag: has the table been computed? Initially false. */
 int crc_table_computed = 0;
-   
- /* Make the table for a fast CRC. */
+
+/* Make the table for a fast CRC. */
 void make_crc_table(void)
 {
-   unsigned long c;
-   int n, k;
- 
-   for (n = 0; n < 256; n++) {
-     c = (unsigned long) n;
-     for (k = 0; k < 8; k++) {
-       if (c & 1)
-         c = 0xedb88320L ^ (c >> 1);
-       else
-         c = c >> 1;
-     }
-     crc_table[n] = c;
-   }
-   crc_table_computed = 1;
+    unsigned long c;
+    int n, k;
+
+    for (n = 0; n < 256; n++)
+    {
+        c = (unsigned long) n;
+        for (k = 0; k < 8; k++)
+        {
+            if (c & 1)
+                c = 0xedb88320L ^ (c >> 1);
+            else
+                c = c >> 1;
+        }
+        crc_table[n] = c;
+    }
+    crc_table_computed = 1;
 }
-   
+
 /* Update a running CRC with the bytes buf[0..len-1]--the CRC
    should be initialized to all 1's, and the transmitted value
    is the 1's complement of the final running CRC (see the
    crc() routine below)). */
 unsigned long update_crc(unsigned long crc, unsigned char *buf, int len)
 {
-   unsigned long c = crc;
-   int n;
- 
-   if (!crc_table_computed)
-     make_crc_table();
-   for (n = 0; n < len; n++) {
-     c = crc_table[(c ^ buf[n]) & 0xff] ^ (c >> 8);
-   }
-   return c;
+    unsigned long c = crc;
+    int n;
+
+    if (!crc_table_computed)
+        make_crc_table();
+    for (n = 0; n < len; n++)
+    {
+        c = crc_table[(c ^ buf[n]) & 0xff] ^ (c >> 8);
+    }
+    return c;
 }
-   
+
 /* Return the CRC of the bytes buf[0..len-1]. */
 unsigned long crc(unsigned char *buf, int len)
 {
-   return update_crc(0xffffffffL, buf, len) ^ 0xffffffffL;
+    return update_crc(0xffffffffL, buf, len) ^ 0xffffffffL;
 }
 
 
@@ -501,7 +504,8 @@ unsigned long update_adler32(unsigned long adler, unsigned char *buf, int len)
     unsigned long s2 = (adler >> 16) & 0xffff;
     int n;
 
-    for (n = 0; n < len; n++) {
+    for (n = 0; n < len; n++)
+    {
         s1 = (s1 + buf[n]) % 65521;
         s2 = (s2 + s1)     % 65521;
     }

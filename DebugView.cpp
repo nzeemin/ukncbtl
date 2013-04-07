@@ -62,7 +62,7 @@ void DebugView_RegisterClass()
     wcex.hInstance		= g_hInst;
     wcex.hIcon			= NULL;
     wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName	= NULL;
     wcex.lpszClassName	= CLASSNAME_DEBUGVIEW;
     wcex.hIconSm		= NULL;
@@ -94,19 +94,19 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
             0, 0, rcClient.right, rcClient.bottom,
             g_hwndDebug, NULL, g_hInst, NULL);
 
-    m_hwndDebugToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL, 
-        WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_VERT,
-        4, 4, 32, rcClient.bottom, m_hwndDebugViewer,
-        (HMENU) 102,
-        g_hInst, NULL);
+    m_hwndDebugToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
+            WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_VERT,
+            4, 4, 32, rcClient.bottom, m_hwndDebugViewer,
+            (HMENU) 102,
+            g_hInst, NULL);
 
     TBADDBITMAP addbitmap;
     addbitmap.hInst = g_hInst;
     addbitmap.nID = IDB_TOOLBAR;
     SendMessage(m_hwndDebugToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
 
-    SendMessage(m_hwndDebugToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0); 
-    SendMessage(m_hwndDebugToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26)); 
+    SendMessage(m_hwndDebugToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
+    SendMessage(m_hwndDebugToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
 
     TBBUTTON buttons[3];
     ZeroMemory(buttons, sizeof(buttons));
@@ -123,7 +123,7 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
     buttons[2].idCommand = ID_DEBUG_STEPOVER;
     buttons[2].iBitmap = 16;
 
-    SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons); 
+    SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 }
 
 // Adjust position of client windows
@@ -234,7 +234,8 @@ void DebugView_OnUpdate()
     ASSERT(pCPU != NULL);
 
     // Get new register values and set change flags
-    for (int r = 0; r < 8; r++) {
+    for (int r = 0; r < 8; r++)
+    {
         WORD value = pCPU->GetReg(r);
         m_okDebugCpuRChanged[r] = (m_wDebugCpuR[r] != value);
         m_wDebugCpuR[r] = value;
@@ -247,7 +248,8 @@ void DebugView_OnUpdate()
     ASSERT(pPPU != NULL);
 
     // Get new register values and set change flags
-    for (int r = 0; r < 8; r++) {
+    for (int r = 0; r < 8; r++)
+    {
         WORD value = pPPU->GetReg(r);
         m_okDebugPpuRChanged[r] = (m_wDebugPpuR[r] != value);
         m_wDebugPpuR[r] = value;
@@ -328,7 +330,8 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     DrawRectangle(hdc, x - cxChar, y - 8, x + cxChar + 31 * cxChar, y + 8 + cyLine * 14);
 
     // Registers
-    for (int r = 0; r < 8; r++) {
+    for (int r = 0; r < 8; r++)
+    {
         ::SetTextColor(hdc, arrRChanged[r] ? COLOR_RED : colorText);
 
         LPCTSTR strRegName = REGISTER_NAME[r];
@@ -385,14 +388,16 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
     // Читаем из памяти процессора в буфер
     WORD memory[16];
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    for (int idx = 0; idx < 16; idx++) {
+    for (int idx = 0; idx < 16; idx++)
+    {
         BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-            (WORD)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, &okValidAddress);
+                (WORD)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, &okValidAddress);
     }
 
     WORD address = current - 16;
-    for (int index = 0; index < 16; index++) {  // Рисуем строки
+    for (int index = 0; index < 16; index++)    // Рисуем строки
+    {
         // Адрес
         DrawOctalValue(hdc, x + 4 * cxChar, y, address);
 
@@ -401,7 +406,8 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
         DrawOctalValue(hdc, x + 12 * cxChar, y, value);
 
         // Текущая позиция
-        if (address == current) {
+        if (address == current)
+        {
             TextOut(hdc, x + 2 * cxChar, y, _T(">>"), 2);
             TextOut(hdc, x, y, REGISTER_NAME[reg], 2);
         }
@@ -492,51 +498,51 @@ void DrawChannels(HDC hdc, int x, int y)
     TCHAR buffer[32];
     chan_stc tmpstc;
 
-    
-    tmpstc=g_pBoard->GetChannelStruct(0,0,0);
-    
+
+    tmpstc = g_pBoard->GetChannelStruct(0, 0, 0);
+
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 1 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(0,1,0);
+    tmpstc = g_pBoard->GetChannelStruct(0, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("PPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 2 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(0,2,0);
+    tmpstc = g_pBoard->GetChannelStruct(0, 2, 0);
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("PPU CH:2 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 3 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(0,0,1);
+    tmpstc = g_pBoard->GetChannelStruct(0, 0, 1);
     wsprintf(buffer, _T("PPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 4 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(0,1,1);
+    tmpstc = g_pBoard->GetChannelStruct(0, 1, 1);
     wsprintf(buffer, _T("PPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 5 * cyLine, buffer, lstrlen(buffer));
 
 
-    tmpstc=g_pBoard->GetChannelStruct(1,0,0);
+    tmpstc = g_pBoard->GetChannelStruct(1, 0, 0);
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("CPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 6 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(1,1,0);
+    tmpstc = g_pBoard->GetChannelStruct(1, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
     wsprintf(buffer, _T("CPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 7 * cyLine, buffer, lstrlen(buffer));
-    
-    tmpstc=g_pBoard->GetChannelStruct(1,0,1);
+
+    tmpstc = g_pBoard->GetChannelStruct(1, 0, 1);
     wsprintf(buffer, _T("CPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 8 * cyLine, buffer, lstrlen(buffer));
-    
-    tmpstc=g_pBoard->GetChannelStruct(1,1,1);
+
+    tmpstc = g_pBoard->GetChannelStruct(1, 1, 1);
     wsprintf(buffer, _T("CPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 9 * cyLine, buffer, lstrlen(buffer));
 
-    tmpstc=g_pBoard->GetChannelStruct(1,2,1);
+    tmpstc = g_pBoard->GetChannelStruct(1, 2, 1);
     wsprintf(buffer, _T("CPU CH:2 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 10 * cyLine, buffer, lstrlen(buffer));
 
