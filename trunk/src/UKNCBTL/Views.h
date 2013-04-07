@@ -28,7 +28,8 @@ const LPCTSTR CLASSNAME_TAPEVIEW    = _T("UKNCBTLTAPE");
 //////////////////////////////////////////////////////////////////////
 // ScreenView
 
-enum ScreenViewMode {
+enum ScreenViewMode
+{
     RGBScreen = 1,
     GrayScreen = 2,
     GRBScreen = 3,

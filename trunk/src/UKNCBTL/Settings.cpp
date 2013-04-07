@@ -81,13 +81,13 @@ void Settings_Done()
 BOOL Settings_SaveStringValue(LPCTSTR sName, LPCTSTR sValue)
 {
     BOOL result = WritePrivateProfileString(
-        m_Settings_IniAppName, sName, sValue, m_Settings_IniPath);
+            m_Settings_IniAppName, sName, sValue, m_Settings_IniPath);
     return result;
 }
 BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthChars)
 {
     DWORD result = GetPrivateProfileString(
-        m_Settings_IniAppName, sName, NULL, sBuffer, nBufferLengthChars, m_Settings_IniPath);
+            m_Settings_IniAppName, sName, NULL, sBuffer, nBufferLengthChars, m_Settings_IniPath);
     if (result > 0)
         return TRUE;
 

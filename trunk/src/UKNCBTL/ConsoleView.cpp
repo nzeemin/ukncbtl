@@ -62,7 +62,7 @@ void ConsoleView_RegisterClass()
     wcex.hInstance		= g_hInst;
     wcex.hIcon			= NULL;
     wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground	= (HBRUSH)(COLOR_BTNFACE+1);
+    wcex.hbrBackground	= (HBRUSH)(COLOR_BTNFACE + 1);
     wcex.lpszMenuName	= NULL;
     wcex.lpszClassName	= CLASSNAME_CONSOLEVIEW;
     wcex.hIconSm		= NULL;
@@ -258,8 +258,8 @@ BOOL SaveMemoryDump(CProcessor *pProc)
     TCHAR fname[20];
     wsprintf(fname, _T("memdump%s.bin"), pProc->GetName());
     HANDLE file = ::CreateFile(fname,
-        GENERIC_WRITE, FILE_SHARE_READ, NULL,
-        OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            GENERIC_WRITE, FILE_SHARE_READ, NULL,
+            OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     DWORD dwBytesWritten = 0;
     ::WriteFile(file, pData, 65536, &dwBytesWritten, NULL);
@@ -267,7 +267,7 @@ BOOL SaveMemoryDump(CProcessor *pProc)
     ::CloseHandle(file);
     if (dwBytesWritten != 65536)
         return false;
-    
+
     return true;
 }
 // Print memory dump
@@ -282,21 +282,23 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
     {
         WORD dump[8];
         for (WORD i = 0; i < 8; i++)
-            dump[i] = pMemCtl->GetWord(address + i*2, okHaltMode);
+            dump[i] = pMemCtl->GetWord(address + i * 2, okHaltMode);
 
-        TCHAR buffer[2+6+2 + 7*8 + 1 + 16 + 1 + 2];
+        TCHAR buffer[2 + 6 + 2 + 7 * 8 + 1 + 16 + 1 + 2];
         TCHAR* pBuf = buffer;
         *pBuf = _T(' ');  pBuf++;
         *pBuf = _T(' ');  pBuf++;
         PrintOctalValue(pBuf, address);  pBuf += 6;
         *pBuf = _T(' ');  pBuf++;
         *pBuf = _T(' ');  pBuf++;
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 8; i++)
+        {
             PrintOctalValue(pBuf, dump[i]);  pBuf += 6;
             *pBuf = _T(' ');  pBuf++;
         }
         *pBuf = _T(' ');  pBuf++;
-        for (int i = 0; i < 8; i++) {
+        for (int i = 0; i < 8; i++)
+        {
             WORD word = dump[i];
             BYTE ch1 = LOBYTE(word);
             TCHAR wch1 = Translate_KOI8R(ch1);
@@ -327,7 +329,7 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
     WORD memory[nWindowSize + 2];
     BOOL okValid;
     for (WORD i = 0; i < nWindowSize + 2; i++)
-        memory[i] = pMemCtl->GetWordView(address + i*2, okHaltMode, TRUE, &okValid);
+        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, TRUE, &okValid);
 
     TCHAR bufaddr[7];
     TCHAR bufvalue[7];
@@ -335,7 +337,8 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
 
     int lastLength = 0;
     int length = 0;
-    for (int index = 0; index < nWindowSize; index++) {  // Рисуем строки
+    for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
+    {
         PrintOctalValue(bufaddr, address);
         WORD value = memory[index];
         PrintOctalValue(bufvalue, value);
@@ -403,13 +406,12 @@ void ConsoleView_ShowHelp()
             _T("  mXXXXXX    Memory dump at address XXXXXX\r\n")
             _T("  mrN        Memory dump at address from register N; N=0..7\r\n")
             _T("  p          Switch to other processor\r\n")
-            _T("  r          Show register values\r\n") 
-            _T("  rN         Show value of register N; N=0..7,ps\r\n") 
-            _T("  rN XXXXXX  Set register N to value XXXXXX; N=0..7,ps\r\n") 
-            _T("  s          Step Into; executes one instruction\r\n") 
-            _T("  so         Step Over; executes and stops after the current instruction\r\n") 
-            _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
-        );
+            _T("  r          Show register values\r\n")
+            _T("  rN         Show value of register N; N=0..7,ps\r\n")
+            _T("  rN XXXXXX  Set register N to value XXXXXX; N=0..7,ps\r\n")
+            _T("  s          Step Into; executes one instruction\r\n")
+            _T("  so         Step Over; executes and stops after the current instruction\r\n")
+            _T("  u          Save memory dump to file memdumpXPU.bin\r\n"));
 }
 
 void DoConsoleCommand()
@@ -510,7 +512,7 @@ void DoConsoleCommand()
         {
             PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
             //pProc->Execute();
-            
+
             g_pBoard->DebugTicks();
 
             okUpdateAllViews = TRUE;
@@ -575,8 +577,8 @@ void DoConsoleCommand()
         else
             ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         break;
-    //TODO: "mXXXXXX YYYYYY" - set memory cell at XXXXXX to value YYYYYY
-    //TODO: "mrN YYYYYY" - set memory cell at address from rN to value YYYYYY
+        //TODO: "mXXXXXX YYYYYY" - set memory cell at XXXXXX to value YYYYYY
+        //TODO: "mrN YYYYYY" - set memory cell at address from rN to value YYYYYY
     case _T('g'):
         if (command[1] == 0)
         {
@@ -609,7 +611,8 @@ void DoConsoleCommand()
 
     PrintConsolePrompt();
 
-    if (okUpdateAllViews) {
+    if (okUpdateAllViews)
+    {
         MainWindow_UpdateAllViews();
     }
 }

@@ -255,7 +255,7 @@ BOOL CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
     BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, NULL);
-    
+
 #if !defined(PRODUCT)
     if (result && (dwBytesRead == 1))
         DebugLogFormat(_T("Net IN %02x\r\n"), (int)(*pByte));//DEBUG
@@ -280,7 +280,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
     if (m_okEmulatorNetwork != networkOnOff)
     {
         m_Settings_NetStation_Bits = (WORD)Settings_GetNetStation();
-        WORD rotateBits = (m_Settings_NetStation_Bits/16);
+        WORD rotateBits = (m_Settings_NetStation_Bits / 16);
         m_Settings_NetStation_Bits = (256 * (16 * rotateBits + m_Settings_NetStation_Bits));
         g_pBoard->SetNetStation(m_Settings_NetStation_Bits);
 
@@ -328,7 +328,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
             }
 
             // Clear port input buffer
-            ::PurgeComm(m_hEmulatorNetPort, PURGE_RXABORT|PURGE_RXCLEAR);
+            ::PurgeComm(m_hEmulatorNetPort, PURGE_RXABORT | PURGE_RXCLEAR);
 
             // Set callbacks
             g_pBoard->SetNetworkCallbacks(Emulator_NetworkIn_Callback, Emulator_NetworkOut_Callback);
@@ -415,7 +415,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             }
 
             // Clear port input buffer
-            ::PurgeComm(m_hEmulatorComPort, PURGE_RXABORT|PURGE_RXCLEAR);
+            ::PurgeComm(m_hEmulatorComPort, PURGE_RXABORT | PURGE_RXCLEAR);
 
             // Set callbacks
             g_pBoard->SetSerialCallbacks(Emulator_SerialIn_Callback, Emulator_SerialOut_Callback);
@@ -476,7 +476,7 @@ int Emulator_SystemFrame()
     g_pBoard->SetPPUBreakpoint(m_wEmulatorPPUBreakpoint);
 
     ScreenView_ScanKeyboard();
-    
+
     if (!g_pBoard->SystemFrame())
         return 0;
 
@@ -624,7 +624,8 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
     BYTE pbpgpr = 0;         // 3-bit Y-value modifier
     for (int yy = 0; yy < 307; yy++)
     {
-        if (okTagSize) {  // 4-word tag
+        if (okTagSize)  // 4-word tag
+        {
             WORD tag1 = g_pBoard->GetRAMWord(0, address);
             address += 2;
             WORD tag2 = g_pBoard->GetRAMWord(0, address);
@@ -640,7 +641,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 pbpgpr = (BYTE)((7 - (tag2 & 7)) << 4);  // Y-value modifier
                 cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
                 okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, FALSE - symbolic cursor
-                ASSERT(okCursorType==0);  //DEBUG
+                ASSERT(okCursorType == 0);  //DEBUG
                 cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
                 cursorAddress = (BYTE)((tag1 >> 5) & 7);
                 scale = 1 << scale;
@@ -698,11 +699,11 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
                     valueRGB = colors[cursorYRGB];  // 4-bit to 32-bit color
                 else
-				{
+                {
                     // Make 3-bit value from the bits
-					BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
+                    BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
                     valueRGB = palettecurrent[value012];  // 3-bit to 32-bit color
-				}
+                }
 
                 // Put value to m_bits; repeat using scale value
                 //WAS: for (int s = 0; s < scale; s++) *pBits++ = valueRGB;
@@ -810,7 +811,7 @@ BOOL Emulator_LoadImage(LPCTSTR sFilePath)
         ::fclose(fpFile);
         return FALSE;
     }
-    
+
     //TODO: Check version and size
 
     // Allocate memory

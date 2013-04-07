@@ -41,7 +41,8 @@ void MemoryView_UpdateWindowText();
 LPCTSTR MemoryView_GetMemoryModeName();
 void MemoryView_AdjustWindowLayout();
 
-enum MemoryViewMode {
+enum MemoryViewMode
+{
     MEMMODE_RAM0 = 0,  // RAM plane 0
     MEMMODE_RAM1 = 1,  // RAM plane 1
     MEMMODE_RAM2 = 2,  // RAM plane 2
@@ -71,7 +72,7 @@ void MemoryView_RegisterClass()
     wcex.hInstance		= g_hInst;
     wcex.hIcon			= NULL;
     wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
+    wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW + 1);
     wcex.lpszMenuName	= NULL;
     wcex.lpszClassName	= CLASSNAME_MEMORYVIEW;
     wcex.hIconSm		= NULL;
@@ -88,7 +89,7 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
             hwndParent, NULL, g_hInst, NULL);
-	MemoryView_UpdateWindowText();
+    MemoryView_UpdateWindowText();
 
     // ToolWindow subclassing
     m_wndprocMemoryToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
@@ -96,7 +97,7 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
 
     RECT rcClient;  GetClientRect(g_hwndMemory, &rcClient);
 
-	m_hwndMemoryViewer = CreateWindowEx(
+    m_hwndMemoryViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
             CLASSNAME_MEMORYVIEW, NULL,
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
@@ -195,49 +196,52 @@ void MemoryView_OnDraw(HDC hdc)
 
     WORD address = m_wBaseAddress;
     int y = 1 * cyLine;
-    for (;;) {  // Draw lines
+    for (;;)    // Draw lines
+    {
         DrawOctalValue(hdc, 2 * cxChar, y, address);
 
         int x = 10 * cxChar;
         TCHAR wchars[16];
-        for (int j = 0; j < 8; j++) {  // Draw words as octal value
+        for (int j = 0; j < 8; j++)    // Draw words as octal value
+        {
             // Get word from memory
             WORD word = 0;
             BOOL okValid = TRUE;
             BOOL okHalt = FALSE;
             WORD wChanged = 0;
-            switch (m_Mode) {
-                case MEMMODE_RAM0:
-                case MEMMODE_RAM1:
-                case MEMMODE_RAM2:
-                    word = g_pBoard->GetRAMWord(m_Mode, address);
-                    wChanged = Emulator_GetChangeRamStatus(m_Mode, address);
-                    break;
-                case MEMMODE_ROM:  // ROM - only 32 Kbytes
-                    if (address < 0100000)
-                        okValid = FALSE;
-                    else
-                        word = g_pBoard->GetROMWord(address - 0100000);
-                    break;
-                case MEMMODE_CPU:
-                    okHalt = g_pBoard->GetCPU()->IsHaltMode();
-                    word = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
-                    wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM12, address);
-                    break;
-                case MEMMODE_PPU:
-                    okHalt = g_pBoard->GetPPU()->IsHaltMode();
-                    word = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
-                    if (address < 0100000)
-                        wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM0, address);
-                    else
-                        wChanged = 0;
-                    break;
-                    break;
+            switch (m_Mode)
+            {
+            case MEMMODE_RAM0:
+            case MEMMODE_RAM1:
+            case MEMMODE_RAM2:
+                word = g_pBoard->GetRAMWord(m_Mode, address);
+                wChanged = Emulator_GetChangeRamStatus(m_Mode, address);
+                break;
+            case MEMMODE_ROM:  // ROM - only 32 Kbytes
+                if (address < 0100000)
+                    okValid = FALSE;
+                else
+                    word = g_pBoard->GetROMWord(address - 0100000);
+                break;
+            case MEMMODE_CPU:
+                okHalt = g_pBoard->GetCPU()->IsHaltMode();
+                word = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
+                wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM12, address);
+                break;
+            case MEMMODE_PPU:
+                okHalt = g_pBoard->GetPPU()->IsHaltMode();
+                word = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
+                if (address < 0100000)
+                    wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM0, address);
+                else
+                    wChanged = 0;
+                break;
+                break;
             }
 
             if (okValid)
             {
-                ::SetTextColor(hdc, (wChanged != 0) ? RGB(255,0,0) : colorText);
+                ::SetTextColor(hdc, (wChanged != 0) ? RGB(255, 0, 0) : colorText);
                 if (m_okMemoryByteMode)
                 {
                     PrintOctalValue(buffer, (word & 0xff));
@@ -288,23 +292,24 @@ void MemoryView_OnDraw(HDC hdc)
 
 LPCTSTR MemoryView_GetMemoryModeName()
 {
-    switch (m_Mode) {
-        case MEMMODE_RAM0:  return _T("RAM0");
-        case MEMMODE_RAM1:  return _T("RAM1");
-        case MEMMODE_RAM2:  return _T("RAM2");
-        case MEMMODE_ROM:   return _T("ROM");
-        case MEMMODE_CPU:   return _T("CPU");
-        case MEMMODE_PPU:   return _T("PPU");
-		default:
-			return _T("UKWN");  // Unknown mode
+    switch (m_Mode)
+    {
+    case MEMMODE_RAM0:  return _T("RAM0");
+    case MEMMODE_RAM1:  return _T("RAM1");
+    case MEMMODE_RAM2:  return _T("RAM2");
+    case MEMMODE_ROM:   return _T("ROM");
+    case MEMMODE_CPU:   return _T("CPU");
+    case MEMMODE_PPU:   return _T("PPU");
+    default:
+        return _T("UKWN");  // Unknown mode
     }
 }
 
 void MemoryView_UpdateWindowText()
 {
-	TCHAR buffer[64];
-	_stprintf_s(buffer, 64, _T("Memory - %s"), MemoryView_GetMemoryModeName());
-	::SetWindowText(g_hwndMemory, buffer);
+    TCHAR buffer[64];
+    _stprintf_s(buffer, 64, _T("Memory - %s"), MemoryView_GetMemoryModeName());
+    ::SetWindowText(g_hwndMemory, buffer);
 }
 
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
@@ -335,7 +340,7 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         else
             m_Mode++;
         InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
-		MemoryView_UpdateWindowText();
+        MemoryView_UpdateWindowText();
         break;
     case VK_PRIOR:
         MemoryView_Scroll(-m_nPageSize * 16);
@@ -416,7 +421,7 @@ void MemoryView_Scroll(int nDelta)
     m_wBaseAddress = (WORD)(m_wBaseAddress + nDelta);
     m_wBaseAddress = m_wBaseAddress & ((WORD)~1);
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
-    
+
     MemoryView_UpdateScrollPos();
 }
 void MemoryView_UpdateScrollPos()
