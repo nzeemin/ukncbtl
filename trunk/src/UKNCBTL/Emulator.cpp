@@ -66,26 +66,38 @@ const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
 BOOL Emulator_LoadUkncRom()
 {
-    HRSRC hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_UKNC_ROM), _T("BIN"));
-    if (hRes == NULL)
-        return false;
-    DWORD dwDataSize = ::SizeofResource(NULL, hRes);
-    if (dwDataSize < 32256)
-        return false;
-    HGLOBAL hResLoaded = ::LoadResource(NULL, hRes);
-    if (hResLoaded == NULL)
-        return false;
     void * pData = ::malloc(32768);
     if (pData == NULL)
         return false;
     ::memset(pData, 0, 32768);
-    void * pResData = ::LockResource(hResLoaded);
-    if (pResData == NULL)
+
+    FILE* fpFile = ::_tfsopen(_T("uknc_rom.bin"), _T("rb"), _SH_DENYWR);
+    if (fpFile != NULL)
     {
-        ::free(pData);
-        return false;
+        DWORD dwBytesRead = ::fread(pData, 1, 32256, fpFile);
+        ::fclose(fpFile);
+        if (dwBytesRead != 32256)
+        {
+            ::free(pData);
+            return false;
+        }
     }
-    ::memcpy(pData, pResData, 32256);
+    else  // uknc_rom.bin not found, use ROM image from resources
+    {
+        HRSRC hRes = NULL;
+        DWORD dwDataSize = 0;
+        HGLOBAL hResLoaded = NULL;
+        void * pResData = NULL;
+        if ((hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_UKNC_ROM), _T("BIN"))) == NULL ||
+            (dwDataSize = ::SizeofResource(NULL, hRes)) < 32256 ||
+            (hResLoaded = ::LoadResource(NULL, hRes)) == NULL ||
+            (pResData = ::LockResource(hResLoaded)) == NULL)
+        {
+            ::free(pData);
+            return false;
+        }
+        ::memcpy(pData, pResData, 32256);
+    }
 
     g_pBoard->LoadROM((const BYTE *)pData);
 
@@ -106,7 +118,7 @@ BOOL Emulator_Init()
 
     if (! Emulator_LoadUkncRom())
     {
-        AlertWarning(_T("Failed to load UKNC ROM from resources."));
+        AlertWarning(_T("Failed to load UKNC ROM image."));
         return false;
     }
 
