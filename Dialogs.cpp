@@ -259,6 +259,31 @@ void ShowSettingsDialog()
     DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS), g_hwnd, SettingsProc);
 }
 
+void FillRenderCombo(HWND hRender)
+{
+    TCHAR searchPath[MAX_PATH];
+    ::GetModuleFileName(GetModuleHandle(NULL), searchPath, MAX_PATH);
+    TCHAR* pos = _tcsrchr(searchPath, _T('\\')) + 1;  // Cutoff the file name
+    _tcscpy(pos, _T("Render*.dll"));  // Add search mask
+
+    WIN32_FIND_DATA finddata;
+    HANDLE hfind = ::FindFirstFile(searchPath, &finddata);
+    if (hfind != INVALID_HANDLE_VALUE)
+    {
+        while (true)
+        {
+            ::SendMessage(hRender, CB_ADDSTRING, 0, (LPARAM)finddata.cFileName);
+
+            if (!::FindNextFile(hfind, &finddata))
+                break;
+        }
+    }
+
+    TCHAR buffer[32];
+    Settings_GetRender(buffer);
+    ::SendMessage(hRender, CB_SELECTSTRING, 0, (LPARAM)buffer);
+}
+
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
 {
     switch (message)
@@ -270,6 +295,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
             SendMessage(hVolume, TBM_SETRANGEMAX, 0, (LPARAM)0xffff);
             SendMessage(hVolume, TBM_SETTICFREQ, 0x1000, 0);
             SendMessage(hVolume, TBM_SETPOS, TRUE, (LPARAM)Settings_GetSoundVolume());
+
+            HWND hRender = GetDlgItem(hDlg, IDC_RENDER);
+            FillRenderCombo(hRender);
 
             TCHAR buffer[10];
 
@@ -295,7 +323,10 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
                 DWORD volume = SendMessage(hVolume, TBM_GETPOS, 0, 0);
                 Settings_SetSoundVolume((WORD)volume);
 
-                TCHAR buffer[10];
+                TCHAR buffer[32];
+
+                GetDlgItemText(hDlg, IDC_RENDER, buffer, 32);
+                Settings_SetRender(buffer);
 
                 GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
                 Settings_SetSerialPort(buffer);

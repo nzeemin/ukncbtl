@@ -139,6 +139,7 @@ BOOL Settings_GetWindowMaximized();
 void Settings_SetWindowFullscreen(BOOL flag);
 BOOL Settings_GetWindowFullscreen();
 void Settings_GetRender(LPTSTR buffer);
+void Settings_SetRender(LPCTSTR sValue);
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath);
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer);
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath);
