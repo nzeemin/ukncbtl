@@ -236,6 +236,10 @@ void Settings_GetRender(LPTSTR buffer)
         _tcscpy(buffer, _T("RenderVfw.dll"));
     }
 }
+void Settings_SetRender(LPCTSTR sValue)
+{
+    Settings_SaveStringValue(_T("Render"), sValue);
+}
 
 void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
 {
