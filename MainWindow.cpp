@@ -191,7 +191,7 @@ BOOL MainWindow_InitToolbar()
     addbitmap.nID = IDB_TOOLBAR;
     SendMessage(m_hwndToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
 
-    TBBUTTON buttons[15];
+    TBBUTTON buttons[19];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -239,13 +239,23 @@ BOOL MainWindow_InitToolbar()
     buttons[11].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
     buttons[11].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("2"));
     buttons[12].fsStyle = BTNS_SEP;
-    buttons[13].idCommand = ID_EMULATOR_SOUND;
-    buttons[13].iBitmap = 8;
-    buttons[13].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
-    buttons[13].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
-    buttons[14].idCommand = ID_FILE_SCREENSHOT;
-    buttons[14].iBitmap = ToolbarImageScreenshot;
+    buttons[13].idCommand = ID_EMULATOR_SERIAL;
+    buttons[13].iBitmap = ToolbarImageSerial;
+    buttons[13].fsStyle = BTNS_BUTTON;
+    buttons[14].idCommand = ID_EMULATOR_PARALLEL;
+    buttons[14].iBitmap = ToolbarImageParallel;
     buttons[14].fsStyle = BTNS_BUTTON;
+    buttons[15].idCommand = ID_EMULATOR_NETWORK;
+    buttons[15].iBitmap = ToolbarImageNetwork;
+    buttons[15].fsStyle = BTNS_BUTTON;
+    buttons[16].fsStyle = BTNS_SEP;
+    buttons[17].idCommand = ID_EMULATOR_SOUND;
+    buttons[17].iBitmap = 8;
+    buttons[17].fsStyle = BTNS_BUTTON | BTNS_SHOWTEXT;
+    buttons[17].iString = (int)SendMessage(m_hwndToolbar, TB_ADDSTRING, (WPARAM)0, (LPARAM)_T("Sound"));
+    buttons[18].idCommand = ID_FILE_SCREENSHOT;
+    buttons[18].iBitmap = ToolbarImageScreenshot;
+    buttons[18].fsStyle = BTNS_BUTTON;
 
     SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 
@@ -650,7 +660,7 @@ void MainWindow_AdjustWindowLayout()
 
     int cyStatusReal = rcStatus.bottom - rcStatus.top;
     SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatusReal, cxScreen, cyStatusReal,
-        SWP_NOZORDER | (m_MainWindow_Fullscreen ? SWP_HIDEWINDOW : SWP_SHOWWINDOW));
+            SWP_NOZORDER | (m_MainWindow_Fullscreen ? SWP_HIDEWINDOW : SWP_SHOWWINDOW));
 }
 
 void MainWindow_ShowHideDebug()
@@ -824,8 +834,11 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
     MainWindow_SetToolbarImage(ID_EMULATOR_SOUND, (Settings_GetSound() ? ToolbarImageSoundOn : ToolbarImageSoundOff));
     CheckMenuItem(hMenu, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? MF_CHECKED : MF_UNCHECKED));
+    SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? 1 : 0));
     CheckMenuItem(hMenu, ID_EMULATOR_NETWORK, (Settings_GetNetwork() ? MF_CHECKED : MF_UNCHECKED));
+    SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_NETWORK, (Settings_GetNetwork() ? 1 : 0));
     CheckMenuItem(hMenu, ID_EMULATOR_PARALLEL, (Settings_GetParallel() ? MF_CHECKED : MF_UNCHECKED));
+    SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_PARALLEL, (Settings_GetParallel() ? 1 : 0));
 
     // Emulator|FloppyX
     CheckMenuItem(hMenu, ID_EMULATOR_FLOPPY0, (g_pBoard->IsFloppyImageAttached(0) ? MF_CHECKED : MF_UNCHECKED));
