@@ -80,73 +80,74 @@ IDI_DISKETTEWP          ICON                    "diskettewp.ico"
 // Menu
 //
 
-IDC_UKNCBTL MENU 
+IDC_UKNCBTL MENUEX 
 BEGIN
-    POPUP "&File"
+    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Save State…",                 ID_FILE_SAVESTATE
-        MENUITEM "Load State…",                 ID_FILE_LOADSTATE
-        MENUITEM SEPARATOR
-        MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT
-        MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS
-        MENUITEM "Save Animation...",           ID_FILE_SCREENSHOTANIMATED
-        MENUITEM SEPARATOR
-        MENUITEM "Create Disk...",              ID_FILE_CREATEDISK
-        MENUITEM "Settings",                    ID_FILE_SETTINGS
-        MENUITEM SEPARATOR
-        MENUITEM "E&xit\tAlt+F4",               IDM_EXIT
+        MENUITEM "Save State…",                 ID_FILE_SAVESTATE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load State…",                 ID_FILE_LOADSTATE,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save Animation...",           ID_FILE_SCREENSHOTANIMATED,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Create Disk...",              ID_FILE_CREATEDISK,MFT_STRING,MFS_ENABLED
+        MENUITEM "Settings",                    ID_FILE_SETTINGS,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "E&xit\tAlt+F4",               IDM_EXIT,MFT_STRING,MFS_ENABLED
     END
-    POPUP "&View"
+    POPUP "&View",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Toolbar",                     ID_VIEW_TOOLBAR
-        MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD
-        MENUITEM "Tape",                        32803
-        MENUITEM SEPARATOR
-        MENUITEM "RGB Screen",                  ID_VIEW_RGBSCREEN
-        MENUITEM "GRB Screen",                  ID_VIEW_GRBSCREEN
-        MENUITEM "Grayscale Screen",            ID_VIEW_GRAYSCREEN
-        MENUITEM SEPARATOR
-        MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN
+        MENUITEM "Toolbar",                     ID_VIEW_TOOLBAR,MFT_STRING,MFS_ENABLED
+        MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Tape",                        32803,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "RGB Screen",                  ID_VIEW_RGBSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "GRB Screen",                  ID_VIEW_GRBSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Grayscale Screen",            ID_VIEW_GRAYSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN,MFT_STRING,MFS_ENABLED
     END
-    POPUP "Render"
+    POPUP "Render",                         65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Render Mode 0",               32827
+        MENUITEM "Render Mode 0",               32827,MFT_STRING,MFS_ENABLED
     END
-    POPUP "&Emulator"
+    POPUP "&Emulator",                      65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN
-        MENUITEM "Reset",                       ID_EMULATOR_RESET
-        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART
-        MENUITEM SEPARATOR
-        MENUITEM "Sound",                       ID_EMULATOR_SOUND
-        MENUITEM "Serial",                      ID_EMULATOR_SERIAL
-        MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL
-        MENUITEM "Network",                     ID_EMULATOR_NETWORK
+        MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Reset",                       ID_EMULATOR_RESET,MFT_STRING,MFS_ENABLED
+        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Sound",                       ID_EMULATOR_SOUND,MFT_STRING,MFS_ENABLED
+        MENUITEM "Serial",                      ID_EMULATOR_SERIAL,MFT_STRING,MFS_ENABLED
+        MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL,MFT_STRING,MFS_ENABLED
+        MENUITEM "Network",                     ID_EMULATOR_NETWORK,MFT_STRING,MFS_ENABLED
     END
-    POPUP "&Configuration"
+    POPUP "&Configuration",                 65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Floppy MZ0:",                 ID_EMULATOR_FLOPPY0
-        MENUITEM "Floppy MZ1:",                 ID_EMULATOR_FLOPPY1
-        MENUITEM "Floppy MZ2:",                 ID_EMULATOR_FLOPPY2
-        MENUITEM "Floppy MZ3:",                 ID_EMULATOR_FLOPPY3
-        MENUITEM SEPARATOR
-        MENUITEM "Cartridge 1",                 ID_EMULATOR_CARTRIDGE1
-        MENUITEM "Hard Drive 1",                ID_EMULATOR_HARDDRIVE1
-        MENUITEM "Cartridge 2",                 ID_EMULATOR_CARTRIDGE2
-        MENUITEM "Hard Drive 2",                ID_EMULATOR_HARDDRIVE2
+        MENUITEM "Floppy MZ0:",                 ID_EMULATOR_FLOPPY0,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ1:",                 ID_EMULATOR_FLOPPY1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ2:",                 ID_EMULATOR_FLOPPY2,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ3:",                 ID_EMULATOR_FLOPPY3,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Cartridge 1",                 ID_EMULATOR_CARTRIDGE1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Drive 1",                ID_EMULATOR_HARDDRIVE1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Cartridge 2",                 ID_EMULATOR_CARTRIDGE2,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Drive 2",                ID_EMULATOR_HARDDRIVE2,MFT_STRING,MFS_ENABLED
     END
-    POPUP "Debug"
+    POPUP "Debug",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "Debug Views",                 ID_VIEW_DEBUG
-        MENUITEM SEPARATOR
-        MENUITEM "Switch CPU / PPU",            ID_DEBUG_CPUPPU
-        MENUITEM "Step Into\tF8",               ID_DEBUG_STEPINTO
-        MENUITEM "Step Over\tShift+F8",         ID_DEBUG_STEPOVER
+        MENUITEM "Debug Views",                 ID_VIEW_DEBUG,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Switch CPU / PPU",            ID_DEBUG_CPUPPU,MFT_STRING,MFS_ENABLED
+        MENUITEM "Step Into\tF8",               ID_DEBUG_STEPINTO,MFT_STRING,MFS_ENABLED
+        MENUITEM "Step Over\tShift+F8",         ID_DEBUG_STEPOVER,MFT_STRING,MFS_ENABLED
     END
-    POPUP "&Help"
+    POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
-        MENUITEM "&About",                      IDM_ABOUT
+        MENUITEM "&About",                      IDM_ABOUT,MFT_STRING,MFS_ENABLED
     END
+    MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
 END
 
 

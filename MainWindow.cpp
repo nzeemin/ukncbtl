@@ -543,6 +543,8 @@ void MainWindow_AdjustWindowLayout()
 {
     RECT rcStatus;  GetWindowRect(m_hwndStatusbar, &rcStatus);
     int cyStatus = rcStatus.bottom - rcStatus.top;
+    if (m_MainWindow_Fullscreen)
+        cyStatus = 0;
 
     int yScreen = 0;
     int cxScreen = 0, cyScreen = 0;
@@ -646,7 +648,9 @@ void MainWindow_AdjustWindowLayout()
 
     SetWindowPos(g_hwndScreen, NULL, 0, yScreen, cxScreen, cyScreen, SWP_NOZORDER /*| SWP_NOCOPYBITS*/);
 
-    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatus, cxScreen, cyStatus, SWP_NOZORDER);
+    int cyStatusReal = rcStatus.bottom - rcStatus.top;
+    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatusReal, cxScreen, cyStatusReal,
+        SWP_NOZORDER | (m_MainWindow_Fullscreen ? SWP_HIDEWINDOW : SWP_SHOWWINDOW));
 }
 
 void MainWindow_ShowHideDebug()
