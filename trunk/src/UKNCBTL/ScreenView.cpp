@@ -312,17 +312,15 @@ void CreateScreenView(HWND hwndParent, int x, int y)
 {
     ASSERT(hwndParent != NULL);
 
-    int cxBorder = ::GetSystemMetrics(SM_CXBORDER);
-    int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     int xLeft = x;
     int yTop = y;
-    int cxWidth = m_cxScreenWidth + cxBorder * 2;
+    int cxWidth = m_cxScreenWidth;
     int cyScreenHeight = m_cyScreenHeight;
-    int cyHeight = cyScreenHeight + cyBorder * 2;
+    int cyHeight = cyScreenHeight;
 
     g_hwndScreen = CreateWindow(
             CLASSNAME_SCREENVIEW, NULL,
-            WS_CHILD | WS_BORDER | WS_VISIBLE,
+            WS_CHILD | WS_VISIBLE,
             xLeft, yTop, cxWidth, cyHeight,
             hwndParent, NULL, g_hInst, NULL);
 
