@@ -124,6 +124,11 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
     buttons[2].iBitmap = 16;
 
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
+
+    memset(m_wDebugCpuR, 255, sizeof(m_wDebugCpuR));
+    memset(m_okDebugCpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
+    memset(m_wDebugPpuR, 255, sizeof(m_wDebugCpuR));
+    memset(m_okDebugPpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
 }
 
 // Adjust position of client windows
@@ -348,6 +353,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     TextOut(hdc, x, y + 8 * cyLine, _T("PC'"), 3);
     WORD cpc = pProc->GetCPC();
     DrawOctalValue(hdc, x + cxChar * 3, y + 8 * cyLine, cpc);
+    DrawHexValue(hdc, x + cxChar * 10, y + 8 * cyLine, cpc);
     DrawBinaryValue(hdc, x + cxChar * 15, y + 8 * cyLine, cpc);
 
     // PSW value
@@ -365,6 +371,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
     TextOut(hdc, x, y + 11 * cyLine, _T("PS'"), 3);
     WORD cpsw = pProc->GetCPSW();
     DrawOctalValue(hdc, x + cxChar * 3, y + 11 * cyLine, cpsw);
+    DrawHexValue(hdc, x + cxChar * 10, y + 11 * cyLine, cpsw);
     DrawBinaryValue(hdc, x + cxChar * 15, y + 11 * cyLine, cpsw);
 
     // Processor mode - HALT or USER
