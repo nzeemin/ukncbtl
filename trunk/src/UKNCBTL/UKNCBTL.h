@@ -83,6 +83,9 @@ enum ToolbarButtonImages
     ToolbarImageHardDriveWP = 12,
     ToolbarImageScreenshot = 13,
     ToolbarImageScreenshotStop = 14,
+    ToolbarImageSerial = 18,
+    ToolbarImageParallel = 19,
+    ToolbarImageNetwork = 20,
 };
 
 enum StatusbarParts
