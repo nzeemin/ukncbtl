@@ -38,12 +38,12 @@ WORD m_wDebugPpuR[9];  // Old register values - R0..R7, PSW
 BOOL m_okDebugCpuRChanged[9];  // Register change flags
 BOOL m_okDebugPpuRChanged[9];  // Register change flags
 
-void DoDrawDebugView(HDC hdc);
+void DebugView_DoDraw(HDC hdc);
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
-void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged);
-void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y);
-void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
-void DrawChannels(HDC hdc, int x, int y);
+void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged);
+void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y);
+void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
+void DebugView_DrawChannels(HDC hdc, int x, int y);
 void DebugView_UpdateWindowText();
 
 
@@ -172,7 +172,7 @@ LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, 
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            DoDrawDebugView(hdc);  // Draw memory dump
+            DebugView_DoDraw(hdc);
 
             EndPaint(hWnd, &ps);
         }
@@ -275,7 +275,7 @@ void DebugView_SetCurrentProc(BOOL okCPU)
 //////////////////////////////////////////////////////////////////////
 // Draw functions
 
-void DoDrawDebugView(HDC hdc)
+void DebugView_DoDraw(HDC hdc)
 {
     ASSERT(g_pBoard != NULL);
 
@@ -294,15 +294,15 @@ void DoDrawDebugView(HDC hdc)
     //LPCTSTR sProcName = pDebugPU->GetName();
     //TextOut(hdc, cxChar * 1, 2 + 1 * cyLine, sProcName, 3);
 
-    DrawProcessor(hdc, pDebugPU, 30 + cxChar * 2, 2 + 1 * cyLine, arrR, arrRChanged);
+    DebugView_DrawProcessor(hdc, pDebugPU, 30 + cxChar * 2, 2 + 1 * cyLine, arrR, arrRChanged);
 
     // Draw stack for the current processor
-    DrawMemoryForRegister(hdc, 6, pDebugPU, 30 + 35 * cxChar, 2 + 0 * cyLine);
+    DebugView_DrawMemoryForRegister(hdc, 6, pDebugPU, 30 + 35 * cxChar, 2 + 0 * cyLine);
 
     CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
-    DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 30 + 57 * cxChar, 2 + 0 * cyLine);
+    DebugView_DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 30 + 57 * cxChar, 2 + 0 * cyLine);
 
-    //DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
+    //DebugView_DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -327,7 +327,7 @@ void DrawRectangle(HDC hdc, int x1, int y1, int x2, int y2)
     ::SelectObject(hdc, hOldBrush);
 }
 
-void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged)
+void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
@@ -385,7 +385,7 @@ void DrawProcessor(HDC hdc, CProcessor* pProc, int x, int y, WORD* arrR, BOOL* a
 
 }
 
-void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
+void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
@@ -394,7 +394,7 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
 
     // Читаем из памяти процессора в буфер
     WORD memory[16];
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    const CMemoryController* pMemCtl = pProc->GetMemoryController();
     for (int idx = 0; idx < 16; idx++)
     {
         BOOL okValidAddress;
@@ -425,7 +425,7 @@ void DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y)
 
 }
 
-void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y)
+void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
@@ -490,7 +490,7 @@ void DrawPorts(HDC hdc, BOOL okProcessor, CMemoryController* pMemCtl, CMotherboa
     }
 }
 
-void DrawChannels(HDC hdc, int x, int y)
+void DebugView_DrawChannels(HDC hdc, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 

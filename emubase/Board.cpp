@@ -452,18 +452,18 @@ void CMotherboard::SetRAMByte(int plan, WORD offset, BYTE byte)
     m_pRAM[plan][offset] = byte;
 }
 
-WORD CMotherboard::GetROMWord(WORD offset)
+WORD CMotherboard::GetROMWord(WORD offset) const
 {
     ASSERT(offset < 32768);
     return *((WORD*)(m_pROM + (offset & 0xFFFE)));
 }
-BYTE CMotherboard::GetROMByte(WORD offset)
+BYTE CMotherboard::GetROMByte(WORD offset) const
 {
     ASSERT(offset < 32768);
     return m_pROM[offset];
 }
 
-WORD CMotherboard::GetROMCartWord(int cartno, WORD offset)
+WORD CMotherboard::GetROMCartWord(int cartno, WORD offset) const
 {
     ASSERT(cartno == 1 || cartno == 2);
     ASSERT(offset < 24 * 1024 - 1);
@@ -473,7 +473,7 @@ WORD CMotherboard::GetROMCartWord(int cartno, WORD offset)
     WORD* p = (WORD*) (m_pROMCart[cartindex] + (offset & 0xFFFE));
     return *p;
 }
-BYTE CMotherboard::GetROMCartByte(int cartno, WORD offset)
+BYTE CMotherboard::GetROMCartByte(int cartno, WORD offset) const
 {
     ASSERT(cartno == 1 || cartno == 2);
     ASSERT(offset < 24 * 1024);
