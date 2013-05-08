@@ -148,14 +148,14 @@ protected:  // Memory
     BYTE*           m_pROM;     ///< System ROM, 32 KB
     BYTE*           m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
 public:  // Memory access
-    WORD        GetRAMWord(int plan, WORD offset);
-    BYTE        GetRAMByte(int plan, WORD offset);
+    WORD        GetRAMWord(int plan, WORD offset) const;
+    BYTE        GetRAMByte(int plan, WORD offset) const;
     void        SetRAMWord(int plan, WORD offset, WORD word);
     void        SetRAMByte(int plan, WORD offset, BYTE byte);
-    WORD        GetROMWord(WORD offset);
-    BYTE        GetROMByte(WORD offset);
-    WORD        GetROMCartWord(int cartno, WORD offset);
-    BYTE        GetROMCartByte(int cartno, WORD offset);
+    WORD        GetROMWord(WORD offset) const;
+    BYTE        GetROMByte(WORD offset) const;
+    WORD        GetROMCartWord(int cartno, WORD offset) const;
+    BYTE        GetROMCartByte(int cartno, WORD offset) const;
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
     void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set CPU breakpoint
@@ -315,12 +315,12 @@ private:
 
 };
 
-inline WORD CMotherboard::GetRAMWord(int plan, WORD offset)
+inline WORD CMotherboard::GetRAMWord(int plan, WORD offset) const
 {
     ASSERT(plan >= 0 && plan <= 2);
     return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE)));
 }
-inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset)
+inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset) const
 {
     ASSERT(plan >= 0 && plan <= 2);
     return m_pRAM[plan][offset];

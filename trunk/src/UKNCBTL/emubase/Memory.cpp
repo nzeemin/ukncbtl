@@ -85,7 +85,7 @@ void CMemoryController::UpdateMemoryMap()
 }
 
 // Read word from memory for debugger
-WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid)
+WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const
 {
     WORD offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, TRUE);
@@ -308,7 +308,7 @@ void CFirstMemoryController::ResetDevices()
     //TODO
 }
 
-int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL /*okExec*/, WORD* pOffset, BOOL okView)
+int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL /*okExec*/, WORD* pOffset, BOOL okView) const
 {
     if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
     {
@@ -435,7 +435,7 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
 
 
 // Read word from port for debugger
-WORD CFirstMemoryController::GetPortView(WORD address)
+WORD CFirstMemoryController::GetPortView(WORD address) const
 {
     switch (address)
     {
@@ -847,7 +847,7 @@ void CSecondMemoryController::UpdateMemoryMap()
             m_pMapping[addr] = ADDRTYPE_IO;
 }
 
-int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/)
+int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/) const
 {
     //BYTE addrtype = m_pMapping[address];
     //switch (addrtype)
@@ -1529,7 +1529,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 }
 
 // Read word from port for debugger
-WORD CSecondMemoryController::GetPortView(WORD address)
+WORD CSecondMemoryController::GetPortView(WORD address) const
 {
     switch (address)
     {

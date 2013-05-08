@@ -72,9 +72,9 @@ public:  // Access to memory
     // Write byte
     void SetByte(WORD address, BOOL okHaltMode, BYTE byte);
     // Read word from memory for debugger
-    WORD GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid);
+    WORD GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const;
     // Read word from port for debugger
-    virtual WORD GetPortView(WORD address) = 0;
+    virtual WORD GetPortView(WORD address) const = 0;
     // Read SEL register
     virtual WORD GetSelRegister() = 0;
 public:  // Saving/loading emulator status (64 bytes)
@@ -85,7 +85,7 @@ protected:
     //   okHaltMode - processor mode (USER/HALT)
     //   okExec - TRUE: read instruction for execution; FALSE: read memory
     //   pOffset - result - offset in memory plane
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView = FALSE) = 0;
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView = FALSE) const = 0;
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address) = 0;
     virtual void SetPortWord(WORD address, WORD word) = 0;
@@ -101,9 +101,9 @@ public:
     virtual void DCLO_Signal();  // DCLO signal
     virtual void ResetDevices();  // INIT signal
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView);
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView) const;
     virtual WORD GetSelRegister() { return 0160000; }
-    virtual WORD GetPortView(WORD address);
+    virtual WORD GetPortView(WORD address) const;
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address);
     virtual void SetPortWord(WORD address, WORD word);
@@ -142,9 +142,9 @@ public:
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView);
+    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView) const;
     virtual WORD GetSelRegister() { return 0160000; }
-    virtual WORD GetPortView(WORD address);
+    virtual WORD GetPortView(WORD address) const;
 protected:  // Access to I/O ports
     virtual WORD GetPortWord(WORD address);
     virtual void SetPortWord(WORD address, WORD word);

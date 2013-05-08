@@ -36,8 +36,8 @@ BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDisasmBaseAddr = 0;
 WORD m_wDisasmNextBaseAddr = 0;
 
-void DoDrawDisasmView(HDC hdc);
-int  DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
+void DisasmView_DoDraw(HDC hdc);
+int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DisasmView_SetBaseAddr(WORD base);
@@ -151,7 +151,7 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            DoDrawDisasmView(hdc);  // Draw memory dump
+            DisasmView_DoDraw(hdc);
 
             EndPaint(hWnd, &ps);
         }
@@ -431,7 +431,7 @@ void DisasmView_SetBaseAddr(WORD base)
 //////////////////////////////////////////////////////////////////////
 // Draw functions
 
-void DoDrawDisasmView(HDC hdc)
+void DisasmView_DoDraw(HDC hdc)
 {
     ASSERT(g_pBoard != NULL);
 
@@ -446,7 +446,7 @@ void DoDrawDisasmView(HDC hdc)
 
     // Draw disasseble for the current processor
     WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
-    int yFocus = DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
+    int yFocus = DisasmView_DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -479,13 +479,13 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
     return NULL;
 }
 
-int DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
+int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int result = -1;
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
 
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    const CMemoryController* pMemCtl = pProc->GetMemoryController();
     WORD proccurrent = pProc->GetPC();
     WORD current = base;
 
