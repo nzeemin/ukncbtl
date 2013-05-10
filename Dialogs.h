@@ -29,5 +29,7 @@ void ShowSettingsDialog();
 
 void ShowSerialPortSettings(DCB * pDCB);
 
+void ShowConfigurationDialog();
+
 
 //////////////////////////////////////////////////////////////////////

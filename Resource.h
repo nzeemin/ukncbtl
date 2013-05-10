@@ -24,6 +24,7 @@
 #define IDR_UKNC_ROM                    147
 #define IDD_DCB_EDITOR                  148
 #define IDB_KEYBOARDMASK                149
+#define IDD_CONFIGDLG                   150
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002
@@ -43,6 +44,8 @@
 #define IDC_BUTTON1                     1025
 #define IDC_BUTTON2                     1026
 #define IDC_RENDER                      1027
+#define IDC_TREE1                       1028
+#define IDC_LIST1                       1029
 #define ID_VIEW                         32771
 #define ID_VIEW_MEMORY                  32772
 #define ID_EMULATOR                     32773
@@ -82,6 +85,7 @@
 #define ID_VIEW_FULLSCREEN              32826
 #define ID_VIEW_RENDERMODE              32827
 #define ID_RENDER                       32860
+#define ID_EMULATOR_CONFIGURATION       32862
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -89,9 +93,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        150
-#define _APS_NEXT_COMMAND_VALUE         32861
-#define _APS_NEXT_CONTROL_VALUE         1028
+#define _APS_NEXT_RESOURCE_VALUE        151
+#define _APS_NEXT_COMMAND_VALUE         32863
+#define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

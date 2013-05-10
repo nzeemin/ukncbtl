@@ -78,6 +78,7 @@ void MainWindow_DoFileScreenshotAnimated();
 void MainWindow_DoFileScreenshotAnimatedStop();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
+void MainWindow_DoEmulatorConfiguration();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
@@ -1024,6 +1025,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_FILE_SETTINGS:
         MainWindow_DoFileSettings();
+        break;
+    case ID_EMULATOR_CONFIGURATION:
+        ShowConfigurationDialog();
         break;
     default:
         if (commandId >= ID_VIEW_RENDERMODE && commandId < ID_VIEW_RENDERMODE + 32)
