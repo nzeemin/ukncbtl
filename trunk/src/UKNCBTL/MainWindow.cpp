@@ -135,6 +135,7 @@ BOOL CreateMainWindow()
     if (!MainWindow_InitStatusbar())
         return FALSE;
 
+    void DebugView_Init();
     ScreenView_Init();
 
     // Create screen window as a child of the main window

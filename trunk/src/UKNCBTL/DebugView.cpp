@@ -33,10 +33,10 @@ HWND m_hwndDebugViewer = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndDebugToolbar = (HWND) INVALID_HANDLE_VALUE;
 
 BOOL m_okDebugProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
-WORD m_wDebugCpuR[9];  // Old register values - R0..R7, PSW
-WORD m_wDebugPpuR[9];  // Old register values - R0..R7, PSW
-BOOL m_okDebugCpuRChanged[9];  // Register change flags
-BOOL m_okDebugPpuRChanged[9];  // Register change flags
+WORD m_wDebugCpuR[11];  // Old register values - R0..R7, PSW, CPC, CPSW
+WORD m_wDebugPpuR[11];  // Old register values - R0..R7, PSW, CPC, CPSW
+BOOL m_okDebugCpuRChanged[11];  // Register change flags
+BOOL m_okDebugPpuRChanged[11];  // Register change flags
 
 void DebugView_DoDraw(HDC hdc);
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -68,6 +68,14 @@ void DebugView_RegisterClass()
     wcex.hIconSm		= NULL;
 
     RegisterClassEx(&wcex);
+}
+
+void DebugView_Init()
+{
+    memset(m_wDebugCpuR, 255, sizeof(m_wDebugCpuR));
+    memset(m_okDebugCpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
+    memset(m_wDebugPpuR, 255, sizeof(m_wDebugPpuR));
+    memset(m_okDebugPpuRChanged, 1, sizeof(m_okDebugPpuRChanged));
 }
 
 void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
@@ -124,11 +132,6 @@ void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
     buttons[2].iBitmap = 16;
 
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
-
-    memset(m_wDebugCpuR, 255, sizeof(m_wDebugCpuR));
-    memset(m_okDebugCpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
-    memset(m_wDebugPpuR, 255, sizeof(m_wDebugCpuR));
-    memset(m_okDebugPpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
 }
 
 // Adjust position of client windows
@@ -248,6 +251,12 @@ void DebugView_OnUpdate()
     WORD pswCPU = pCPU->GetPSW();
     m_okDebugCpuRChanged[8] = (m_wDebugCpuR[8] != pswCPU);
     m_wDebugCpuR[8] = pswCPU;
+    WORD cpcCPU = pCPU->GetCPC();
+    m_okDebugCpuRChanged[9] = (m_wDebugCpuR[9] != cpcCPU);
+    m_wDebugCpuR[9] = cpcCPU;
+    WORD cpswCPU = pCPU->GetCPSW();
+    m_okDebugCpuRChanged[10] = (m_wDebugCpuR[10] != cpswCPU);
+    m_wDebugCpuR[10] = cpswCPU;
 
     CProcessor* pPPU = g_pBoard->GetPPU();
     ASSERT(pPPU != NULL);
@@ -262,6 +271,12 @@ void DebugView_OnUpdate()
     WORD pswPPU = pPPU->GetPSW();
     m_okDebugPpuRChanged[8] = (m_wDebugPpuR[8] != pswPPU);
     m_wDebugPpuR[8] = pswPPU;
+    WORD cpcPPU = pPPU->GetCPC();
+    m_okDebugPpuRChanged[9] = (m_wDebugPpuR[9] != cpcPPU);
+    m_wDebugPpuR[9] = cpcPPU;
+    WORD cpswPPU = pPPU->GetCPSW();
+    m_okDebugPpuRChanged[10] = (m_wDebugPpuR[10] != cpswPPU);
+    m_wDebugPpuR[10] = cpswPPU;
 }
 
 void DebugView_SetCurrentProc(BOOL okCPU)
@@ -350,8 +365,9 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
     ::SetTextColor(hdc, colorText);
 
     // CPC value
+    ::SetTextColor(hdc, arrRChanged[9] ? COLOR_RED : colorText);
     TextOut(hdc, x, y + 8 * cyLine, _T("PC'"), 3);
-    WORD cpc = pProc->GetCPC();
+    WORD cpc = arrR[9];
     DrawOctalValue(hdc, x + cxChar * 3, y + 8 * cyLine, cpc);
     DrawHexValue(hdc, x + cxChar * 10, y + 8 * cyLine, cpc);
     DrawBinaryValue(hdc, x + cxChar * 15, y + 8 * cyLine, cpc);
@@ -365,14 +381,15 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
     TextOut(hdc, x + cxChar * 15, y + 9 * cyLine, _T("       HP  TNZVC"), 16);
     DrawBinaryValue(hdc, x + cxChar * 15, y + 10 * cyLine, psw);
 
-    ::SetTextColor(hdc, colorText);
-
     // CPSW value
+    ::SetTextColor(hdc, arrRChanged[10] ? COLOR_RED : colorText);
     TextOut(hdc, x, y + 11 * cyLine, _T("PS'"), 3);
-    WORD cpsw = pProc->GetCPSW();
+    WORD cpsw = arrR[10];
     DrawOctalValue(hdc, x + cxChar * 3, y + 11 * cyLine, cpsw);
     DrawHexValue(hdc, x + cxChar * 10, y + 11 * cyLine, cpsw);
     DrawBinaryValue(hdc, x + cxChar * 15, y + 11 * cyLine, cpsw);
+
+    ::SetTextColor(hdc, colorText);
 
     // Processor mode - HALT or USER
     BOOL okHaltMode = pProc->IsHaltMode();
