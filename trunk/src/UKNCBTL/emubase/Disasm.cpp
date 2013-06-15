@@ -8,8 +8,9 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Disasm.cpp
-// See defines in header file Emubase.h
+/// \file Disasm.cpp
+/// \brief Disassembler for KM1801VM2 processor
+/// \details See defines in header file Emubase.h
 
 #include "stdafx.h"
 #include "Disasm.h"

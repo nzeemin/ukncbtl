@@ -8,8 +8,7 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Defines.h
-// PDP11-like processor defines
+/// \file Defines.h  PDP11-like processor defines
 
 #pragma once
 

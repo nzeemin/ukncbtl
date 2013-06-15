@@ -8,8 +8,7 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Board.h
-//
+/// \file Board.h  Motherboard class
 
 #pragma once
 
@@ -104,13 +103,13 @@ class CHardDrive;
 //////////////////////////////////////////////////////////////////////
 
 
-// \brief Bus device
+/// \brief Bus device
 class CBusDevice
 {
 public:
-    // Name of the device
+    /// \brief Name of the device
     virtual LPCTSTR GetName() const = 0;
-    // Device address ranges: [address, length] pairs, last pair is [0,0]
+    /// \brief Device address ranges: [address, length] pairs, last pair is [0,0]
     virtual const WORD* GetAddressRanges() const = 0;
 };
 
@@ -137,8 +136,8 @@ public:  // Getting devices
     CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl; }  ///< Get PPU memory controller
 
 protected:
-    CBusDevice** m_pCpuDevices;
-    CBusDevice** m_pPpuDevices;
+    CBusDevice** m_pCpuDevices;  ///< List of CPU bus devices
+    CBusDevice** m_pPpuDevices;  ///< List of PPU bus devices
 public:
     const CBusDevice** GetCPUBusDevices() { return (const CBusDevice**) m_pCpuDevices; }
     const CBusDevice** GetPPUBusDevices() { return (const CBusDevice**) m_pPpuDevices; }
@@ -158,8 +157,8 @@ public:  // Memory access
     BYTE        GetROMCartByte(int cartno, WORD offset) const;
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
-    void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set CPU breakpoint
-    void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } ///< Set PPU breakpoint
+    void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set current CPU breakpoint
+    void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } ///< Set current PPU breakpoint
     chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
     {
         //cpu==1 ,ppu==0; tx==1, rx==0
@@ -223,7 +222,7 @@ public:  // System control
     BOOL        SystemFrame();  ///< Do one frame -- use for normal run
     void        KeyboardEvent(BYTE scancode, BOOL okPressed);  ///< Key pressed or released
     WORD        GetKeyboardRegister(void);
-    WORD        GetScannedKey() {return m_scanned_key; }
+    WORD        GetScannedKey() { return m_scanned_key; }
 
     /// \brief Attach floppy image to the slot -- insert the disk.
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
@@ -281,8 +280,8 @@ private: // Timing
     int         m_cputicks;
     unsigned int m_lineticks;
 private:
-    WORD        m_CPUbp;  ///< CPU breakpoint, 177777 if not set
-    WORD        m_PPUbp;  ///< PPU breakpoint, 177777 if not set
+    WORD        m_CPUbp;  ///< Current CPU breakpoint, 177777 if not set
+    WORD        m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
 
     WORD		m_timer;
     WORD		m_timerreload;
@@ -325,5 +324,6 @@ inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset) const
     ASSERT(plan >= 0 && plan <= 2);
     return m_pRAM[plan][offset];
 }
+
 
 //////////////////////////////////////////////////////////////////////

@@ -8,8 +8,7 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Processor.h
-// KM1801VM2 processor
+/// \file Processor.h  KM1801VM2 processor class
 
 #pragma once
 
@@ -27,13 +26,13 @@ class CProcessor
 
 public:  // Constructor / initialization
     CProcessor(LPCTSTR name);
-    /// \brief Link the processor and memory controller.
+    /// \brief Link the processor and memory controller
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
     void        SetHALTPin(BOOL value);
     void        SetDCLOPin(BOOL value);
     void        SetACLOPin(BOOL value);
     void        MemoryError();
-    /// \brief Get the processor name, assigned in the constructor.
+    /// \brief Get the processor name, assigned in the constructor
     LPCTSTR     GetName() const { return m_name; }
 
 public:
@@ -94,7 +93,7 @@ public:
 public:  // Register control
     WORD        GetPSW() const { return m_psw; }  ///< Get the processor status word register value
     WORD        GetCPSW() const { return m_savepsw; }
-    BYTE        GetLPSW() const { return LOBYTE(m_psw); }
+    BYTE        GetLPSW() const { return LOBYTE(m_psw); }  ///< Get PSW lower byte
     /// \brief Set the processor status word register value
     void        SetPSW(WORD word)
     {
@@ -107,7 +106,7 @@ public:  // Register control
         m_psw = (m_psw & 0xFF00) | (WORD)byte;
         if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
     }
-    WORD        GetReg(int regno) const { return m_R[regno]; }  ///< Get register value
+    WORD        GetReg(int regno) const { return m_R[regno]; }  ///< Get register value, regno=0..7
     /// \brief Set register value
     void        SetReg(int regno, WORD word)
     {
@@ -155,8 +154,11 @@ public:  // Processor control
     void        TickEVNT();  ///< EVNT signal
     void        InterruptVIRQ(int que, WORD interrupt);  ///< External interrupt via VIRQ signal
     WORD        GetVIRQ(int que);
-    void        Execute();   ///< Execute one instruction - for debugger only
+    /// \brief Execute one processor tick
+    void        Execute();
+    /// \brief Process pending interrupt requests
     BOOL        InterruptProcessing();
+    /// \brief Execute next command and process interrupts
     void        CommandExecution();
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
@@ -167,7 +169,9 @@ protected:  // Implementation
     void        FetchInstruction();      ///< Read next instruction
     void        TranslateInstruction();  ///< Execute the instruction
 protected:  // Implementation - memory access
+    /// \brief Read word from the bus for execution
     WORD        GetWordExec(WORD address) { return m_pMemoryController->GetWordExec(address, IsHaltMode()); }
+    /// \brief Read word from the bus
     WORD        GetWord(WORD address) { return m_pMemoryController->GetWord(address, IsHaltMode()); }
     void        SetWord(WORD address, WORD word) { m_pMemoryController->SetWord(address, IsHaltMode(), word); }
     BYTE        GetByte(WORD address) { return m_pMemoryController->GetByte(address, IsHaltMode()); }
@@ -192,7 +196,7 @@ protected:  // Implementation - instruction execution
     WORD        GetWordAddr (BYTE meth, BYTE reg);
     WORD        GetByteAddr (BYTE meth, BYTE reg);
 
-    void        ExecuteUNKNOWN ();  // Нет такой инструкции - просто вызывается TRAP 10
+    void        ExecuteUNKNOWN ();  ///< There is no such instruction -- just call TRAP 10
     void        ExecuteHALT ();
     void        ExecuteWAIT ();
     void        ExecuteRCPC	();
