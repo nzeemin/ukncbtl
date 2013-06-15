@@ -8,9 +8,9 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Hard.cpp
-// Hard disk drive emulation
-// See defines in header file Emubase.h
+/// \file Hard.cpp
+/// \brief Hard disk drive emulation.
+/// \details See defines in header file Emubase.h
 
 #include "stdafx.h"
 #include <sys/stat.h>

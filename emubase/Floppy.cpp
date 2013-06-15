@@ -8,9 +8,9 @@ See the GNU Lesser General Public License for more details.
     You should have received a copy of the GNU Lesser General Public License along with
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
-// Floppy.cpp
-// Floppy controller and drives emulation
-// See defines in header file Emubase.h
+/// \file Floppy.cpp
+/// \brief Floppy controller and drives emulation
+/// \details See defines in header file Emubase.h
 
 #include "stdafx.h"
 #include <sys/stat.h>
