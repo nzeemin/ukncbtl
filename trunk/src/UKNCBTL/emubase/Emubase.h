@@ -21,10 +21,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Disassembler
 
 /// \brief Disassemble one instruction of KM1801VM2 processor
-/// \param pMemory memory image (we read only words of the instruction)
-/// \param sInstr  instruction mnemonics buffer - at least 8 characters
-/// \param sArg    instruction arguments buffer - at least 32 characters
-/// \return number of words in the instruction
+/// \param[in]  pMemory Memory image (we read only words of the instruction)
+/// \param[in]  addr    Address of the instruction
+/// \param[out] sInstr  Instruction mnemonics buffer - at least 8 characters
+/// \param[out] sArg    Instruction arguments buffer - at least 32 characters
+/// \return  Number of words in the instruction
 int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg);
 
 
@@ -36,26 +37,24 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg)
 #define FLOPPY_FSM_IDLE                 0
 
 #define FLOPPY_CMD_CORRECTION250             04
-#define FLOPPY_CMD_ENGINESTART              020
 #define FLOPPY_CMD_CORRECTION500            010
-#define FLOPPY_CMD_SIDEUP                   040
-#define FLOPPY_CMD_DIR                     0100
-#define FLOPPY_CMD_STEP                    0200
-#define FLOPPY_CMD_SEARCHSYNC              0400
-#define FLOPPY_CMD_SKIPSYNC               01000
-//dir == 0 to center (towards trk0)
-//dir == 1 from center (towards trk80)
+#define FLOPPY_CMD_ENGINESTART              020  ///< Engine on/off
+#define FLOPPY_CMD_SIDEUP                   040  ///< Side: 1 -- upper head, 0 -- lower head
+#define FLOPPY_CMD_DIR                     0100  ///< Direction: 0 -- to center (towards trk0), 1 -- from center (towards trk80)
+#define FLOPPY_CMD_STEP                    0200  ///< Step / ready
+#define FLOPPY_CMD_SEARCHSYNC              0400  ///< Search sync
+#define FLOPPY_CMD_SKIPSYNC               01000  ///< Skip sync
 
-#define FLOPPY_STATUS_TRACK0                 01
-#define FLOPPY_STATUS_RDY                    02
-#define FLOPPY_STATUS_WRITEPROTECT           04
-#define FLOPPY_STATUS_MOREDATA             0200
-#define FLOPPY_STATUS_CHECKSUMOK         040000
-#define FLOPPY_STATUS_INDEXMARK         0100000
+#define FLOPPY_STATUS_TRACK0                 01  ///< Track 0 flag
+#define FLOPPY_STATUS_RDY                    02  ///< Ready status
+#define FLOPPY_STATUS_WRITEPROTECT           04  ///< Write protect
+#define FLOPPY_STATUS_MOREDATA             0200  ///< Need more data flag
+#define FLOPPY_STATUS_CHECKSUMOK         040000  ///< Checksum verified OK
+#define FLOPPY_STATUS_INDEXMARK         0100000  ///< Index flag, indicates the beginning of track
 
-#define FLOPPY_RAWTRACKSIZE             6250
+#define FLOPPY_RAWTRACKSIZE             6250     ///< Raw track size, bytes
 #define FLOPPY_RAWMARKERSIZE            (FLOPPY_RAWTRACKSIZE / 2)
-#define FLOPPY_INDEXLENGTH              150
+#define FLOPPY_INDEXLENGTH              150      ///< Length of index hole, in bytes of raw track image
 
 /// \brief Floppy drive (one of four drives in the floppy controller)
 /// \sa CFloppyController
