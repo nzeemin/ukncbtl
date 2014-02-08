@@ -84,6 +84,13 @@ CHardDrive::CHardDrive()
     m_command = 0;
     m_timeoutcount = m_timeoutevent = 0;
     m_sectorcount = 0;
+
+    m_numsectors = m_numheads = m_numcylinders = 0;
+    m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
+    memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
+
+    m_okInverted = FALSE;
+    m_okReadOnly = FALSE;
 }
 
 CHardDrive::~CHardDrive()

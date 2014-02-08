@@ -25,6 +25,7 @@ CMemoryController::CMemoryController ()
     m_pMapping = (BYTE*) malloc(65536);
     memset(m_pMapping, ADDRTYPE_NONE, 65536);
     m_pDevices = NULL;
+    m_nDeviceCount = 0;
 }
 
 CMemoryController::~CMemoryController ()

@@ -36,6 +36,9 @@ CFloppyDrive::CFloppyDrive()
     okNetRT11Image = okReadOnly = FALSE;
     datatrack = dataside = 0;
     dataptr = 0;
+    track = side = 0;
+    memset(data, 0, FLOPPY_RAWTRACKSIZE);
+    memset(marker, 0, FLOPPY_RAWMARKERSIZE);
 }
 
 void CFloppyDrive::Reset()
@@ -54,7 +57,7 @@ CFloppyController::CFloppyController()
     m_pDrive = m_drivedata;
     m_datareg = m_writereg = m_shiftreg = 0;
     m_writing = m_searchsync = m_writemarker = m_crccalculus = FALSE;
-    m_writeflag = m_shiftflag = FALSE;
+    m_writeflag = m_shiftflag = m_shiftmarker = FALSE;
     m_trackchanged = FALSE;
     m_status = FLOPPY_STATUS_TRACK0 | FLOPPY_STATUS_WRITEPROTECT;
     m_flags = FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC;
