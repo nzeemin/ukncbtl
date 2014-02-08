@@ -44,7 +44,7 @@ int WavPcmFile_GetFrequency(HWAVPCMFILE wavpcmfile)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return 0;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
 
     return pWavPcm->nSampleFrequency;
 }
@@ -54,7 +54,7 @@ DWORD WavPcmFile_GetLength(HWAVPCMFILE wavpcmfile)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return 0;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
 
     return pWavPcm->dwDataSize / pWavPcm->nBlockAlign;
 }
@@ -64,7 +64,7 @@ DWORD WavPcmFile_GetPosition(HWAVPCMFILE wavpcmfile)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return 0;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
 
     return pWavPcm->dwCurrentPosition;
 }
@@ -74,7 +74,7 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
 
     DWORD offsetInData = position * pWavPcm->nBlockAlign;
     ::fseek(pWavPcm->fpFile, pWavPcm->dwDataOffset + offsetInData, SEEK_SET);
@@ -263,7 +263,7 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
 
     if (pWavPcm->okWriting)
     {
@@ -287,7 +287,7 @@ BOOL WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return FALSE;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
     if (!pWavPcm->okWriting)
         return FALSE;
     ASSERT(pWavPcm->nBitsPerSample == 8);
@@ -310,7 +310,7 @@ unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
     if (wavpcmfile == INVALID_HANDLE_VALUE)
         return 0;
 
-    WAVPCMFILE* pWavPcm = (WAVPCMFILE*) wavpcmfile;
+    WAVPCMFILE* pWavPcm = reinterpret_cast<WAVPCMFILE*>(wavpcmfile);
     if (pWavPcm->okWriting)
         return 0;
 

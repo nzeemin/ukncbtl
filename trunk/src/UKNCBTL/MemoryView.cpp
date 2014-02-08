@@ -236,7 +236,6 @@ void MemoryView_OnDraw(HDC hdc)
                 else
                     wChanged = 0;
                 break;
-                break;
             }
 
             if (okValid)
