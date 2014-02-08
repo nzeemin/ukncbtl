@@ -320,7 +320,7 @@ void CMotherboard::LoadRAM(int plan, const BYTE* pBuffer)  // Load 32 KB RAM ima
 
 void CMotherboard::SetNetStation(int station)
 {
-    CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+    CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
     pMemCtl->m_NetStation = station;
 }
 
@@ -708,7 +708,7 @@ BOOL CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();  // Each 32nd tick -- FDD tick
 
             // Keyboard processing
-            CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
             if ((pMemCtl->m_Port177700 & 0200) == 0)
             {
                 BYTE row_Y = m_scanned_key & 0xF;
@@ -758,7 +758,7 @@ BOOL CMotherboard::SystemFrame()
                 if (m_TapeReadCallback != NULL)  // Tape reading
                 {
                     BOOL tapeBit = (*m_TapeReadCallback)(1);
-                    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     if (pMemCtl->TapeInput(tapeBit))
                     {
                         m_timerflags |= 040;  // Set bit 5 of timer state: external event ready to read
@@ -766,7 +766,7 @@ BOOL CMotherboard::SystemFrame()
                 }
                 else if (m_TapeWriteCallback != NULL)  // Tape writing
                 {
-                    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                     (*m_TapeWriteCallback)(value, 1);
                 }
@@ -775,7 +775,7 @@ BOOL CMotherboard::SystemFrame()
 
         if (m_SerialInCallback != NULL && frameticks % 416 == 0)
         {
-            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
             {
                 BYTE b;
@@ -788,7 +788,7 @@ BOOL CMotherboard::SystemFrame()
         }
         if (m_SerialOutCallback != NULL && frameticks % serialOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (serialTxCount > 0)
             {
                 serialTxCount--;
@@ -814,7 +814,7 @@ BOOL CMotherboard::SystemFrame()
 
         if (m_NetworkInCallback != NULL && frameticks % 64 == 0)
         {
-            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
             {
                 BYTE b;
@@ -830,7 +830,7 @@ BOOL CMotherboard::SystemFrame()
         }
         if (m_NetworkOutCallback != NULL && frameticks % networkOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = (CFirstMemoryController*) m_pFirstMemCtl;
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (networkTxCount > 0)
             {
                 networkTxCount--;
@@ -859,7 +859,7 @@ BOOL CMotherboard::SystemFrame()
 
         if (m_ParallelOutCallback != NULL)
         {
-            CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
             if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
             {
                 // Strobe set, Printer Ack set => reset Printer Ack
@@ -938,7 +938,7 @@ void CMotherboard::SaveToImage(BYTE* pImage)
     *pwImage++ = m_multiply;                            //  116     2
     memcpy(pwImage, freq_per, 12); pwImage += 6;        //  118    12
     memcpy(pwImage, freq_out, 12); pwImage += 6;        //  130    12
-    memcpy(pwImage, freq_enable, 12); pwImage += 6;     //  142    12
+    memcpy(pwImage, freq_enable, 12); /*pwImage += 6;*/ //  142    12
 
     // CPU status
     BYTE* pImageCPU = pImage + 160;
@@ -1636,7 +1636,7 @@ void CMotherboard::SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALL
 
 void CMotherboard::SetParallelOutCallback(PARALLELOUTCALLBACK outcallback)
 {
-    CSecondMemoryController* pMemCtl = (CSecondMemoryController*) m_pSecondMemCtl;
+    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
     if (outcallback == NULL)  // Reset callback
     {
         pMemCtl->m_Port177101 &= ~2;  // Reset OnLine flag

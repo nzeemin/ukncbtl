@@ -271,6 +271,11 @@ CProcessor::CProcessor (LPCTSTR name)
     m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
     m_DCLOpin = m_ACLOpin = TRUE;
     m_haltpin = FALSE;
+
+    m_instruction = 0;
+    m_regsrc = m_methsrc = m_addrsrc = 0;
+    m_regdest = m_methdest = m_addrdest = 0;
+    memset(m_virq, 0, sizeof(m_virq));
 }
 
 

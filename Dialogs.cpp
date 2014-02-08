@@ -532,7 +532,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
         if (((LPNMHDR)lParam)->code == TVN_SELCHANGED)
         {
             LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)lParam;
-            const CBusDevice* pDevice = (const CBusDevice*) pnmtv->itemNew.lParam;
+            const CBusDevice* pDevice = reinterpret_cast<const CBusDevice*>(pnmtv->itemNew.lParam);
             HWND hList = GetDlgItem(hDlg, IDC_LIST1);
             ::SendMessage(hList, LB_RESETCONTENT, 0, 0);
             if (pDevice != NULL)
