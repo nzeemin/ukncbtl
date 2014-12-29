@@ -174,7 +174,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     case PI_SCC:    _tcscpy(strInstr, _T("SCC"));    return 1;
 
         // Спецкоманды режима HALT ВМ2
-    case PI_GO:     _tcscpy(strInstr, _T("GO"));     return 1;
+    case PI_START:  _tcscpy(strInstr, _T("START"));  return 1;
     case PI_STEP:   _tcscpy(strInstr, _T("STEP"));   return 1;
     case PI_RSEL:   _tcscpy(strInstr, _T("RSEL"));   return 1;
     case PI_MFUS:   _tcscpy(strInstr, _T("MFUS"));   return 1;
