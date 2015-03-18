@@ -1,0 +1,7 @@
+/Debug
+/Product
+/Release
+/*.ncb
+/*.suo
+*.user
+/*.bin

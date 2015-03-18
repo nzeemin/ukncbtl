@@ -1,0 +1,32 @@
+## Formatting options for
+## Astyle - Source code indenter, formatter, and beautifier for C, C++, and Java Source Code
+## http://astyle.sourceforge.net/
+
+# Indent as C/C++
+--mode=c
+# Use CRLF line end style
+--lineend=windows
+
+# Allman style formatting/indenting uses broken brackets
+--style=break
+
+# Indent using 4 spaces per indent
+--indent=spaces=4
+--indent-namespaces
+# Indent 'case X:' blocks from the 'case X:' headers. Case statements not enclosed in blocks are NOT indented.
+--indent-cases
+
+--min-conditional-indent=0
+--max-instatement-indent=8
+
+# Insert space padding around operators
+--pad-oper
+# Insert space padding after paren headers only (e.g. 'if', 'for', 'while'...)
+--pad-header
+
+--break-closing-brackets
+
+# Don't break one-line blocks
+--keep-one-line-blocks
+# Don't break complex statements and multiple statements residing on a single line
+--keep-one-line-statements
