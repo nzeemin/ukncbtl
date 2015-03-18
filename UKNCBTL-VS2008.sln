@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UKNCBTL-VS2008", "UKNCBTL-VS2008.vcproj", "{8884C84B-468B-433B-9CFB-0799875130E8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug Non-Unicode|Win32 = Debug Non-Unicode|Win32
+		Debug|Win32 = Debug|Win32
+		Product Non-Unicode|Win32 = Product Non-Unicode|Win32
+		Product|Win32 = Product|Win32
+		Release Non-Unicode|Win32 = Release Non-Unicode|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Debug Non-Unicode|Win32.ActiveCfg = Debug Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Debug Non-Unicode|Win32.Build.0 = Debug Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Debug|Win32.Build.0 = Debug|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Product Non-Unicode|Win32.ActiveCfg = Product Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Product Non-Unicode|Win32.Build.0 = Product Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Product|Win32.ActiveCfg = Product|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Product|Win32.Build.0 = Product|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Release Non-Unicode|Win32.ActiveCfg = Release Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Release Non-Unicode|Win32.Build.0 = Release Non-Unicode|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Release|Win32.ActiveCfg = Release|Win32
+		{8884C84B-468B-433B-9CFB-0799875130E8}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
