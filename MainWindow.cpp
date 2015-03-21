@@ -168,7 +168,7 @@ BOOL CreateMainWindow()
     MainWindow_UpdateMenu();
 
     // Autostart
-    if (Settings_GetAutostart())
+    if (Settings_GetAutostart() || Option_AutoBoot)
         ::PostMessage(g_hwnd, WM_COMMAND, ID_EMULATOR_RUN, 0);
 
     return TRUE;

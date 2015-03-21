@@ -14,6 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include <crtdbg.h>
 #include <commctrl.h>
+#include <shellapi.h>
 
 #include "UKNCBTL.h"
 #include "Emulator.h"
@@ -34,6 +35,7 @@ long m_nMainLastFrameTicks = 0;
 
 BOOL InitInstance(HINSTANCE, int);
 void DoneInstance();
+void ParseCommandLine();
 
 
 //////////////////////////////////////////////////////////////////////
@@ -150,6 +152,9 @@ BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
     DebugLogClear();
 #endif
     Settings_Init();
+
+	ParseCommandLine();
+
     if (!Emulator_Init()) return FALSE;
     Emulator_SetSound(Settings_GetSound());
 
@@ -167,6 +172,24 @@ void DoneInstance()
     Emulator_Done();
 
     Settings_Done();
+}
+
+void ParseCommandLine()
+{
+	LPTSTR commandline = ::GetCommandLine();
+
+	int argnum = 0;
+	LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
+	
+	if (argnum <= 1)
+		return;
+	
+	for (int curargn = 1; curargn < argnum; curargn++)
+	{
+		LPTSTR arg = args[curargn];
+		if (_tcscmp(arg, _T("/boot")) == 0)
+			Option_AutoBoot = TRUE;
+	}
 }
 
 
