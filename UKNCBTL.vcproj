@@ -183,7 +183,7 @@
 			<Tool
 				Name="VCPreBuildEventTool"
 				Description="Updating Version.h file..."
-				CommandLine="&quot;C:\Program Files\TortoiseSVN\bin\SubWCRev.exe&quot; . Version.tpl Version.h"
+				CommandLine="&quot;!version.bat&quot;"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"

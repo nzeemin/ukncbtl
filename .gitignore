@@ -6,3 +6,4 @@
 *.user
 /*.bin
 /trace.log
+/Version.h
