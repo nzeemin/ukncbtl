@@ -11,6 +11,8 @@ The UKNCBTL project consists of:
 * [ukncbtl-qt](https://github.com/nzeemin/ukncbtl-qt/) is based on Qt framework and works under Windows, Linux and Mac OS X.
 * [ukncbtl-testbench](https://github.com/nzeemin/ukncbtl-testbench/) -- test bench for regression testing.
 * [ukncbtl-utils](https://github.com/nzeemin/ukncbtl-utils/) -- various utilities: rt11dsk, sav2wav, UkncComSender, ESCParser.
+* [ukncbtl-doc](https://github.com/nzeemin/ukncbtl-doc/) -- documentation and screenshots.
+* Project wiki: https://github.com/nzeemin/ukncbtl-doc/wiki
 
 Current status: Beta, under development. Most of software works fine.
 
