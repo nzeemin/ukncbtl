@@ -527,21 +527,21 @@ int Emulator_SystemFrame()
         MainWindow_SetStatusbarText(StatusbarPartUptime, buffer);
     }
 
-	// Auto-boot option processing: select "boot from disk" and press Enter
-	if (Option_AutoBoot)
-	{
-		if (m_dwEmulatorUptime == 3 && m_nUptimeFrameCount == 0)
-			ScreenView_KeyEvent(0030, TRUE);  // Press "1"
-		else if (m_dwEmulatorUptime == 3 && m_nUptimeFrameCount == 8)
-			ScreenView_KeyEvent(0030, FALSE);  // Release "1"
-		else if (m_dwEmulatorUptime == 5 && m_nUptimeFrameCount == 0)
-			ScreenView_KeyEvent(0153, TRUE);  // Press "Enter"
-		else if (m_dwEmulatorUptime == 5 && m_nUptimeFrameCount == 8)
-		{
-			ScreenView_KeyEvent(0153, FALSE);  // Release "Enter"
-			Option_AutoBoot = FALSE;  // All done
-		}
-	}
+    // Auto-boot option processing: select "boot from disk" and press Enter
+    if (Option_AutoBoot)
+    {
+        if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 6)
+            ScreenView_KeyEvent(0030, TRUE);  // Press "1"
+        else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 10)
+            ScreenView_KeyEvent(0030, FALSE);  // Release "1"
+        else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 16)
+            ScreenView_KeyEvent(0153, TRUE);  // Press "Enter"
+        else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 20)
+        {
+            ScreenView_KeyEvent(0153, FALSE);  // Release "Enter"
+            Option_AutoBoot = FALSE;  // All done
+        }
+    }
 
     return 1;
 }

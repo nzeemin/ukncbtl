@@ -1,6 +1,9 @@
 /Debug
+/Debug Non-Unicode
 /Product
+/Product Non-Unicode
 /Release
+/Release Non-Unicode
 /*.ncb
 /*.suo
 *.user

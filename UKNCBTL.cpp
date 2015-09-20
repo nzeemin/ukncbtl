@@ -153,7 +153,7 @@ BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
 #endif
     Settings_Init();
 
-	ParseCommandLine();
+    ParseCommandLine();  // Override settings by command-line option if needed
 
     if (!Emulator_Init()) return FALSE;
     Emulator_SetSound(Settings_GetSound());
@@ -176,20 +176,26 @@ void DoneInstance()
 
 void ParseCommandLine()
 {
-	LPTSTR commandline = ::GetCommandLine();
+    LPTSTR commandline = ::GetCommandLine();
 
-	int argnum = 0;
-	LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
-	
-	if (argnum <= 1)
-		return;
-	
-	for (int curargn = 1; curargn < argnum; curargn++)
-	{
-		LPTSTR arg = args[curargn];
-		if (_tcscmp(arg, _T("/boot")) == 0)
-			Option_AutoBoot = TRUE;
-	}
+    //TODO: Needs non-Unicode variant
+    int argnum = 0;
+    LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
+
+    if (argnum <= 1)
+        return;
+
+    for (int curargn = 1; curargn < argnum; curargn++)
+    {
+        LPTSTR arg = args[curargn];
+        if (_tcscmp(arg, _T("/boot")) == 0)
+        {
+            //TODO: Check if we have Floppy0 image assigned
+            Option_AutoBoot = TRUE;
+        }
+    }
+
+    ::LocalFree(args);
 }
 
 

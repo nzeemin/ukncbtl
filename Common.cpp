@@ -115,7 +115,11 @@ void DebugLog(LPCTSTR message)
     DWORD dwLength = lstrlen(message) * sizeof(TCHAR);
 
     char ascii[256];  *ascii = 0;
+#ifdef  _UNICODE
     WideCharToMultiByte(CP_ACP, 0, message, dwLength, ascii, 256, NULL, NULL);
+#else
+    strcpy(ascii, message);
+#endif
 
     DWORD dwBytesWritten = 0;
     //WriteFile(Common_LogFile, message, dwLength, &dwBytesWritten, NULL);

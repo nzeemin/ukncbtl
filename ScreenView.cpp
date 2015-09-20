@@ -218,7 +218,7 @@ void CALLBACK ScreenView_EnumModesProc(int modeNum, LPCTSTR modeDesc, int modeWi
     pmode->modeNum = modeNum;
     pmode->width = modeWidth;
     pmode->height = modeHeight;
-    wcscpy_s(pmode->description, 40, modeDesc);
+    _tcscpy_s(pmode->description, 40, modeDesc);
 
     g_nScreenModeIndex++;
 }

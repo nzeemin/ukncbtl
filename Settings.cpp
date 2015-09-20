@@ -112,7 +112,7 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
     if (!Settings_LoadStringValue(sName, buffer, 12))
         return FALSE;
 
-    int result = swscanf(buffer, _T("%lu"), dwValue);
+    int result = _stscanf(buffer, _T("%lu"), dwValue);
     if (result == 0)
         return FALSE;
 
