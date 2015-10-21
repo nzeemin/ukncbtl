@@ -1068,6 +1068,8 @@ void MainWindow_DoViewScreenMode(ScreenViewMode newMode)
     MainWindow_UpdateMenu();
 
     Settings_SetScreenViewMode(newMode);
+
+    ScreenView_RedrawScreen();
 }
 
 void MainWindow_DoSelectRenderMode(int newMode)
