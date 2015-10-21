@@ -662,8 +662,10 @@ void CMotherboard::DebugTicks()
 * 48 тиков обмена с COM-портом - каждый 416 тик
 * 8?? тиков обмена с NET-портом - каждый 64 тик ???
 */
-#define SYSTEMFRAME_EXECUTE_CPU     { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_PPU     { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_BP_CPU  { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_BP_PPU  { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
 BOOL CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
@@ -688,20 +690,40 @@ BOOL CMotherboard::SystemFrame()
             Tick50();  // 1/50 timer event
 
         // CPU - 16 times, PPU - 12.5 times
-        /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-        /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-        /*  4 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-        /*  7 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-        /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-        if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
-            SYSTEMFRAME_EXECUTE_PPU;
+        if (m_CPUbp == 0177777 && m_PPUbp == 0177777)  // No breakpoints, no need to check
+        {
+            /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  4 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  7 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
+                SYSTEMFRAME_EXECUTE_PPU;
+        }
+        else  // Have breakpoint, need to check
+        {
+            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  1 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  4 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  7 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
+                SYSTEMFRAME_EXECUTE_BP_PPU;
+        }
 
         if ((frameticks & 31) == 0)  // (frameticks % 32 == 0)
         {
