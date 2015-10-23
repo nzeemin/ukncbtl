@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // MemoryView.cpp
 
 #include "stdafx.h"
+#include <commctrl.h>
 #include "UKNCBTL.h"
 #include "Views.h"
 #include "ToolWindow.h"
@@ -29,6 +30,7 @@ int m_cyLineMemory = 0;  // Line height in pixels
 int m_nPageSize = 0;  // Page size in lines
 
 HWND m_hwndMemoryViewer = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndMemoryToolbar = (HWND) INVALID_HANDLE_VALUE;
 
 void MemoryView_OnDraw(HDC hdc);
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -40,17 +42,6 @@ void MemoryView_UpdateScrollPos();
 void MemoryView_UpdateWindowText();
 LPCTSTR MemoryView_GetMemoryModeName();
 void MemoryView_AdjustWindowLayout();
-
-enum MemoryViewMode
-{
-    MEMMODE_RAM0 = 0,  // RAM plane 0
-    MEMMODE_RAM1 = 1,  // RAM plane 1
-    MEMMODE_RAM2 = 2,  // RAM plane 2
-    MEMMODE_ROM  = 3,  // ROM
-    MEMMODE_CPU  = 4,  // CPU memory
-    MEMMODE_PPU  = 5,  // PPU memory
-    MEMMODE_LAST = 5,  // Last mode number
-};
 
 int     m_Mode = MEMMODE_ROM;  // See MemoryViewMode enum
 WORD    m_wBaseAddress = 0;
@@ -104,6 +95,44 @@ void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
             0, 0, rcClient.right, rcClient.bottom,
             g_hwndMemory, NULL, g_hInst, NULL);
 
+    m_hwndMemoryToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
+            WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_VERT,
+            4, 4, 32, 32 * 6, m_hwndMemoryViewer,
+            (HMENU) 102,
+            g_hInst, NULL);
+
+    TBADDBITMAP addbitmap;
+    addbitmap.hInst = g_hInst;
+    addbitmap.nID = IDB_TOOLBAR;
+    SendMessage(m_hwndMemoryToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
+
+    SendMessage(m_hwndMemoryToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
+    SendMessage(m_hwndMemoryToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
+
+    TBBUTTON buttons[6];
+    ZeroMemory(buttons, sizeof(buttons));
+    for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
+    {
+        buttons[i].fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
+        buttons[i].fsStyle = BTNS_BUTTON | TBSTYLE_GROUP;
+        buttons[i].iString = -1;
+    }
+    buttons[0].idCommand = ID_DEBUG_MEMORY_RAM0;
+    buttons[0].iBitmap = 24;
+    buttons[1].idCommand = ID_DEBUG_MEMORY_RAM1;
+    buttons[1].iBitmap = 25;
+    buttons[2].idCommand = ID_DEBUG_MEMORY_RAM2;
+    buttons[2].iBitmap = 26;
+    buttons[3].idCommand = ID_DEBUG_MEMORY_ROM;
+    buttons[3].fsState |= TBSTATE_CHECKED;
+    buttons[3].iBitmap = 21;
+    buttons[4].idCommand = ID_DEBUG_MEMORY_CPU;
+    buttons[4].iBitmap = 22;
+    buttons[5].idCommand = ID_DEBUG_MEMORY_PPU;
+    buttons[5].iBitmap = 23;
+
+    SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
+
     MemoryView_ScrollTo(0);
 }
 
@@ -140,6 +169,9 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
+    case WM_COMMAND:
+        ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -185,8 +217,8 @@ void MemoryView_OnDraw(HDC hdc)
     m_cyLineMemory = cyLine;
 
     TCHAR buffer[7];
-    const TCHAR* ADDRESS_LINE = _T(" address  0      2      4      6      10     12     14     16");
-    TextOut(hdc, 0, 0, ADDRESS_LINE, (int) _tcslen(ADDRESS_LINE));
+    const TCHAR* ADDRESS_LINE = _T(" addr   0      2      4      6      10     12     14     16");
+    TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE, (int) _tcslen(ADDRESS_LINE));
 
     RECT rcClip;
     GetClipBox(hdc, &rcClip);
@@ -198,9 +230,9 @@ void MemoryView_OnDraw(HDC hdc)
     int y = 1 * cyLine;
     for (;;)    // Draw lines
     {
-        DrawOctalValue(hdc, 2 * cxChar, y, address);
+        DrawOctalValue(hdc, 5 * cxChar, y, address);
 
-        int x = 10 * cxChar;
+        int x = 13 * cxChar;
         TCHAR wchars[16];
         for (int j = 0; j < 8; j++)    // Draw words as octal value
         {
@@ -284,9 +316,32 @@ void MemoryView_OnDraw(HDC hdc)
     {
         RECT rcFocus = rcClient;
         rcFocus.top += cyLine;
-        rcFocus.right = cxChar * (63 + 22);
+        rcFocus.left = cxChar * 5;
+        rcFocus.right = cxChar * (66 + 22);
         DrawFocusRect(hdc, &rcFocus);
     }
+}
+
+void MemoryView_SetViewMode(MemoryViewMode mode)
+{
+    if (mode < 0) mode = MEMMODE_RAM0;
+    if (mode > MEMMODE_LAST) mode = MEMMODE_LAST;
+    m_Mode = mode;
+
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    MemoryView_UpdateWindowText();
+
+    int command = MEMMODE_RAM0;
+    switch (mode)
+    {
+    case MEMMODE_RAM0: command = ID_DEBUG_MEMORY_RAM0; break;
+    case MEMMODE_RAM1: command = ID_DEBUG_MEMORY_RAM1; break;
+    case MEMMODE_RAM2: command = ID_DEBUG_MEMORY_RAM2; break;
+    case MEMMODE_ROM:  command = ID_DEBUG_MEMORY_ROM;  break;
+    case MEMMODE_CPU:  command = ID_DEBUG_MEMORY_CPU;  break;
+    case MEMMODE_PPU:  command = ID_DEBUG_MEMORY_PPU;  break;
+    }
+    SendMessage(m_hwndMemoryToolbar, TB_CHECKBUTTON, command, TRUE);
 }
 
 LPCTSTR MemoryView_GetMemoryModeName()

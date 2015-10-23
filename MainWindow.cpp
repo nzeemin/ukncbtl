@@ -700,7 +700,7 @@ void MainWindow_ShowHideDebug()
         int cxDebugWidth = rc.right - xDebugLeft - 4;
         int cyDebugHeight = 212;
         int yDisasmTop = 4 + cyDebugHeight + 4;
-        int cyDisasmHeight = 342;
+        int cyDisasmHeight = 320;
         int yMemoryTop = cyDebugHeight + 4 + cyDisasmHeight + 8;
         int cyMemoryHeight = rc.bottom - cyStatus - yMemoryTop - 4;
 
@@ -963,6 +963,24 @@ bool MainWindow_DoCommand(int commandId)
     case ID_DEBUG_CPUPPU:
         if (!g_okEmulatorRunning && Settings_GetDebug())
             DebugView_SwitchCpuPpu();
+        break;
+    case ID_DEBUG_MEMORY_ROM:
+        MemoryView_SetViewMode(MEMMODE_ROM);
+        break;
+    case ID_DEBUG_MEMORY_CPU:
+        MemoryView_SetViewMode(MEMMODE_CPU);
+        break;
+    case ID_DEBUG_MEMORY_PPU:
+        MemoryView_SetViewMode(MEMMODE_PPU);
+        break;
+    case ID_DEBUG_MEMORY_RAM0:
+        MemoryView_SetViewMode(MEMMODE_RAM0);
+        break;
+    case ID_DEBUG_MEMORY_RAM1:
+        MemoryView_SetViewMode(MEMMODE_RAM1);
+        break;
+    case ID_DEBUG_MEMORY_RAM2:
+        MemoryView_SetViewMode(MEMMODE_RAM2);
         break;
     case ID_EMULATOR_RESET:
         MainWindow_DoEmulatorReset();

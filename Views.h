@@ -100,10 +100,22 @@ void DisasmView_SetCurrentProc(BOOL okCPU);
 
 extern HWND g_hwndMemory;  // Memory view window handler
 
+enum MemoryViewMode
+{
+    MEMMODE_RAM0 = 0,  // RAM plane 0
+    MEMMODE_RAM1 = 1,  // RAM plane 1
+    MEMMODE_RAM2 = 2,  // RAM plane 2
+    MEMMODE_ROM  = 3,  // ROM
+    MEMMODE_CPU  = 4,  // CPU memory
+    MEMMODE_PPU  = 5,  // PPU memory
+    MEMMODE_LAST = 5,  // Last mode number
+};
+
 void MemoryView_RegisterClass();
 void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
+void MemoryView_SetViewMode(MemoryViewMode);
 
 
 //////////////////////////////////////////////////////////////////////

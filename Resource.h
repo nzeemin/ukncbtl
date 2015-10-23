@@ -86,6 +86,12 @@
 #define ID_VIEW_RENDERMODE              32827
 #define ID_RENDER                       32860
 #define ID_EMULATOR_CONFIGURATION       32862
+#define ID_DEBUG_MEMORY_ROM             32863
+#define ID_DEBUG_MEMORY_CPU             32864
+#define ID_DEBUG_MEMORY_PPU             32865
+#define ID_DEBUG_MEMORY_RAM0            32866
+#define ID_DEBUG_MEMORY_RAM1            32867
+#define ID_DEBUG_MEMORY_RAM2            32868
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -94,7 +100,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        151
-#define _APS_NEXT_COMMAND_VALUE         32863
+#define _APS_NEXT_COMMAND_VALUE         32869
 #define _APS_NEXT_CONTROL_VALUE         1030
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
