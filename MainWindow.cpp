@@ -32,8 +32,6 @@ TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 HWND m_hwndToolbar = NULL;
 HWND m_hwndStatusbar = NULL;
 
-HANDLE g_hAnimatedScreenshot = INVALID_HANDLE_VALUE;
-
 int m_MainWindowMinCx = UKNC_SCREEN_WIDTH + 16;
 int m_MainWindowMinCy = UKNC_SCREEN_HEIGHT + 40;
 
@@ -74,8 +72,6 @@ void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
 void MainWindow_DoFileScreenshotSaveAs();
-void MainWindow_DoFileScreenshotAnimated();
-void MainWindow_DoFileScreenshotAnimatedStop();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
 void MainWindow_DoEmulatorConfiguration();
@@ -798,11 +794,9 @@ void MainWindow_UpdateMenu()
     HMENU hMenu = GetMenu(g_hwnd);
 
     // Screenshot menu commands
-    BOOL okAnimatedScreenshot = (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE);
-    CheckMenuItem(hMenu, ID_FILE_SCREENSHOTANIMATED, (okAnimatedScreenshot ? MF_CHECKED : MF_UNCHECKED));
-    EnableMenuItem(hMenu, ID_FILE_SCREENSHOT, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
-    EnableMenuItem(hMenu, ID_FILE_SAVESCREENSHOTAS, okAnimatedScreenshot ? MF_DISABLED : MF_ENABLED);
-    MainWindow_SetToolbarImage(ID_FILE_SCREENSHOT, okAnimatedScreenshot ? ToolbarImageScreenshotStop : ToolbarImageScreenshot);
+    EnableMenuItem(hMenu, ID_FILE_SCREENSHOT, MF_ENABLED);
+    EnableMenuItem(hMenu, ID_FILE_SAVESCREENSHOTAS, MF_ENABLED);
+    MainWindow_SetToolbarImage(ID_FILE_SCREENSHOT, ToolbarImageScreenshot);
 
     // Emulator|Run check
     CheckMenuItem(hMenu, ID_EMULATOR_RUN, (g_okEmulatorRunning ? MF_CHECKED : MF_UNCHECKED));
@@ -1036,9 +1030,6 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SAVESCREENSHOTAS:
         MainWindow_DoFileScreenshotSaveAs();
         break;
-    case ID_FILE_SCREENSHOTANIMATED:
-        MainWindow_DoFileScreenshotAnimated();
-        break;
     case ID_FILE_CREATEDISK:
         MainWindow_DoFileCreateDisk();
         break;
@@ -1271,12 +1262,6 @@ void MainWindow_DoFileSaveState()
 
 void MainWindow_DoFileScreenshot()
 {
-    if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
-    {
-        MainWindow_DoFileScreenshotAnimatedStop();
-        return;
-    }
-
     TCHAR bufFileName[MAX_PATH];
     SYSTEMTIME st;
     ::GetSystemTime(&st);
@@ -1303,36 +1288,6 @@ void MainWindow_DoFileScreenshotSaveAs()
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
     }
-}
-
-void MainWindow_DoFileScreenshotAnimated()
-{
-    if (g_hAnimatedScreenshot != INVALID_HANDLE_VALUE)
-    {
-        MainWindow_DoFileScreenshotAnimatedStop();
-        return;
-    }
-
-    TCHAR bufFileName[MAX_PATH];
-    BOOL okResult = ShowSaveDialog(g_hwnd,
-            _T("Save screenshot series as"),
-            _T("Animated PNGs (*.apng)\0*.apng\0All Files (*.*)\0*.*\0\0"),
-            _T("png"),
-            bufFileName);
-    if (! okResult) return;
-
-    g_hAnimatedScreenshot = ApngFile_Create(bufFileName);
-
-    ScreenView_SaveApngFrame(g_hAnimatedScreenshot);
-
-    MainWindow_UpdateMenu();
-}
-void MainWindow_DoFileScreenshotAnimatedStop()
-{
-    ApngFile_Close((HAPNGFILE) g_hAnimatedScreenshot);
-    g_hAnimatedScreenshot = INVALID_HANDLE_VALUE;
-
-    MainWindow_UpdateMenu();
 }
 
 void MainWindow_DoFileCreateDisk()

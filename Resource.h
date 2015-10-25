@@ -79,7 +79,6 @@
 #define ID_FILE_SETTINGS                32813
 #define ID_EMULATOR_PARALLEL            32814
 #define ID_FILE_SAVESCREENSHOTAS        32817
-#define ID_FILE_SCREENSHOTANIMATED      32818
 #define ID_EMULATOR_NETWORK             32822
 #define ID_DEBUG_CPUPPU                 32825
 #define ID_VIEW_FULLSCREEN              32826

@@ -28,7 +28,6 @@ extern HINSTANCE g_hInst; // current instance
 // Main Window
 
 extern HWND g_hwnd;  // Main window handle
-extern HANDLE g_hAnimatedScreenshot;
 
 void MainWindow_RegisterClass();
 BOOL CreateMainWindow();

@@ -623,20 +623,5 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
     return result;
 }
 
-BOOL ScreenView_SaveApngFrame(HANDLE hFile)
-{
-    ASSERT(hFile != INVALID_HANDLE_VALUE);
-
-    DWORD* pBits = (DWORD*) ::malloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
-    const DWORD* colors = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(pBits, colors);
-
-    BOOL result = ApngFile_WriteFrame((HAPNGFILE)hFile, pBits, ScreenView_StandardRGBColors);
-
-    ::free(pBits);
-
-    return result;
-}
-
 
 //////////////////////////////////////////////////////////////////////
