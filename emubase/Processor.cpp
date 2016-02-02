@@ -260,17 +260,17 @@ CProcessor::CProcessor (LPCTSTR name)
     memset(m_R, 0, sizeof(m_R));
     m_psw = m_savepsw = 0777;
     m_savepc = 0177777;
-    m_okStopped = TRUE;
+    m_okStopped = true;
     m_internalTick = 0;
     m_pMemoryController = NULL;
-    m_waitmode = FALSE;
-    m_stepmode = FALSE;
-    m_buserror = FALSE;
-    m_STRTrq = m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
-    m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
-    m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
-    m_DCLOpin = m_ACLOpin = TRUE;
-    m_haltpin = FALSE;
+    m_waitmode = false;
+    m_stepmode = false;
+    m_buserror = false;
+    m_STRTrq = m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = false;
+    m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = false;
+    m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
+    m_DCLOpin = m_ACLOpin = true;
+    m_haltpin = false;
 
     m_instruction = 0;
     m_regsrc = m_methsrc = m_addrsrc = 0;
@@ -295,103 +295,103 @@ void CProcessor::Execute()
         CProcessor::CommandExecution();
 }
 
-BOOL CProcessor::InterruptProcessing ()
+bool CProcessor::InterruptProcessing ()
 {
     uint16_t intrVector = 0xFFFF;
-    BOOL currMode = ((m_psw & 0400) != 0);  // Current processor mode: TRUE = HALT mode, FALSE = USER mode
-    BOOL intrMode = FALSE;  // TRUE = HALT mode interrupt, FALSE = USER mode interrupt
+    bool currMode = ((m_psw & 0400) != 0);  // Current processor mode: true = HALT mode, false = USER mode
+    bool intrMode = false;  // true = HALT mode interrupt, false = USER mode interrupt
 
     if (m_stepmode)
-        m_stepmode = FALSE;
+        m_stepmode = false;
     else
     {
-        m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+        m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
         m_TBITrq = (m_psw & 020);  // T-bit
 
         if (m_STRTrq)
         {
-            intrVector = 0; intrMode = TRUE;
-            m_STRTrq = FALSE;
+            intrVector = 0; intrMode = true;
+            m_STRTrq = false;
         }
         else if (m_HALTrq)  // HALT command
         {
-            intrVector = 0170;  intrMode = TRUE;
-            m_HALTrq = FALSE;
+            intrVector = 0170;  intrMode = true;
+            m_HALTrq = false;
         }
         else if (m_BPT_rq)  // BPT command
         {
-            intrVector = 0000014;  intrMode = FALSE;
-            m_BPT_rq = FALSE;
+            intrVector = 0000014;  intrMode = false;
+            m_BPT_rq = false;
         }
         else if (m_IOT_rq)  // IOT command
         {
-            intrVector = 0000020;  intrMode = FALSE;
-            m_IOT_rq = FALSE;
+            intrVector = 0000020;  intrMode = false;
+            m_IOT_rq = false;
         }
         else if (m_EMT_rq)  // EMT command
         {
-            intrVector = 0000030;  intrMode = FALSE;
-            m_EMT_rq = FALSE;
+            intrVector = 0000030;  intrMode = false;
+            m_EMT_rq = false;
         }
         else if (m_TRAPrq)  // TRAP command
         {
-            intrVector = 0000034;  intrMode = FALSE;
-            m_TRAPrq = FALSE;
+            intrVector = 0000034;  intrMode = false;
+            m_TRAPrq = false;
         }
         else if (m_FIS_rq)  // FIS commands -- Floating point Instruction Set
         {
-            intrVector = 0010;  intrMode = TRUE;
-            m_FIS_rq = FALSE;
+            intrVector = 0010;  intrMode = true;
+            m_FIS_rq = false;
         }
         else if (m_RPLYrq)  // Зависание, priority 1
         {
             if (m_buserror)
             {
-                intrVector = 0174; intrMode = TRUE;
+                intrVector = 0174; intrMode = true;
             }
             else if (currMode)
             {
-                intrVector = 0004;  intrMode = TRUE;
+                intrVector = 0004;  intrMode = true;
             }
             else
             {
-                intrVector = 0000004; intrMode = FALSE;
+                intrVector = 0000004; intrMode = false;
             }
-            m_buserror = TRUE;
-            m_RPLYrq = FALSE;
+            m_buserror = true;
+            m_RPLYrq = false;
         }
         else if (m_ILLGrq)
         {
-            intrVector = 000004;  intrMode = FALSE;
-            m_ILLGrq = FALSE;
+            intrVector = 000004;  intrMode = false;
+            m_ILLGrq = false;
         }
         else if (m_RSVDrq)  // Reserved command, priority 2
         {
-            intrVector = 000010;  intrMode = FALSE;
-            m_RSVDrq = FALSE;
+            intrVector = 000010;  intrMode = false;
+            m_RSVDrq = false;
         }
         else if (m_TBITrq && (!m_waitmode))  // T-bit, priority 3
         {
-            intrVector = 000014;  intrMode = FALSE;
-            m_TBITrq = FALSE;
+            intrVector = 000014;  intrMode = false;
+            m_TBITrq = false;
         }
         else if (m_ACLOrq && (m_psw & 0600) != 0600)  // ACLO, priority 4
         {
-            intrVector = 000024;  intrMode = FALSE;
-            m_ACLOreset = TRUE;
+            intrVector = 000024;  intrMode = false;
+            m_ACLOreset = true;
         }
         else if (m_haltpin && (m_psw & 0400) != 0400)  // HALT signal in USER mode, priority 5
         {
-            intrVector = 0170;  intrMode = TRUE;
+            intrVector = 0170;  intrMode = true;
         }
         else if (m_EVNTrq && (m_psw & 0200) != 0200)  // EVNT signal, priority 6
         {
-            intrVector = 0000100;  intrMode = FALSE;
-            m_EVNTreset = TRUE;
+            intrVector = 0000100;  intrMode = false;
+            m_EVNTreset = true;
         }
         else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
         {
-            intrMode = FALSE;
+            intrMode = false;
             for (int irq = 1; irq <= 15; irq++)
             {
                 if (m_virq[irq] != 0)
@@ -406,7 +406,7 @@ BOOL CProcessor::InterruptProcessing ()
         {
             if (m_internalTick == 0) m_internalTick = EMT_TIMING;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
 
-            m_waitmode = FALSE;
+            m_waitmode = false;
 
             if (intrMode)  // HALT mode interrupt
             {
@@ -417,7 +417,7 @@ BOOL CProcessor::InterruptProcessing ()
                 //m_savepc = GetPC();
                 //m_savepsw = GetPSW();
                 //m_psw |= 0400;
-                SetHALT(TRUE);
+                SetHALT(true);
                 new_pc = GetWord(intrVector);
                 new_psw = GetWord(intrVector + 2);
                 if (!m_RPLYrq)
@@ -430,7 +430,7 @@ BOOL CProcessor::InterruptProcessing ()
             {
                 uint16_t new_pc, new_psw;
 
-                SetHALT(FALSE);
+                SetHALT(false);
                 // Save PC/PSW to stack
                 SetSP(GetSP() - 2);
                 SetWord(GetSP(), GetCPSW());
@@ -440,8 +440,8 @@ BOOL CProcessor::InterruptProcessing ()
                     SetWord(GetSP(), GetCPC());
                     if (!m_RPLYrq)
                     {
-                        if (m_ACLOreset) m_ACLOrq = FALSE;
-                        if (m_EVNTreset) m_EVNTrq = FALSE;
+                        if (m_ACLOreset) m_ACLOrq = false;
+                        if (m_EVNTreset) m_EVNTrq = false;
                         if (m_VIRQreset) m_virq[m_VIRQreset] = 0;
                         new_pc = GetWord(intrVector);
                         new_psw = GetWord(intrVector + 2);
@@ -454,10 +454,10 @@ BOOL CProcessor::InterruptProcessing ()
                 }
             }
 
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 void CProcessor::CommandExecution()
@@ -467,7 +467,7 @@ void CProcessor::CommandExecution()
         FetchInstruction();  // Read next instruction from memory
         if (!m_RPLYrq)
         {
-            m_buserror = FALSE;
+            m_buserror = false;
             TranslateInstruction();  // Execute next instruction
         }
     }
@@ -479,7 +479,7 @@ void CProcessor::TickEVNT()
 {
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
-    m_EVNTrq = TRUE;
+    m_EVNTrq = true;
 }
 
 void CProcessor::InterruptVIRQ(int que, uint16_t interrupt)
@@ -492,59 +492,59 @@ uint16_t CProcessor::GetVIRQ(int que)
     return m_virq[que];
 }
 
-void CProcessor::SetHALTPin(BOOL value)
+void CProcessor::SetHALTPin(bool value)
 {
     m_haltpin = value;
 }
 
-void CProcessor::SetDCLOPin(BOOL value)
+void CProcessor::SetDCLOPin(bool value)
 {
     m_DCLOpin = value;
     if (m_DCLOpin)
     {
-        m_okStopped = TRUE;
+        m_okStopped = true;
 
-        m_stepmode = FALSE;
-        m_buserror = FALSE;
-        m_waitmode = FALSE;
+        m_stepmode = false;
+        m_buserror = false;
+        m_waitmode = false;
         m_internalTick = 0;
-        m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
-        m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+        m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = false;
+        m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = false;
         memset(m_virq, 0, sizeof(m_virq));
-        m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+        m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
         m_pMemoryController->DCLO_Signal();
         m_pMemoryController->ResetDevices();
     }
 }
 
-void CProcessor::SetACLOPin(BOOL value)
+void CProcessor::SetACLOPin(bool value)
 {
     if (m_okStopped && !m_DCLOpin && m_ACLOpin && !value)
     {
-        m_okStopped = FALSE;
+        m_okStopped = false;
         m_internalTick = 0;
 
-        m_stepmode = FALSE;
-        m_waitmode = FALSE;
-        m_buserror = FALSE;
-        m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = FALSE;
-        m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = FALSE;
+        m_stepmode = false;
+        m_waitmode = false;
+        m_buserror = false;
+        m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = false;
+        m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = false;
         memset(m_virq, 0, sizeof(m_virq));
-        m_ACLOreset = m_EVNTreset = FALSE; m_VIRQreset = 0;
+        m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
 
         // "Turn On" interrupt processing
-        m_STRTrq = TRUE;
+        m_STRTrq = true;
     }
     if (!m_okStopped && !m_DCLOpin && !m_ACLOpin && value)
     {
-        m_ACLOrq = TRUE;
+        m_ACLOrq = true;
     }
     m_ACLOpin = value;
 }
 
 void CProcessor::MemoryError()
 {
-    m_RPLYrq = TRUE;
+    m_RPLYrq = true;
 }
 
 
@@ -579,7 +579,7 @@ void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается 
 //    DebugPrintFormat(_T(">>Invalid OPCODE = %06o @ %06o\r\n"), m_instruction, GetPC()-2);
 //#endif
 
-    m_RSVDrq = TRUE;
+    m_RSVDrq = true;
 }
 
 
@@ -587,25 +587,25 @@ void CProcessor::ExecuteUNKNOWN ()  // Нет такой инструкции - просто вызывается 
 
 void CProcessor::ExecuteWAIT ()  // WAIT - Wait for an interrupt
 {
-    m_waitmode = TRUE;
+    m_waitmode = true;
 }
 
 void CProcessor::ExecuteSTEP()  // ШАГ
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         SetPC(m_savepc);        // СК <- КРСК
         SetPSW(m_savepsw);      // РСП(8:0) <- КРСП(8:0)
-        m_stepmode = TRUE;
+        m_stepmode = true;
     }
 }
 
 void CProcessor::ExecuteRSEL()  // RSEL / ЧПТ - Чтение безадресного регистра
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         SetReg(0, GetMemoryController()->GetSelRegister());  // R0 <- (SEL)
@@ -616,7 +616,7 @@ void CProcessor::Execute000030()  // Unknown command
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
         return;
     }
 
@@ -651,15 +651,15 @@ void CProcessor::Execute000030()  // Unknown command
 void CProcessor::ExecuteFIS()  // Floating point instruction set: FADD, FSUB, FMUL, FDIV
 {
     if (GetMemoryController()->GetSelRegister() & 0200)  // bit 7 set?
-        m_RSVDrq = TRUE;  // Программа эмуляции FIS отсутствует, прерывание по резервному коду
+        m_RSVDrq = true;  // Программа эмуляции FIS отсутствует, прерывание по резервному коду
     else
-        m_FIS_rq = TRUE;  // Прерывание обработки FIS
+        m_FIS_rq = true;  // Прерывание обработки FIS
 }
 
 void CProcessor::ExecuteRUN()  // ПУСК / START
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         SetPC(m_savepc);        // СК <- КРСК
@@ -669,13 +669,13 @@ void CProcessor::ExecuteRUN()  // ПУСК / START
 
 void CProcessor::ExecuteHALT ()  // HALT - Останов
 {
-    m_HALTrq = TRUE;
+    m_HALTrq = true;
 }
 
 void CProcessor::ExecuteRCPC()  // ЧКСК - Чтение регистра копии счётчика команд
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         SetReg(0, m_savepc);        // R0 <- КРСК
@@ -685,7 +685,7 @@ void CProcessor::ExecuteRCPC()  // ЧКСК - Чтение регистра копии счётчика команд
 void CProcessor::ExecuteRCPS()  // ЧКСП - Чтение регистра копии слова состояния процессора
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         SetReg(0, m_savepsw);       // R0 <- КРСП
@@ -695,7 +695,7 @@ void CProcessor::ExecuteRCPS()  // ЧКСП - Чтение регистра копии слова состояния 
 void CProcessor::ExecuteWCPC()  // ЗКСК - Запись регистра копии счётчика команд
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         m_savepc = GetReg(0);       // КРСК <- R0
@@ -705,7 +705,7 @@ void CProcessor::ExecuteWCPC()  // ЗКСК - Запись регистра копии счётчика команд
 void CProcessor::ExecuteWCPS()  // ЗКСП - Запись регистра копии слова состояния процессора
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
     else
     {
         m_savepsw = GetReg(0);      // КРСП <- R0
@@ -717,15 +717,15 @@ void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space - Чтение памяти ад
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
         return;
     }
 
     //r0 = (r5)+
-    SetHALT(FALSE);
+    SetHALT(false);
     uint16_t addr = GetReg(5);
     uint16_t word = GetWord(addr);  // Read in USER mode
-    SetHALT(TRUE);
+    SetHALT(true);
     SetReg(5, addr + 2);
     if (!m_RPLYrq) 	SetReg(0, word);
 
@@ -736,15 +736,15 @@ void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space - Запись в память адр
 {
     if ((m_psw & PSW_HALT) == 0)  // Эта команда выполняется только в режиме HALT
     {
-        m_RSVDrq = TRUE;
+        m_RSVDrq = true;
         return;
     }
 
     // -(r5) = r0
     SetReg(5, GetReg(5) - 2);
-    SetHALT(FALSE);
+    SetHALT(false);
     SetWord(GetReg(5), GetReg(0));  // Write in USER mode
-    SetHALT(TRUE);
+    SetHALT(true);
 
     m_internalTick = MOV_TIMING[0][2];
 }
@@ -781,26 +781,26 @@ void CProcessor::ExecuteRTT ()  // RTT - Return from Trace Trap -- Возврат из пр
     else
         SetPSW(word); //load new mode
 
-    m_stepmode = (word & PSW_T) ? TRUE : FALSE;
+    m_stepmode = (word & PSW_T) ? true : false;
 
     m_internalTick = RTI_TIMING;
 }
 
 void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 {
-    m_BPT_rq = TRUE;
+    m_BPT_rq = true;
     m_internalTick = BPT_TIMING;
 }
 
 void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 {
-    m_IOT_rq = TRUE;
+    m_IOT_rq = true;
     m_internalTick = EMT_TIMING;
 }
 
 void CProcessor::ExecuteRESET ()  // Reset input/output devices -- Сброс внешних устройств
 {
-    m_EVNTrq = FALSE;
+    m_EVNTrq = false;
     m_pMemoryController->ResetDevices();  // INIT signal
 
     m_internalTick = RESET_TIMING;
@@ -832,7 +832,7 @@ void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 {
     if (m_methdest == 0)  // Неправильный метод адресации
     {
-        m_ILLGrq = TRUE;
+        m_ILLGrq = true;
         m_internalTick = EMT_TIMING;
     }
     else
@@ -2487,13 +2487,13 @@ void CProcessor::ExecuteSUB ()
 
 void CProcessor::ExecuteEMT ()  // EMT - emulator trap
 {
-    m_EMT_rq = TRUE;
+    m_EMT_rq = true;
     m_internalTick = EMT_TIMING;
 }
 
 void CProcessor::ExecuteTRAP ()
 {
-    m_TRAPrq = TRUE;
+    m_TRAPrq = true;
     m_internalTick = EMT_TIMING;
 }
 
@@ -2502,7 +2502,7 @@ void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC 
     if (m_methdest == 0)
     {
         // Неправильный метод адресации
-        m_ILLGrq = TRUE;
+        m_ILLGrq = true;
         m_internalTick = EMT_TIMING;
     }
     else

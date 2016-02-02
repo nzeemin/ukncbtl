@@ -19,7 +19,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 extern CMotherboard* g_pBoard;
 
-extern BOOL g_okEmulatorRunning;
+extern bool g_okEmulatorRunning;
 
 extern BYTE* g_pEmulatorRam[3];  // RAM values - for change tracking
 extern BYTE* g_pEmulatorChangedRam[3];  // RAM change flags
@@ -32,15 +32,15 @@ extern WORD g_wEmulatorPrevPpuPC;  // Previous PC value
 //////////////////////////////////////////////////////////////////////
 
 
-BOOL Emulator_Init();
+bool Emulator_Init();
 void Emulator_Done();
 void Emulator_SetCPUBreakpoint(WORD address);
 void Emulator_SetPPUBreakpoint(WORD address);
-BOOL Emulator_IsBreakpoint();
-void Emulator_SetSound(BOOL soundOnOff);
-BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort);
-void Emulator_SetParallel(BOOL parallelOnOff);
-BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort);
+bool Emulator_IsBreakpoint();
+void Emulator_SetSound(bool soundOnOff);
+bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort);
+void Emulator_SetParallel(bool parallelOnOff);
+bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort);
 void Emulator_Start();
 void Emulator_Stop();
 void Emulator_Reset();
@@ -49,14 +49,14 @@ DWORD Emulator_GetUptime();  // UKNC uptime, in seconds
 
 void Emulator_PrepareScreenRGB32(void* pBits, const DWORD* colors);
 
-BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
+bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 
 // Update cached values after Run or Step
 void Emulator_OnUpdate();
 WORD Emulator_GetChangeRamStatus(int addrtype, WORD address);
 
-BOOL Emulator_SaveImage(LPCTSTR sFilePath);
-BOOL Emulator_LoadImage(LPCTSTR sFilePath);
+bool Emulator_SaveImage(LPCTSTR sFilePath);
+bool Emulator_LoadImage(LPCTSTR sFilePath);
 
 
 //////////////////////////////////////////////////////////////////////

@@ -85,20 +85,20 @@ void CMemoryController::UpdateMemoryMap()
 }
 
 // Read word from memory for debugger
-uint16_t CMemoryController::GetWordView(uint16_t address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const
+uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec, bool* pValid) const
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, TRUE);
+    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true);
 
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        *pValid = TRUE;
+        *pValid = true;
         return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset);
     case ADDRTYPE_RAM12:
-        *pValid = TRUE;
+        *pValid = true;
         return MAKEWORD(
                 m_pBoard->GetRAMByte(1, offset / 2),
                 m_pBoard->GetRAMByte(2, offset / 2));
@@ -107,21 +107,21 @@ uint16_t CMemoryController::GetWordView(uint16_t address, BOOL okHaltMode, BOOL 
     case ADDRTYPE_ROMCART2:
         return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_ROM:
-        *pValid = TRUE;
+        *pValid = true;
         return m_pBoard->GetROMWord(offset);
     case ADDRTYPE_IO:
-        *pValid = FALSE;  // I/O port, not memory
+        *pValid = false;  // I/O port, not memory
         return 0;
     case ADDRTYPE_DENY:
-        *pValid = TRUE;  // This memory is inaccessible for reading
+        *pValid = true;  // This memory is inaccessible for reading
         return 0;
     }
 
-    ASSERT(FALSE);  // If we are here - then addrtype has invalid value
+    ASSERT(false);  // If we are here - then addrtype has invalid value
     return 0;
 }
 
-uint16_t CMemoryController::GetWord(uint16_t address, BOOL okHaltMode, BOOL okExec)
+uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okExec)
 {
     uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset);
@@ -143,21 +143,21 @@ uint16_t CMemoryController::GetWord(uint16_t address, BOOL okHaltMode, BOOL okEx
     case ADDRTYPE_ROM:
         return m_pBoard->GetROMWord(offset);
     case ADDRTYPE_IO:
-        //TODO: What to do if okExec == TRUE ?
+        //TODO: What to do if okExec == true ?
         return GetPortWord(address);
     case ADDRTYPE_DENY:
         //TODO: Exception processing
         return 0;
     }
 
-    ASSERT(FALSE);  // If we are here - then addrtype has invalid value
+    ASSERT(false);  // If we are here - then addrtype has invalid value
     return 0;
 }
 
-uint8_t CMemoryController::GetByte(uint16_t address, BOOL okHaltMode)
+uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
 
     switch (addrtype)
     {
@@ -179,21 +179,21 @@ uint8_t CMemoryController::GetByte(uint16_t address, BOOL okHaltMode)
     case ADDRTYPE_ROM:
         return m_pBoard->GetROMByte(offset);
     case ADDRTYPE_IO:
-        //TODO: What to do if okExec == TRUE ?
+        //TODO: What to do if okExec == true ?
         return GetPortByte(address);
     case ADDRTYPE_DENY:
         //TODO: Exception processing
         return 0;
     }
 
-    ASSERT(FALSE);  // If we are here - then addrtype has invalid value
+    ASSERT(false);  // If we are here - then addrtype has invalid value
     return 0;
 }
 
-void CMemoryController::SetWord(uint16_t address, BOOL okHaltMode, uint16_t word)
+void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
 
     switch (addrtype)
     {
@@ -222,13 +222,13 @@ void CMemoryController::SetWord(uint16_t address, BOOL okHaltMode, uint16_t word
         return;
     }
 
-    ASSERT(FALSE);  // If we are here - then addrtype has invalid value
+    ASSERT(false);  // If we are here - then addrtype has invalid value
 }
 
-void CMemoryController::SetByte(uint16_t address, BOOL okHaltMode, uint8_t byte)
+void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
 
     switch (addrtype)
     {
@@ -256,7 +256,7 @@ void CMemoryController::SetByte(uint16_t address, BOOL okHaltMode, uint8_t byte)
         return;
     }
 
-    ASSERT(FALSE);  // If we are here - then addrtype has invalid value
+    ASSERT(false);  // If we are here - then addrtype has invalid value
 }
 
 
@@ -308,7 +308,7 @@ void CFirstMemoryController::ResetDevices()
     //TODO
 }
 
-int CFirstMemoryController::TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL /*okExec*/, uint16_t* pOffset, BOOL okView) const
+int CFirstMemoryController::TranslateAddress(uint16_t address, bool okHaltMode, bool /*okExec*/, uint16_t* pOffset, bool okView) const
 {
     if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
     {
@@ -334,7 +334,7 @@ int CFirstMemoryController::TranslateAddress(uint16_t address, BOOL okHaltMode, 
         }
     }
 
-    //ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
+    //ASSERT(false);  // If we are here - then if isn't cover all addresses
     //return 0;
 }
 
@@ -707,7 +707,7 @@ void CFirstMemoryController::SetPortWord(uint16_t address, uint16_t word)
     }
 }
 
-BOOL CFirstMemoryController::SerialInput(uint8_t inputByte)
+bool CFirstMemoryController::SerialInput(uint8_t inputByte)
 {
     if (m_Port176570 & 0200)  // Ready?
         m_Port176570 |= 010000;  // Set Overflow flag
@@ -716,13 +716,13 @@ BOOL CFirstMemoryController::SerialInput(uint8_t inputByte)
         m_Port176572 = (uint16_t)inputByte;
         m_Port176570 |= 0200;  // Set Ready flag
         if (m_Port176570 & 0100)  // Interrupt?
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
-BOOL CFirstMemoryController::NetworkInput(uint8_t inputByte)
+bool CFirstMemoryController::NetworkInput(uint8_t inputByte)
 {
     if (m_Port176560 & 0200)  // Ready?
         m_Port176560 |= 010000;  // Set Overflow flag
@@ -731,10 +731,10 @@ BOOL CFirstMemoryController::NetworkInput(uint8_t inputByte)
         m_Port176562 = (uint16_t)inputByte;
         m_Port176560 |= 0200;  // Set Ready flag
         if (m_Port176560 & 0100)  // Interrupt?
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 
@@ -847,7 +847,7 @@ void CSecondMemoryController::UpdateMemoryMap()
             m_pMapping[addr] = ADDRTYPE_IO;
 }
 
-int CSecondMemoryController::TranslateAddress(uint16_t address, BOOL /*okHaltMode*/, BOOL okExec, uint16_t* pOffset, BOOL /*okView*/) const
+int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMode*/, bool okExec, uint16_t* pOffset, bool /*okView*/) const
 {
     //uint8_t addrtype = m_pMapping[address];
     //switch (addrtype)
@@ -966,7 +966,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, BOOL /*okHaltMod
         }
     }
 
-    //ASSERT(FALSE);  // If we are here - then if isn't cover all addresses
+    //ASSERT(false);  // If we are here - then if isn't cover all addresses
     return ADDRTYPE_NONE;
 }
 
@@ -1497,11 +1497,11 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
     case 0177716:  // System control register
     case 0177717:
         word &= 0137676;
-        m_pBoard->GetCPU()->SetHALTPin((word & 020) ? TRUE : FALSE);
+        m_pBoard->GetCPU()->SetHALTPin((word & 020) ? true : false);
 
-        m_pBoard->GetCPU()->SetDCLOPin((word & 040) ? TRUE : FALSE);
+        m_pBoard->GetCPU()->SetDCLOPin((word & 040) ? true : false);
 
-        m_pBoard->GetCPU()->SetACLOPin((word & 0100000) ? FALSE : TRUE);
+        m_pBoard->GetCPU()->SetACLOPin((word & 0100000) ? false : true);
 
         m_Port177716 &= 1;
         m_Port177716 |= word;
@@ -1553,7 +1553,7 @@ uint16_t CSecondMemoryController::GetPortView(uint16_t address) const
 }
 
 // Keyboard key pressed or released
-void CSecondMemoryController::KeyboardEvent(uint8_t scancode, BOOL okPressed)
+void CSecondMemoryController::KeyboardEvent(uint8_t scancode, bool okPressed)
 {
     if (okPressed)
         m_Port177702 = (scancode & 0177);
@@ -1569,9 +1569,9 @@ void CSecondMemoryController::KeyboardEvent(uint8_t scancode, BOOL okPressed)
 }
 
 // A new bit from the tape input received
-BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
+bool CSecondMemoryController::TapeInput(bool inputBit)
 {
-    BOOL res = FALSE;
+    bool res = false;
     // Check port 177716 bit 2
     if ((m_Port177716 & 4) != 0)
     {
@@ -1580,7 +1580,7 @@ BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
         uint16_t tapeBitNew = inputBit ? 0 : 1;
         if (tapeBitNew != tapeBitOld)
         {
-            res = TRUE;
+            res = true;
             m_Port177716 = (m_Port177716 & 0177776) | tapeBitNew;
             //if ((m_Port177716 & 8) == 0)
             {
@@ -1591,17 +1591,17 @@ BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
     return res;
 }
 
-BOOL CSecondMemoryController::TapeOutput()
+bool CSecondMemoryController::TapeOutput()
 {
-    return (BOOL)(m_Port177716 & 2);
+    return (bool)(m_Port177716 & 2);
 }
 
 void CSecondMemoryController::DCLO_177716()
 {
     m_Port177716 &= 0077717;
-    m_pBoard->GetCPU()->SetHALTPin(FALSE);
-    m_pBoard->GetCPU()->SetDCLOPin(FALSE);
-    m_pBoard->GetCPU()->SetACLOPin(TRUE);
+    m_pBoard->GetCPU()->SetHALTPin(false);
+    m_pBoard->GetCPU()->SetDCLOPin(false);
+    m_pBoard->GetCPU()->SetACLOPin(true);
 }
 
 void CSecondMemoryController::Init_177716()

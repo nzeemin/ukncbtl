@@ -263,8 +263,8 @@ CMotherboard::~CMotherboard ()
 
 void CMotherboard::Reset ()
 {
-    m_pPPU->SetDCLOPin(TRUE);
-    m_pPPU->SetACLOPin(TRUE);
+    m_pPPU->SetDCLOPin(true);
+    m_pPPU->SetACLOPin(true);
 
     ResetFloppy();
 
@@ -291,8 +291,8 @@ void CMotherboard::Reset ()
     //ChanResetByPPU();
 
     // We always start with PPU
-    m_pPPU->SetDCLOPin(FALSE);
-    m_pPPU->SetACLOPin(FALSE);
+    m_pPPU->SetDCLOPin(false);
+    m_pPPU->SetACLOPin(false);
 }
 
 void CMotherboard::LoadROM(const uint8_t* pBuffer)  // Load 32 KB ROM image from the buffer
@@ -327,24 +327,24 @@ void CMotherboard::SetNetStation(int station)
 
 // Floppy ////////////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsFloppyImageAttached(int slot) const
+bool CMotherboard::IsFloppyImageAttached(int slot) const
 {
     ASSERT(slot >= 0 && slot < 4);
     return m_pFloppyCtl->IsAttached(slot);
 }
 
-BOOL CMotherboard::IsFloppyReadOnly(int slot) const
+bool CMotherboard::IsFloppyReadOnly(int slot) const
 {
     ASSERT(slot >= 0 && slot < 4);
     return m_pFloppyCtl->IsReadOnly(slot);
 }
 
-BOOL CMotherboard::IsFloppyEngineOn() const
+bool CMotherboard::IsFloppyEngineOn() const
 {
     return m_pFloppyCtl->IsEngineOn();
 }
 
-BOOL CMotherboard::AttachFloppyImage(int slot, LPCTSTR sFileName)
+bool CMotherboard::AttachFloppyImage(int slot, LPCTSTR sFileName)
 {
     ASSERT(slot >= 0 && slot < 4);
     return m_pFloppyCtl->AttachImage(slot, sFileName);
@@ -359,7 +359,7 @@ void CMotherboard::DetachFloppyImage(int slot)
 
 // ROM cartridge /////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsROMCartridgeLoaded(int cartno) const
+bool CMotherboard::IsROMCartridgeLoaded(int cartno) const
 {
     ASSERT(cartno == 1 || cartno == 2);  // Only two cartridges, #1 and #2
     int cartindex = cartno - 1;
@@ -380,26 +380,26 @@ void CMotherboard::UnloadROMCartridge(int cartno)
 
 // Hard Drives ///////////////////////////////////////////////////////
 
-BOOL CMotherboard::IsHardImageAttached(int slot) const
+bool CMotherboard::IsHardImageAttached(int slot) const
 {
     ASSERT(slot >= 1 && slot <= 2);
     return (m_pHardDrives[slot - 1] != NULL);
 }
 
-BOOL CMotherboard::IsHardImageReadOnly(int slot) const
+bool CMotherboard::IsHardImageReadOnly(int slot) const
 {
     ASSERT(slot >= 1 && slot <= 2);
     CHardDrive* pHardDrive = m_pHardDrives[slot - 1];
-    if (pHardDrive == NULL) return FALSE;
+    if (pHardDrive == NULL) return false;
     return pHardDrive->IsReadOnly();
 }
 
-BOOL CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
+bool CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
 {
     ASSERT(slot >= 1 && slot <= 2);
 
     m_pHardDrives[slot - 1] = new CHardDrive();
-    BOOL success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
+    bool success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
     if (success)
     {
         m_pHardDrives[slot - 1]->Reset();
@@ -664,9 +664,9 @@ void CMotherboard::DebugTicks()
 */
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_CPU  { if (m_pCPU->GetPC() == m_CPUbp) return FALSE;  m_pCPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_PPU  { if (m_pPPU->GetPC() == m_PPUbp) return FALSE;  m_pPPU->Execute(); }
-BOOL CMotherboard::SystemFrame()
+#define SYSTEMFRAME_EXECUTE_BP_CPU  { if (m_pCPU->GetPC() == m_CPUbp) return false;  m_pCPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_BP_PPU  { if (m_pPPU->GetPC() == m_PPUbp) return false;  m_pPPU->Execute(); }
+bool CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
     const int audioticks = 20286 / (SAMPLERATE / 25);
@@ -739,20 +739,20 @@ BOOL CMotherboard::SystemFrame()
                 pMemCtl->m_Port177702 = m_scanned_key;
                 if ((m_scanned_key & 0200) == 0)
                 {
-                    if ((m_kbd_matrix[row_Y].processed == FALSE) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
+                    if ((m_kbd_matrix[row_Y].processed == false) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
                     {
                         pMemCtl->m_Port177700 |= 0200;
-                        m_kbd_matrix[row_Y].processed = TRUE;
+                        m_kbd_matrix[row_Y].processed = true;
                         if (pMemCtl->m_Port177700 & 0100)
                             m_pPPU->InterruptVIRQ(3, 0300);
                     }
                 }
                 else
                 {
-                    if ((m_kbd_matrix[row_Y].processed == TRUE) && (m_kbd_matrix[row_Y].row_Y == 0))
+                    if ((m_kbd_matrix[row_Y].processed == true) && (m_kbd_matrix[row_Y].row_Y == 0))
                     {
                         pMemCtl->m_Port177700 |= 0200;
-                        m_kbd_matrix[row_Y].processed = FALSE;
+                        m_kbd_matrix[row_Y].processed = false;
                         if (pMemCtl->m_Port177700 & 0100)
                             m_pPPU->InterruptVIRQ(3, 0300);
                         pMemCtl->m_Port177702 = m_scanned_key & 0x8F;
@@ -779,7 +779,7 @@ BOOL CMotherboard::SystemFrame()
 
                 if (m_TapeReadCallback != NULL)  // Tape reading
                 {
-                    BOOL tapeBit = (*m_TapeReadCallback)(1);
+                    bool tapeBit = (*m_TapeReadCallback)(1);
                     CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     if (pMemCtl->TapeInput(tapeBit))
                     {
@@ -901,11 +901,11 @@ BOOL CMotherboard::SystemFrame()
     }
     while (frameticks < 20000);
 
-    return TRUE;
+    return true;
 }
 
 // Key pressed or released
-void CMotherboard::KeyboardEvent(uint8_t scancode, BOOL okPressed)
+void CMotherboard::KeyboardEvent(uint8_t scancode, bool okPressed)
 {
     uint8_t row_Y = scancode & 0xF;
     uint8_t col_X = (scancode & 0x70) >> 4;

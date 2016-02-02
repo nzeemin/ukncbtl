@@ -28,22 +28,22 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 CMotherboard* g_pBoard = NULL;
 
-BOOL g_okEmulatorInitialized = FALSE;
-BOOL g_okEmulatorRunning = FALSE;
+bool g_okEmulatorInitialized = false;
+bool g_okEmulatorRunning = false;
 
 WORD m_wEmulatorCPUBreakpoint = 0177777;
 WORD m_wEmulatorPPUBreakpoint = 0177777;
 
-BOOL m_okEmulatorSound = FALSE;
+bool m_okEmulatorSound = false;
 
 WORD m_Settings_NetStation_Bits = 0;
-BOOL m_okEmulatorNetwork = FALSE;
+bool m_okEmulatorNetwork = false;
 HANDLE m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
 
-BOOL m_okEmulatorSerial = FALSE;
+bool m_okEmulatorSerial = false;
 HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
 
-BOOL m_okEmulatorParallel = FALSE;
+bool m_okEmulatorParallel = false;
 FILE* m_fpEmulatorParallelOut = NULL;
 
 long m_nFrameCount = 0;
@@ -64,7 +64,7 @@ WORD g_wEmulatorPrevPpuPC = 0177777;  // Previous PC value
 
 const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
-BOOL Emulator_LoadUkncRom()
+bool Emulator_LoadUkncRom()
 {
     void * pData = ::malloc(32768);
     if (pData == NULL)
@@ -106,7 +106,7 @@ BOOL Emulator_LoadUkncRom()
     return true;
 }
 
-BOOL Emulator_Init()
+bool Emulator_Init()
 {
     ASSERT(g_pBoard == NULL);
 
@@ -181,7 +181,7 @@ void Emulator_Done()
         ::free(g_pEmulatorChangedRam[i]);
     }
 
-    g_okEmulatorInitialized = FALSE;
+    g_okEmulatorInitialized = false;
 }
 
 void Emulator_Start()
@@ -197,7 +197,7 @@ void Emulator_Start()
 }
 void Emulator_Stop()
 {
-    g_okEmulatorRunning = FALSE;
+    g_okEmulatorRunning = false;
     m_wEmulatorCPUBreakpoint = 0177777;
     m_wEmulatorPPUBreakpoint = 0177777;
 
@@ -233,7 +233,7 @@ void Emulator_SetPPUBreakpoint(WORD address)
 {
     m_wEmulatorPPUBreakpoint = address;
 }
-BOOL Emulator_IsBreakpoint()
+bool Emulator_IsBreakpoint()
 {
     WORD wCPUAddr = g_pBoard->GetCPU()->GetPC();
     if (wCPUAddr == m_wEmulatorCPUBreakpoint)
@@ -241,10 +241,10 @@ BOOL Emulator_IsBreakpoint()
     WORD wPPUAddr = g_pBoard->GetPPU()->GetPC();
     if (wPPUAddr == m_wEmulatorPPUBreakpoint)
         return TRUE;
-    return FALSE;
+    return false;
 }
 
-void Emulator_SetSound(BOOL soundOnOff)
+void Emulator_SetSound(bool soundOnOff)
 {
     if (m_okEmulatorSound != soundOnOff)
     {
@@ -263,10 +263,10 @@ void Emulator_SetSound(BOOL soundOnOff)
     m_okEmulatorSound = soundOnOff;
 }
 
-BOOL CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
+bool CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
-    BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, NULL);
+    bool result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, NULL);
 
 #if !defined(PRODUCT)
     if (result && (dwBytesRead == 1))
@@ -276,7 +276,7 @@ BOOL CALLBACK Emulator_NetworkIn_Callback(BYTE* pByte)
     return result && (dwBytesRead == 1);
 }
 
-BOOL CALLBACK Emulator_NetworkOut_Callback(BYTE byte)
+bool CALLBACK Emulator_NetworkOut_Callback(BYTE byte)
 {
     DWORD dwBytesWritten;
     ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, NULL);
@@ -287,7 +287,7 @@ BOOL CALLBACK Emulator_NetworkOut_Callback(BYTE byte)
     return (dwBytesWritten == 1);
 }
 
-BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
+bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
 {
     if (m_okEmulatorNetwork != networkOnOff)
     {
@@ -308,7 +308,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
             {
                 DWORD dwError = ::GetLastError();
                 AlertWarningFormat(_T("Failed to open network COM port (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Set port settings
@@ -320,7 +320,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
                 AlertWarningFormat(_T("Failed to configure the Network COM port (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
@@ -336,7 +336,7 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
                 AlertWarningFormat(_T("Failed to set the Network COM port timeouts (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Clear port input buffer
@@ -363,15 +363,15 @@ BOOL Emulator_SetNetwork(BOOL networkOnOff, LPCTSTR networkPort)
     return TRUE;
 }
 
-BOOL CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
+bool CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
-    BOOL result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, NULL);
+    bool result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, NULL);
 
     return result && (dwBytesRead == 1);
 }
 
-BOOL CALLBACK Emulator_SerialOut_Callback(BYTE byte)
+bool CALLBACK Emulator_SerialOut_Callback(BYTE byte)
 {
     DWORD dwBytesWritten;
     ::WriteFile(m_hEmulatorComPort, &byte, 1, &dwBytesWritten, NULL);
@@ -379,7 +379,7 @@ BOOL CALLBACK Emulator_SerialOut_Callback(BYTE byte)
     return (dwBytesWritten == 1);
 }
 
-BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
+bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
 {
     if (m_okEmulatorSerial != serialOnOff)
     {
@@ -395,7 +395,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
             {
                 DWORD dwError = ::GetLastError();
                 AlertWarningFormat(_T("Failed to open COM port (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Set port settings
@@ -407,7 +407,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
                 AlertWarningFormat(_T("Failed to configure the COM port (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
@@ -423,7 +423,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
                 AlertWarningFormat(_T("Failed to set the COM port timeouts (0x%08lx)."), dwError);
-                return FALSE;
+                return false;
             }
 
             // Clear port input buffer
@@ -450,7 +450,7 @@ BOOL Emulator_SetSerial(BOOL serialOnOff, LPCTSTR serialPort)
     return TRUE;
 }
 
-BOOL CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
+bool CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
 {
     if (m_fpEmulatorParallelOut != NULL)
     {
@@ -460,7 +460,7 @@ BOOL CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
     return TRUE;
 }
 
-void Emulator_SetParallel(BOOL parallelOnOff)
+void Emulator_SetParallel(bool parallelOnOff)
 {
     if (m_okEmulatorParallel == parallelOnOff)
         return;
@@ -504,7 +504,7 @@ int Emulator_SystemFrame()
         _stprintf(buffer, _T("%03.f%%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
-        BOOL floppyEngine = g_pBoard->IsFloppyEngineOn();
+        bool floppyEngine = g_pBoard->IsFloppyEngineOn();
         MainWindow_SetStatusbarText(StatusbarPartFloppyEngine, floppyEngine ? _T("Motor") : NULL);
 
         m_nFrameCount = 0;
@@ -533,13 +533,13 @@ int Emulator_SystemFrame()
         if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 6)
             ScreenView_KeyEvent(0030, TRUE);  // Press "1"
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 10)
-            ScreenView_KeyEvent(0030, FALSE);  // Release "1"
+            ScreenView_KeyEvent(0030, false);  // Release "1"
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 16)
             ScreenView_KeyEvent(0153, TRUE);  // Press "Enter"
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 20)
         {
-            ScreenView_KeyEvent(0153, FALSE);  // Release "Enter"
-            Option_AutoBoot = FALSE;  // All done
+            ScreenView_KeyEvent(0153, false);  // Release "Enter"
+            Option_AutoBoot = false;  // All done
         }
     }
 
@@ -601,14 +601,14 @@ WORD Emulator_GetChangeRamStatus(int addrtype, WORD address)
     }
 }
 
-BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
+bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
     if (fpFile == NULL)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
-        return FALSE;
+        return false;
     }
 
     // Allocate memory
@@ -616,7 +616,7 @@ BOOL Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     if (pImage == NULL)
     {
         ::fclose(fpFile);
-        return FALSE;
+        return false;
     }
     DWORD dwBytesRead = ::fread(pImage, 1, 24 * 1024, fpFile);
     ASSERT(dwBytesRead == 24 * 1024);
@@ -639,13 +639,13 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
 
     // Tag parsing loop
     BYTE cursorYRGB;
-    BOOL okCursorType;
+    bool okCursorType;
     BYTE cursorPos = 128;
-    BOOL cursorOn = FALSE;
+    bool cursorOn = false;
     BYTE cursorAddress;      // Address of graphical cursor
     WORD address = 0000270;  // Tag sequence start address
-    BOOL okTagSize = FALSE;  // Tag size: TRUE - 4-word, FALSE - 2-word (first tag is always 2-word)
-    BOOL okTagType = FALSE;  // Type of 4-word tag: TRUE - set palette, FALSE - set params
+    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
+    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
     int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
     DWORD palette = 0;       // Palette
     DWORD palettecurrent[8];  memset(palettecurrent, 0, sizeof(palettecurrent)); // Current palette; update each time we change the "palette" variable
@@ -668,7 +668,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
                 pbpgpr = (BYTE)((7 - (tag2 & 7)) << 4);  // Y-value modifier
                 cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
-                okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, FALSE - symbolic cursor
+                okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, false - symbolic cursor
                 ASSERT(okCursorType == 0);  //DEBUG
                 cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
                 cursorAddress = (BYTE)((tag1 >> 5) & 7);
@@ -787,19 +787,19 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
 //TODO: 256 bytes * 4 - Floppy 1..4 path
 //TODO: 256 bytes * 2 - Hard 1..2 path
 
-BOOL Emulator_SaveImage(LPCTSTR sFilePath)
+bool Emulator_SaveImage(LPCTSTR sFilePath)
 {
     // Create file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR);
     if (fpFile == NULL)
-        return FALSE;
+        return false;
 
     // Allocate memory
     BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
     if (pImage == NULL)
     {
         ::fclose(fpFile);
-        return FALSE;
+        return false;
     }
     memset(pImage, 0, UKNCIMAGE_SIZE);
     // Prepare header
@@ -817,19 +817,19 @@ BOOL Emulator_SaveImage(LPCTSTR sFilePath)
     ::free(pImage);
     ::fclose(fpFile);
     if (dwBytesWritten != UKNCIMAGE_SIZE)
-        return FALSE;
+        return false;
 
     return TRUE;
 }
 
-BOOL Emulator_LoadImage(LPCTSTR sFilePath)
+bool Emulator_LoadImage(LPCTSTR sFilePath)
 {
     Emulator_Stop();
 
     // Open file
     FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
     if (fpFile == NULL)
-        return FALSE;
+        return false;
 
     // Read header
     DWORD bufHeader[UKNCIMAGE_HEADER_SIZE / sizeof(DWORD)];
@@ -837,7 +837,7 @@ BOOL Emulator_LoadImage(LPCTSTR sFilePath)
     if (dwBytesRead != UKNCIMAGE_HEADER_SIZE)
     {
         ::fclose(fpFile);
-        return FALSE;
+        return false;
     }
 
     //TODO: Check version and size
@@ -847,7 +847,7 @@ BOOL Emulator_LoadImage(LPCTSTR sFilePath)
     if (pImage == NULL)
     {
         ::fclose(fpFile);
-        return FALSE;
+        return false;
     }
 
     // Read image
@@ -857,7 +857,7 @@ BOOL Emulator_LoadImage(LPCTSTR sFilePath)
     {
         ::free(pImage);
         ::fclose(fpFile);
-        return FALSE;
+        return false;
     }
 
     // Restore emulator state from the image

@@ -59,19 +59,19 @@ public:
     virtual void ResetDevices() = 0;  ///< INIT signal
 public:  // Access to memory
     /// \brief Read command for execution
-    uint16_t GetWordExec(uint16_t address, BOOL okHaltMode) { return GetWord(address, okHaltMode, TRUE); }
+    uint16_t GetWordExec(uint16_t address, bool okHaltMode) { return GetWord(address, okHaltMode, true); }
     /// \brief Read word from memory
-    uint16_t GetWord(uint16_t address, BOOL okHaltMode) { return GetWord(address, okHaltMode, FALSE); }
+    uint16_t GetWord(uint16_t address, bool okHaltMode) { return GetWord(address, okHaltMode, false); }
     /// \brief Read word
-    uint16_t GetWord(uint16_t address, BOOL okHaltMode, BOOL okExec);
+    uint16_t GetWord(uint16_t address, bool okHaltMode, bool okExec);
     /// \brief Write word
-    void SetWord(uint16_t address, BOOL okHaltMode, uint16_t word);
+    void SetWord(uint16_t address, bool okHaltMode, uint16_t word);
     /// \brief Read byte
-    uint8_t GetByte(uint16_t address, BOOL okHaltMode);
+    uint8_t GetByte(uint16_t address, bool okHaltMode);
     /// \brief Write byte
-    void SetByte(uint16_t address, BOOL okHaltMode, uint8_t byte);
+    void SetByte(uint16_t address, bool okHaltMode, uint8_t byte);
     /// \brief Read word from memory for debugger
-    uint16_t GetWordView(uint16_t address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const;
+    uint16_t GetWordView(uint16_t address, bool okHaltMode, bool okExec, bool* pValid) const;
     /// \brief Read word from port for debugger
     virtual uint16_t GetPortView(uint16_t address) const = 0;
     /// \brief Read SEL register
@@ -82,9 +82,9 @@ public:  // Saving/loading emulator status (64 bytes)
 protected:
     /// \brief Determite memory type for given address - see ADDRTYPE_Xxx constants
     /// \param okHaltMode  processor mode (USER/HALT)
-    /// \param okExec  TRUE: read instruction for execution; FALSE: read memory
+    /// \param okExec  true: read instruction for execution; false: read memory
     /// \param pOffset  result -- offset in memory plane
-    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView = FALSE) const = 0;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView = false) const = 0;
 protected:  // Access to I/O ports
     virtual uint16_t GetPortWord(uint16_t address) = 0;
     virtual void SetPortWord(uint16_t address, uint16_t word) = 0;
@@ -101,7 +101,7 @@ public:
     virtual void DCLO_Signal();  ///< DCLO signal
     virtual void ResetDevices();  ///< INIT signal
 public:
-    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView) const;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
     virtual uint16_t GetSelRegister() { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
@@ -113,8 +113,8 @@ public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(uint8_t* pImage);
     virtual void LoadFromImage(const uint8_t* pImage);
 public:  // CPU specific
-    BOOL SerialInput(uint8_t inputByte);
-    BOOL NetworkInput(uint8_t inputByte);
+    bool SerialInput(uint8_t inputByte);
+    bool NetworkInput(uint8_t inputByte);
 protected:  // Implementation
     int         m_NetStation;  ///< Network station number
     uint16_t    m_Port176560;  ///< Network receiver state
@@ -143,7 +143,7 @@ public:
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView) const;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
     virtual uint16_t GetSelRegister() { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
@@ -155,9 +155,9 @@ public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(uint8_t* pImage);
     virtual void LoadFromImage(const uint8_t* pImage);
 public:  // PPU specifics
-    void KeyboardEvent(uint8_t scancode, BOOL okPressed);  ///< Keyboard key pressed or released
-    BOOL TapeInput(BOOL inputBit);
-    BOOL TapeOutput();
+    void KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Keyboard key pressed or released
+    bool TapeInput(bool inputBit);
+    bool TapeOutput();
 protected:  // Implementation
     uint16_t    m_Port177010;  ///< Plane address register
     uint16_t    m_Port177012;  ///< Plane 0 data register

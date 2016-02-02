@@ -53,7 +53,7 @@ typedef struct kbd_row_tag
 //   samples    Number of samples to play.
 // Output:
 //   result     Bit to put in tape input port.
-typedef BOOL (CALLBACK* TAPEREADCALLBACK)(unsigned int samples);
+typedef bool (CALLBACK* TAPEREADCALLBACK)(unsigned int samples);
 
 // Tape emulator callback used to write a data to tape.
 // Input:
@@ -66,35 +66,35 @@ typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 // Network port callback for receiving
 // Output:
 //   pbyte      Byte received
-//   result     TRUE means we have a new byte, FALSE means not ready yet
-typedef BOOL (CALLBACK* NETWORKINCALLBACK)(uint8_t* pbyte);
+//   result     true means we have a new byte, false means not ready yet
+typedef bool (CALLBACK* NETWORKINCALLBACK)(uint8_t* pbyte);
 
 // Network port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
-//   result     TRUE means we translated the byte successfully, FALSE means we have an error
-typedef BOOL (CALLBACK* NETWORKOUTCALLBACK)(uint8_t byte);
+//   result     true means we translated the byte successfully, false means we have an error
+typedef bool (CALLBACK* NETWORKOUTCALLBACK)(uint8_t byte);
 
 // Serial port callback for receiving
 // Output:
 //   pbyte      Byte received
-//   result     TRUE means we have a new byte, FALSE means not ready yet
-typedef BOOL (CALLBACK* SERIALINCALLBACK)(uint8_t* pbyte);
+//   result     true means we have a new byte, false means not ready yet
+typedef bool (CALLBACK* SERIALINCALLBACK)(uint8_t* pbyte);
 
 // Serial port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
-//   result     TRUE means we translated the byte successfully, FALSE means we have an error
-typedef BOOL (CALLBACK* SERIALOUTCALLBACK)(uint8_t byte);
+//   result     true means we translated the byte successfully, false means we have an error
+typedef bool (CALLBACK* SERIALOUTCALLBACK)(uint8_t byte);
 
 // Parallel port output callback
 // Input:
 //   byte       An output byte
 // Output:
-//   result     TRUE means OK, FALSE means we have an error
-typedef BOOL (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
+//   result     true means OK, false means we have an error
+typedef bool (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
 
 
 class CFloppyController;
@@ -219,39 +219,39 @@ public:  // System control
     void        SetTimerState(uint16_t val);	///< Sets timer state
     void        ExecuteCPU();  ///< Execute one CPU instruction
     void        ExecutePPU();  ///< Execute one PPU instruction
-    BOOL        SystemFrame();  ///< Do one frame -- use for normal run
-    void        KeyboardEvent(uint8_t scancode, BOOL okPressed);  ///< Key pressed or released
+    bool        SystemFrame();  ///< Do one frame -- use for normal run
+    void        KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Key pressed or released
     uint16_t    GetKeyboardRegister(void);
     uint16_t    GetScannedKey() { return m_scanned_key; }
 
     /// \brief Attach floppy image to the slot -- insert the disk.
-    BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
+    bool        AttachFloppyImage(int slot, LPCTSTR sFileName);
     /// \brief Empty the floppy slot -- remove the disk.
     void        DetachFloppyImage(int slot);
     /// \brief Check if the floppy attached.
-    BOOL        IsFloppyImageAttached(int slot) const;
+    bool        IsFloppyImageAttached(int slot) const;
     /// \brief Check if the attached floppy image is read-only.
-    BOOL        IsFloppyReadOnly(int slot) const;
+    bool        IsFloppyReadOnly(int slot) const;
     /// \brief Check if the floppy drive engine rotates the disks.
-    BOOL        IsFloppyEngineOn() const;
+    bool        IsFloppyEngineOn() const;
     uint16_t    GetFloppyState();
     uint16_t    GetFloppyData();
     void        SetFloppyState(uint16_t val);
     void        SetFloppyData(uint16_t val);
 
     /// \brief Check if ROM cartridge image assigned to the cartridge slot.
-    BOOL        IsROMCartridgeLoaded(int cartno) const;
+    bool        IsROMCartridgeLoaded(int cartno) const;
     /// \brief Empty the ROM cartridge slot.
     void        UnloadROMCartridge(int cartno);
 
     /// \brief Attach hard drive image to the slot.
-    BOOL        AttachHardImage(int slot, LPCTSTR sFileName);
+    bool        AttachHardImage(int slot, LPCTSTR sFileName);
     /// \brief Empty hard drive slot.
     void        DetachHardImage(int slot);
     /// \brief Check if the hard drive attached.
-    BOOL        IsHardImageAttached(int slot) const;
+    bool        IsHardImageAttached(int slot) const;
     /// \brief Check if the attached hard drive image is read-only.
-    BOOL        IsHardImageReadOnly(int slot) const;
+    bool        IsHardImageReadOnly(int slot) const;
     uint16_t    GetHardPortWord(int slot, uint16_t port);  ///< To use from CSecondMemoryController only
     void        SetHardPortWord(int slot, uint16_t port, uint16_t data);  ///< To use from CSecondMemoryController only
 

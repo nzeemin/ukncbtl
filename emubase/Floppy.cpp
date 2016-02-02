@@ -25,7 +25,7 @@ const uint16_t FLOPPY_CMD_MASKSTORED =
     FLOPPY_CMD_ENGINESTART;
 
 static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker, uint16_t track, uint16_t side);
-static BOOL DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest);
+static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest);
 
 //////////////////////////////////////////////////////////////////////
 
@@ -33,7 +33,7 @@ static BOOL DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest);
 CFloppyDrive::CFloppyDrive()
 {
     fpFile = NULL;
-    okNetRT11Image = okReadOnly = FALSE;
+    okNetRT11Image = okReadOnly = false;
     datatrack = dataside = 0;
     dataptr = 0;
     track = side = 0;
@@ -56,9 +56,9 @@ CFloppyController::CFloppyController()
     m_drive = m_side = m_track = 0;
     m_pDrive = m_drivedata;
     m_datareg = m_writereg = m_shiftreg = 0;
-    m_writing = m_searchsync = m_writemarker = m_crccalculus = FALSE;
-    m_writeflag = m_shiftflag = m_shiftmarker = FALSE;
-    m_trackchanged = FALSE;
+    m_writing = m_searchsync = m_writemarker = m_crccalculus = false;
+    m_writeflag = m_shiftflag = m_shiftmarker = false;
+    m_trackchanged = false;
     m_status = FLOPPY_STATUS_TRACK0 | FLOPPY_STATUS_WRITEPROTECT;
     m_flags = FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC;
 }
@@ -76,16 +76,16 @@ void CFloppyController::Reset()
     m_drive = m_side = m_track = 0;
     m_pDrive = m_drivedata;
     m_datareg = m_writereg = m_shiftreg = 0;
-    m_writing = m_searchsync = m_writemarker = m_crccalculus = FALSE;
-    m_writeflag = m_shiftflag = FALSE;
-    m_trackchanged = FALSE;
+    m_writing = m_searchsync = m_writemarker = m_crccalculus = false;
+    m_writeflag = m_shiftflag = false;
+    m_trackchanged = false;
     m_status = (m_pDrive->okReadOnly) ? FLOPPY_STATUS_TRACK0 | FLOPPY_STATUS_WRITEPROTECT : FLOPPY_STATUS_TRACK0;
     m_flags = FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC;
 
     PrepareTrack();
 }
 
-BOOL CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
+bool CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
 
@@ -94,34 +94,34 @@ BOOL CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
         DetachImage(drive);
 
     // Определяем, это .dsk-образ или .rtd-образ - по расширению файла
-    m_drivedata[drive].okNetRT11Image = FALSE;
+    m_drivedata[drive].okNetRT11Image = false;
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".rtd")) == 0)
-        m_drivedata[drive].okNetRT11Image = TRUE;
+        m_drivedata[drive].okNetRT11Image = true;
 
     // Open file
-    m_drivedata[drive].okReadOnly = FALSE;
+    m_drivedata[drive].okReadOnly = false;
     m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("r+b"));
     if (m_drivedata[drive].fpFile == NULL)
     {
-        m_drivedata[drive].okReadOnly = TRUE;
+        m_drivedata[drive].okReadOnly = true;
         m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("rb"));
     }
     if (m_drivedata[drive].fpFile == NULL)
-        return FALSE;
+        return false;
 
     m_side = m_track = m_drivedata[drive].datatrack = m_drivedata[drive].dataside = 0;
     m_drivedata[drive].dataptr = 0;
     m_datareg = m_writereg = m_shiftreg = 0;
-    m_writing = m_searchsync = m_writemarker = m_crccalculus = FALSE;
-    m_writeflag = m_shiftflag = FALSE;
-    m_trackchanged = FALSE;
+    m_writing = m_searchsync = m_writemarker = m_crccalculus = false;
+    m_writeflag = m_shiftflag = false;
+    m_trackchanged = false;
     m_status = (m_pDrive->okReadOnly) ? FLOPPY_STATUS_TRACK0 | FLOPPY_STATUS_WRITEPROTECT : FLOPPY_STATUS_TRACK0;
     m_flags = FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC;
 
     PrepareTrack();
 
-    return TRUE;
+    return true;
 }
 
 void CFloppyController::DetachImage(int drive)
@@ -132,7 +132,7 @@ void CFloppyController::DetachImage(int drive)
 
     ::fclose(m_drivedata[drive].fpFile);
     m_drivedata[drive].fpFile = NULL;
-    m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = FALSE;
+    m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = false;
     m_drivedata[drive].Reset();
 }
 
@@ -172,7 +172,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
 //	DebugLogFormat(_T("Floppy COMMAND %o06\r\n"), cmd);
 //#endif
 
-    BOOL okPrepareTrack = FALSE;  // Нужно ли считывать дорожку в буфер
+    bool okPrepareTrack = false;  // Нужно ли считывать дорожку в буфер
 
     // Проверить, не сменился ли текущий привод
     uint16_t newdrive = (cmd & 3) ^ 3;
@@ -186,7 +186,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
         m_drive = newdrive;
         m_pDrive = m_drivedata + m_drive;
-        okPrepareTrack = TRUE;
+        okPrepareTrack = true;
     }
     cmd &= ~3;  // Убираем из команды информацию о текущем приводе
 
@@ -197,11 +197,11 @@ void CFloppyController::SetCommand(uint16_t cmd)
     // Проверяем, не сменилась ли сторона
     if (m_flags & FLOPPY_CMD_SIDEUP)  // Side selection: 0 - down, 1 - up
     {
-        if (m_side == 0) { m_side = 1;  okPrepareTrack = TRUE; }
+        if (m_side == 0) { m_side = 1;  okPrepareTrack = true; }
     }
     else
     {
-        if (m_side == 1) { m_side = 0;  okPrepareTrack = TRUE; }
+        if (m_side == 1) { m_side = 0;  okPrepareTrack = true; }
     }
 
     if (cmd & FLOPPY_CMD_STEP)  // Move head for one track to center or from center
@@ -213,11 +213,11 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
         if (m_flags & FLOPPY_CMD_DIR)
         {
-            if (m_track < 79) { m_track++;  okPrepareTrack = TRUE; }
+            if (m_track < 79) { m_track++;  okPrepareTrack = true; }
         }
         else
         {
-            if (m_track >= 1) { m_track--;  okPrepareTrack = TRUE; }
+            if (m_track >= 1) { m_track--;  okPrepareTrack = true; }
         }
     }
     if (okPrepareTrack)
@@ -235,8 +235,8 @@ void CFloppyController::SetCommand(uint16_t cmd)
 //        DebugLog(_T("Floppy SEARCHSYNC\r\n"));  //DEBUG
 //#endif
         m_flags &= ~FLOPPY_CMD_SEARCHSYNC;
-        m_searchsync = TRUE;
-        m_crccalculus = TRUE;
+        m_searchsync = true;
+        m_crccalculus = true;
         m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
     }
 
@@ -245,7 +245,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
 //#if !defined(PRODUCT)
 //        DebugLog(_T("Floppy MARKER\r\n"));  //DEBUG
 //#endif
-        m_writemarker = TRUE;
+        m_writemarker = true;
         m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
     }
 }
@@ -257,8 +257,8 @@ uint16_t CFloppyController::GetData(void)
 //#endif
 
     m_status &= ~FLOPPY_STATUS_MOREDATA;
-    m_writing = m_searchsync = FALSE;
-    m_writeflag = m_shiftflag = FALSE;
+    m_writing = m_searchsync = false;
+    m_writeflag = m_shiftflag = false;
 
     return m_datareg;
 }
@@ -269,19 +269,19 @@ void CFloppyController::WriteData(uint16_t data)
 //	DebugLogFormat(_T("Floppy WRITE\t\t%04x\r\n"), data);  //DEBUG
 //#endif
 
-    m_writing = TRUE;  // Switch to write mode if not yet
-    m_searchsync = FALSE;
+    m_writing = true;  // Switch to write mode if not yet
+    m_searchsync = false;
 
     if (!m_writeflag && !m_shiftflag)  // Both registers are empty
     {
         m_shiftreg = data;
-        m_shiftflag = TRUE;
+        m_shiftflag = true;
         m_status |= FLOPPY_STATUS_MOREDATA;
     }
     else if (!m_writeflag && m_shiftflag)  // Write register is empty
     {
         m_writereg = data;
-        m_writeflag = TRUE;
+        m_writeflag = true;
         m_status &= ~FLOPPY_STATUS_MOREDATA;
     }
     else if (m_writeflag && !m_shiftflag)  // Shift register is empty
@@ -289,7 +289,7 @@ void CFloppyController::WriteData(uint16_t data)
         m_shiftreg = m_writereg;
         m_shiftflag = m_writeflag;
         m_writereg = data;
-        m_writeflag = TRUE;
+        m_writeflag = true;
         m_status &= ~FLOPPY_STATUS_MOREDATA;
     }
     else  // Both registers are not empty
@@ -320,7 +320,7 @@ void CFloppyController::Periodic()
         {
             if (m_crccalculus)  // Stop CRC calculation
             {
-                m_crccalculus = FALSE;
+                m_crccalculus = false;
                 //TODO: Compare calculated CRC to m_datareg
                 m_status |= FLOPPY_STATUS_CHECKSUMOK;
             }
@@ -332,7 +332,7 @@ void CFloppyController::Periodic()
                 if (m_pDrive->marker[m_pDrive->dataptr / 2])  // Marker found
                 {
                     m_status |= FLOPPY_STATUS_MOREDATA;
-                    m_searchsync = FALSE;
+                    m_searchsync = false;
                 }
             }
             else  // Just read
@@ -345,31 +345,31 @@ void CFloppyController::Periodic()
         {
             m_pDrive->data[m_pDrive->dataptr] = LOBYTE(m_shiftreg);
             m_pDrive->data[m_pDrive->dataptr + 1] = HIBYTE(m_shiftreg);
-            m_shiftflag = FALSE;
-            m_trackchanged = TRUE;
+            m_shiftflag = false;
+            m_trackchanged = true;
 
             if (m_shiftmarker)
             {
 //#if !defined(PRODUCT)
 //            DebugLogFormat(_T("Floppy WRITING %04x MARKER at %04hx SC %hu\r\n"), m_shiftreg, m_pDrive->dataptr, (m_pDrive->dataptr - 0x5e) / 614 + 1);  //DEBUG
 //#endif
-                m_pDrive->marker[m_pDrive->dataptr / 2] = TRUE;
-                m_shiftmarker = FALSE;
-                m_crccalculus = TRUE;  // Start CRC calculation
+                m_pDrive->marker[m_pDrive->dataptr / 2] = true;
+                m_shiftmarker = false;
+                m_crccalculus = true;  // Start CRC calculation
             }
             else
             {
 //#if !defined(PRODUCT)
 //            DebugLogFormat(_T("Floppy WRITING %04x\r\n"), m_shiftreg);  //DEBUG
 //#endif
-                m_pDrive->marker[m_pDrive->dataptr / 2] = FALSE;
+                m_pDrive->marker[m_pDrive->dataptr / 2] = false;
             }
 
             if (m_writeflag)
             {
                 m_shiftreg = m_writereg;
-                m_shiftflag = m_writeflag;  m_writeflag = FALSE;
-                m_shiftmarker = m_writemarker;  m_writemarker = FALSE;
+                m_shiftflag = m_writeflag;  m_writeflag = false;
+                m_shiftmarker = m_writemarker;  m_writemarker = false;
                 m_status |= FLOPPY_STATUS_MOREDATA;
             }
             else
@@ -377,9 +377,9 @@ void CFloppyController::Periodic()
                 if (m_crccalculus)  // Stop CRC calclation
                 {
                     m_shiftreg = 0x4444;  //STUB
-                    m_shiftflag = FALSE; //Should be TRUE, but temporarily disabled
-                    m_shiftmarker = FALSE;
-                    m_crccalculus = FALSE;
+                    m_shiftflag = false; //Should be true, but temporarily disabled
+                    m_shiftmarker = false;
+                    m_crccalculus = false;
                     m_status |= FLOPPY_STATUS_CHECKSUMOK;
                 }
             }
@@ -399,7 +399,7 @@ void CFloppyController::PrepareTrack()
     //TCHAR buffer[512];
     size_t count;
 
-    m_trackchanged = FALSE;
+    m_trackchanged = false;
     m_status |= FLOPPY_STATUS_MOREDATA;
     m_pDrive->dataptr = 0;
     m_pDrive->datatrack = m_track;
@@ -426,13 +426,13 @@ void CFloppyController::PrepareTrack()
 
     ////DEBUG: Test DecodeTrackData()
     //uint8_t data2[5120];
-    //BOOL parsed = DecodeTrackData(m_pDrive->data, data2);
+    //bool parsed = DecodeTrackData(m_pDrive->data, data2);
     //ASSERT(parsed);
-    //BOOL tested = TRUE;
+    //bool tested = true;
     //for (int i = 0; i < 5120; i++)
     //    if (data[i] != data2[i])
     //    {
-    //        tested = FALSE;
+    //        tested = false;
     //        break;
     //    }
     //ASSERT(tested);
@@ -449,7 +449,7 @@ void CFloppyController::FlushChanges()
 
     // Decode track data from m_data
     uint8_t data[5120];  memset(data, 0, 5120);
-    BOOL decoded = DecodeTrackData(m_pDrive->data, data);
+    bool decoded = DecodeTrackData(m_pDrive->data, data);
 
     if (decoded)  // Write to the file only if the track was correctly decoded from raw data
     {
@@ -482,7 +482,7 @@ void CFloppyController::FlushChanges()
 //#endif
     }
 
-    m_trackchanged = FALSE;
+    m_trackchanged = false;
 
     ////DEBUG: Save raw m_data/m_marker into rawdata.bin
     //HANDLE hRawFile = CreateFile(_T("rawdata.bin"),
@@ -509,7 +509,7 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
         // sector header
         for (count = 0; count < 12; count++) data[ptr++] = 0x00;
         // marker
-        marker[ptr / 2] = TRUE;  // ID marker; start CRC calculus
+        marker[ptr / 2] = true;  // ID marker; start CRC calculus
         data[ptr++] = 0xa1;  data[ptr++] = 0xa1;  data[ptr++] = 0xa1;
         data[ptr++] = 0xfe;
 
@@ -524,7 +524,7 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
         // data header
         for (count = 0; count < 12; count++) data[ptr++] = 0x00;
         // marker
-        marker[ptr / 2] = TRUE;  // Data marker; start CRC calculus
+        marker[ptr / 2] = true;  // Data marker; start CRC calculus
         data[ptr++] = 0xa1;  data[ptr++] = 0xa1;  data[ptr++] = 0xa1;
         data[ptr++] = 0xfb;
         // data
@@ -543,8 +543,8 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
 // Decode track data from raw data
 // pRaw is array of FLOPPY_RAWTRACKSIZE bytes
 // pDest is array of 5120 bytes
-// Returns: TRUE - decoded, FALSE - parse error
-static BOOL DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
+// Returns: true - decoded, false - parse error
+static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
 {
     uint16_t dataptr = 0;  // Offset in m_data array
     uint16_t destptr = 0;  // Offset in data array
@@ -553,58 +553,58 @@ static BOOL DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x4e) dataptr++;  // Skip GAP1 or GAP3
         if (dataptr >= FLOPPY_RAWTRACKSIZE) break;  // End of track or error
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
 
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
         if (pRaw[dataptr++] != 0xfe)
-            return FALSE;  // Marker not found
+            return false;  // Marker not found
 
         uint8_t sectcyl, secthd, sectsec, sectno = 0;
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectcyl = pRaw[dataptr++];
         if (dataptr < FLOPPY_RAWTRACKSIZE) secthd  = pRaw[dataptr++];
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectsec = pRaw[dataptr++];
         if (dataptr < FLOPPY_RAWTRACKSIZE) sectno  = pRaw[dataptr++];
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
 
         int sectorsize;
         if (sectno == 1) sectorsize = 256;
         else if (sectno == 2) sectorsize = 512;
         else if (sectno == 3) sectorsize = 1024;
-        else return FALSE;  // Something wrong: unknown sector size
+        else return false;  // Something wrong: unknown sector size
         // crc
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
 
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x4e) dataptr++;  // Skip GAP2
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
 
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return FALSE;  // Something wrong
+        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
         if (pRaw[dataptr++] != 0xfb)
-            return FALSE;  // Marker not found
+            return false;  // Marker not found
 
         for (int count = 0; count < sectorsize; count++)  // Copy sector data
         {
             if (destptr >= 5120) break;  // End of track or error
             pDest[destptr++] = pRaw[dataptr++];
             if (dataptr >= FLOPPY_RAWTRACKSIZE)
-                return FALSE;  // Something wrong
+                return false;  // Something wrong
         }
         if (dataptr >= FLOPPY_RAWTRACKSIZE)
-            return FALSE;  // Something wrong
+            return false;  // Something wrong
         // crc
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
     }
 
-    return TRUE;
+    return true;
 }
 
 

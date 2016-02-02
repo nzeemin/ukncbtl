@@ -61,8 +61,8 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHA
 struct CFloppyDrive
 {
     FILE* fpFile;       ///< File pointer of the disk image file
-    BOOL okNetRT11Image;  ///< TRUE - .rtd image, FALSE - .dsk image
-    BOOL okReadOnly;    ///< Write protection flag
+    bool okNetRT11Image;  ///< true - .rtd image, false - .dsk image
+    bool okReadOnly;    ///< Write protection flag
     uint16_t track;         ///< Track number: from 0 to 79
     uint16_t side;          ///< Disk side: 0 or 1
     uint16_t dataptr;       ///< Data offset within m_data - "head" position
@@ -90,15 +90,15 @@ protected:
     uint16_t m_flags;       ///< See FLOPPY_CMD_XXX defines
     uint16_t m_datareg;     ///< Read mode data register
     uint16_t m_writereg;    ///< Write mode data register
-    BOOL m_writeflag;   ///< Write mode data register has data
-    BOOL m_writemarker; ///< Write marker in m_marker
+    bool m_writeflag;   ///< Write mode data register has data
+    bool m_writemarker; ///< Write marker in m_marker
     uint16_t m_shiftreg;    ///< Write mode shift register
-    BOOL m_shiftflag;   ///< Write mode shift register has data
-    BOOL m_shiftmarker; ///< Write marker in m_marker
-    BOOL m_writing;     ///< TRUE = write mode, FALSE = read mode
-    BOOL m_searchsync;  ///< Read sub-mode: TRUE = search for sync, FALSE = just read
-    BOOL m_crccalculus; ///< TRUE = CRC is calculated now
-    BOOL m_trackchanged;  ///< TRUE = m_data was changed - need to save it into the file
+    bool m_shiftflag;   ///< Write mode shift register has data
+    bool m_shiftmarker; ///< Write marker in m_marker
+    bool m_writing;     ///< true = write mode, false = read mode
+    bool m_searchsync;  ///< Read sub-mode: true = search for sync, false = just read
+    bool m_crccalculus; ///< true = CRC is calculated now
+    bool m_trackchanged;  ///< true = m_data was changed - need to save it into the file
 
 public:
     CFloppyController();
@@ -107,15 +107,15 @@ public:
 
 public:
     /// \brief Attach the image to the drive -- insert disk
-    BOOL AttachImage(int drive, LPCTSTR sFileName);
+    bool AttachImage(int drive, LPCTSTR sFileName);
     /// \brief Detach image from the drive -- remove disk
     void DetachImage(int drive);
     /// \brief Check if the drive has an image attached
-    BOOL IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
+    bool IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
     /// \brief Check if the drive's attached image is read-only
-    BOOL IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
+    bool IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     /// \brief Check if floppy engine now rotates
-    BOOL IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
+    bool IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
     uint16_t GetData(void);         ///< Reading port 177132 -- data
     uint16_t GetState(void);        ///< Reading port 177130 -- device status
     void SetCommand(uint16_t cmd);  ///< Writing to port 177130 -- commands
@@ -139,8 +139,8 @@ class CHardDrive
 {
 protected:
     FILE*   m_fpFile;           ///< File pointer for the attached HDD image
-    BOOL    m_okReadOnly;       ///< Flag indicating that the HDD image file is read-only
-    BOOL    m_okInverted;       ///< Flag indicating that the HDD image has inverted bits
+    bool    m_okReadOnly;       ///< Flag indicating that the HDD image file is read-only
+    bool    m_okInverted;       ///< Flag indicating that the HDD image has inverted bits
     uint8_t m_status;           ///< IDE status register, see IDE_STATUS_XXX constants
     uint8_t m_error;            ///< IDE error register, see IDE_ERROR_XXX constants
     uint8_t m_command;          ///< Current IDE command, see IDE_COMMAND_XXX constants
@@ -163,11 +163,11 @@ public:
     /// \brief Reset the device.
     void Reset();
     /// \brief Attach HDD image file to the device
-    BOOL AttachImage(LPCTSTR sFileName);
+    bool AttachImage(LPCTSTR sFileName);
     /// \brief Detach HDD image file from the device
     void DetachImage();
     /// \brief Check if the attached hard drive image is read-only
-    BOOL IsReadOnly() const { return m_okReadOnly; }
+    bool IsReadOnly() const { return m_okReadOnly; }
 
 public:
     /// \brief Read word from the device port

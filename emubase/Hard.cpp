@@ -89,8 +89,8 @@ CHardDrive::CHardDrive()
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
     memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
 
-    m_okInverted = FALSE;
-    m_okReadOnly = FALSE;
+    m_okInverted = false;
+    m_okReadOnly = false;
 }
 
 CHardDrive::~CHardDrive()
@@ -111,35 +111,35 @@ void CHardDrive::Reset()
     m_timeoutevent = TIMEEVT_RESET_DONE;
 }
 
-BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
+bool CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
 
     // Open file
-    m_okReadOnly = FALSE;
+    m_okReadOnly = false;
     m_fpFile = ::_tfopen(sFileName, _T("r+b"));
     if (m_fpFile == NULL)
     {
-        m_okReadOnly = TRUE;
+        m_okReadOnly = true;
         m_fpFile = ::_tfopen(sFileName, _T("rb"));
     }
     if (m_fpFile == NULL)
-        return FALSE;
+        return false;
 
     // Check file size
     ::fseek(m_fpFile, 0, SEEK_END);
     uint32_t dwFileSize = ::ftell(m_fpFile);
     ::fseek(m_fpFile, 0, SEEK_SET);
     if (dwFileSize % 512 != 0)
-        return FALSE;
+        return false;
 
     // Read first sector
     size_t dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
     if (dwBytesRead != 512)
-        return FALSE;
+        return false;
 
     // Autodetect inverted image
-    m_okInverted = FALSE;
+    m_okInverted = false;
     uint8_t test = 0xff;
     for (int i = 0x1f0; i <= 0x1fb; i++)
         test &= m_buffer[i];
@@ -152,17 +152,17 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
     m_numsectors = *(m_buffer + 0);
     m_numheads   = *(m_buffer + 1);
     if (m_numsectors == 0 || m_numheads == 0)
-        return FALSE;  // Geometry params are not defined
+        return false;  // Geometry params are not defined
     m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
     if (m_numcylinders == 0 || m_numcylinders > 1024)
-        return FALSE;
+        return false;
 
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
 
-    return TRUE;
+    return true;
 }
 
 void CHardDrive::DetachImage()

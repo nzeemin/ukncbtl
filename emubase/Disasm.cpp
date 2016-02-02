@@ -28,7 +28,7 @@ const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
 };
 
 //   strSrc - at least 24 characters
-BOOL ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
+bool ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
 {
     int reg = GetDigit(instr, 2);
     int param = GetDigit(instr, 3);
@@ -43,7 +43,7 @@ BOOL ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t c
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word, pszReg);
-            return TRUE;
+            return true;
         }
         else
             _sntprintf(strSrc, 24, format, pszReg);
@@ -56,23 +56,23 @@ BOOL ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t c
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word);
-            return TRUE;
+            return true;
         }
         else if (param == 6 || param == 7)
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, (uint16_t)(addr + word + 2));
-            return TRUE;
+            return true;
         }
         else
             _sntprintf(strSrc, 24, format, pszReg);
     }
 
-    return FALSE;
+    return false;
 }
 
 //   strDst - at least 24 characters
-BOOL ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
+bool ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
 {
     int reg = GetDigit(instr, 0);
     int param = GetDigit(instr, 1);
@@ -86,7 +86,7 @@ BOOL ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t 
         if (param == 6 || param == 7)
         {
             _sntprintf(strDst, 24, format, code, pszReg);
-            return TRUE;
+            return true;
         }
         else
             _sntprintf(strDst, 24, format, pszReg);
@@ -98,18 +98,18 @@ BOOL ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t 
         if (param == 2 || param == 3)
         {
             _sntprintf(strDst, 24, format, code);
-            return TRUE;
+            return true;
         }
         else if (param == 6 || param == 7)
         {
             _sntprintf(strDst, 24, format, (uint16_t)(addr + code + 2));
-            return TRUE;
+            return true;
         }
         else
             _sntprintf(strDst, 24, format, pszReg);
     }
 
-    return FALSE;
+    return false;
 }
 
 // Disassemble one instruction
@@ -128,7 +128,7 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TC
     LPCTSTR strReg = NULL;
     TCHAR strSrc[24];
     TCHAR strDst[24];
-    BOOL okByte;
+    bool okByte;
 
     // No fields
     switch (instr)
