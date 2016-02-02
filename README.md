@@ -13,6 +13,8 @@ The UKNCBTL project consists of:
 * [ukncbtl-utils](https://github.com/nzeemin/ukncbtl-utils/) -- various utilities: rt11dsk, sav2wav, UkncComSender, ESCParser.
 * [ukncbtl-doc](https://github.com/nzeemin/ukncbtl-doc/) -- documentation and screenshots.
 * Project wiki: https://github.com/nzeemin/ukncbtl-doc/wiki
+  * Screenshots: https://github.com/nzeemin/ukncbtl-doc/wiki/Screenshots-ru
+  * User's Manual (in Russian): https://github.com/nzeemin/ukncbtl-doc/wiki/Users-Manual-ru
 
 Current status: Beta, under development. Most of software works fine.
 
