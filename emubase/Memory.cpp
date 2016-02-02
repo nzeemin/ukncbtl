@@ -22,7 +22,7 @@ CMemoryController::CMemoryController ()
 {
     m_pProcessor = NULL;
     m_pBoard = NULL;
-    m_pMapping = (BYTE*) malloc(65536);
+    m_pMapping = (uint8_t*) malloc(65536);
     memset(m_pMapping, ADDRTYPE_NONE, 65536);
     m_pDevices = NULL;
     m_nDeviceCount = 0;
@@ -72,22 +72,22 @@ void CMemoryController::UpdateMemoryMap()
     {
         CBusDevice * pDevice = *pDevices;
         if (pDevice == NULL) continue;
-        BYTE deviceIndex = (BYTE)device | ADDRTYPE_IO;
-        const WORD * pRanges = (*pDevices)->GetAddressRanges();
+        uint8_t deviceIndex = (uint8_t)device | ADDRTYPE_IO;
+        const uint16_t * pRanges = (*pDevices)->GetAddressRanges();
         while (*pRanges != 0)
         {
-            WORD start = *pRanges;  pRanges++;
-            WORD length = *pRanges;  pRanges++;
-            for (WORD addr = start; addr < start + length; addr++)
+            uint16_t start = *pRanges;  pRanges++;
+            uint16_t length = *pRanges;  pRanges++;
+            for (uint16_t addr = start; addr < start + length; addr++)
                 m_pMapping[addr] = deviceIndex;
         }
     }
 }
 
 // Read word from memory for debugger
-WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const
+uint16_t CMemoryController::GetWordView(uint16_t address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const
 {
-    WORD offset;
+    uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, TRUE);
 
     switch (addrtype)
@@ -121,9 +121,9 @@ WORD CMemoryController::GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, 
     return 0;
 }
 
-WORD CMemoryController::GetWord(WORD address, BOOL okHaltMode, BOOL okExec)
+uint16_t CMemoryController::GetWord(uint16_t address, BOOL okHaltMode, BOOL okExec)
 {
-    WORD offset;
+    uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset);
 
     switch (addrtype)
@@ -154,9 +154,9 @@ WORD CMemoryController::GetWord(WORD address, BOOL okHaltMode, BOOL okExec)
     return 0;
 }
 
-BYTE CMemoryController::GetByte(WORD address, BOOL okHaltMode)
+uint8_t CMemoryController::GetByte(uint16_t address, BOOL okHaltMode)
 {
-    WORD offset;
+    uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
     switch (addrtype)
@@ -190,9 +190,9 @@ BYTE CMemoryController::GetByte(WORD address, BOOL okHaltMode)
     return 0;
 }
 
-void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
+void CMemoryController::SetWord(uint16_t address, BOOL okHaltMode, uint16_t word)
 {
-    WORD offset;
+    uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
     switch (addrtype)
@@ -225,9 +225,9 @@ void CMemoryController::SetWord(WORD address, BOOL okHaltMode, WORD word)
     ASSERT(FALSE);  // If we are here - then addrtype has invalid value
 }
 
-void CMemoryController::SetByte(WORD address, BOOL okHaltMode, BYTE byte)
+void CMemoryController::SetByte(uint16_t address, BOOL okHaltMode, uint8_t byte)
 {
-    WORD offset;
+    uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, FALSE, &offset);
 
     switch (addrtype)
@@ -308,7 +308,7 @@ void CFirstMemoryController::ResetDevices()
     //TODO
 }
 
-int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL /*okExec*/, WORD* pOffset, BOOL okView) const
+int CFirstMemoryController::TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL /*okExec*/, uint16_t* pOffset, BOOL okView) const
 {
     if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
     {
@@ -338,13 +338,13 @@ int CFirstMemoryController::TranslateAddress(WORD address, BOOL okHaltMode, BOOL
     //return 0;
 }
 
-BYTE CFirstMemoryController::GetPortByte(WORD address)
+uint8_t CFirstMemoryController::GetPortByte(uint16_t address)
 {
-    WORD word = GetPortWord(address);
-    return (BYTE) (address & 1) ? HIBYTE(word) : LOBYTE(word);
+    uint16_t word = GetPortWord(address);
+    return (uint8_t) (address & 1) ? HIBYTE(word) : LOBYTE(word);
 }
 
-WORD CFirstMemoryController::GetPortWord(WORD address)
+uint16_t CFirstMemoryController::GetPortWord(uint16_t address)
 {
     switch (address)
     {
@@ -435,7 +435,7 @@ WORD CFirstMemoryController::GetPortWord(WORD address)
 
 
 // Read word from port for debugger
-WORD CFirstMemoryController::GetPortView(WORD address) const
+uint16_t CFirstMemoryController::GetPortView(uint16_t address) const
 {
     switch (address)
     {
@@ -449,9 +449,9 @@ WORD CFirstMemoryController::GetPortView(WORD address) const
     }
 }
 
-void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
+void CFirstMemoryController::SetPortByte(uint16_t address, uint8_t byte)
 {
-    WORD word = (address & 1) ? ((WORD)byte) << 8 : (WORD)byte;
+    uint16_t word = (address & 1) ? ((uint16_t)byte) << 8 : (uint16_t)byte;
     switch (address)
     {
     case 0176640:  // Plane address register
@@ -477,7 +477,7 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
         break;
 
     case 0177560:
-        m_pBoard->ChanRxStateSetCPU(0, (BYTE) word);
+        m_pBoard->ChanRxStateSetCPU(0, (uint8_t) word);
         break;
     case 0177561:
         m_pBoard->ChanRxStateSetCPU(0, 0);
@@ -486,19 +486,19 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
     case 0177563:
         break;
     case 0177564:
-        m_pBoard->ChanTxStateSetCPU(0, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(0, (uint8_t) word);
         break;
     case 0177565:
         m_pBoard->ChanTxStateSetCPU(0, 0);
         break;
     case 0177566:  // TX data, channel 0
-        m_pBoard->ChanWriteByCPU(0, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(0, (uint8_t) word);
         break;
     case 0177567:
         m_pBoard->ChanWriteByCPU(0, 0);
         break;
     case 0176660:
-        m_pBoard->ChanRxStateSetCPU(1, (BYTE) word);
+        m_pBoard->ChanRxStateSetCPU(1, (uint8_t) word);
         break;
     case 0176661:
         m_pBoard->ChanRxStateSetCPU(1, 0);
@@ -507,25 +507,25 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
     case 0176663:
         break ;
     case 0176664:
-        m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(1, (uint8_t) word);
         break;
     case 0176665:
         m_pBoard->ChanTxStateSetCPU(1, 0);
         break;
     case 0176666:  // TX data, channel 1
-        m_pBoard->ChanWriteByCPU(1, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(1, (uint8_t) word);
         break;
     case 0176667:
         m_pBoard->ChanWriteByCPU(1, 0);
         break;
     case 0176674:
-        m_pBoard->ChanTxStateSetCPU(2, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(2, (uint8_t) word);
         break;
     case 0176675:
         m_pBoard->ChanTxStateSetCPU(2, 0);
         break;
     case 0176676:  // TX data, channel 2
-        m_pBoard->ChanWriteByCPU(2, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(2, (uint8_t) word);
         break;
     case 0176677:
         m_pBoard->ChanWriteByCPU(2, 0);
@@ -578,7 +578,7 @@ void CFirstMemoryController::SetPortByte(WORD address, BYTE byte)
     }
 }
 
-void CFirstMemoryController::SetPortWord(WORD address, WORD word)
+void CFirstMemoryController::SetPortWord(uint16_t address, uint16_t word)
 {
     switch (address)
     {
@@ -614,7 +614,7 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
     case 0177560:
     case 0177561:
-        m_pBoard->ChanRxStateSetCPU(0, (BYTE) word);
+        m_pBoard->ChanRxStateSetCPU(0, (uint8_t) word);
         break;
     case 0177562:
     case 0177563:
@@ -622,34 +622,34 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
 
     case 0177564:
     case 0177565:
-        m_pBoard->ChanTxStateSetCPU(0, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(0, (uint8_t) word);
         break;
     case 0177566:  // TX data, channel 0
     case 0177567:
-        m_pBoard->ChanWriteByCPU(0, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(0, (uint8_t) word);
         break;
     case 0176660:
     case 0176661:
-        m_pBoard->ChanRxStateSetCPU(1, (BYTE) word);
+        m_pBoard->ChanRxStateSetCPU(1, (uint8_t) word);
         break;
     case 0176662:
     case 0176663:
         break ;
     case 0176664:
     case 0176665:
-        m_pBoard->ChanTxStateSetCPU(1, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(1, (uint8_t) word);
         break;
     case 0176666:  // TX data, channel 1
     case 0176667:
-        m_pBoard->ChanWriteByCPU(1, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(1, (uint8_t) word);
         break;
     case 0176674:
     case 0176675:
-        m_pBoard->ChanTxStateSetCPU(2, (BYTE) word);
+        m_pBoard->ChanTxStateSetCPU(2, (uint8_t) word);
         break;
     case 0176676:  // TX data, channel 2
     case 0176677:
-        m_pBoard->ChanWriteByCPU(2, (BYTE) word);
+        m_pBoard->ChanWriteByCPU(2, (uint8_t) word);
         break;
     case 0176670:
     case 0176671:
@@ -707,13 +707,13 @@ void CFirstMemoryController::SetPortWord(WORD address, WORD word)
     }
 }
 
-BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
+BOOL CFirstMemoryController::SerialInput(uint8_t inputByte)
 {
     if (m_Port176570 & 0200)  // Ready?
         m_Port176570 |= 010000;  // Set Overflow flag
     else
     {
-        m_Port176572 = (WORD)inputByte;
+        m_Port176572 = (uint16_t)inputByte;
         m_Port176570 |= 0200;  // Set Ready flag
         if (m_Port176570 & 0100)  // Interrupt?
             return TRUE;
@@ -722,13 +722,13 @@ BOOL CFirstMemoryController::SerialInput(BYTE inputByte)
     return FALSE;
 }
 
-BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
+BOOL CFirstMemoryController::NetworkInput(uint8_t inputByte)
 {
     if (m_Port176560 & 0200)  // Ready?
         m_Port176560 |= 010000;  // Set Overflow flag
     else
     {
-        m_Port176562 = (WORD)inputByte;
+        m_Port176562 = (uint16_t)inputByte;
         m_Port176560 |= 0200;  // Set Ready flag
         if (m_Port176560 & 0100)  // Interrupt?
             return TRUE;
@@ -744,9 +744,9 @@ BOOL CFirstMemoryController::NetworkInput(BYTE inputByte)
 //   2*8 bytes      8 port registers
 //    48 bytes      Reserved
 
-void CFirstMemoryController::SaveToImage(BYTE* pImage)
+void CFirstMemoryController::SaveToImage(uint8_t* pImage)
 {
-    WORD* pwImage = (WORD*) pImage;
+    uint16_t* pwImage = (uint16_t*) pImage;
     *pwImage++ = m_Port176640;
     *pwImage++ = m_Port176642;
     *pwImage++ = m_Port176644;
@@ -756,9 +756,9 @@ void CFirstMemoryController::SaveToImage(BYTE* pImage)
     *pwImage++ = m_Port176574;
     *pwImage++ = m_Port176576;
 }
-void CFirstMemoryController::LoadFromImage(const BYTE* pImage)
+void CFirstMemoryController::LoadFromImage(const uint8_t* pImage)
 {
-    WORD* pwImage = (WORD*) pImage;
+    uint16_t* pwImage = (uint16_t*) pImage;
     m_Port176640 = *pwImage++;
     m_Port176642 = *pwImage++;
     m_Port176644 = *pwImage++;
@@ -815,7 +815,7 @@ void CSecondMemoryController::UpdateMemoryMap()
     memset(m_pMapping, ADDRTYPE_RAM0, 0100000);
 
     // 100000-117777 - Window block 0
-    BYTE filler = ADDRTYPE_NONE;
+    uint8_t filler = ADDRTYPE_NONE;
     if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
         memset(m_pMapping + 0100000, ADDRTYPE_RAM0, 020000);
     else if ((m_Port177054 & 1) != 0)  // ROM selected
@@ -842,14 +842,14 @@ void CSecondMemoryController::UpdateMemoryMap()
     memset(m_pMapping + 0160000, filler, 017000);
 
     // 177000-177777 - I/O addresses
-    for (WORD addr = 0177777; addr >= 0177000; addr--)
+    for (uint16_t addr = 0177777; addr >= 0177000; addr--)
         if ((m_pMapping[addr] & (128 + 64)) != ADDRTYPE_IO)
             m_pMapping[addr] = ADDRTYPE_IO;
 }
 
-int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/, BOOL okExec, WORD* pOffset, BOOL /*okView*/) const
+int CSecondMemoryController::TranslateAddress(uint16_t address, BOOL /*okHaltMode*/, BOOL okExec, uint16_t* pOffset, BOOL /*okView*/) const
 {
-    //BYTE addrtype = m_pMapping[address];
+    //uint8_t addrtype = m_pMapping[address];
     //switch (addrtype)
     //{
     //case ADDRTYPE_ROM:
@@ -861,7 +861,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
     //case ADDRTYPE_ROMCART1: case ADDRTYPE_ROMCART2:
     //    {
     //        int bank = (m_Port177054 & 6) >> 1;
-    //        *pOffset = address - 0100000 + (((WORD)bank - 1) << 13);
+    //        *pOffset = address - 0100000 + (((uint16_t)bank - 1) << 13);
     //        return addrtype;
     //    }
     //default:
@@ -913,7 +913,7 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
                 else
                 {
                     int bank = (m_Port177054 & 6) >> 1;
-                    *pOffset = address - 0100000 + (((WORD)bank - 1) << 13);
+                    *pOffset = address - 0100000 + (((uint16_t)bank - 1) << 13);
                     return (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
                 }
             }
@@ -970,9 +970,9 @@ int CSecondMemoryController::TranslateAddress(WORD address, BOOL /*okHaltMode*/,
     return ADDRTYPE_NONE;
 }
 
-WORD CSecondMemoryController::GetPortWord(WORD address)
+uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
 {
-    WORD value;
+    uint16_t value;
 // #if !defined(PRODUCT)
 //    TCHAR oct1[7];
 //    TCHAR oct2[7];
@@ -1003,7 +1003,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
     case 0177024:  // Load background registers
     case 0177025:
         {
-            BYTE planes[3];
+            uint8_t planes[3];
             planes[0] = m_pBoard->GetRAMByte(0, m_Port177010);
             planes[1] = m_pBoard->GetRAMByte(1, m_Port177010);
             planes[2] = m_pBoard->GetRAMByte(2, m_Port177010);
@@ -1085,7 +1085,7 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
     case 0177702:  // Keyboard data
     case 0177703:
         {
-            WORD a = m_Port177702;
+            uint16_t a = m_Port177702;
             if (m_Port177700 & 0200) m_Port177702 = m_pBoard->GetScannedKey();
             m_Port177700 &= ~0200;  // Reset bit 7 - "data ready" flag
             m_pProcessor->InterruptVIRQ(3, 0);
@@ -1140,15 +1140,15 @@ WORD CSecondMemoryController::GetPortWord(WORD address)
     return 0;
 }
 
-BYTE CSecondMemoryController::GetPortByte(WORD address)
+uint8_t CSecondMemoryController::GetPortByte(uint16_t address)
 {
-    WORD word = GetPortWord(address);
-    return (BYTE) (address & 1) ? HIBYTE(word) : LOBYTE(word);
+    uint16_t word = GetPortWord(address);
+    return (uint8_t) (address & 1) ? HIBYTE(word) : LOBYTE(word);
 }
 
-void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
+void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
 {
-    WORD word = (address & 1) ? ((WORD)byte) << 8 : (WORD)byte;
+    uint16_t word = (address & 1) ? ((uint16_t)byte) << 8 : (uint16_t)byte;
     if ((address >= 0110000) && (address < 0120000))
         address &= 0110016;
     switch (address)
@@ -1204,19 +1204,19 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
     case 0177065:
         break;
     case 0177066:  // RX status, channels 0,1,2
-        m_pBoard->ChanRxStateSetPPU((BYTE) word);
+        m_pBoard->ChanRxStateSetPPU((uint8_t) word);
         break;
     case 0177067:
         m_pBoard->ChanRxStateSetPPU(0);
         break;
     case 0177070:  // TX data, channel 0
-        m_pBoard->ChanWriteByPPU(0, (BYTE) word);
+        m_pBoard->ChanWriteByPPU(0, (uint8_t) word);
         break;
     case 0177071:
         m_pBoard->ChanWriteByPPU(0, 0);
         break;
     case 0177072:  // TX data, channel 1
-        m_pBoard->ChanWriteByPPU(1, (BYTE) word);
+        m_pBoard->ChanWriteByPPU(1, (uint8_t) word);
         break;
     case 0177073:
         m_pBoard->ChanWriteByPPU(1, 0);
@@ -1225,19 +1225,19 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
     case 0177075:
         break;
     case 0177076:  // TX status, channels 0,1
-        m_pBoard->ChanTxStateSetPPU((BYTE) word);
+        m_pBoard->ChanTxStateSetPPU((uint8_t) word);
         break;
     case 0177077:
         m_pBoard->ChanTxStateSetPPU(0);
         break;
 
     case 0177100:  // i8255 port A -- Parallel port output data
-        m_Port177100 = (BYTE)(word & 0xff);
+        m_Port177100 = (uint8_t)(word & 0xff);
         break;
     case 0177101:  // i8255 port B
         break;
     case 0177102:  // i8255 port C
-        m_Port177102 = (BYTE)((m_Port177102 & 0x0f) | (word & 0xf0));
+        m_Port177102 = (uint8_t)((m_Port177102 & 0x0f) | (word & 0xf0));
         break;
     case 0177103:  // i8255 control byte
         break;
@@ -1295,7 +1295,7 @@ void CSecondMemoryController::SetPortByte(WORD address, BYTE byte)
     }
 }
 
-void CSecondMemoryController::SetPortWord(WORD address, WORD word)
+void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
 {
 //#if !defined(PRODUCT)
 //    TCHAR oct[7];
@@ -1347,7 +1347,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         {
             m_Port177024 = word & 0xFF;
             // Convert background into planes... it could've been modified by user
-            BYTE planebyte[3];
+            uint8_t planebyte[3];
             planebyte[0]  = ((m_Port177020 & (1 << 0)) ? 1 : 0) << 0;
             planebyte[0] |= ((m_Port177020 & (1 << 4)) ? 1 : 0) << 1;
             planebyte[0] |= ((m_Port177020 & (1 << 8)) ? 1 : 0) << 2;
@@ -1402,7 +1402,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         //wsprintf(str,_T("W %s, %s\r\n"),oct1,oct);
         //DebugPrint(str);
         {
-            WORD oldvalue = m_Port177054;
+            uint16_t oldvalue = m_Port177054;
             m_Port177054 = word & 01777;
             if (oldvalue != m_Port177054)
                 UpdateMemoryMap();
@@ -1418,31 +1418,31 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
         break;
     case 0177066:  // RX status, channels 0,1,2
     case 0177067:
-        m_pBoard->ChanRxStateSetPPU((BYTE) word);
+        m_pBoard->ChanRxStateSetPPU((uint8_t) word);
         break;
     case 0177070:  // TX data, channel 0
     case 0177071:
-        m_pBoard->ChanWriteByPPU(0, (BYTE) word);
+        m_pBoard->ChanWriteByPPU(0, (uint8_t) word);
         break;
     case 0177072:  // TX data, channel 1
     case 0177073:
-        m_pBoard->ChanWriteByPPU(1, (BYTE) word);
+        m_pBoard->ChanWriteByPPU(1, (uint8_t) word);
         break;
     case 0177074:
     case 0177075:
         break;
     case 0177076:  // TX status, channels 0,1
     case 0177077:
-        m_pBoard->ChanTxStateSetPPU((BYTE) word);
+        m_pBoard->ChanTxStateSetPPU((uint8_t) word);
         break;
 
     case 0177100:  // i8255 port A -- Parallel port output data
-        m_Port177100 = (BYTE)(word & 0xff);
+        m_Port177100 = (uint8_t)(word & 0xff);
         break;
     case 0177101:  // i8255 port B
         break;
     case 0177102:  // i8255 port C
-        m_Port177102 = BYTE((m_Port177102 & 0x0f) | (word & 0xf0));
+        m_Port177102 = uint8_t((m_Port177102 & 0x0f) | (word & 0xf0));
         break;
     case 0177103:  // i8255 control byte
         m_Port177100 = 0377;  // Writing to control register resets port A
@@ -1529,7 +1529,7 @@ void CSecondMemoryController::SetPortWord(WORD address, WORD word)
 }
 
 // Read word from port for debugger
-WORD CSecondMemoryController::GetPortView(WORD address) const
+uint16_t CSecondMemoryController::GetPortView(uint16_t address) const
 {
     switch (address)
     {
@@ -1553,7 +1553,7 @@ WORD CSecondMemoryController::GetPortView(WORD address) const
 }
 
 // Keyboard key pressed or released
-void CSecondMemoryController::KeyboardEvent(BYTE scancode, BOOL okPressed)
+void CSecondMemoryController::KeyboardEvent(uint8_t scancode, BOOL okPressed)
 {
     if (okPressed)
         m_Port177702 = (scancode & 0177);
@@ -1576,8 +1576,8 @@ BOOL CSecondMemoryController::TapeInput(BOOL inputBit)
     if ((m_Port177716 & 4) != 0)
     {
         // Check port 177716 bit 0 old state
-        WORD tapeBitOld = (m_Port177716 & 1);
-        WORD tapeBitNew = inputBit ? 0 : 1;
+        uint16_t tapeBitOld = (m_Port177716 & 1);
+        uint16_t tapeBitNew = inputBit ? 0 : 1;
         if (tapeBitNew != tapeBitOld)
         {
             res = TRUE;
@@ -1617,9 +1617,9 @@ void CSecondMemoryController::Init_177716()
 //      3 bytes     3 port registers
 //     37 bytes     Reserved
 
-void CSecondMemoryController::SaveToImage(BYTE* pImage)
+void CSecondMemoryController::SaveToImage(uint8_t* pImage)
 {
-    WORD* pwImage = (WORD*) pImage;
+    uint16_t* pwImage = (uint16_t*) pImage;
     *pwImage++ = m_Port177010;
     *pwImage++ = m_Port177012;
     *pwImage++ = m_Port177014;
@@ -1636,14 +1636,14 @@ void CSecondMemoryController::SaveToImage(BYTE* pImage)
 
     *pwImage++ = m_Port177054;
 
-    BYTE* pbImage = (BYTE*) pwImage;
+    uint8_t* pbImage = (uint8_t*) pwImage;
     *pbImage++ = m_Port177100;
     *pbImage++ = m_Port177101;
     *pbImage++ = m_Port177102;
 }
-void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
+void CSecondMemoryController::LoadFromImage(const uint8_t* pImage)
 {
-    WORD* pwImage = (WORD*) pImage;
+    uint16_t* pwImage = (uint16_t*) pImage;
     m_Port177010 = *pwImage++;
     m_Port177012 = *pwImage++;
     m_Port177014 = *pwImage++;
@@ -1660,7 +1660,7 @@ void CSecondMemoryController::LoadFromImage(const BYTE* pImage)
 
     m_Port177054 = *pwImage++;
 
-    BYTE* pbImage = (BYTE*) pwImage;
+    uint8_t* pbImage = (uint8_t*) pwImage;
     m_Port177100 = *pbImage++;
     m_Port177101 = *pbImage++;
     m_Port177102 = *pbImage++;

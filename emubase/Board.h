@@ -36,16 +36,16 @@ class CMemoryController;
 
 typedef struct chan_tag
 {
-    BYTE	data;
-    BYTE	ready;
-    BYTE	irq;
-    BYTE	rdwr;
+    uint8_t	data;
+    uint8_t	ready;
+    uint8_t	irq;
+    uint8_t	rdwr;
 } chan_stc;
 
 typedef struct kbd_row_tag
 {
-    BYTE	processed;
-    BYTE	row_Y;
+    uint8_t	processed;
+    uint8_t	row_Y;
 } kbd_row;
 
 // Tape emulator callback used to read a tape recorded data.
@@ -67,34 +67,34 @@ typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
 // Output:
 //   pbyte      Byte received
 //   result     TRUE means we have a new byte, FALSE means not ready yet
-typedef BOOL (CALLBACK* NETWORKINCALLBACK)(BYTE* pbyte);
+typedef BOOL (CALLBACK* NETWORKINCALLBACK)(uint8_t* pbyte);
 
 // Network port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
 //   result     TRUE means we translated the byte successfully, FALSE means we have an error
-typedef BOOL (CALLBACK* NETWORKOUTCALLBACK)(BYTE byte);
+typedef BOOL (CALLBACK* NETWORKOUTCALLBACK)(uint8_t byte);
 
 // Serial port callback for receiving
 // Output:
 //   pbyte      Byte received
 //   result     TRUE means we have a new byte, FALSE means not ready yet
-typedef BOOL (CALLBACK* SERIALINCALLBACK)(BYTE* pbyte);
+typedef BOOL (CALLBACK* SERIALINCALLBACK)(uint8_t* pbyte);
 
 // Serial port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
 //   result     TRUE means we translated the byte successfully, FALSE means we have an error
-typedef BOOL (CALLBACK* SERIALOUTCALLBACK)(BYTE byte);
+typedef BOOL (CALLBACK* SERIALOUTCALLBACK)(uint8_t byte);
 
 // Parallel port output callback
 // Input:
 //   byte       An output byte
 // Output:
 //   result     TRUE means OK, FALSE means we have an error
-typedef BOOL (CALLBACK* PARALLELOUTCALLBACK)(BYTE byte);
+typedef BOOL (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
 
 
 class CFloppyController;
@@ -110,7 +110,7 @@ public:
     /// \brief Name of the device
     virtual LPCTSTR GetName() const = 0;
     /// \brief Device address ranges: [address, length] pairs, last pair is [0,0]
-    virtual const WORD* GetAddressRanges() const = 0;
+    virtual const uint16_t* GetAddressRanges() const = 0;
 };
 
 /// \brief UKNC computer
@@ -143,22 +143,22 @@ public:
     const CBusDevice** GetPPUBusDevices() { return (const CBusDevice**) m_pPpuDevices; }
 
 protected:  // Memory
-    BYTE*           m_pRAM[3];  ///< RAM, three planes, 64 KB each
-    BYTE*           m_pROM;     ///< System ROM, 32 KB
-    BYTE*           m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
+    uint8_t*    m_pRAM[3];  ///< RAM, three planes, 64 KB each
+    uint8_t*    m_pROM;     ///< System ROM, 32 KB
+    uint8_t*    m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
 public:  // Memory access
-    WORD        GetRAMWord(int plan, WORD offset) const;
-    BYTE        GetRAMByte(int plan, WORD offset) const;
-    void        SetRAMWord(int plan, WORD offset, WORD word);
-    void        SetRAMByte(int plan, WORD offset, BYTE byte);
-    WORD        GetROMWord(WORD offset) const;
-    BYTE        GetROMByte(WORD offset) const;
-    WORD        GetROMCartWord(int cartno, WORD offset) const;
-    BYTE        GetROMCartByte(int cartno, WORD offset) const;
+    uint16_t    GetRAMWord(int plan, uint16_t offset) const;
+    uint8_t     GetRAMByte(int plan, uint16_t offset) const;
+    void        SetRAMWord(int plan, uint16_t offset, uint16_t word);
+    void        SetRAMByte(int plan, uint16_t offset, uint8_t byte);
+    uint16_t    GetROMWord(uint16_t offset) const;
+    uint8_t     GetROMByte(uint16_t offset) const;
+    uint16_t    GetROMCartWord(int cartno, uint16_t offset) const;
+    uint8_t     GetROMCartByte(int cartno, uint16_t offset) const;
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
-    void        SetCPUBreakpoint(WORD bp) { m_CPUbp = bp; } ///< Set current CPU breakpoint
-    void        SetPPUBreakpoint(WORD bp) { m_PPUbp = bp; } ///< Set current PPU breakpoint
+    void        SetCPUBreakpoint(uint16_t bp) { m_CPUbp = bp; } ///< Set current CPU breakpoint
+    void        SetPPUBreakpoint(uint16_t bp) { m_PPUbp = bp; } ///< Set current PPU breakpoint
     chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
     {
         //cpu==1 ,ppu==0; tx==1, rx==0
@@ -180,49 +180,49 @@ public:  // Debug
 
 public:  // System control
     void        Reset();  ///< Reset computer
-    void        LoadROM(const BYTE* pBuffer);  ///< Load 32 KB ROM image from the biffer
-    void        LoadROMCartridge(int cartno, const BYTE* pBuffer);  ///< Load 24 KB ROM cartridge image
-    void        LoadRAM(int plan, const BYTE* pBuffer);  ///< Load 32 KB RAM image from the biffer
+    void        LoadROM(const uint8_t* pBuffer);  ///< Load 32 KB ROM image from the biffer
+    void        LoadROMCartridge(int cartno, const uint8_t* pBuffer);  ///< Load 24 KB ROM cartridge image
+    void        LoadRAM(int plan, const uint8_t* pBuffer);  ///< Load 32 KB RAM image from the biffer
     void        SetNetStation(int station);  // Network station number
     void        Tick8000();  ///< Tick 8.00 MHz
     void        Tick6250();  ///< Tick 6.25 MHz
     void        Tick50();    ///< Tick 50 Hz - goes to CPU/PPU EVNT line
     void		TimerTick(); ///< Timer Tick, 2uS -- dividers are within timer routine
     void        ResetFloppy();     ///< INIT signal for FDD
-    WORD		GetTimerValue();	///< Returns current timer value
-    WORD		GetTimerValueView() { return m_timer; }	///< Returns current timer value for debugger
-    WORD		GetTimerReload();	///< Returns timer reload value
-    WORD		GetTimerReloadView() { return m_timerreload; }	///< Returns timer reload value for debugger
-    WORD		GetTimerState();	///< Returns timer state
-    WORD		GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
+    uint16_t	GetTimerValue();	///< Returns current timer value
+    uint16_t	GetTimerValueView() { return m_timer; }	///< Returns current timer value for debugger
+    uint16_t	GetTimerReload();	///< Returns timer reload value
+    uint16_t	GetTimerReloadView() { return m_timerreload; }	///< Returns timer reload value for debugger
+    uint16_t	GetTimerState();	///< Returns timer state
+    uint16_t	GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
 
-    void		ChanWriteByCPU(BYTE chan, BYTE data);
-    void		ChanWriteByPPU(BYTE chan, BYTE data);
-    BYTE		ChanReadByCPU(BYTE chan);
-    BYTE		ChanReadByPPU(BYTE chan);
+    void		ChanWriteByCPU(uint8_t chan, uint8_t data);
+    void		ChanWriteByPPU(uint8_t chan, uint8_t data);
+    uint8_t		ChanReadByCPU(uint8_t chan);
+    uint8_t		ChanReadByPPU(uint8_t chan);
 
-    BYTE		ChanRxStateGetCPU(BYTE chan);
-    BYTE		ChanTxStateGetCPU(BYTE chan);
-    BYTE		ChanRxStateGetPPU();
-    BYTE		ChanTxStateGetPPU();
-    void		ChanRxStateSetCPU(BYTE chan, BYTE state);
-    void		ChanTxStateSetCPU(BYTE chan, BYTE state);
-    void		ChanRxStateSetPPU(BYTE state);
-    void		ChanTxStateSetPPU(BYTE state);
+    uint8_t		ChanRxStateGetCPU(uint8_t chan);
+    uint8_t		ChanTxStateGetCPU(uint8_t chan);
+    uint8_t		ChanRxStateGetPPU();
+    uint8_t		ChanTxStateGetPPU();
+    void		ChanRxStateSetCPU(uint8_t chan, uint8_t state);
+    void		ChanTxStateSetCPU(uint8_t chan, uint8_t state);
+    void		ChanRxStateSetPPU(uint8_t state);
+    void		ChanTxStateSetPPU(uint8_t state);
 
     void		ChanResetByCPU();
     void		ChanResetByPPU();
 
-    //void		FloppyDebug(BYTE val);
+    //void		FloppyDebug(uint8_t val);
 
-    void        SetTimerReload(WORD val);	///< Sets timer reload value
-    void        SetTimerState(WORD val);	///< Sets timer state
+    void        SetTimerReload(uint16_t val);	///< Sets timer reload value
+    void        SetTimerState(uint16_t val);	///< Sets timer state
     void        ExecuteCPU();  ///< Execute one CPU instruction
     void        ExecutePPU();  ///< Execute one PPU instruction
     BOOL        SystemFrame();  ///< Do one frame -- use for normal run
-    void        KeyboardEvent(BYTE scancode, BOOL okPressed);  ///< Key pressed or released
-    WORD        GetKeyboardRegister(void);
-    WORD        GetScannedKey() { return m_scanned_key; }
+    void        KeyboardEvent(uint8_t scancode, BOOL okPressed);  ///< Key pressed or released
+    uint16_t    GetKeyboardRegister(void);
+    uint16_t    GetScannedKey() { return m_scanned_key; }
 
     /// \brief Attach floppy image to the slot -- insert the disk.
     BOOL        AttachFloppyImage(int slot, LPCTSTR sFileName);
@@ -234,10 +234,10 @@ public:  // System control
     BOOL        IsFloppyReadOnly(int slot) const;
     /// \brief Check if the floppy drive engine rotates the disks.
     BOOL        IsFloppyEngineOn() const;
-    WORD        GetFloppyState();
-    WORD        GetFloppyData();
-    void        SetFloppyState(WORD val);
-    void        SetFloppyData(WORD val);
+    uint16_t    GetFloppyState();
+    uint16_t    GetFloppyData();
+    void        SetFloppyState(uint16_t val);
+    void        SetFloppyData(uint16_t val);
 
     /// \brief Check if ROM cartridge image assigned to the cartridge slot.
     BOOL        IsROMCartridgeLoaded(int cartno) const;
@@ -252,8 +252,8 @@ public:  // System control
     BOOL        IsHardImageAttached(int slot) const;
     /// \brief Check if the attached hard drive image is read-only.
     BOOL        IsHardImageReadOnly(int slot) const;
-    WORD        GetHardPortWord(int slot, WORD port);  ///< To use from CSecondMemoryController only
-    void        SetHardPortWord(int slot, WORD port, WORD data);  ///< To use from CSecondMemoryController only
+    uint16_t    GetHardPortWord(int slot, uint16_t port);  ///< To use from CSecondMemoryController only
+    void        SetHardPortWord(int slot, uint16_t port, uint16_t data);  ///< To use from CSecondMemoryController only
 
     /// \brief Assign tape read callback function.
     void        SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate);
@@ -268,35 +268,35 @@ public:  // System control
     /// \brief Assign network port input/output callback functions.
     void        SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTCALLBACK outcallback);
 public:  // Saving/loading emulator status
-    void        SaveToImage(BYTE* pImage);
-    void        LoadFromImage(const BYTE* pImage);
-    void        SetSound(WORD val);
+    void        SaveToImage(uint8_t* pImage);
+    void        LoadFromImage(const uint8_t* pImage);
+    void        SetSound(uint16_t val);
 private: // Timing
-    WORD        m_multiply;
-    WORD        freq_per[6];
-    WORD        freq_out[6];
-    WORD        freq_enable[6];
+    uint16_t    m_multiply;
+    uint16_t    freq_per[6];
+    uint16_t    freq_out[6];
+    uint16_t    freq_enable[6];
     int         m_pputicks;
     int         m_cputicks;
     unsigned int m_lineticks;
 private:
-    WORD        m_CPUbp;  ///< Current CPU breakpoint, 177777 if not set
-    WORD        m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
+    uint16_t    m_CPUbp;  ///< Current CPU breakpoint, 177777 if not set
+    uint16_t    m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
 
-    WORD		m_timer;
-    WORD		m_timerreload;
-    WORD		m_timerflags;
-    WORD		m_timerdivider;
+    uint16_t	m_timer;
+    uint16_t	m_timerreload;
+    uint16_t	m_timerflags;
+    uint16_t	m_timerdivider;
 
     chan_stc	m_chancputx[3];
     chan_stc	m_chancpurx[2];
     chan_stc	m_chanpputx[2];
     chan_stc	m_chanppurx[3];
 
-    BYTE		m_chan0disabled;
-    BYTE		m_irq_cpureset;
+    uint8_t		m_chan0disabled;
+    uint8_t		m_irq_cpureset;
 
-    BYTE		m_scanned_key;
+    uint8_t		m_scanned_key;
     kbd_row		m_kbd_matrix[16];
 
 private:
@@ -314,12 +314,12 @@ private:
 
 };
 
-inline WORD CMotherboard::GetRAMWord(int plan, WORD offset) const
+inline uint16_t CMotherboard::GetRAMWord(int plan, uint16_t offset) const
 {
     ASSERT(plan >= 0 && plan <= 2);
-    return *((WORD*)(m_pRAM[plan] + (offset & 0xFFFE)));
+    return *((uint16_t*)(m_pRAM[plan] + (offset & 0xFFFE)));
 }
-inline BYTE CMotherboard::GetRAMByte(int plan, WORD offset) const
+inline uint8_t CMotherboard::GetRAMByte(int plan, uint16_t offset) const
 {
     ASSERT(plan >= 0 && plan <= 2);
     return m_pRAM[plan][offset];

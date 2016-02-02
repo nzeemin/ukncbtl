@@ -43,7 +43,7 @@ class CMemoryController
 protected:
     CMotherboard*   m_pBoard;       ///< Motherboard attached
     CProcessor*     m_pProcessor;   ///< Processor attached
-    BYTE*           m_pMapping;     ///< Memory mapping
+    uint8_t*        m_pMapping;     ///< Memory mapping
     CBusDevice**    m_pDevices;     ///< Attached bus devices
     int             m_nDeviceCount;
 public:
@@ -59,37 +59,37 @@ public:
     virtual void ResetDevices() = 0;  ///< INIT signal
 public:  // Access to memory
     /// \brief Read command for execution
-    WORD GetWordExec(WORD address, BOOL okHaltMode) { return GetWord(address, okHaltMode, TRUE); }
+    uint16_t GetWordExec(uint16_t address, BOOL okHaltMode) { return GetWord(address, okHaltMode, TRUE); }
     /// \brief Read word from memory
-    WORD GetWord(WORD address, BOOL okHaltMode) { return GetWord(address, okHaltMode, FALSE); }
+    uint16_t GetWord(uint16_t address, BOOL okHaltMode) { return GetWord(address, okHaltMode, FALSE); }
     /// \brief Read word
-    WORD GetWord(WORD address, BOOL okHaltMode, BOOL okExec);
+    uint16_t GetWord(uint16_t address, BOOL okHaltMode, BOOL okExec);
     /// \brief Write word
-    void SetWord(WORD address, BOOL okHaltMode, WORD word);
+    void SetWord(uint16_t address, BOOL okHaltMode, uint16_t word);
     /// \brief Read byte
-    BYTE GetByte(WORD address, BOOL okHaltMode);
+    uint8_t GetByte(uint16_t address, BOOL okHaltMode);
     /// \brief Write byte
-    void SetByte(WORD address, BOOL okHaltMode, BYTE byte);
+    void SetByte(uint16_t address, BOOL okHaltMode, uint8_t byte);
     /// \brief Read word from memory for debugger
-    WORD GetWordView(WORD address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const;
+    uint16_t GetWordView(uint16_t address, BOOL okHaltMode, BOOL okExec, BOOL* pValid) const;
     /// \brief Read word from port for debugger
-    virtual WORD GetPortView(WORD address) const = 0;
+    virtual uint16_t GetPortView(uint16_t address) const = 0;
     /// \brief Read SEL register
-    virtual WORD GetSelRegister() = 0;
+    virtual uint16_t GetSelRegister() = 0;
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(BYTE* pImage) = 0;
-    virtual void LoadFromImage(const BYTE* pImage) = 0;
+    virtual void SaveToImage(uint8_t* pImage) = 0;
+    virtual void LoadFromImage(const uint8_t* pImage) = 0;
 protected:
     /// \brief Determite memory type for given address - see ADDRTYPE_Xxx constants
     /// \param okHaltMode  processor mode (USER/HALT)
     /// \param okExec  TRUE: read instruction for execution; FALSE: read memory
     /// \param pOffset  result -- offset in memory plane
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView = FALSE) const = 0;
+    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView = FALSE) const = 0;
 protected:  // Access to I/O ports
-    virtual WORD GetPortWord(WORD address) = 0;
-    virtual void SetPortWord(WORD address, WORD word) = 0;
-    virtual BYTE GetPortByte(WORD address) = 0;
-    virtual void SetPortByte(WORD address, BYTE byte) = 0;
+    virtual uint16_t GetPortWord(uint16_t address) = 0;
+    virtual void SetPortWord(uint16_t address, uint16_t word) = 0;
+    virtual uint8_t GetPortByte(uint16_t address) = 0;
+    virtual void SetPortByte(uint16_t address, uint8_t byte) = 0;
 };
 
 /// \brief CPU memory control device
@@ -101,34 +101,34 @@ public:
     virtual void DCLO_Signal();  ///< DCLO signal
     virtual void ResetDevices();  ///< INIT signal
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView) const;
-    virtual WORD GetSelRegister() { return 0160000; }
-    virtual WORD GetPortView(WORD address) const;
+    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView) const;
+    virtual uint16_t GetSelRegister() { return 0160000; }
+    virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
-    virtual WORD GetPortWord(WORD address);
-    virtual void SetPortWord(WORD address, WORD word);
-    virtual BYTE GetPortByte(WORD address);
-    virtual void SetPortByte(WORD address, BYTE byte);
+    virtual uint16_t GetPortWord(uint16_t address);
+    virtual void SetPortWord(uint16_t address, uint16_t word);
+    virtual uint8_t GetPortByte(uint16_t address);
+    virtual void SetPortByte(uint16_t address, uint8_t byte);
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(BYTE* pImage);
-    virtual void LoadFromImage(const BYTE* pImage);
+    virtual void SaveToImage(uint8_t* pImage);
+    virtual void LoadFromImage(const uint8_t* pImage);
 public:  // CPU specific
-    BOOL SerialInput(BYTE inputByte);
-    BOOL NetworkInput(BYTE inputByte);
+    BOOL SerialInput(uint8_t inputByte);
+    BOOL NetworkInput(uint8_t inputByte);
 protected:  // Implementation
     int         m_NetStation;  ///< Network station number
-    WORD        m_Port176560;  ///< Network receiver state
-    WORD        m_Port176562;  ///< Network receiver data (bits 0-7)
-    WORD        m_Port176564;  ///< Network translator state
-    WORD        m_Port176566;  ///< Network translator data (bits 0-7)
-    WORD        m_Port176640;  ///< Plane address register
-    WORD        m_Port176642;  ///< Plane 1 & 2 data register
-    WORD        m_Port176644;
-    WORD        m_Port176646;
-    WORD        m_Port176570;  ///< RS-232 receiver state
-    WORD        m_Port176572;  ///< RS-232 receiver data (bits 0-7)
-    WORD        m_Port176574;  ///< RS-232 translator state
-    WORD        m_Port176576;  ///< RS-232 translator data (bits 0-7)
+    uint16_t    m_Port176560;  ///< Network receiver state
+    uint16_t    m_Port176562;  ///< Network receiver data (bits 0-7)
+    uint16_t    m_Port176564;  ///< Network translator state
+    uint16_t    m_Port176566;  ///< Network translator data (bits 0-7)
+    uint16_t    m_Port176640;  ///< Plane address register
+    uint16_t    m_Port176642;  ///< Plane 1 & 2 data register
+    uint16_t    m_Port176644;
+    uint16_t    m_Port176646;
+    uint16_t    m_Port176570;  ///< RS-232 receiver state
+    uint16_t    m_Port176572;  ///< RS-232 receiver data (bits 0-7)
+    uint16_t    m_Port176574;  ///< RS-232 translator state
+    uint16_t    m_Port176576;  ///< RS-232 translator data (bits 0-7)
 };
 
 /// \brief PPU memory control device
@@ -143,41 +143,41 @@ public:
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(WORD address, BOOL okHaltMode, BOOL okExec, WORD* pOffset, BOOL okView) const;
-    virtual WORD GetSelRegister() { return 0160000; }
-    virtual WORD GetPortView(WORD address) const;
+    virtual int TranslateAddress(uint16_t address, BOOL okHaltMode, BOOL okExec, uint16_t* pOffset, BOOL okView) const;
+    virtual uint16_t GetSelRegister() { return 0160000; }
+    virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
-    virtual WORD GetPortWord(WORD address);
-    virtual void SetPortWord(WORD address, WORD word);
-    virtual BYTE GetPortByte(WORD address);
-    virtual void SetPortByte(WORD address, BYTE byte);  //TODO
+    virtual uint16_t GetPortWord(uint16_t address);
+    virtual void SetPortWord(uint16_t address, uint16_t word);
+    virtual uint8_t GetPortByte(uint16_t address);
+    virtual void SetPortByte(uint16_t address, uint8_t byte);  //TODO
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(BYTE* pImage);
-    virtual void LoadFromImage(const BYTE* pImage);
+    virtual void SaveToImage(uint8_t* pImage);
+    virtual void LoadFromImage(const uint8_t* pImage);
 public:  // PPU specifics
-    void KeyboardEvent(BYTE scancode, BOOL okPressed);  ///< Keyboard key pressed or released
+    void KeyboardEvent(uint8_t scancode, BOOL okPressed);  ///< Keyboard key pressed or released
     BOOL TapeInput(BOOL inputBit);
     BOOL TapeOutput();
 protected:  // Implementation
-    WORD        m_Port177010;  ///< Plane address register
-    WORD        m_Port177012;  ///< Plane 0 data register
-    WORD        m_Port177014;  ///< Plane 1 & 2 data register
+    uint16_t    m_Port177010;  ///< Plane address register
+    uint16_t    m_Port177012;  ///< Plane 0 data register
+    uint16_t    m_Port177014;  ///< Plane 1 & 2 data register
 
-    WORD        m_Port177026;  ///< Plane mask
-    WORD        m_Port177024;  ///< SpriteByte
-    WORD        m_Port177020;  ///< Background color 1
-    WORD        m_Port177022;  ///< Background color 2
-    WORD        m_Port177016;  ///< Pixel Color
+    uint16_t    m_Port177026;  ///< Plane mask
+    uint16_t    m_Port177024;  ///< SpriteByte
+    uint16_t    m_Port177020;  ///< Background color 1
+    uint16_t    m_Port177022;  ///< Background color 2
+    uint16_t    m_Port177016;  ///< Pixel Color
 
-    WORD        m_Port177700;  ///< Keyboard status
-    WORD        m_Port177702;  ///< Keyboard data
-    WORD        m_Port177716;  ///< System control register
+    uint16_t    m_Port177700;  ///< Keyboard status
+    uint16_t    m_Port177702;  ///< Keyboard data
+    uint16_t    m_Port177716;  ///< System control register
 
-    WORD        m_Port177054;  ///< address space control
+    uint16_t    m_Port177054;  ///< address space control
 
-    BYTE        m_Port177100;  ///< i8255 port A -- Parallel port output data
-    BYTE        m_Port177101;  ///< i8255 port B
-    BYTE        m_Port177102;  ///< i8255 port C
+    uint8_t     m_Port177100;  ///< i8255 port A -- Parallel port output data
+    uint8_t     m_Port177101;  ///< i8255 port B
+    uint8_t     m_Port177102;  ///< i8255 port C
 };
 
 

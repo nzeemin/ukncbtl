@@ -26,7 +26,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \param[out] sInstr  Instruction mnemonics buffer - at least 8 characters
 /// \param[out] sArg    Instruction arguments buffer - at least 32 characters
 /// \return  Number of words in the instruction
-int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* sInstr, TCHAR* sArg);
+int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHAR* sArg);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -63,13 +63,13 @@ struct CFloppyDrive
     FILE* fpFile;       ///< File pointer of the disk image file
     BOOL okNetRT11Image;  ///< TRUE - .rtd image, FALSE - .dsk image
     BOOL okReadOnly;    ///< Write protection flag
-    WORD track;         ///< Track number: from 0 to 79
-    WORD side;          ///< Disk side: 0 or 1
-    WORD dataptr;       ///< Data offset within m_data - "head" position
-    BYTE data[FLOPPY_RAWTRACKSIZE];  ///< Raw track image for the current track
-    BYTE marker[FLOPPY_RAWMARKERSIZE];  ///< Marker positions
-    WORD datatrack;     ///< Track number of data in m_data array
-    WORD dataside;      ///< Disk side of data in m_data array
+    uint16_t track;         ///< Track number: from 0 to 79
+    uint16_t side;          ///< Disk side: 0 or 1
+    uint16_t dataptr;       ///< Data offset within m_data - "head" position
+    uint8_t data[FLOPPY_RAWTRACKSIZE];  ///< Raw track image for the current track
+    uint8_t marker[FLOPPY_RAWMARKERSIZE];  ///< Marker positions
+    uint16_t datatrack;     ///< Track number of data in m_data array
+    uint16_t dataside;      ///< Disk side of data in m_data array
 
 public:
     CFloppyDrive();
@@ -82,17 +82,17 @@ class CFloppyController
 {
 protected:
     CFloppyDrive m_drivedata[4];  ///< Floppy drives
-    WORD m_drive;       ///< Current drive number: from 0 to 3
+    uint16_t m_drive;       ///< Current drive number: from 0 to 3
     CFloppyDrive* m_pDrive;  ///< Current drive
-    WORD m_track;       ///< Track number: from 0 to 79
-    WORD m_side;        ///< Disk side: 0 or 1
-    WORD m_status;      ///< See FLOPPY_STATUS_XXX defines
-    WORD m_flags;       ///< See FLOPPY_CMD_XXX defines
-    WORD m_datareg;     ///< Read mode data register
-    WORD m_writereg;    ///< Write mode data register
+    uint16_t m_track;       ///< Track number: from 0 to 79
+    uint16_t m_side;        ///< Disk side: 0 or 1
+    uint16_t m_status;      ///< See FLOPPY_STATUS_XXX defines
+    uint16_t m_flags;       ///< See FLOPPY_CMD_XXX defines
+    uint16_t m_datareg;     ///< Read mode data register
+    uint16_t m_writereg;    ///< Write mode data register
     BOOL m_writeflag;   ///< Write mode data register has data
     BOOL m_writemarker; ///< Write marker in m_marker
-    WORD m_shiftreg;    ///< Write mode shift register
+    uint16_t m_shiftreg;    ///< Write mode shift register
     BOOL m_shiftflag;   ///< Write mode shift register has data
     BOOL m_shiftmarker; ///< Write marker in m_marker
     BOOL m_writing;     ///< TRUE = write mode, FALSE = read mode
@@ -116,10 +116,10 @@ public:
     BOOL IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     /// \brief Check if floppy engine now rotates
     BOOL IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
-    WORD GetData(void);         ///< Reading port 177132 -- data
-    WORD GetState(void);        ///< Reading port 177130 -- device status
-    void SetCommand(WORD cmd);  ///< Writing to port 177130 -- commands
-    void WriteData(WORD Data);  ///< Writing to port 177132 -- data
+    uint16_t GetData(void);         ///< Reading port 177132 -- data
+    uint16_t GetState(void);        ///< Reading port 177130 -- device status
+    void SetCommand(uint16_t cmd);  ///< Writing to port 177130 -- commands
+    void WriteData(uint16_t Data);  ///< Writing to port 177132 -- data
     void Periodic();            ///< Rotate disk; call it each 64 us -- 15625 times per second
 
 private:
@@ -141,9 +141,9 @@ protected:
     FILE*   m_fpFile;           ///< File pointer for the attached HDD image
     BOOL    m_okReadOnly;       ///< Flag indicating that the HDD image file is read-only
     BOOL    m_okInverted;       ///< Flag indicating that the HDD image has inverted bits
-    BYTE    m_status;           ///< IDE status register, see IDE_STATUS_XXX constants
-    BYTE    m_error;            ///< IDE error register, see IDE_ERROR_XXX constants
-    BYTE    m_command;          ///< Current IDE command, see IDE_COMMAND_XXX constants
+    uint8_t m_status;           ///< IDE status register, see IDE_STATUS_XXX constants
+    uint8_t m_error;            ///< IDE error register, see IDE_ERROR_XXX constants
+    uint8_t m_command;          ///< Current IDE command, see IDE_COMMAND_XXX constants
     int     m_numcylinders;     ///< Cylinder count
     int     m_numheads;         ///< Head count
     int     m_numsectors;       ///< Sectors per track
@@ -152,7 +152,7 @@ protected:
     int     m_cursector;        ///< Current sector number
     int     m_curheadreg;       ///< Current head number
     int     m_sectorcount;      ///< Sector counter for read/write operations
-    BYTE    m_buffer[IDE_DISK_SECTOR_SIZE];  ///< Sector data buffer
+    uint8_t m_buffer[IDE_DISK_SECTOR_SIZE];  ///< Sector data buffer
     int     m_bufferoffset;     ///< Current offset within sector: 0..511
     int     m_timeoutcount;     ///< Timeout counter to wait for the next event
     int     m_timeoutevent;     ///< Current stage of operation, see TimeoutEvent enum
@@ -171,15 +171,15 @@ public:
 
 public:
     /// \brief Read word from the device port
-    WORD ReadPort(WORD port);
+    uint16_t ReadPort(uint16_t port);
     /// \brief Write word th the device port
-    void WritePort(WORD port, WORD data);
+    void WritePort(uint16_t port, uint16_t data);
     /// \brief Rotate disk
     void Periodic();
 
 private:
-    DWORD CalculateOffset() const;  ///< Calculate sector offset in the HDD image
-    void HandleCommand(BYTE command);  ///< Handle the IDE command
+    uint32_t CalculateOffset() const;  ///< Calculate sector offset in the HDD image
+    void HandleCommand(uint8_t command);  ///< Handle the IDE command
     void ReadNextSector();
     void ReadSectorDone();
     void WriteSectorDone();

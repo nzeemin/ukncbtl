@@ -28,7 +28,7 @@ const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
 };
 
 //   strSrc - at least 24 characters
-BOOL ConvertSrcToString(WORD instr, WORD addr, TCHAR* strSrc, WORD code)
+BOOL ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
 {
     int reg = GetDigit(instr, 2);
     int param = GetDigit(instr, 3);
@@ -41,7 +41,7 @@ BOOL ConvertSrcToString(WORD instr, WORD addr, TCHAR* strSrc, WORD code)
 
         if (param == 6 || param == 7)
         {
-            WORD word = code;  //TODO: pMemory
+            uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word, pszReg);
             return TRUE;
         }
@@ -54,14 +54,14 @@ BOOL ConvertSrcToString(WORD instr, WORD addr, TCHAR* strSrc, WORD code)
 
         if (param == 2 || param == 3)
         {
-            WORD word = code;  //TODO: pMemory
+            uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word);
             return TRUE;
         }
         else if (param == 6 || param == 7)
         {
-            WORD word = code;  //TODO: pMemory
-            _sntprintf(strSrc, 24, format, (WORD)(addr + word + 2));
+            uint16_t word = code;  //TODO: pMemory
+            _sntprintf(strSrc, 24, format, (uint16_t)(addr + word + 2));
             return TRUE;
         }
         else
@@ -72,7 +72,7 @@ BOOL ConvertSrcToString(WORD instr, WORD addr, TCHAR* strSrc, WORD code)
 }
 
 //   strDst - at least 24 characters
-BOOL ConvertDstToString (WORD instr, WORD addr, TCHAR* strDst, WORD code)
+BOOL ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
 {
     int reg = GetDigit(instr, 0);
     int param = GetDigit(instr, 1);
@@ -102,7 +102,7 @@ BOOL ConvertDstToString (WORD instr, WORD addr, TCHAR* strDst, WORD code)
         }
         else if (param == 6 || param == 7)
         {
-            _sntprintf(strDst, 24, format, (WORD)(addr + code + 2));
+            _sntprintf(strDst, 24, format, (uint16_t)(addr + code + 2));
             return TRUE;
         }
         else
@@ -117,12 +117,12 @@ BOOL ConvertDstToString (WORD instr, WORD addr, TCHAR* strDst, WORD code)
 //   sInstr  - instruction mnemonics buffer - at least 8 characters
 //   sArg    - instruction arguments buffer - at least 32 characters
 //   Return value: number of words in the instruction
-int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* strArg)
+int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TCHAR* strArg)
 {
     *strInstr = 0;
     *strArg = 0;
 
-    WORD instr = *pMemory;
+    uint16_t instr = *pMemory;
 
     int length = 1;
     LPCTSTR strReg = NULL;
@@ -186,7 +186,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     }
 
     // One field
-    if ((instr & ~(WORD)7) == PI_RTS)
+    if ((instr & ~(uint16_t)7) == PI_RTS)
     {
         if (GetDigit(instr, 0) == 7)
         {
@@ -203,7 +203,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     // Two fields
     length += ConvertDstToString(instr, addr + 2, strDst, pMemory[1]);
 
-    switch (instr & ~(WORD)077)
+    switch (instr & ~(uint16_t)077)
     {
     case PI_JMP:    _tcscpy(strInstr, _T("JMP"));   _tcscpy(strArg, strDst);  return length;
     case PI_SWAB:   _tcscpy(strInstr, _T("SWAB"));  _tcscpy(strArg, strDst);  return length;
@@ -215,7 +215,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
 
     okByte = (instr & 0100000);
 
-    switch (instr & ~(WORD)0100077)
+    switch (instr & ~(uint16_t)0100077)
     {
     case PI_CLR:  _tcscpy(strInstr, okByte ? _T("CLRB") : _T("CLR"));  _tcscpy(strArg, strDst);  return length;
     case PI_COM:  _tcscpy(strInstr, okByte ? _T("COMB") : _T("COM"));  _tcscpy(strArg, strDst);  return length;
@@ -235,7 +235,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     _sntprintf(strDst, 24, _T("%06o"), addr + ((short)(char)LOBYTE (instr) * 2) + 2);
 
     // Branchs & interrupts
-    switch (instr & ~(WORD)0377)
+    switch (instr & ~(uint16_t)0377)
     {
     case PI_BR:   _tcscpy(strInstr, _T("BR"));   _tcscpy(strArg, strDst);  return 1;
     case PI_BNE:  _tcscpy(strInstr, _T("BNE"));  _tcscpy(strArg, strDst);  return 1;
@@ -256,14 +256,14 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
 
     _sntprintf(strDst, 24, _T("%06o"), LOBYTE (instr));
 
-    switch (instr & ~(WORD)0377)
+    switch (instr & ~(uint16_t)0377)
     {
     case PI_EMT:   _tcscpy(strInstr, _T("EMT"));   _tcscpy(strArg, strDst);  return 1;
     case PI_TRAP:  _tcscpy(strInstr, _T("TRAP"));  _tcscpy(strArg, strDst);  return 1;
     }
 
     // Three fields
-    switch (instr & ~(WORD)0777)
+    switch (instr & ~(uint16_t)0777)
     {
     case PI_JSR:
         if (GetDigit(instr, 2) == 7)
@@ -323,9 +323,9 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
     okByte = (instr & 0100000);
 
     length += ConvertSrcToString(instr, addr + 2, strSrc, pMemory[1]);
-    length += ConvertDstToString(instr, (WORD)(addr + 2 + (length - 1) * 2), strDst, pMemory[length]);
+    length += ConvertDstToString(instr, (uint16_t)(addr + 2 + (length - 1) * 2), strDst, pMemory[length]);
 
-    switch (instr & ~(WORD)0107777)
+    switch (instr & ~(uint16_t)0107777)
     {
     case PI_MOV:
         _tcscpy(strInstr, okByte ? _T("MOVB") : _T("MOV"));
@@ -349,7 +349,7 @@ int DisassembleInstruction(WORD* pMemory, WORD addr, TCHAR* strInstr, TCHAR* str
         return length;
     }
 
-    switch (instr & ~(WORD)0007777)
+    switch (instr & ~(uint16_t)0007777)
     {
     case PI_ADD:
         _tcscpy(strInstr, _T("ADD"));

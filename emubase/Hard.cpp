@@ -64,7 +64,7 @@ enum TimeoutEvent
 // Inverts 512 bytes in the buffer
 static void InvertBuffer(void* buffer)
 {
-    DWORD* p = (DWORD*) buffer;
+    uint32_t* p = (uint32_t*) buffer;
     for (int i = 0; i < 128; i++)
     {
         *p = ~(*p);
@@ -128,7 +128,7 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 
     // Check file size
     ::fseek(m_fpFile, 0, SEEK_END);
-    DWORD dwFileSize = ::ftell(m_fpFile);
+    uint32_t dwFileSize = ::ftell(m_fpFile);
     ::fseek(m_fpFile, 0, SEEK_SET);
     if (dwFileSize % 512 != 0)
         return FALSE;
@@ -140,7 +140,7 @@ BOOL CHardDrive::AttachImage(LPCTSTR sFileName)
 
     // Autodetect inverted image
     m_okInverted = FALSE;
-    BYTE test = 0xff;
+    uint8_t test = 0xff;
     for (int i = 0x1f0; i <= 0x1fb; i++)
         test &= m_buffer[i];
     m_okInverted = (test == 0xff);
@@ -175,17 +175,17 @@ void CHardDrive::DetachImage()
     m_fpFile = NULL;
 }
 
-WORD CHardDrive::ReadPort(WORD port)
+uint16_t CHardDrive::ReadPort(uint16_t port)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
-    WORD data = 0;
+    uint16_t data = 0;
     switch (port)
     {
     case IDE_PORT_DATA:
         if (m_status & IDE_STATUS_BUFFER_READY)
         {
-            data = *((WORD*)(m_buffer + m_bufferoffset));
+            data = *((uint16_t*)(m_buffer + m_bufferoffset));
             if (!m_okInverted)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             m_bufferoffset += 2;
@@ -203,19 +203,19 @@ WORD CHardDrive::ReadPort(WORD port)
         data = 0xff00 | m_error;
         break;
     case IDE_PORT_SECTOR_COUNT:
-        data = 0xff00 | (WORD)m_sectorcount;
+        data = 0xff00 | (uint16_t)m_sectorcount;
         break;
     case IDE_PORT_SECTOR_NUMBER:
-        data = 0xff00 | (WORD)m_cursector;
+        data = 0xff00 | (uint16_t)m_cursector;
         break;
     case IDE_PORT_CYLINDER_LSB:
-        data = 0xff00 | (WORD)(m_curcylinder & 0xff);
+        data = 0xff00 | (uint16_t)(m_curcylinder & 0xff);
         break;
     case IDE_PORT_CYLINDER_MSB:
-        data = 0xff00 | (WORD)((m_curcylinder >> 8) & 0xff);
+        data = 0xff00 | (uint16_t)((m_curcylinder >> 8) & 0xff);
         break;
     case IDE_PORT_HEAD_NUMBER:
-        data = 0xff00 | (WORD)m_curheadreg;
+        data = 0xff00 | (uint16_t)m_curheadreg;
         break;
     case IDE_PORT_STATUS_COMMAND:
         data = 0xff00 | m_status;
@@ -226,7 +226,7 @@ WORD CHardDrive::ReadPort(WORD port)
     return data;
 }
 
-void CHardDrive::WritePort(WORD port, WORD data)
+void CHardDrive::WritePort(uint16_t port, uint16_t data)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
@@ -241,7 +241,7 @@ void CHardDrive::WritePort(WORD port, WORD data)
         {
             if (!m_okInverted)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
-            *((WORD*)(m_buffer + m_bufferoffset)) = data;
+            *((uint16_t*)(m_buffer + m_bufferoffset)) = data;
             m_bufferoffset += 2;
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
@@ -278,7 +278,7 @@ void CHardDrive::WritePort(WORD port, WORD data)
         break;
     case IDE_PORT_STATUS_COMMAND:
         data &= 0x0ff;
-        HandleCommand((BYTE)data);
+        HandleCommand((uint8_t)data);
         break;
     }
 }
@@ -310,7 +310,7 @@ void CHardDrive::Periodic()
     }
 }
 
-void CHardDrive::HandleCommand(BYTE command)
+void CHardDrive::HandleCommand(uint8_t command)
 {
     m_command = command;
     switch (command)
@@ -370,7 +370,7 @@ void CHardDrive::HandleCommand(BYTE command)
 
 // Copy the string to the destination, swapping bytes in every word
 // For use in CHardDrive::IdentifyDrive() method.
-static void swap_strncpy(BYTE* dst, const char* src, int words)
+static void swap_strncpy(uint8_t* dst, const char* src, int words)
 {
     int i;
     for (i = 0; src[i] != 0; i++)
@@ -381,32 +381,32 @@ static void swap_strncpy(BYTE* dst, const char* src, int words)
 
 void CHardDrive::IdentifyDrive()
 {
-    DWORD totalsectors = (DWORD)m_numcylinders * (DWORD)m_numheads * (DWORD)m_numsectors;
+    uint32_t totalsectors = (uint32_t)m_numcylinders * (uint32_t)m_numheads * (uint32_t)m_numsectors;
 
     memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
 
-    WORD* pwBuffer = (WORD*)m_buffer;
+    uint16_t* pwBuffer = (uint16_t*)m_buffer;
     pwBuffer[0]  = 0x045a;  // Configuration: fixed disk
-    pwBuffer[1]  = (WORD)m_numcylinders;
-    pwBuffer[3]  = (WORD)m_numheads;
-    pwBuffer[6]  = (WORD)m_numsectors;
-    swap_strncpy((BYTE*)(pwBuffer + 10), "0000000000", 10);  // Serial number
-    swap_strncpy((BYTE*)(pwBuffer + 23), "1.0", 4);  // Firmware version
-    swap_strncpy((BYTE*)(pwBuffer + 27), "UKNCBTL Hard Disk", 20);  // Model
+    pwBuffer[1]  = (uint16_t)m_numcylinders;
+    pwBuffer[3]  = (uint16_t)m_numheads;
+    pwBuffer[6]  = (uint16_t)m_numsectors;
+    swap_strncpy((uint8_t*)(pwBuffer + 10), "0000000000", 10);  // Serial number
+    swap_strncpy((uint8_t*)(pwBuffer + 23), "1.0", 4);  // Firmware version
+    swap_strncpy((uint8_t*)(pwBuffer + 27), "UKNCBTL Hard Disk", 20);  // Model
     pwBuffer[47] = 0x8001;  // Read/write multiple support
     pwBuffer[49] = 0x2f00;  // Capabilities: bit9 = LBA
     pwBuffer[53] = 1;  // Words 54-58 are valid
-    pwBuffer[54] = (WORD)m_numcylinders;
-    pwBuffer[55] = (WORD)m_numheads;
-    pwBuffer[56] = (WORD)m_numsectors;
-    *(DWORD*)(pwBuffer + 57) = (DWORD)m_numheads * (DWORD)m_numsectors;
-    *(DWORD*)(pwBuffer + 60) = totalsectors;
-    *(DWORD*)(pwBuffer + 100) = totalsectors;
+    pwBuffer[54] = (uint16_t)m_numcylinders;
+    pwBuffer[55] = (uint16_t)m_numheads;
+    pwBuffer[56] = (uint16_t)m_numsectors;
+    *(uint32_t*)(pwBuffer + 57) = (uint32_t)m_numheads * (uint32_t)m_numsectors;
+    *(uint32_t*)(pwBuffer + 60) = totalsectors;
+    *(uint32_t*)(pwBuffer + 100) = totalsectors;
 
     InvertBuffer(m_buffer);
 }
 
-DWORD CHardDrive::CalculateOffset() const
+uint32_t CHardDrive::CalculateOffset() const
 {
     int sector = (m_curcylinder * m_numheads + m_curhead) * m_numsectors + (m_cursector - 1);
     return sector * IDE_DISK_SECTOR_SIZE;
@@ -428,7 +428,7 @@ void CHardDrive::ReadSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Read sector from HDD image to the buffer
-    DWORD fileOffset = CalculateOffset();
+    uint32_t fileOffset = CalculateOffset();
     ::fseek(m_fpFile, fileOffset, SEEK_SET);
     size_t dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
     if (dwBytesRead != IDE_DISK_SECTOR_SIZE)
@@ -458,7 +458,7 @@ void CHardDrive::WriteSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Write buffer to the HDD image
-    DWORD fileOffset = CalculateOffset();
+    uint32_t fileOffset = CalculateOffset();
 //#if !defined(PRODUCT)
 //    DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);  //DEBUG
 //#endif

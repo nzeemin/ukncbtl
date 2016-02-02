@@ -299,13 +299,13 @@ const TCHAR KOI8R_CODES[] =
 };
 #endif
 // Translate one KOI8-R character to Unicode character
-TCHAR Translate_KOI8R(BYTE ch)
+TCHAR Translate_KOI8R(uint8_t ch)
 {
     if (ch < 128) return (TCHAR) ch;
     return KOI8R_CODES[ch - 128];
 }
 
-void DrawCharKOI8R(HDC hdc, int x, int y, BYTE ch)
+void DrawCharKOI8R(HDC hdc, int x, int y, uint8_t ch)
 {
     TCHAR wch;
     if (ch < 32)
