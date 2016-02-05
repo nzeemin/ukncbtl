@@ -316,7 +316,7 @@ inline void CProcessor::SetHALT (bool bFlag)
 // PSW bits calculations - implementation
 inline bool CProcessor::CheckAddForOverflow (uint8_t a, uint8_t b)
 {
-#if defined(_M_IX86) && !defined(_MANAGED)
+#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
     bool bOverflow = false;
     _asm
     {
@@ -340,7 +340,7 @@ inline bool CProcessor::CheckAddForOverflow (uint8_t a, uint8_t b)
 }
 inline bool CProcessor::CheckAddForOverflow (uint16_t a, uint16_t b)
 {
-#if defined(_M_IX86) && !defined(_MANAGED)
+#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
     bool bOverflow = false;
     _asm
     {
@@ -365,7 +365,7 @@ inline bool CProcessor::CheckAddForOverflow (uint16_t a, uint16_t b)
 
 inline bool CProcessor::CheckSubForOverflow (uint8_t a, uint8_t b)
 {
-#if defined(_M_IX86) && !defined(_MANAGED)
+#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
     bool bOverflow = false;
     _asm
     {
@@ -389,7 +389,7 @@ inline bool CProcessor::CheckSubForOverflow (uint8_t a, uint8_t b)
 }
 inline bool CProcessor::CheckSubForOverflow (uint16_t a, uint16_t b)
 {
-#if defined(_M_IX86) && !defined(_MANAGED)
+#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
     bool bOverflow = false;
     _asm
     {
