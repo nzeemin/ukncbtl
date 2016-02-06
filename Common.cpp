@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Common.cpp
 
 #include "stdafx.h"
+#include "UKNCBTL.h"
 #include "Views.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -156,23 +157,31 @@ const TCHAR* REGISTER_NAME[] = { _T("R0"), _T("R1"), _T("R2"), _T("R3"), _T("R4"
 HFONT CreateMonospacedFont()
 {
     HFONT font = NULL;
-    font = CreateFont(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-            RUSSIAN_CHARSET,
-            OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
-            FIXED_PITCH,
-            _T("Lucida Console"));
-    if (font == NULL)
-    {
-        font = CreateFont(12, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                RUSSIAN_CHARSET,
-                OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
-                FIXED_PITCH,
-                _T("Courier"));
-    }
-    if (font == NULL)
-        return NULL;
+    LOGFONT logfont;  memset(&logfont, 0, sizeof(logfont));
+    logfont.lfHeight = 12;
+    logfont.lfWeight = FW_NORMAL;
+    logfont.lfCharSet = RUSSIAN_CHARSET;
+    logfont.lfOutPrecision = OUT_DEFAULT_PRECIS;
+    logfont.lfClipPrecision = CLIP_DEFAULT_PRECIS;
+    logfont.lfQuality = DEFAULT_QUALITY;
+    logfont.lfPitchAndFamily = FIXED_PITCH;
 
-    return font;
+    Settings_GetDebugFontName(logfont.lfFaceName);
+    font = CreateFontIndirect(&logfont);
+    if (font != NULL)
+        return font;
+
+    _tcscpy_s(logfont.lfFaceName, 32, _T("Lucida Console"));
+    font = CreateFontIndirect(&logfont);
+    if (font != NULL)
+        return font;
+
+    _tcscpy_s(logfont.lfFaceName, 32, _T("Courier"));
+    font = CreateFontIndirect(&logfont);
+    if (font != NULL)
+        return font;
+
+    return NULL;
 }
 
 HFONT CreateDialogFont()

@@ -298,6 +298,14 @@ SETTINGS_GETSET_DWORD(Toolbar, _T("Toolbar"), BOOL, TRUE);
 
 SETTINGS_GETSET_DWORD(Debug, _T("Debug"), BOOL, FALSE);
 
+void Settings_GetDebugFontName(LPTSTR buffer)
+{
+    if (!Settings_LoadStringValue(_T("DebugFontName"), buffer, 32))
+    {
+        _tcscpy(buffer, _T("Lucida Console"));
+    }
+}
+
 SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 
 SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), BOOL, FALSE);
