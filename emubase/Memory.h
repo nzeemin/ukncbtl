@@ -48,7 +48,7 @@ protected:
     int             m_nDeviceCount;
 public:
     CMemoryController();
-    ~CMemoryController();
+    virtual ~CMemoryController();
     void        Attach(CMotherboard* board, CProcessor* processor)
     { m_pBoard = board;  m_pProcessor = processor; }
     /// \brief Attach/reattach bus devices

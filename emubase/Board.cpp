@@ -739,20 +739,20 @@ bool CMotherboard::SystemFrame()
                 pMemCtl->m_Port177702 = m_scanned_key;
                 if ((m_scanned_key & 0200) == 0)
                 {
-                    if ((m_kbd_matrix[row_Y].processed == false) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
+                    if ((m_kbd_matrix[row_Y].processed == 0) && ((m_kbd_matrix[row_Y].row_Y & bit_X) != 0))
                     {
                         pMemCtl->m_Port177700 |= 0200;
-                        m_kbd_matrix[row_Y].processed = true;
+                        m_kbd_matrix[row_Y].processed = 1;
                         if (pMemCtl->m_Port177700 & 0100)
                             m_pPPU->InterruptVIRQ(3, 0300);
                     }
                 }
                 else
                 {
-                    if ((m_kbd_matrix[row_Y].processed == true) && (m_kbd_matrix[row_Y].row_Y == 0))
+                    if ((m_kbd_matrix[row_Y].processed != 0) && (m_kbd_matrix[row_Y].row_Y == 0))
                     {
                         pMemCtl->m_Port177700 |= 0200;
-                        m_kbd_matrix[row_Y].processed = false;
+                        m_kbd_matrix[row_Y].processed = 0;
                         if (pMemCtl->m_Port177700 & 0100)
                             m_pPPU->InterruptVIRQ(3, 0300);
                         pMemCtl->m_Port177702 = m_scanned_key & 0x8F;

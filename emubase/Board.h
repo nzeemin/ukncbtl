@@ -111,6 +111,8 @@ public:
     virtual LPCTSTR GetName() const = 0;
     /// \brief Device address ranges: [address, length] pairs, last pair is [0,0]
     virtual const uint16_t* GetAddressRanges() const = 0;
+
+    virtual ~CBusDevice() { }
 };
 
 /// \brief UKNC computer
