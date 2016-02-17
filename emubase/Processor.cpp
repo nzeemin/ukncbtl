@@ -447,7 +447,7 @@ bool CProcessor::InterruptProcessing ()
                         new_psw = GetWord(intrVector + 2);
                         if (!m_RPLYrq)
                         {
-                            SetLPSW(LOBYTE(new_psw));
+                            SetLPSW((uint8_t)(new_psw & 0xff));
                             SetPC(new_pc);
                         }
                     }
@@ -760,7 +760,7 @@ void CProcessor::ExecuteRTI()  // RTI - Return from Interrupt - Возврат из преры
     SetSP( GetSP() + 2 );
     if (m_RPLYrq) return;
     if (GetPC() < 0160000)
-        SetLPSW(LOBYTE(word));
+        SetLPSW((uint8_t)(word & 0xff));
     else
         SetPSW(word); //load new mode
     m_internalTick = RTI_TIMING;
@@ -777,7 +777,7 @@ void CProcessor::ExecuteRTT ()  // RTT - Return from Trace Trap -- Возврат из пр
     SetSP( GetSP() + 2 );
     if (m_RPLYrq) return;
     if (GetPC() < 0160000)
-        SetLPSW(LOBYTE(word));
+        SetLPSW((uint8_t)(word & 0xff));
     else
         SetPSW(word); //load new mode
 
@@ -819,12 +819,12 @@ void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из про
 
 void CProcessor::ExecuteCCC ()
 {
-    SetLPSW(GetLPSW() &  ~(LOBYTE(m_instruction) & 017));
+    SetLPSW(GetLPSW() &  ~((uint8_t)(m_instruction & 0xff) & 017));
     m_internalTick = NOP_TIMING;
 }
 void CProcessor::ExecuteSCC ()
 {
-    SetLPSW(GetLPSW() |  (LOBYTE(m_instruction) & 017));
+    SetLPSW(GetLPSW() |  ((uint8_t)(m_instruction & 0xff) & 017));
     m_internalTick = NOP_TIMING;
 }
 
@@ -871,7 +871,7 @@ void CProcessor::ExecuteSWAB ()
     if (m_RPLYrq) return;
 
     if ((dst & 0200) != 0) new_psw |= PSW_N;
-    if (LOBYTE(dst) == 0) new_psw |= PSW_Z;
+    if ((uint8_t)(dst & 0xff) == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
     m_internalTick = MOV_TIMING[m_methdest][m_methdest];
 }
@@ -1658,7 +1658,7 @@ void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
 
 void CProcessor::ExecuteBR ()
 {
-    SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+    SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     m_internalTick = BR_TIMING;
 }
 
@@ -1667,7 +1667,7 @@ void CProcessor::ExecuteBNE ()
     m_internalTick = BRANCH_FALSE_TIMING;
     if (! GetZ())
     {
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
         m_internalTick = BRANCH_TRUE_TIMING;
     }
 }
@@ -1678,7 +1678,7 @@ void CProcessor::ExecuteBEQ ()
     if (GetZ())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1688,7 +1688,7 @@ void CProcessor::ExecuteBGE ()
     if (GetN() == GetV())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1698,7 +1698,7 @@ void CProcessor::ExecuteBLT ()
     if (GetN() != GetV())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1708,7 +1708,7 @@ void CProcessor::ExecuteBGT ()
     if (! ((GetN() != GetV()) || GetZ()))
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1718,7 +1718,7 @@ void CProcessor::ExecuteBLE ()
     if ((GetN() != GetV()) || GetZ())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1728,7 +1728,7 @@ void CProcessor::ExecuteBPL ()
     if (! GetN())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char)LOBYTE (m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1738,7 +1738,7 @@ void CProcessor::ExecuteBMI ()
     if (GetN())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1748,7 +1748,7 @@ void CProcessor::ExecuteBHI ()
     if (! (GetZ() || GetC()))
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1758,7 +1758,7 @@ void CProcessor::ExecuteBLOS ()
     if (GetZ() || GetC())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1768,7 +1768,7 @@ void CProcessor::ExecuteBVC ()
     if (! GetV())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1778,7 +1778,7 @@ void CProcessor::ExecuteBVS ()
     if (GetV())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1788,7 +1788,7 @@ void CProcessor::ExecuteBHIS ()
     if (! GetC())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 
@@ -1798,7 +1798,7 @@ void CProcessor::ExecuteBLO ()
     if (GetC())
     {
         m_internalTick = BRANCH_TRUE_TIMING;
-        SetPC(GetPC() + ((short)(char) LOBYTE(m_instruction)) * 2 );
+        SetPC(GetPC() + ((short)(char)(uint8_t)(m_instruction & 0xff)) * 2 );
     }
 }
 

@@ -343,8 +343,8 @@ void CFloppyController::Periodic()
     {
         if (m_shiftflag)
         {
-            m_pDrive->data[m_pDrive->dataptr] = LOBYTE(m_shiftreg);
-            m_pDrive->data[m_pDrive->dataptr + 1] = HIBYTE(m_shiftreg);
+            m_pDrive->data[m_pDrive->dataptr] = (uint8_t)(m_shiftreg & 0xff);
+            m_pDrive->data[m_pDrive->dataptr + 1] = (uint8_t)((m_shiftreg >> 8) & 0xff);
             m_shiftflag = false;
             m_trackchanged = true;
 

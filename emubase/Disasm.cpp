@@ -232,7 +232,7 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TC
     }
 
     length = 1;
-    _sntprintf(strDst, 24, _T("%06o"), addr + ((short)(char)LOBYTE (instr) * 2) + 2);
+    _sntprintf(strDst, 24, _T("%06o"), addr + ((short)(char)(uint8_t)(instr & 0xff) * 2) + 2);
 
     // Branchs & interrupts
     switch (instr & ~(uint16_t)0377)
@@ -254,7 +254,7 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TC
     case PI_BLO:  _tcscpy(strInstr, _T("BLO"));  _tcscpy(strArg, strDst);  return 1;
     }
 
-    _sntprintf(strDst, 24, _T("%06o"), LOBYTE (instr));
+    _sntprintf(strDst, 24, _T("%06o"), (uint8_t)(instr & 0xff));
 
     switch (instr & ~(uint16_t)0377)
     {

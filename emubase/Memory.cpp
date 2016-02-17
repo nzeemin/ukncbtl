@@ -203,8 +203,8 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
         m_pBoard->SetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset, word);
         return;
     case ADDRTYPE_RAM12:
-        m_pBoard->SetRAMByte(1, offset / 2, LOBYTE(word));
-        m_pBoard->SetRAMByte(2, offset / 2, HIBYTE(word));
+        m_pBoard->SetRAMByte(1, offset / 2, (uint8_t)(word & 0xff));
+        m_pBoard->SetRAMByte(2, offset / 2, (uint8_t)((word >> 8) & 0xff));
         return;
 
     case ADDRTYPE_ROMCART1:
@@ -341,7 +341,7 @@ int CFirstMemoryController::TranslateAddress(uint16_t address, bool okHaltMode, 
 uint8_t CFirstMemoryController::GetPortByte(uint16_t address)
 {
     uint16_t word = GetPortWord(address);
-    return (uint8_t) (address & 1) ? HIBYTE(word) : LOBYTE(word);
+    return (uint8_t) (address & 1) ? (uint8_t)((word >> 8) & 0xff) : (uint8_t)(word & 0xff);
 }
 
 uint16_t CFirstMemoryController::GetPortWord(uint16_t address)
@@ -461,12 +461,12 @@ void CFirstMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     case 0176642:  // Plane 1 & 2 data register
         m_Port176642 &= 0xFF00;
         m_Port176642 |= word;
-        m_pBoard->SetRAMByte(1, m_Port176640, LOBYTE(word));
+        m_pBoard->SetRAMByte(1, m_Port176640, (uint8_t)(word & 0xff));
         break;
     case 0176643:
         m_Port176642 &= 0xFF;
         m_Port176642 |= word;
-        m_pBoard->SetRAMByte(2, m_Port176640, HIBYTE(word));
+        m_pBoard->SetRAMByte(2, m_Port176640, (uint8_t)((word >> 8) & 0xff));
         break;
 
     case 0176644: case 0176645:
@@ -591,8 +591,8 @@ void CFirstMemoryController::SetPortWord(uint16_t address, uint16_t word)
     case 0176642:  // Plane 1 & 2 data register
     case 0176643:
         m_Port176642 = word;
-        m_pBoard->SetRAMByte(1, m_Port176640, LOBYTE(word));
-        m_pBoard->SetRAMByte(2, m_Port176640, HIBYTE(word));
+        m_pBoard->SetRAMByte(1, m_Port176640, (uint8_t)(word & 0xff));
+        m_pBoard->SetRAMByte(2, m_Port176640, (uint8_t)((word >> 8) & 0xff));
         break;
 
     case 0176644: case 0176645:
@@ -1143,7 +1143,7 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
 uint8_t CSecondMemoryController::GetPortByte(uint16_t address)
 {
     uint16_t word = GetPortWord(address);
-    return (uint8_t) (address & 1) ? HIBYTE(word) : LOBYTE(word);
+    return (uint8_t) (address & 1) ? (uint8_t)((word >> 8) & 0xff) : (uint8_t)(word & 0xff);
 }
 
 void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
@@ -1164,12 +1164,12 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     case 0177014:
         m_Port177014 &= 0xFF00;
         m_Port177014 |= word;
-        m_pBoard->SetRAMByte(1, m_Port177010, LOBYTE(word));
+        m_pBoard->SetRAMByte(1, m_Port177010, (uint8_t)(word & 0xff));
         break;
     case 0177015:
         m_Port177014 &= 0xFF;
         m_Port177014 |= word;
-        m_pBoard->SetRAMByte(2, m_Port177010, HIBYTE(word));
+        m_pBoard->SetRAMByte(2, m_Port177010, (uint8_t)((word >> 8) & 0xff));
         break;
     case 0177016:
     case 0177017:
@@ -1321,13 +1321,13 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
     case 0177012:  // Plane 0 data register
     case 0177013:
         m_Port177012 = word & 0xFF;
-        m_pBoard->SetRAMByte(0, m_Port177010, LOBYTE(word));
+        m_pBoard->SetRAMByte(0, m_Port177010, (uint8_t)(word & 0xff));
         break;
     case 0177014:  // Plane 1 & 2 data register
     case 0177015:
         m_Port177014 = word;
-        m_pBoard->SetRAMByte(1, m_Port177010, LOBYTE(word));
-        m_pBoard->SetRAMByte(2, m_Port177010, HIBYTE(word));
+        m_pBoard->SetRAMByte(1, m_Port177010, (uint8_t)(word & 0xff));
+        m_pBoard->SetRAMByte(2, m_Port177010, (uint8_t)((word >> 8) & 0xff));
         break;
 
     case 0177016:  // Sprite Color

@@ -93,7 +93,7 @@ public:
 public:  // Register control
     uint16_t    GetPSW() const { return m_psw; }  ///< Get the processor status word register value
     uint16_t    GetCPSW() const { return m_savepsw; }
-    uint8_t     GetLPSW() const { return LOBYTE(m_psw); }  ///< Get PSW lower byte
+    uint8_t     GetLPSW() const { return (uint8_t)(m_psw & 0xff); }  ///< Get PSW lower byte
     /// \brief Set the processor status word register value
     void        SetPSW(uint16_t word)
     {
@@ -113,7 +113,7 @@ public:  // Register control
         m_R[regno] = word;
         if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = word;
     }
-    uint8_t     GetLReg(int regno) const { return LOBYTE(m_R[regno]); }
+    uint8_t     GetLReg(int regno) const { return (uint8_t)(m_R[regno] & 0xff); }
     void        SetLReg(int regno, uint8_t byte)
     {
         m_R[regno] = (m_R[regno] & 0xFF00) | (uint16_t)byte;
@@ -414,7 +414,7 @@ inline bool CProcessor::CheckSubForOverflow (uint16_t a, uint16_t b)
 inline bool CProcessor::CheckAddForCarry (uint8_t a, uint8_t b)
 {
     uint16_t sum = (uint16_t)a + (uint16_t)b;
-    return HIBYTE (sum) != 0;
+    return (uint8_t)((sum >> 8) & 0xff) != 0;
 }
 inline bool CProcessor::CheckAddForCarry (uint16_t a, uint16_t b)
 {
@@ -424,7 +424,7 @@ inline bool CProcessor::CheckAddForCarry (uint16_t a, uint16_t b)
 inline bool CProcessor::CheckSubForCarry (uint8_t a, uint8_t b)
 {
     uint16_t sum = (uint16_t)a - (uint16_t)b;
-    return HIBYTE (sum) != 0;
+    return (uint8_t)((sum >> 8) & 0xff) != 0;
 }
 inline bool CProcessor::CheckSubForCarry (uint16_t a, uint16_t b)
 {
