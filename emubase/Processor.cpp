@@ -1846,8 +1846,8 @@ void CProcessor::ExecuteMUL ()  // MUL
 
     res = (signed short)dst * (signed short)src;
 
-    SetReg(m_regsrc, HIWORD(res));
-    SetReg(m_regsrc | 1, LOWORD(res));
+    SetReg(m_regsrc, (uint16_t)((res >> 16) & 0xffff));
+    SetReg(m_regsrc | 1, (uint16_t)(res & 0xffff));
 
     if (res < 0) new_psw |= PSW_N;
     if (res == 0) new_psw |= PSW_Z;
@@ -1980,8 +1980,8 @@ void CProcessor::ExecuteASHC ()  // ASHC
         }
     }
 
-    SetReg(m_regsrc, HIWORD(dst));
-    SetReg(m_regsrc | 1, LOWORD(dst));
+    SetReg(m_regsrc, (uint16_t)((dst >> 16) & 0xffff));
+    SetReg(m_regsrc | 1, (uint16_t)(dst & 0xffff));
 
     SetN(dst < 0);
     SetZ(dst == 0);
