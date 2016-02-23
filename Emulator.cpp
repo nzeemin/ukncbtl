@@ -122,7 +122,7 @@ bool Emulator_Init()
         return false;
     }
 
-    g_pBoard->SetNetStation(Settings_GetNetStation());
+    g_pBoard->SetNetStation((uint16_t)Settings_GetNetStation());
 
     g_pBoard->Reset();
 

@@ -185,7 +185,7 @@ public:  // System control
     void        LoadROM(const uint8_t* pBuffer);  ///< Load 32 KB ROM image from the biffer
     void        LoadROMCartridge(int cartno, const uint8_t* pBuffer);  ///< Load 24 KB ROM cartridge image
     void        LoadRAM(int plan, const uint8_t* pBuffer);  ///< Load 32 KB RAM image from the biffer
-    void        SetNetStation(int station);  // Network station number
+    void        SetNetStation(uint16_t station);  // Network station number
     void        Tick8000();  ///< Tick 8.00 MHz
     void        Tick6250();  ///< Tick 6.25 MHz
     void        Tick50();    ///< Tick 50 Hz - goes to CPU/PPU EVNT line

@@ -273,8 +273,9 @@ CProcessor::CProcessor (LPCTSTR name)
     m_haltpin = false;
 
     m_instruction = 0;
-    m_regsrc = m_methsrc = m_addrsrc = 0;
-    m_regdest = m_methdest = m_addrdest = 0;
+    m_regsrc = m_methsrc = 0;
+    m_regdest = m_methdest = 0;
+    m_addrsrc = m_addrdest = 0;
     memset(m_virq, 0, sizeof(m_virq));
 }
 
@@ -563,10 +564,10 @@ void CProcessor::FetchInstruction()
 void CProcessor::TranslateInstruction ()
 {
     // Prepare values to help decode the command
-    m_regdest  = GetDigit(m_instruction, 0);
-    m_methdest = GetDigit(m_instruction, 1);
-    m_regsrc   = GetDigit(m_instruction, 2);
-    m_methsrc  = GetDigit(m_instruction, 3);
+    m_regdest  = (uint8_t)GetDigit(m_instruction, 0);
+    m_methdest = (uint8_t)GetDigit(m_instruction, 1);
+    m_regsrc = (uint8_t)GetDigit(m_instruction, 2);
+    m_methsrc = (uint8_t)GetDigit(m_instruction, 3);
 
     // Find command implementation using the command map
     ExecuteMethodRef methodref = m_pExecuteMethodMap[m_instruction];
@@ -847,7 +848,7 @@ void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
 
 void CProcessor::ExecuteSWAB ()
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint16_t dst;
     uint8_t new_psw = GetLPSW() & 0xF0;
 
@@ -916,7 +917,7 @@ void CProcessor::ExecuteCLRB ()  // CLRB
 
 void CProcessor::ExecuteCOM ()  // COM
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -979,7 +980,7 @@ void CProcessor::ExecuteCOM ()  // COM
 
 void CProcessor::ExecuteINC ()  // INC - Инкремент
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF1;
     if (m_instruction & 0100000)
     {
@@ -1041,7 +1042,7 @@ void CProcessor::ExecuteINC ()  // INC - Инкремент
 
 void CProcessor::ExecuteDEC ()  // DEC - Декремент
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF1;
     if (m_instruction & 0100000)
     {
@@ -1103,7 +1104,7 @@ void CProcessor::ExecuteDEC ()  // DEC - Декремент
 
 void CProcessor::ExecuteNEG ()
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1167,7 +1168,7 @@ void CProcessor::ExecuteNEG ()
 
 void CProcessor::ExecuteADC ()  // ADC{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1231,7 +1232,7 @@ void CProcessor::ExecuteADC ()  // ADC{B}
 
 void CProcessor::ExecuteSBC ()  // SBC{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1339,7 +1340,7 @@ void CProcessor::ExecuteTSTB ()  // TSTB only, see also ExecuteTST()
 
 void CProcessor::ExecuteROR ()  // ROR{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1403,7 +1404,7 @@ void CProcessor::ExecuteROR ()  // ROR{B}
 
 void CProcessor::ExecuteROL ()  // ROL{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1440,7 +1441,7 @@ void CProcessor::ExecuteROL ()  // ROL{B}
 
         if (m_methdest)
         {
-            ea = GetWordAddr(m_methdest, m_regdest);
+            ea = GetWordAddr((uint8_t)m_methdest, (uint8_t)m_regdest);
             if (m_RPLYrq) return;
             src = GetWord(ea);
             if (m_RPLYrq) return;
@@ -1467,7 +1468,7 @@ void CProcessor::ExecuteROL ()  // ROL{B}
 
 void CProcessor::ExecuteASR ()  // ASR{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1531,7 +1532,7 @@ void CProcessor::ExecuteASR ()  // ASR{B}
 
 void CProcessor::ExecuteASL ()  // ASL{B}
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     if (m_instruction & 0100000)
     {
@@ -1805,7 +1806,7 @@ void CProcessor::ExecuteBLO ()
 void CProcessor::ExecuteXOR ()  // XOR
 {
     uint16_t dst;
-    uint16_t ea;
+    uint16_t ea = 0;
     uint8_t new_psw = GetLPSW() & 0xF1;
 
     if (m_methdest)
@@ -1835,7 +1836,7 @@ void CProcessor::ExecuteXOR ()  // XOR
 void CProcessor::ExecuteMUL ()  // MUL
 {
     uint16_t dst = GetReg(m_regsrc);
-    uint16_t src, ea;
+    uint16_t src, ea = 0;
     int res;
     uint8_t new_psw = GetLPSW() & 0xF0;
 
@@ -1857,8 +1858,7 @@ void CProcessor::ExecuteMUL ()  // MUL
 }
 void CProcessor::ExecuteDIV ()  // DIV
 {
-    //время надо считать тут
-    uint16_t ea;
+    uint16_t ea = 0;
     int longsrc;
     int res, res1, src2;
     uint8_t new_psw = GetLPSW() & 0xF0;
@@ -1904,7 +1904,7 @@ void CProcessor::ExecuteDIV ()  // DIV
 }
 void CProcessor::ExecuteASH ()  // ASH
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     short src;
     short dst;
     uint8_t new_psw = GetLPSW() & 0xF0;
@@ -1947,7 +1947,7 @@ void CProcessor::ExecuteASH ()  // ASH
 }
 void CProcessor::ExecuteASHC ()  // ASHC
 {
-    uint16_t ea;
+    uint16_t ea = 0;
     short src;
     long dst;
     uint8_t new_psw = GetLPSW() & 0xF0;
@@ -2231,7 +2231,7 @@ void CProcessor::ExecuteBIT ()  // BIT{B} - bit test
 
 void CProcessor::ExecuteBIC ()  // BIC{B} - bit clear
 {
-    uint16_t src_addr, dst_addr;
+    uint16_t src_addr, dst_addr = 0;
     uint8_t new_psw = GetLPSW() & 0xF1;
 
     if (m_instruction & 0100000)
@@ -2317,7 +2317,7 @@ void CProcessor::ExecuteBIC ()  // BIC{B} - bit clear
 
 void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
 {
-    uint16_t src_addr, dst_addr;
+    uint16_t src_addr, dst_addr = 0;
     uint8_t new_psw = GetLPSW() & 0xF1;
 
     if (m_instruction & 0100000)
@@ -2347,7 +2347,6 @@ void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
             src2 = GetLReg(m_regdest);
 
         dst = src2 | src;
-
 
         if (m_methdest)
             SetByte(dst_addr, dst);
@@ -2403,7 +2402,7 @@ void CProcessor::ExecuteBIS ()  // BIS{B} - bit set
 
 void CProcessor::ExecuteADD ()  // ADD
 {
-    uint16_t src_addr, dst_addr;
+    uint16_t src_addr, dst_addr = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     uint16_t src, src2, dst;
 
@@ -2445,7 +2444,7 @@ void CProcessor::ExecuteADD ()  // ADD
 
 void CProcessor::ExecuteSUB ()
 {
-    uint16_t src_addr, dst_addr;
+    uint16_t src_addr, dst_addr = 0;
     uint8_t new_psw = GetLPSW() & 0xF0;
     uint16_t src, src2, dst;
 

@@ -116,7 +116,7 @@ public:  // CPU specific
     bool SerialInput(uint8_t inputByte);
     bool NetworkInput(uint8_t inputByte);
 protected:  // Implementation
-    int         m_NetStation;  ///< Network station number
+    uint16_t    m_NetStation;  ///< Network station number
     uint16_t    m_Port176560;  ///< Network receiver state
     uint16_t    m_Port176562;  ///< Network receiver data (bits 0-7)
     uint16_t    m_Port176564;  ///< Network translator state

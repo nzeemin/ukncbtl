@@ -60,11 +60,11 @@ protected:  // Processor state
 
 protected:  // Current instruction processing
     uint16_t    m_instruction;      ///< Curent instruction
-    int         m_regsrc;           ///< Source register number
-    int         m_methsrc;          ///< Source address mode
+    uint8_t     m_regsrc;           ///< Source register number
+    uint8_t     m_methsrc;          ///< Source address mode
     uint16_t    m_addrsrc;          ///< Source address
-    int         m_regdest;          ///< Destination register number
-    int         m_methdest;         ///< Destination address mode
+    uint8_t     m_regdest;          ///< Destination register number
+    uint8_t     m_methdest;         ///< Destination address mode
     uint16_t    m_addrdest;         ///< Destination address
 protected:  // Interrupt processing
     bool        m_STRTrq;           ///< Start interrupt pending

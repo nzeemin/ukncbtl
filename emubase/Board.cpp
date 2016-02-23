@@ -318,7 +318,7 @@ void CMotherboard::LoadRAM(int plan, const uint8_t* pBuffer)  // Load 32 KB RAM 
     memcpy(m_pRAM[plan], pBuffer, 32768);
 }
 
-void CMotherboard::SetNetStation(int station)
+void CMotherboard::SetNetStation(uint16_t station)
 {
     CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
     pMemCtl->m_NetStation = station;

@@ -544,7 +544,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
                     WORD start = *pRanges;  pRanges++;
                     WORD length = *pRanges;  pRanges++;
                     _sntprintf(buffer, 16, _T("%06o-%06o"), start, start + length - 1);
-                    ::SendMessage(hList, LB_INSERTSTRING, -1, (LPARAM)buffer);
+                    ::SendMessage(hList, LB_INSERTSTRING, (WPARAM) - 1, (LPARAM)buffer);
                 }
             }
         }

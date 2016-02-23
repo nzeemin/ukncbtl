@@ -509,7 +509,7 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
     return NULL;
 }
 
-BOOL DisasmView_CheckForJump(const WORD* memory, WORD address, int* pDelta)
+BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
 {
     WORD instr = *memory;
 
