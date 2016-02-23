@@ -26,17 +26,17 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile);
 // Samples per second, Hz
 int WavPcmFile_GetFrequency(HWAVPCMFILE wavpcmfile);
 // Length of the stream, in samples
-DWORD WavPcmFile_GetLength(HWAVPCMFILE wavpcmfile);
+uint32_t WavPcmFile_GetLength(HWAVPCMFILE wavpcmfile);
 
 // Current position in the stream, in samples, zero-based
-DWORD WavPcmFile_GetPosition(HWAVPCMFILE wavpcmfile);
+uint32_t WavPcmFile_GetPosition(HWAVPCMFILE wavpcmfile);
 // Set current position in the stream, in samples, zero-based
-void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, DWORD position);
+void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, uint32_t position);
 
 // Read one sample scaled to int type range
 unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile);
 // Write one sample scaled to int type range
-BOOL WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value);
+bool WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value);
 
 
 //////////////////////////////////////////////////////////////////////
