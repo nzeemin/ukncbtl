@@ -26,7 +26,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \param[out] sInstr  Instruction mnemonics buffer - at least 8 characters
 /// \param[out] sArg    Instruction arguments buffer - at least 32 characters
 /// \return  Number of words in the instruction
-int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHAR* sArg);
+uint16_t DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHAR* sArg);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -66,10 +66,10 @@ struct CFloppyDrive
     uint16_t track;         ///< Track number: from 0 to 79
     uint16_t side;          ///< Disk side: 0 or 1
     uint16_t dataptr;       ///< Data offset within m_data - "head" position
-    uint8_t data[FLOPPY_RAWTRACKSIZE];  ///< Raw track image for the current track
-    uint8_t marker[FLOPPY_RAWMARKERSIZE];  ///< Marker positions
     uint16_t datatrack;     ///< Track number of data in m_data array
     uint16_t dataside;      ///< Disk side of data in m_data array
+    uint8_t data[FLOPPY_RAWTRACKSIZE];  ///< Raw track image for the current track
+    uint8_t marker[FLOPPY_RAWMARKERSIZE];  ///< Marker positions
 
 public:
     CFloppyDrive();
@@ -82,8 +82,8 @@ class CFloppyController
 {
 protected:
     CFloppyDrive m_drivedata[4];  ///< Floppy drives
-    uint16_t m_drive;       ///< Current drive number: from 0 to 3
     CFloppyDrive* m_pDrive;  ///< Current drive
+    uint16_t m_drive;       ///< Current drive number: from 0 to 3
     uint16_t m_track;       ///< Track number: from 0 to 79
     uint16_t m_side;        ///< Disk side: 0 or 1
     uint16_t m_status;      ///< See FLOPPY_STATUS_XXX defines

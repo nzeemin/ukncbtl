@@ -48,9 +48,9 @@ protected:  // Processor state
     uint16_t    m_internalTick;     ///< How many ticks waiting to the end of current instruction
     uint16_t    m_psw;              ///< Processor Status Word (PSW)
     uint16_t    m_R[8];             ///< Registers (R0..R5, R6=SP, R7=PC)
-    bool        m_okStopped;        ///< "Processor stopped" flag
     uint16_t    m_savepc;           ///< CPC register
     uint16_t    m_savepsw;          ///< CPSW register
+    bool        m_okStopped;        ///< "Processor stopped" flag
     bool        m_stepmode;         ///< Read true if it's step mode
     bool        m_buserror;         ///< Read true if occured bus error for implementing double bus error if needed
     bool        m_haltpin;          ///< HALT pin

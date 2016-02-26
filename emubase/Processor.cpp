@@ -307,7 +307,7 @@ bool CProcessor::InterruptProcessing ()
     else
     {
         m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
-        m_TBITrq = (m_psw & 020);  // T-bit
+        m_TBITrq = (m_psw & 020) != 0;  // T-bit
 
         if (m_STRTrq)
         {
@@ -564,10 +564,10 @@ void CProcessor::FetchInstruction()
 void CProcessor::TranslateInstruction ()
 {
     // Prepare values to help decode the command
-    m_regdest  = (uint8_t)GetDigit(m_instruction, 0);
-    m_methdest = (uint8_t)GetDigit(m_instruction, 1);
-    m_regsrc = (uint8_t)GetDigit(m_instruction, 2);
-    m_methsrc = (uint8_t)GetDigit(m_instruction, 3);
+    m_regdest  = GetDigit(m_instruction, 0);
+    m_methdest = GetDigit(m_instruction, 1);
+    m_regsrc   = GetDigit(m_instruction, 2);
+    m_methsrc  = GetDigit(m_instruction, 3);
 
     // Find command implementation using the command map
     ExecuteMethodRef methodref = m_pExecuteMethodMap[m_instruction];

@@ -28,10 +28,10 @@ const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
 };
 
 //   strSrc - at least 24 characters
-bool ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
+uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
 {
-    int reg = GetDigit(instr, 2);
-    int param = GetDigit(instr, 3);
+    uint8_t reg = GetDigit(instr, 2);
+    uint8_t param = GetDigit(instr, 3);
 
     LPCTSTR pszReg = REGISTER_NAME[reg];
 
@@ -43,7 +43,7 @@ bool ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t c
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word, pszReg);
-            return true;
+            return 1;
         }
         else
             _sntprintf(strSrc, 24, format, pszReg);
@@ -56,26 +56,26 @@ bool ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t c
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, word);
-            return true;
+            return 1;
         }
         else if (param == 6 || param == 7)
         {
             uint16_t word = code;  //TODO: pMemory
             _sntprintf(strSrc, 24, format, (uint16_t)(addr + word + 2));
-            return true;
+            return 1;
         }
         else
             _sntprintf(strSrc, 24, format, pszReg);
     }
 
-    return false;
+    return 0;
 }
 
 //   strDst - at least 24 characters
-bool ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
+uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
 {
-    int reg = GetDigit(instr, 0);
-    int param = GetDigit(instr, 1);
+    uint8_t reg = GetDigit(instr, 0);
+    uint8_t param = GetDigit(instr, 1);
 
     LPCTSTR pszReg = REGISTER_NAME[reg];
 
@@ -86,7 +86,7 @@ bool ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t 
         if (param == 6 || param == 7)
         {
             _sntprintf(strDst, 24, format, code, pszReg);
-            return true;
+            return 1;
         }
         else
             _sntprintf(strDst, 24, format, pszReg);
@@ -98,18 +98,18 @@ bool ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t 
         if (param == 2 || param == 3)
         {
             _sntprintf(strDst, 24, format, code);
-            return true;
+            return 1;
         }
         else if (param == 6 || param == 7)
         {
             _sntprintf(strDst, 24, format, (uint16_t)(addr + code + 2));
-            return true;
+            return 1;
         }
         else
             _sntprintf(strDst, 24, format, pszReg);
     }
 
-    return false;
+    return 0;
 }
 
 // Disassemble one instruction
@@ -117,14 +117,14 @@ bool ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t 
 //   sInstr  - instruction mnemonics buffer - at least 8 characters
 //   sArg    - instruction arguments buffer - at least 32 characters
 //   Return value: number of words in the instruction
-int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TCHAR* strArg)
+uint16_t DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TCHAR* strArg)
 {
     *strInstr = 0;
     *strArg = 0;
 
     uint16_t instr = *pMemory;
 
-    int length = 1;
+    uint16_t length = 1;
     LPCTSTR strReg = NULL;
     TCHAR strSrc[24];
     TCHAR strDst[24];
@@ -213,7 +213,7 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TC
     case PI_MFPS:   _tcscpy(strInstr, _T("MFPS"));  _tcscpy(strArg, strDst);  return length;
     }
 
-    okByte = (instr & 0100000);
+    okByte = (instr & 0100000) != 0;
 
     switch (instr & ~(uint16_t)0100077)
     {
@@ -320,7 +320,7 @@ int DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TC
 
     // Four fields
 
-    okByte = (instr & 0100000);
+    okByte = (instr & 0100000) != 0;
 
     length += ConvertSrcToString(instr, addr + 2, strSrc, pMemory[1]);
     length += ConvertDstToString(instr, (uint16_t)(addr + 2 + (length - 1) * 2), strDst, pMemory[length]);

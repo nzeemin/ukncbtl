@@ -40,7 +40,7 @@ bool BmpFile_SaveScreenshot(
     bih.biSize = sizeof( BITMAPINFOHEADER );
     bih.biWidth = UKNC_SCREEN_WIDTH;
     bih.biHeight = UKNC_SCREEN_HEIGHT;
-    bih.biSizeImage = bih.biWidth * bih.biHeight;
+    bih.biSizeImage = (DWORD)(bih.biWidth * bih.biHeight);
     bih.biPlanes = 1;
     bih.biBitCount = 8;
     bih.biCompression = BI_RGB;

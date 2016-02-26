@@ -967,7 +967,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
     }
 
     //ASSERT(false);  // If we are here - then if isn't cover all addresses
-    return ADDRTYPE_NONE;
+    //return ADDRTYPE_NONE;
 }
 
 uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
@@ -1593,7 +1593,7 @@ bool CSecondMemoryController::TapeInput(bool inputBit)
 
 bool CSecondMemoryController::TapeOutput()
 {
-    return (bool)(m_Port177716 & 2);
+    return (m_Port177716 & 2) != 0;
 }
 
 void CSecondMemoryController::DCLO_177716()

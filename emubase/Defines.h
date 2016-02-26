@@ -15,10 +15,10 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-inline uint16_t GetDigit(uint16_t word, int pos)
+inline uint8_t GetDigit(uint16_t word, int pos)
 {
     //return (word >>= pos * 3) % 8;
-    return (word >>= ((pos << 1) + pos)) & 7;
+    return (uint8_t)((word >>= ((pos << 1) + pos)) & 7);
 }
 
 // Constants for "pos" argument
