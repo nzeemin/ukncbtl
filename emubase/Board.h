@@ -326,6 +326,16 @@ inline uint8_t CMotherboard::GetRAMByte(int plan, uint16_t offset) const
     ASSERT(plan >= 0 && plan <= 2);
     return m_pRAM[plan][offset];
 }
+inline void CMotherboard::SetRAMWord(int plan, uint16_t offset, uint16_t word)
+{
+	ASSERT(plan >= 0 && plan <= 2);
+	*((uint16_t*)(m_pRAM[plan] + (offset & 0xFFFE))) = word;
+}
+inline void CMotherboard::SetRAMByte(int plan, uint16_t offset, uint8_t byte)
+{
+	ASSERT(plan >= 0 && plan <= 2);
+	m_pRAM[plan][offset] = byte;
+}
 
 
 //////////////////////////////////////////////////////////////////////

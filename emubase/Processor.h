@@ -28,7 +28,7 @@ public:  // Constructor / initialization
     CProcessor(LPCTSTR name);
     /// \brief Link the processor and memory controller
     void        AttachMemoryController(CMemoryController* ctl) { m_pMemoryController = ctl; }
-    void        SetHALTPin(bool value);
+    void        SetHALTPin(bool value) { m_haltpin = value; }
     void        SetDCLOPin(bool value);
     void        SetACLOPin(bool value);
     void        MemoryError();
@@ -41,7 +41,6 @@ public:
 protected:  // Statics
     typedef void ( CProcessor::*ExecuteMethodRef )();
     static ExecuteMethodRef* m_pExecuteMethodMap;
-    static void RegisterMethodRef(uint16_t start, uint16_t end, CProcessor::ExecuteMethodRef methodref);
 
 protected:  // Processor state
     TCHAR       m_name[5];          ///< Processor name (DO NOT use it inside the processor code!!!)
@@ -83,7 +82,7 @@ protected:  // Interrupt processing
     uint16_t    m_virq[16];         ///< VIRQ vector
     bool        m_ACLOreset;        ///< Power fail interrupt request reset
     bool        m_EVNTreset;        ///< EVNT interrupt request reset;
-    int         m_VIRQreset;        ///< VIRQ request reset for given device
+    uint8_t     m_VIRQreset;        ///< VIRQ request reset for given device
 protected:
     CMemoryController* m_pMemoryController;
 
@@ -94,40 +93,18 @@ public:  // Register control
     uint16_t    GetPSW() const { return m_psw; }  ///< Get the processor status word register value
     uint16_t    GetCPSW() const { return m_savepsw; }
     uint8_t     GetLPSW() const { return (uint8_t)(m_psw & 0xff); }  ///< Get PSW lower byte
-    /// \brief Set the processor status word register value
-    void        SetPSW(uint16_t word)
-    {
-        m_psw = word & 0777;
-        if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
-    }
+    void        SetPSW(uint16_t word);  ///< Set the processor status word register value
     void        SetCPSW(uint16_t word) {m_savepsw = word; }
-    void        SetLPSW(uint8_t byte)
-    {
-        m_psw = (m_psw & 0xFF00) | (uint16_t)byte;
-        if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
-    }
+    void        SetLPSW(uint8_t byte);
     uint16_t    GetReg(int regno) const { return m_R[regno]; }  ///< Get register value, regno=0..7
-    /// \brief Set register value
-    void        SetReg(int regno, uint16_t word)
-    {
-        m_R[regno] = word;
-        if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = word;
-    }
+    void        SetReg(int regno, uint16_t word);  ///< Set register value
     uint8_t     GetLReg(int regno) const { return (uint8_t)(m_R[regno] & 0xff); }
-    void        SetLReg(int regno, uint8_t byte)
-    {
-        m_R[regno] = (m_R[regno] & 0xFF00) | (uint16_t)byte;
-        if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = m_R[7];
-    }
+    void        SetLReg(int regno, uint8_t byte);
     uint16_t    GetSP() const { return m_R[6]; }
     void        SetSP(uint16_t word) { m_R[6] = word; }
     uint16_t    GetPC() const { return m_R[7]; }
     uint16_t    GetCPC() const { return m_savepc; }
-    void        SetPC(uint16_t word)
-    {
-        m_R[7] = word;
-        if ((m_psw & 0600) != 0600) m_savepc = word;
-    }
+    void        SetPC(uint16_t word);
     void        SetCPC(uint16_t word) {m_savepc = word; }
 
 public:  // PSW bits control
@@ -146,14 +123,12 @@ public:  // Processor state
     /// \brief "Processor stopped" flag
     bool        IsStopped() const { return m_okStopped; }
     /// \brief HALT flag (true - HALT mode, false - USER mode)
-    bool        IsHaltMode() const
-    {
-        return ((m_psw & 0400) != 0);
-    }
+    bool        IsHaltMode() const { return ((m_psw & 0400) != 0); }
 public:  // Processor control
     void        TickEVNT();  ///< EVNT signal
-    void        InterruptVIRQ(int que, uint16_t interrupt);  ///< External interrupt via VIRQ signal
-    uint16_t    GetVIRQ(int que);
+    /// \brief External interrupt via VIRQ signal
+    void        InterruptVIRQ(int que, uint16_t interrupt);
+    uint16_t    GetVIRQ(int que) { return m_virq[que]; }
     /// \brief Execute one processor tick
     void        Execute();
     /// \brief Process pending interrupt requests
@@ -286,6 +261,32 @@ protected:  // Implementation - instruction execution
 
 };
 
+inline void CProcessor::SetPSW(uint16_t word)
+{
+    m_psw = word & 0777;
+    if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
+}
+inline void CProcessor::SetLPSW(uint8_t byte)
+{
+    m_psw = (m_psw & 0xFF00) | (uint16_t)byte;
+    if ((m_psw & 0600) != 0600) m_savepsw = m_psw;
+}
+inline void CProcessor::SetReg(int regno, uint16_t word)
+{
+    m_R[regno] = word;
+    if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = word;
+}
+inline void CProcessor::SetLReg(int regno, uint8_t byte)
+{
+    m_R[regno] = (m_R[regno] & 0xFF00) | (uint16_t)byte;
+    if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = m_R[7];
+}
+inline void CProcessor::SetPC(uint16_t word)
+{
+    m_R[7] = word;
+    if ((m_psw & 0600) != 0600) m_savepc = word;
+}
+
 // PSW bits control - implementation
 inline void CProcessor::SetC (bool bFlag)
 {
@@ -311,6 +312,12 @@ inline void CProcessor::SetZ (bool bFlag)
 inline void CProcessor::SetHALT (bool bFlag)
 {
     if (bFlag) m_psw |= PSW_HALT; else m_psw &= ~PSW_HALT;
+}
+
+inline void CProcessor::InterruptVIRQ(int que, uint16_t interrupt)
+{
+    if (m_okStopped) return;  // Processor is stopped - nothing to do
+    m_virq[que] = interrupt;
 }
 
 // PSW bits calculations - implementation

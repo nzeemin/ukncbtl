@@ -127,6 +127,12 @@ uint16_t RESET_TIMING = 105 + 968;  // ÒÎ ÊÌ1801ÂÌ2 ñòð. 134
 
 CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = NULL;
 
+#define RegisterMethodRef(/*uint16_t*/ opstart, /*uint16_t*/ opend, /*CProcessor::ExecuteMethodRef*/ methodref) \
+	{ \
+		for (uint32_t opcode = (opstart); opcode <= (opend); opcode++) \
+			m_pExecuteMethodMap[opcode] = (methodref); \
+	}
+
 void CProcessor::Init()
 {
     ASSERT(m_pExecuteMethodMap == NULL);
@@ -243,12 +249,6 @@ void CProcessor::Init()
 void CProcessor::Done()
 {
     ::free(m_pExecuteMethodMap);  m_pExecuteMethodMap = NULL;
-}
-
-void CProcessor::RegisterMethodRef(uint16_t start, uint16_t end, CProcessor::ExecuteMethodRef methodref)
-{
-    for (int opcode = start; opcode <= end; opcode++ )
-        m_pExecuteMethodMap[opcode] = methodref;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -393,7 +393,7 @@ bool CProcessor::InterruptProcessing ()
         else if ((m_psw & 0200) != 0200)  // VIRQ, priority 7
         {
             intrMode = false;
-            for (int irq = 1; irq <= 15; irq++)
+            for (uint8_t irq = 1; irq <= 15; irq++)
             {
                 if (m_virq[irq] != 0)
                 {
@@ -481,21 +481,6 @@ void CProcessor::TickEVNT()
     if (m_okStopped) return;  // Processor is stopped - nothing to do
 
     m_EVNTrq = true;
-}
-
-void CProcessor::InterruptVIRQ(int que, uint16_t interrupt)
-{
-    if (m_okStopped) return;  // Processor is stopped - nothing to do
-    m_virq[que] = interrupt;
-}
-uint16_t CProcessor::GetVIRQ(int que)
-{
-    return m_virq[que];
-}
-
-void CProcessor::SetHALTPin(bool value)
-{
-    m_haltpin = value;
 }
 
 void CProcessor::SetDCLOPin(bool value)
@@ -2582,7 +2567,7 @@ void CProcessor::SaveToImage(uint8_t* pImage) const
     flags2 |= (m_ACLOreset ? 32 : 0);
     flags2 |= (m_EVNTreset ? 64 : 0);
     *pbImage++ = flags2;                            //   28     1   Flags
-    *pbImage++ = (uint8_t)m_VIRQreset;              //   29     1   VIRQ reset request
+    *pbImage++ = m_VIRQreset;                       //   29     1   VIRQ reset request
     //                                              //   30     2   Reserved
     memcpy(pImage + 32, m_virq, 2 * 16);            //   32    32   VIRQ vectors
 }
@@ -2621,7 +2606,7 @@ void CProcessor::LoadFromImage(const uint8_t* pImage)
     m_TRAPrq    = ((flags2 & 16) != 0);
     m_ACLOreset = ((flags2 & 32) != 0);
     m_EVNTreset = ((flags2 & 64) != 0);
-    m_VIRQreset = (int) * pbImage++;                //   29     1   VIRQ reset request
+    m_VIRQreset = *pbImage++;                       //   29     1   VIRQ reset request
     //                                              //   30     2   Reserved
     memcpy(m_virq, pImage + 32, 2 * 16);            //   32    32   VIRQ vectors
 }

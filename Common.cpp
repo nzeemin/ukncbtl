@@ -255,7 +255,7 @@ BOOL ParseOctalValue(LPCTSTR text, WORD* pValue)
         if (ch < _T('0') || ch > _T('7')) return FALSE;
         value = (value << 3);
         TCHAR digit = ch - _T('0');
-        value = value + digit;
+        value += digit;
     }
     *pValue = value;
     return TRUE;
