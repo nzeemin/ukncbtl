@@ -270,6 +270,72 @@ BOOL SaveMemoryDump(CProcessor *pProc)
 
     return true;
 }
+
+void SaveDisplayListDump()
+{
+    FILE* fpFile = ::_tfopen(_T("displaylist.txt"), _T("wt"));
+    _ftprintf(fpFile, _T("line address  tag 1  tag 2  bits   next   \n"));
+
+    WORD address = 0000270;  // Tag sequence start address
+    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
+    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
+
+    for (int yy = 0; yy < 307; yy++)
+    {
+        _ftprintf(fpFile, _T("%4d  %06o  "), yy, address);
+
+        WORD tag1 = 0, tag2 = 0;
+        if (okTagSize)  // 4-word tag
+        {
+            tag1 = g_pBoard->GetRAMWord(0, address);
+            address += 2;
+            tag2 = g_pBoard->GetRAMWord(0, address);
+            address += 2;
+            _ftprintf(fpFile, _T("%06o %06o "), tag1, tag2);
+        }
+        else
+            _ftprintf(fpFile, _T("------ ------ "));
+
+        WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
+        address += 2;
+        _ftprintf(fpFile, _T("%06o "), addressBits);
+
+        WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
+        _ftprintf(fpFile, _T("%06o  "), tagB);
+
+        if (okTagSize)  // 4-word tag
+        {
+            if (okTagType)  // 4-word palette tag
+                _ftprintf(fpFile, _T("palette; "));
+            else
+            {
+                int scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
+                scale = 1 << scale;
+                _ftprintf(fpFile, _T("scale %d; "), scale);
+            }
+        }
+
+        // Calculate size, type and address of the next tag
+        bool okNextTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
+        bool okNextTagType = okTagType;
+        if (okNextTagSize)
+        {
+            address = tagB & ~7;
+            okNextTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
+            _ftprintf(fpFile, _T("next: 4-word at %06o"), address);
+        }
+        else
+            address = tagB & ~3;
+
+        okTagSize = okNextTagSize;
+        okTagType = okNextTagType;
+
+        _ftprintf(fpFile, _T("\n"));
+    }
+
+    ::fclose(fpFile);
+}
+
 // Print memory dump
 void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
 {
@@ -411,7 +477,8 @@ void ConsoleView_ShowHelp()
             _T("  rN XXXXXX  Set register N to value XXXXXX; N=0..7,ps\r\n")
             _T("  s          Step Into; executes one instruction\r\n")
             _T("  so         Step Over; executes and stops after the current instruction\r\n")
-            _T("  u          Save memory dump to file memdumpXPU.bin\r\n"));
+            _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
+            _T("  udl        Save display list dump to file displaylist.txt\r\n"));
 }
 
 void DoConsoleCommand()
@@ -550,7 +617,12 @@ void DoConsoleCommand()
         }
         break;
     case _T('u'):
-        SaveMemoryDump(pProc);
+        if (command[1] == 0)
+            SaveMemoryDump(pProc);
+        else if (command[1] == _T('d') && command[2] == _T('l'))
+            SaveDisplayListDump();
+        else
+            ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
         break;
     case _T('m'):
         if (command[1] == 0)  // "m" - dump memory at current address

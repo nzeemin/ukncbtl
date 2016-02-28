@@ -668,8 +668,8 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
                 scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
                 pbpgpr = (BYTE)((7 - (tag2 & 7)) << 4);  // Y-value modifier
                 cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
-                okCursorType = ((tag1 & 16) != 0);  // TRUE - graphical cursor, false - symbolic cursor
-                ASSERT(okCursorType == 0);  //DEBUG
+                okCursorType = ((tag1 & 16) != 0);  // true - graphical cursor, false - symbolic cursor
+                //ASSERT(okCursorType == 0);  //DEBUG
                 cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
                 cursorAddress = (BYTE)((tag1 >> 5) & 7);
                 scale = 1 << scale;
