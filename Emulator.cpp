@@ -615,11 +615,17 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     BYTE* pImage = (BYTE*) ::malloc(24 * 1024);
     if (pImage == NULL)
     {
+        ::free(pImage);
         ::fclose(fpFile);
         return false;
     }
     DWORD dwBytesRead = ::fread(pImage, 1, 24 * 1024, fpFile);
-    ASSERT(dwBytesRead == 24 * 1024);
+    if (dwBytesRead != 24 * 1024)
+    {
+        ::free(pImage);
+        ::fclose(fpFile);
+        return false;
+    }
 
     g_pBoard->LoadROMCartridge(slot, pImage);
 
@@ -638,11 +644,11 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const DWORD* colors)
     if (!g_okEmulatorInitialized) return;
 
     // Tag parsing loop
-    BYTE cursorYRGB;
-    bool okCursorType;
+    BYTE cursorYRGB = 0;
+    bool okCursorType = false;
     BYTE cursorPos = 128;
     bool cursorOn = false;
-    BYTE cursorAddress;      // Address of graphical cursor
+    BYTE cursorAddress = 0;  // Address of graphical cursor
     WORD address = 0000270;  // Tag sequence start address
     bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
     bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params

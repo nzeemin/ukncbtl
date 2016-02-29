@@ -170,8 +170,8 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
     uint8_t tagHeader[8];
     uint16_t formatTag[8];
     bool formatSpecified = false;
-    int formatType, channels = 1, bitsPerSample, blockAlign;
-    uint32_t sampleFrequency, bytesPerSecond, dataOffset, dataSize = 0;
+    uint16_t formatType = 1, channels = 1, bitsPerSample = 1, blockAlign = 0;
+    uint32_t sampleFrequency = 22050, bytesPerSecond, dataOffset = 0, dataSize = 0;
     while (offset < statedSize)
     {
         bytesRead = ::fread(tagHeader, 1, sizeof(tagHeader), fpFileOpen);
