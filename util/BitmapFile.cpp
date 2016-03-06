@@ -44,7 +44,7 @@ bool BmpFile_SaveScreenshot(
     bih.biPlanes = 1;
     bih.biBitCount = 8;
     bih.biCompression = BI_RGB;
-    bih.biXPelsPerMeter = bih.biXPelsPerMeter = 2000;
+    bih.biXPelsPerMeter = bih.biYPelsPerMeter = 2000;
     hdr.bfSize = (uint32_t) sizeof(BITMAPFILEHEADER) + bih.biSize + bih.biSizeImage;
     hdr.bfOffBits = (uint32_t) sizeof(BITMAPFILEHEADER) + bih.biSize + sizeof(RGBQUAD) * 256;
 
@@ -218,7 +218,7 @@ bool PngFile_WriteImageData8(FILE * fpFile, uint32_t framenum, const uint32_t* p
     // http://tools.ietf.org/html/rfc1951
     uint32_t pDataLength = 8 + 2 + (6 + UKNC_SCREEN_WIDTH) * UKNC_SCREEN_HEIGHT + 4/*adler*/ + 4;
     if (framenum > 1) pDataLength += 4;
-    uint8_t * pData = (uint8_t *) ::malloc(pDataLength);
+    uint8_t * pData = (uint8_t *) ::malloc((size_t)pDataLength);
     SaveValueMSB(pData, pDataLength - 12);
     memcpy(pData + 4, (framenum <= 1) ? "IDAT" : "fdAT", 4);
     if (framenum > 1) SaveValueMSB(pData + 8, framenum);

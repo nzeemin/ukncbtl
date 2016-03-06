@@ -615,7 +615,6 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     BYTE* pImage = (BYTE*) ::malloc(24 * 1024);
     if (pImage == NULL)
     {
-        ::free(pImage);
         ::fclose(fpFile);
         return false;
     }
@@ -819,7 +818,7 @@ bool Emulator_SaveImage(LPCTSTR sFilePath)
     *(DWORD*)(pImage + 16) = m_dwEmulatorUptime;
 
     // Save image to the file
-    DWORD dwBytesWritten = ::fwrite(pImage, 1, UKNCIMAGE_SIZE, fpFile);
+    size_t dwBytesWritten = ::fwrite(pImage, 1, UKNCIMAGE_SIZE, fpFile);
     ::free(pImage);
     ::fclose(fpFile);
     if (dwBytesWritten != UKNCIMAGE_SIZE)

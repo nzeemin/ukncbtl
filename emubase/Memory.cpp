@@ -1348,7 +1348,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
             m_Port177024 = word & 0xFF;
             // Convert background into planes... it could've been modified by user
             uint8_t planebyte[3];
-            planebyte[0]  = ((m_Port177020 & (1 << 0)) ? 1 : 0) << 0;
+            planebyte[0] = ((m_Port177020 & (1 << 0)) ? 1 : 0) << 0;
             planebyte[0] |= ((m_Port177020 & (1 << 4)) ? 1 : 0) << 1;
             planebyte[0] |= ((m_Port177020 & (1 << 8)) ? 1 : 0) << 2;
             planebyte[0] |= ((m_Port177020 & (1 << 12)) ? 1 : 0) << 3;
@@ -1357,7 +1357,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
             planebyte[0] |= ((m_Port177022 & (1 << 8)) ? 1 : 0) << 6;
             planebyte[0] |= ((m_Port177022 & (1 << 12)) ? 1 : 0) << 7;
 
-            planebyte[1]  = ((m_Port177020 & (1 << 1)) ? 1 : 0) << 0;
+            planebyte[1] = ((m_Port177020 & (1 << 1)) ? 1 : 0) << 0;
             planebyte[1] |= ((m_Port177020 & (1 << 5)) ? 1 : 0) << 1;
             planebyte[1] |= ((m_Port177020 & (1 << 9)) ? 1 : 0) << 2;
             planebyte[1] |= ((m_Port177020 & (1 << 13)) ? 1 : 0) << 3;
@@ -1366,7 +1366,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
             planebyte[1] |= ((m_Port177022 & (1 << 9)) ? 1 : 0) << 6;
             planebyte[1] |= ((m_Port177022 & (1 << 13)) ? 1 : 0) << 7;
 
-            planebyte[2]  = ((m_Port177020 & (1 << 2)) ? 1 : 0) << 0;
+            planebyte[2] = ((m_Port177020 & (1 << 2)) ? 1 : 0) << 0;
             planebyte[2] |= ((m_Port177020 & (1 << 6)) ? 1 : 0) << 1;
             planebyte[2] |= ((m_Port177020 & (1 << 10)) ? 1 : 0) << 2;
             planebyte[2] |= ((m_Port177020 & (1 << 14)) ? 1 : 0) << 3;
@@ -1418,22 +1418,22 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         break;
     case 0177066:  // RX status, channels 0,1,2
     case 0177067:
-        m_pBoard->ChanRxStateSetPPU((uint8_t) word);
+        m_pBoard->ChanRxStateSetPPU((uint8_t)word);
         break;
     case 0177070:  // TX data, channel 0
     case 0177071:
-        m_pBoard->ChanWriteByPPU(0, (uint8_t) word);
+        m_pBoard->ChanWriteByPPU(0, (uint8_t)word);
         break;
     case 0177072:  // TX data, channel 1
     case 0177073:
-        m_pBoard->ChanWriteByPPU(1, (uint8_t) word);
+        m_pBoard->ChanWriteByPPU(1, (uint8_t)word);
         break;
     case 0177074:
     case 0177075:
         break;
     case 0177076:  // TX status, channels 0,1
     case 0177077:
-        m_pBoard->ChanTxStateSetPPU((uint8_t) word);
+        m_pBoard->ChanTxStateSetPPU((uint8_t)word);
         break;
 
     case 0177100:  // i8255 port A -- Parallel port output data
@@ -1477,9 +1477,9 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
 
     case 0177704: // fdd params:
     case 0177705:
-//#if !defined(PRODUCT)
-//            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
-//#endif
+        //#if !defined(PRODUCT)
+        //            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
+        //#endif
         break;
 
     case 0177710: //timer status
@@ -1496,17 +1496,17 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         break;
     case 0177716:  // System control register
     case 0177717:
-        word &= 0137676;
-        m_pBoard->GetCPU()->SetHALTPin((word & 020) ? true : false);
-
-        m_pBoard->GetCPU()->SetDCLOPin((word & 040) ? true : false);
-
-        m_pBoard->GetCPU()->SetACLOPin((word & 0100000) ? false : true);
-
-        m_Port177716 &= 1;
-        m_Port177716 |= word;
-        m_pBoard->SetSound(word);
-        break;
+        {
+            CProcessor* pCPU = m_pBoard->GetCPU();
+            word &= 0137676;
+            pCPU->SetHALTPin((word & 020) ? true : false);
+            pCPU->SetDCLOPin((word & 040) ? true : false);
+            pCPU->SetACLOPin((word & 0100000) ? false : true);
+            m_Port177716 &= 1;
+            m_Port177716 |= word;
+            m_pBoard->SetSound(word);
+            break;
+        }
 
         // HDD ports
     case 0110016:
@@ -1599,9 +1599,10 @@ bool CSecondMemoryController::TapeOutput()
 void CSecondMemoryController::DCLO_177716()
 {
     m_Port177716 &= 0077717;
-    m_pBoard->GetCPU()->SetHALTPin(false);
-    m_pBoard->GetCPU()->SetDCLOPin(false);
-    m_pBoard->GetCPU()->SetACLOPin(true);
+    CProcessor* pCPU = m_pBoard->GetCPU();
+    pCPU->SetHALTPin(false);
+    pCPU->SetDCLOPin(false);
+    pCPU->SetACLOPin(true);
 }
 
 void CSecondMemoryController::Init_177716()

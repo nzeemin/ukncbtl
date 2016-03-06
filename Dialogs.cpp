@@ -396,7 +396,7 @@ INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*
             int selindex = 5;  // 9600 by default
             for (int i = 0; i < sizeof(BaudrateValues) / sizeof(DWORD); i++)
             {
-                wsprintf(buffer, _T("%ld"), BaudrateValues[i]);
+                wsprintf(buffer, _T("%lu"), BaudrateValues[i]);
                 SendMessage(hBaudrate, LB_ADDSTRING, 0, (LPARAM)buffer);
                 if (pDCB->BaudRate == BaudrateValues[i])
                     selindex = i;

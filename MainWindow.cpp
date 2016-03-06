@@ -301,9 +301,9 @@ void MainWindow_RestoreSettings()
     // Reattach floppy images
     for (int slot = 0; slot < 4; slot++)
     {
-        buf[0] = '\0';
+        buf[0] = _T('\0');
         Settings_GetFloppyFilePath(slot, buf);
-        if (lstrlen(buf) > 0)
+        if (buf[0] != _T('\0'))
         {
             if (! g_pBoard->AttachFloppyImage(slot, buf))
                 Settings_SetFloppyFilePath(slot, NULL);
@@ -313,9 +313,9 @@ void MainWindow_RestoreSettings()
     // Reattach cartridge and HDD images
     for (int slot = 0; slot < 2; slot++)
     {
-        buf[0] = '\0';
+        buf[0] = _T('\0');
         Settings_GetCartridgeFilePath(slot, buf);
-        if (lstrlen(buf) > 0)
+        if (buf[0] != _T('\0'))
         {
             if (!Emulator_LoadROMCartridge(slot, buf))
             {
@@ -324,7 +324,7 @@ void MainWindow_RestoreSettings()
             }
 
             Settings_GetHardFilePath(slot, buf);
-            if (lstrlen(buf) > 0)
+            if (buf[0] != _T('\0'))
             {
                 if (!g_pBoard->AttachHardImage(slot, buf))
                 {

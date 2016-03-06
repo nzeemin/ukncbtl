@@ -392,7 +392,7 @@ void CHardDrive::IdentifyDrive()
     pwBuffer[6]  = (uint16_t)m_numsectors;
     swap_strncpy((uint8_t*)(pwBuffer + 10), "0000000000", 10);  // Serial number
     swap_strncpy((uint8_t*)(pwBuffer + 23), "1.0", 4);  // Firmware version
-    swap_strncpy((uint8_t*)(pwBuffer + 27), "UKNCBTL Hard Disk", 20);  // Model
+    swap_strncpy((uint8_t*)(pwBuffer + 27), "UKNCBTL Hard Disk", 18);  // Model
     pwBuffer[47] = 0x8001;  // Read/write multiple support
     pwBuffer[49] = 0x2f00;  // Capabilities: bit9 = LBA
     pwBuffer[53] = 1;  // Words 54-58 are valid

@@ -59,7 +59,7 @@ void SoundGen_Initialize(WORD volume)
 
     unsigned char* mbuffer;
 
-    DWORD totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
+    size_t totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
 
     mbuffer = (unsigned char*) HeapAlloc(
             GetProcessHeap(),

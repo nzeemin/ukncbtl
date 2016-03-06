@@ -1532,7 +1532,6 @@ void CMotherboard::DoSound(void)
     freq_out[3] = (m_timer >> 8) & 1; //250
     freq_out[4] = (m_timer >> 10) & 1; //60
 
-    global = 0;
     global = !(freq_out[0] & freq_enable[0]) & ! (freq_out[1] & freq_enable[1]) & !(freq_out[2] & freq_enable[2]) & !(freq_out[3] & freq_enable[3]) & !(freq_out[4] & freq_enable[4]);
     if (freq_enable[5] == 0)
         global = 0;

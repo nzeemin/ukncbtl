@@ -246,14 +246,13 @@ void PrintRegister(LPCTSTR strName, WORD value)
 BOOL SaveMemoryDump(CProcessor *pProc)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    BYTE * pData = (BYTE *) ::malloc(65536);
+    WORD * pData = (WORD *) ::malloc(65536);
     if (pData == NULL)
         return false;
 
-    for (WORD i = 0; i <= 65535; i++)  //TODO: Get memory by words instead of bytes
-    {
-        pData[i] = pMemCtl->GetByte(i, pProc->IsHaltMode());
-    }
+    int isHaltMode = pProc->IsHaltMode();
+    for (WORD i = 0; i <= 32767; i++)
+        pData[i] = pMemCtl->GetWord(i * 2, isHaltMode);
 
     TCHAR fname[20];
     wsprintf(fname, _T("memdump%s.bin"), pProc->GetName());
