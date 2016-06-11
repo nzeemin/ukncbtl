@@ -31,6 +31,7 @@ TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 
 HWND m_hwndToolbar = NULL;
 HWND m_hwndStatusbar = NULL;
+HWND m_hwndSplitter = (HWND)INVALID_HANDLE_VALUE;
 
 int m_MainWindowMinCx = UKNC_SCREEN_WIDTH + 16;
 int m_MainWindowMinCy = UKNC_SCREEN_HEIGHT + 40;
@@ -103,6 +104,7 @@ void MainWindow_RegisterClass()
     RegisterClassEx(&wcex);
 
     ToolWindow_RegisterClass();
+    SplitterWindow_RegisterClass();
 
     // Register view classes
     ScreenView_RegisterClass();
@@ -650,6 +652,8 @@ void MainWindow_AdjustWindowLayout()
         int yMemory = cyDebug + 4 + cyDisasm + 4;
         int cyMemory = rc.bottom - yMemory;
         SetWindowPos(g_hwndMemory, NULL, cxScreen + 4, yMemory, cxDebug, cyMemory, SWP_NOZORDER);
+
+        SetWindowPos(m_hwndSplitter, NULL, cxScreen + 4, yMemory - 4, cxDebug, 4, SWP_NOZORDER);
     }
 
     SetWindowPos(m_hwndToolbar, NULL, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
@@ -666,6 +670,8 @@ void MainWindow_ShowHideDebug()
     if (!Settings_GetDebug())
     {
         // Delete debug views
+        if (m_hwndSplitter != INVALID_HANDLE_VALUE)
+            DestroyWindow(m_hwndSplitter);
         if (g_hwndConsole != INVALID_HANDLE_VALUE)
             DestroyWindow(g_hwndConsole);
         if (g_hwndDebug != INVALID_HANDLE_VALUE)
@@ -709,6 +715,7 @@ void MainWindow_ShowHideDebug()
             CreateDisasmView(g_hwnd, xDebugLeft, yDisasmTop, cxDebugWidth, cyDisasmHeight);
         if (g_hwndMemory == INVALID_HANDLE_VALUE)
             CreateMemoryView(g_hwnd, xDebugLeft, yMemoryTop, cxDebugWidth, cyMemoryHeight);
+        m_hwndSplitter = SplitterWindow_Create(g_hwnd, g_hwndDisasm, g_hwndMemory);
 
         MainWindow_AdjustWindowLayout();
     }
