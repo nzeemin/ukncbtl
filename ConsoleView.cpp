@@ -71,7 +71,7 @@ void ConsoleView_RegisterClass()
 }
 
 // Create Console View as child of Main Window
-void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height)
+void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 

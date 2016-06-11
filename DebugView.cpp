@@ -83,7 +83,7 @@ void DebugView_Init()
     m_wDebugCpuPswOld = m_wDebugPpuPswOld = 0;
 }
 
-void CreateDebugView(HWND hwndParent, int x, int y, int width, int height)
+void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 

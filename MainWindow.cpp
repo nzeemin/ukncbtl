@@ -137,7 +137,7 @@ BOOL CreateMainWindow()
     ScreenView_Init();
 
     // Create screen window as a child of the main window
-    CreateScreenView(g_hwnd, 0, 0);
+    ScreenView_Create(g_hwnd, 0, 0);
 
     MainWindow_RestoreSettings();
 
@@ -708,13 +708,13 @@ void MainWindow_ShowHideDebug()
 
         // Create debug views
         if (g_hwndConsole == INVALID_HANDLE_VALUE)
-            CreateConsoleView(g_hwnd, 4, yConsoleTop, cxConsoleWidth, cyConsoleHeight);
+            ConsoleView_Create(g_hwnd, 4, yConsoleTop, cxConsoleWidth, cyConsoleHeight);
         if (g_hwndDebug == INVALID_HANDLE_VALUE)
-            CreateDebugView(g_hwnd, xDebugLeft, 4, cxDebugWidth, cyDebugHeight);
+            DebugView_Create(g_hwnd, xDebugLeft, 4, cxDebugWidth, cyDebugHeight);
         if (g_hwndDisasm == INVALID_HANDLE_VALUE)
-            CreateDisasmView(g_hwnd, xDebugLeft, yDisasmTop, cxDebugWidth, cyDisasmHeight);
+            DisasmView_Create(g_hwnd, xDebugLeft, yDisasmTop, cxDebugWidth, cyDisasmHeight);
         if (g_hwndMemory == INVALID_HANDLE_VALUE)
-            CreateMemoryView(g_hwnd, xDebugLeft, yMemoryTop, cxDebugWidth, cyMemoryHeight);
+            MemoryView_Create(g_hwnd, xDebugLeft, yMemoryTop, cxDebugWidth, cyMemoryHeight);
         m_hwndSplitter = SplitterWindow_Create(g_hwnd, g_hwndDisasm, g_hwndMemory);
 
         MainWindow_AdjustWindowLayout();
@@ -752,7 +752,7 @@ void MainWindow_ShowHideKeyboard()
         int cyKeyboardHeight = 204;
 
         if (g_hwndKeyboard == INVALID_HANDLE_VALUE)
-            CreateKeyboardView(g_hwnd, 4, yKeyboardTop, cxKeyboardWidth, cyKeyboardHeight);
+            KeyboardView_Create(g_hwnd, 4, yKeyboardTop, cxKeyboardWidth, cyKeyboardHeight);
     }
 
     MainWindow_AdjustWindowSize();
@@ -787,7 +787,7 @@ void MainWindow_ShowHideTape()
         int cyTapeHeight = 100;
 
         if (g_hwndTape == INVALID_HANDLE_VALUE)
-            CreateTapeView(g_hwnd, 4, yTapeTop, cxTapeWidth, cyTapeHeight);
+            TapeView_Create(g_hwnd, 4, yTapeTop, cxTapeWidth, cyTapeHeight);
     }
 
     MainWindow_AdjustWindowSize();

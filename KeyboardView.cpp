@@ -159,7 +159,7 @@ void KeyboardView_RegisterClass()
     RegisterClassEx(&wcex);
 }
 
-void CreateKeyboardView(HWND hwndParent, int x, int y, int width, int height)
+void KeyboardView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 

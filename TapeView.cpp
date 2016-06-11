@@ -97,7 +97,7 @@ void TapeView_Done()
 {
 }
 
-void CreateTapeView(HWND hwndParent, int x, int y, int width, int height)
+void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 

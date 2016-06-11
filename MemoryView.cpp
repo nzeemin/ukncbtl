@@ -71,7 +71,7 @@ void MemoryView_RegisterClass()
     RegisterClassEx(&wcex);
 }
 
-void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height)
+void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 

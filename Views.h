@@ -50,7 +50,7 @@ LPCTSTR ScreenView_GetRenderModeDescription(int renderMode);
 void ScreenView_PrepareScreen();
 void ScreenView_ScanKeyboard();
 void ScreenView_RedrawScreen();  // Force to call PrepareScreen and to draw the image
-void CreateScreenView(HWND hwndParent, int x, int y);
+void ScreenView_Create(HWND hwndParent, int x, int y);
 LRESULT CALLBACK ScreenViewWndProc(HWND, UINT, WPARAM, LPARAM);
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName);
 BOOL ScreenView_SaveApngFrame(HANDLE hFile);
@@ -63,7 +63,7 @@ void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed);
 extern HWND g_hwndKeyboard;  // Keyboard View window handle
 
 void KeyboardView_RegisterClass();
-void CreateKeyboardView(HWND hwndParent, int x, int y, int width, int height);
+void KeyboardView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK KeyboardViewWndProc(HWND, UINT, WPARAM, LPARAM);
 
 
@@ -74,7 +74,7 @@ extern HWND g_hwndDebug;  // Debug View window handle
 
 void DebugView_RegisterClass();
 void DebugView_Init();
-void CreateDebugView(HWND hwndParent, int x, int y, int width, int height);
+void DebugView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DebugViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DebugView_OnUpdate();
@@ -88,7 +88,7 @@ void DebugView_SwitchCpuPpu();
 extern HWND g_hwndDisasm;  // Disasm View window handle
 
 void DisasmView_RegisterClass();
-void CreateDisasmView(HWND hwndParent, int x, int y, int width, int height);
+void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK DisasmViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DisasmViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DisasmView_OnUpdate();
@@ -112,7 +112,7 @@ enum MemoryViewMode
 };
 
 void MemoryView_RegisterClass();
-void CreateMemoryView(HWND hwndParent, int x, int y, int width, int height);
+void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void MemoryView_SetViewMode(MemoryViewMode);
@@ -124,7 +124,7 @@ void MemoryView_SetViewMode(MemoryViewMode);
 extern HWND g_hwndConsole;  // Console View window handle
 
 void ConsoleView_RegisterClass();
-void CreateConsoleView(HWND hwndParent, int x, int y, int width, int height);
+void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
 void ConsoleView_Print(LPCTSTR message);
 void ConsoleView_Activate();
@@ -139,7 +139,7 @@ void ConsoleView_StepOver();
 extern HWND g_hwndTape;  // Tape View window handle
 
 void TapeView_RegisterClass();
-void CreateTapeView(HWND hwndParent, int x, int y, int width, int height);
+void TapeView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK TapeViewWndProc(HWND, UINT, WPARAM, LPARAM);
 
 
