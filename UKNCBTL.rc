@@ -177,11 +177,11 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
     LTEXT           "UKNCBTL Version 1.0",IDC_STATIC,10,10,119,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2007-2015",IDC_STATIC,10,20,119,8
+    LTEXT           "Copyright (C) 2007-2016",IDC_STATIC,10,20,119,8
     DEFPUSHBUTTON   "OK",IDOK,211,10,57,15,WS_GROUP
-    LTEXT           "Authors:\r\nNikita Zeemin (nzeemin@gmail.com)\r\nFelix Lazarev (felix.lazarev@gmail.com)\r\nAlexey Kisly",IDC_STATIC,10,57,174,36
+    LTEXT           "Authors:\r\nNikita Zimin (nzeemin@gmail.com)\r\nFelix Lazarev (felix.lazarev@gmail.com)\r\nAlexey Kisly",IDC_STATIC,10,57,174,36
     LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,93,174,22
-    LTEXT           "http://www.felixl.com/Uknc\r\nhttp://code.google.com/p/ukncbtl/",IDC_STATIC,10,36,193,19
+    LTEXT           "https://github.com/nzeemin/ukncbtl\r\nhttp://code.google.com/p/ukncbtl/",IDC_STATIC,10,36,193,19
     CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,10,136,199,105
     LTEXT           "Build date:",IDC_STATIC,10,120,53,8
     LTEXT           "????",IDC_BUILDDATE,71,120,139,8

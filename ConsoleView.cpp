@@ -11,7 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ConsoleView.cpp
 
 #include "stdafx.h"
-#include "UKNCBTL.h"
+#include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
 #include "Emulator.h"

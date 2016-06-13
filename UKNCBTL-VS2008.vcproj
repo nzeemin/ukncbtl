@@ -649,6 +649,14 @@
 			>
 		</File>
 		<File
+			RelativePath=".\Main.h"
+			>
+		</File>
+		<File
+			RelativePath=".\Main.cpp"
+			>
+		</File>
+		<File
 			RelativePath=".\MainWindow.cpp"
 			>
 		</File>
@@ -738,14 +746,6 @@
 		</File>
 		<File
 			RelativePath=".\ToolWindow.h"
-			>
-		</File>
-		<File
-			RelativePath=".\UKNCBTL.cpp"
-			>
-		</File>
-		<File
-			RelativePath=".\UKNCBTL.h"
 			>
 		</File>
 		<File

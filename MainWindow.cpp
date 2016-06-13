@@ -15,7 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <commdlg.h>
 #include <commctrl.h>
 
-#include "UKNCBTL.h"
+#include "Main.h"
 #include "Emulator.h"
 #include "Dialogs.h"
 #include "Views.h"

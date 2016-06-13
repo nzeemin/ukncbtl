@@ -287,6 +287,7 @@
     <ClCompile Include="emubase\Processor.cpp" />
     <ClCompile Include="Emulator.cpp" />
     <ClCompile Include="KeyboardView.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="MemoryView.cpp" />
     <ClCompile Include="ScreenView.cpp" />
@@ -302,7 +303,6 @@
     </ClCompile>
     <ClCompile Include="TapeView.cpp" />
     <ClCompile Include="ToolWindow.cpp" />
-    <ClCompile Include="UKNCBTL.cpp" />
     <ClCompile Include="util\BitmapFile.cpp" />
     <ClCompile Include="util\WavPcmFile.cpp" />
   </ItemGroup>
@@ -315,11 +315,11 @@
     <ClInclude Include="emubase\Memory.h" />
     <ClInclude Include="emubase\Processor.h" />
     <ClInclude Include="Emulator.h" />
+    <ClInclude Include="Main.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SoundGen.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="ToolWindow.h" />
-    <ClInclude Include="UKNCBTL.h" />
     <ClInclude Include="util\BitmapFile.h" />
     <ClInclude Include="util\WavPcmFile.h" />
     <ClInclude Include="Views.h" />
