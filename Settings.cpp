@@ -305,6 +305,10 @@ void Settings_GetDebugFontName(LPTSTR buffer)
         _tcscpy(buffer, _T("Lucida Console"));
     }
 }
+void Settings_SetDebugFontName(LPCTSTR sFontName)
+{
+    Settings_SaveStringValue(_T("DebugFontName"), sFontName);
+}
 
 SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 

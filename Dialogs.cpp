@@ -272,7 +272,7 @@ void FillRenderCombo(HWND hRender)
     HANDLE hfind = ::FindFirstFile(searchPath, &finddata);
     if (hfind != INVALID_HANDLE_VALUE)
     {
-        while (true)
+        for (;;)
         {
             ::SendMessage(hRender, CB_ADDSTRING, 0, (LPARAM)finddata.cFileName);
 
@@ -284,6 +284,35 @@ void FillRenderCombo(HWND hRender)
     TCHAR buffer[32];
     Settings_GetRender(buffer);
     ::SendMessage(hRender, CB_SELECTSTRING, 0, (LPARAM)buffer);
+}
+
+int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC* /*lpntme*/, DWORD /*FontType*/, LPARAM lParam)
+{
+    if ((lpelfe->lfPitchAndFamily & FIXED_PITCH) == 0)
+        return TRUE;
+
+    HWND hCombo = (HWND)lParam;
+
+    int item = ::SendMessage(hCombo, CB_FINDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
+    if (item < 0)
+        ::SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
+
+    return TRUE;
+}
+
+void FillDebugFontCombo(HWND hCombo)
+{
+    LOGFONT logfont;  ZeroMemory(&logfont, sizeof logfont);
+    logfont.lfCharSet = DEFAULT_CHARSET;
+    logfont.lfWeight = FW_NORMAL;
+    logfont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
+
+    HDC hdc = GetDC(NULL);
+    EnumFontFamiliesEx(hdc, &logfont, (FONTENUMPROC)SettingsDialog_EnumFontProc, (LPARAM)hCombo, 0);
+    ReleaseDC(NULL, hdc);
+
+    Settings_GetDebugFontName(logfont.lfFaceName);
+    ::SendMessage(hCombo, CB_SELECTSTRING, 0, (LPARAM)logfont.lfFaceName);
 }
 
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
@@ -300,6 +329,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
 
             HWND hRender = GetDlgItem(hDlg, IDC_RENDER);
             FillRenderCombo(hRender);
+
+            HWND hDebugFont = GetDlgItem(hDlg, IDC_DEBUGFONT);
+            FillDebugFontCombo(hDebugFont);
 
             TCHAR buffer[10];
 
@@ -341,6 +373,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
 
                 Settings_SetSerialConfig(&m_DialogSettings_SerialConfig);
                 Settings_SetNetComConfig(&m_DialogSettings_NetComConfig);
+
+                GetDlgItemText(hDlg, IDC_DEBUGFONT, buffer, 32);
+                Settings_SetDebugFontName(buffer);
             }
 
             EndDialog(hDlg, LOWORD(wParam));

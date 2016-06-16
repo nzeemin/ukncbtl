@@ -160,7 +160,7 @@ HFONT CreateMonospacedFont()
     LOGFONT logfont;  memset(&logfont, 0, sizeof(logfont));
     logfont.lfHeight = 12;
     logfont.lfWeight = FW_NORMAL;
-    logfont.lfCharSet = RUSSIAN_CHARSET;
+    logfont.lfCharSet = DEFAULT_CHARSET;
     logfont.lfOutPrecision = OUT_DEFAULT_PRECIS;
     logfont.lfClipPrecision = CLIP_DEFAULT_PRECIS;
     logfont.lfQuality = DEFAULT_QUALITY;

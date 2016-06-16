@@ -155,6 +155,7 @@ int Settings_GetScreenHeightMode();
 void Settings_SetDebug(BOOL flag);
 BOOL Settings_GetDebug();
 void Settings_GetDebugFontName(LPTSTR buffer);
+void Settings_SetDebugFontName(LPCTSTR sFontName);
 void Settings_SetAutostart(BOOL flag);
 BOOL Settings_GetAutostart();
 void Settings_SetRealSpeed(BOOL flag);
