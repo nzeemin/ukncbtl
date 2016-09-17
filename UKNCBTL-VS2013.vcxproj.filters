@@ -51,7 +51,7 @@
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="TapeView.cpp" />
     <ClCompile Include="ToolWindow.cpp" />
-    <ClCompile Include="UKNCBTL.cpp" />
+    <ClCompile Include="Main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="emubase\Board.h">
@@ -84,8 +84,8 @@
     <ClInclude Include="SoundGen.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="ToolWindow.h" />
-    <ClInclude Include="UKNCBTL.h" />
     <ClInclude Include="Views.h" />
+    <ClInclude Include="Main.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="diskette.ico">
