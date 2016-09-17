@@ -290,6 +290,8 @@ int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC
 {
     if ((lpelfe->lfPitchAndFamily & FIXED_PITCH) == 0)
         return TRUE;
+    if (lpelfe->lfFaceName[0] == _T('@'))  // Skip vertical fonts
+        return TRUE;
 
     HWND hCombo = (HWND)lParam;
 
