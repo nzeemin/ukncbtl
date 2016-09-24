@@ -61,7 +61,7 @@ void MainWindow_DoSelectRenderMode(int newMode);
 void MainWindow_DoEmulatorRun();
 void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
-void MainWindow_DoEmulatorRealSpeed();
+void MainWindow_DoEmulatorSpeed(int speed);
 void MainWindow_DoEmulatorSound();
 void MainWindow_DoEmulatorSerial();
 void MainWindow_DoEmulatorParallel();
@@ -833,9 +833,10 @@ void MainWindow_UpdateMenu()
 
     // Emulator menu options
     CheckMenuItem(hMenu, ID_EMULATOR_AUTOSTART, (Settings_GetAutostart() ? MF_CHECKED : MF_UNCHECKED));
-    CheckMenuItem(hMenu, ID_EMULATOR_REALSPEED, (Settings_GetRealSpeed() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
     MainWindow_SetToolbarImage(ID_EMULATOR_SOUND, (Settings_GetSound() ? ToolbarImageSoundOn : ToolbarImageSoundOff));
+    //CheckMenuItem(hMenu, ID_EMULATOR_REALSPEED, (Settings_GetRealSpeed() ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuRadioItem(hMenu, ID_EMULATOR_SPEED0, ID_EMULATOR_SPEED2, ID_EMULATOR_SPEED0 + Settings_GetRealSpeed(), MF_BYCOMMAND);
     CheckMenuItem(hMenu, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? MF_CHECKED : MF_UNCHECKED));
     SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? 1 : 0));
     CheckMenuItem(hMenu, ID_EMULATOR_NETWORK, (Settings_GetNetwork() ? MF_CHECKED : MF_UNCHECKED));
@@ -986,8 +987,14 @@ bool MainWindow_DoCommand(int commandId)
     case ID_EMULATOR_RESET:
         MainWindow_DoEmulatorReset();
         break;
+    case ID_EMULATOR_SPEED0:
+        MainWindow_DoEmulatorSpeed(0);
+        break;
     case ID_EMULATOR_REALSPEED:
-        MainWindow_DoEmulatorRealSpeed();
+        MainWindow_DoEmulatorSpeed(1);
+        break;
+    case ID_EMULATOR_SPEED2:
+        MainWindow_DoEmulatorSpeed(2);
         break;
     case ID_EMULATOR_SOUND:
         MainWindow_DoEmulatorSound();
@@ -1164,9 +1171,9 @@ void MainWindow_DoEmulatorReset()
 {
     Emulator_Reset();
 }
-void MainWindow_DoEmulatorRealSpeed()
+void MainWindow_DoEmulatorSpeed(int speed)
 {
-    Settings_SetRealSpeed(!Settings_GetRealSpeed());
+    Settings_SetRealSpeed(speed);
 
     MainWindow_UpdateMenu();
 }

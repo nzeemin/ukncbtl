@@ -312,7 +312,7 @@ void Settings_SetDebugFontName(LPCTSTR sFontName)
 
 SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 
-SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), BOOL, FALSE);
+SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), int, 1);
 
 SETTINGS_GETSET_DWORD(Sound, _T("Sound"), BOOL, FALSE);
 SETTINGS_GETSET_DWORD(SoundVolume, _T("SoundVolume"), WORD, 0x3fff);

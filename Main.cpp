@@ -111,7 +111,7 @@ int APIENTRY _tWinMain(
 
         if (g_okEmulatorRunning && !Settings_GetSound())
         {
-            if (!Settings_GetRealSpeed())
+            if (Settings_GetRealSpeed() == 0)
                 ::Sleep(1);  // We should not consume 100% of CPU
             else
             {
@@ -120,7 +120,9 @@ int APIENTRY _tWinMain(
                 ::QueryPerformanceCounter(&nFrameFinishTime);
                 LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
                     * 1000 / nPerformanceFrequency.QuadPart;
-                const LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
+                LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
+                if (Settings_GetRealSpeed() == 2)
+                    nFrameDelay = 1000 / 25 / 2 - 1;
                 if (nTimeElapsed > 0 && nTimeElapsed < nFrameDelay)
                 {
                     LONG nTimeToSleep = (LONG)(nFrameDelay - nTimeElapsed);
