@@ -110,7 +110,24 @@ int APIENTRY _tWinMain(
         }
 
         if (g_okEmulatorRunning && !Settings_GetSound())
-            Sleep(1);  // We should not consume 100% of CPU
+        {
+            if (!Settings_GetRealSpeed())
+                ::Sleep(1);  // We should not consume 100% of CPU
+            else
+            {
+                // Slow down to 25 frames per second
+                LARGE_INTEGER nFrameFinishTime;  // Frame start time
+                ::QueryPerformanceCounter(&nFrameFinishTime);
+                LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
+                    * 1000 / nPerformanceFrequency.QuadPart;
+                const LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
+                if (nTimeElapsed > 0 && nTimeElapsed < nFrameDelay)
+                {
+                    LONG nTimeToSleep = (LONG)(nFrameDelay - nTimeElapsed);
+                    ::Sleep((DWORD)nTimeToSleep);
+                }
+            }
+        }
 
         //// Time bomb for perfomance analysis
         //if (Emulator_GetUptime() >= 300)  // 5 minutes
