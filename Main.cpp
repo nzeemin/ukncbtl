@@ -119,9 +119,13 @@ int APIENTRY _tWinMain(
                 LARGE_INTEGER nFrameFinishTime;  // Frame start time
                 ::QueryPerformanceCounter(&nFrameFinishTime);
                 LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
-                    * 1000 / nPerformanceFrequency.QuadPart;
+                        * 1000 / nPerformanceFrequency.QuadPart;
                 LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
-                if (Settings_GetRealSpeed() == 2)
+                if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
+                    nFrameDelay = 1000 / 25 * 4 - 1;
+                else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
+                    nFrameDelay = 1000 / 25 * 2 - 1;
+                else if (Settings_GetRealSpeed() == 2)
                     nFrameDelay = 1000 / 25 / 2 - 1;
                 if (nTimeElapsed > 0 && nTimeElapsed < nFrameDelay)
                 {
