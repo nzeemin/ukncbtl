@@ -71,6 +71,10 @@ CFloppyController::~CFloppyController()
 
 void CFloppyController::Reset()
 {
+#if !defined(PRODUCT)
+    if (m_okTrace) DebugLog(_T("Floppy RESET\r\n"));
+#endif
+
     FlushChanges();
 
     m_drive = m_side = m_track = 0;
@@ -168,9 +172,9 @@ uint16_t CFloppyController::GetState(void)
 
 void CFloppyController::SetCommand(uint16_t cmd)
 {
-//#if !defined(PRODUCT)
-//	DebugLogFormat(_T("Floppy COMMAND %o06\r\n"), cmd);
-//#endif
+#if !defined(PRODUCT)
+    if (m_okTrace) DebugLogFormat(_T("Floppy COMMAND %06o\r\n"), cmd);
+#endif
 
     bool okPrepareTrack = false;  // Нужно ли считывать дорожку в буфер
 
@@ -206,9 +210,9 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
     if (cmd & FLOPPY_CMD_STEP)  // Move head for one track to center or from center
     {
-//#if !defined(PRODUCT)
-//        DebugLog(_T("Floppy STEP\r\n"));  //DEBUG
-//#endif
+#if !defined(PRODUCT)
+        if (m_okTrace) DebugLog(_T("Floppy STEP\r\n"));  //DEBUG
+#endif
         m_side = (m_flags & FLOPPY_CMD_SIDEUP) ? 1 : 0; // DO WE NEED IT HERE?
 
         if (m_flags & FLOPPY_CMD_DIR)
@@ -392,9 +396,9 @@ void CFloppyController::Periodic()
 void CFloppyController::PrepareTrack()
 {
     FlushChanges();
-//#if !defined(PRODUCT)
-//    DebugLogFormat(_T("Floppy PREP  %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
-//#endif
+#if !defined(PRODUCT)
+    if (m_okTrace) DebugLogFormat(_T("Floppy PREP  %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+#endif
 
     //TCHAR buffer[512];
     size_t count;
@@ -443,9 +447,9 @@ void CFloppyController::FlushChanges()
     if (!IsAttached(m_drive)) return;
     if (!m_trackchanged) return;
 
-//#if !defined(PRODUCT)
-//    DebugLogFormat(_T("Floppy FLUSH %hu TR %hu SD %hu\r\n"), m_drive, m_pDrive->datatrack, m_pDrive->dataside);
-//#endif
+#if !defined(PRODUCT)
+    if (m_okTrace) DebugLogFormat(_T("Floppy FLUSH %hu TR %hu SD %hu\r\n"), m_drive, m_pDrive->datatrack, m_pDrive->dataside);
+#endif
 
     // Decode track data from m_data
     uint8_t data[5120];  memset(data, 0, 5120);
@@ -477,9 +481,9 @@ void CFloppyController::FlushChanges()
     }
     else
     {
-//#if !defined(PRODUCT)
-//        DebugLog(_T("Floppy FLUSH FAILED\r\n"));  //DEBUG
-//#endif
+#if !defined(PRODUCT)
+        if (m_okTrace) DebugLog(_T("Floppy FLUSH FAILED\r\n"));  //DEBUG
+#endif
     }
 
     m_trackchanged = false;

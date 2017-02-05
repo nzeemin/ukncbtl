@@ -126,6 +126,7 @@ extern HWND g_hwndConsole;  // Console View window handle
 void ConsoleView_RegisterClass();
 void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
+void ConsoleView_PrintFormat(LPCTSTR pszFormat, ...);
 void ConsoleView_Print(LPCTSTR message);
 void ConsoleView_Activate();
 void ConsoleView_SetCurrentProc(BOOL okCPU);

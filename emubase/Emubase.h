@@ -99,6 +99,7 @@ protected:
     bool m_searchsync;  ///< Read sub-mode: true = search for sync, false = just read
     bool m_crccalculus; ///< true = CRC is calculated now
     bool m_trackchanged;  ///< true = m_data was changed - need to save it into the file
+    bool m_okTrace;         ///< Trace mode on/off
 
 public:
     CFloppyController();
@@ -119,8 +120,9 @@ public:
     uint16_t GetData(void);         ///< Reading port 177132 -- data
     uint16_t GetState(void);        ///< Reading port 177130 -- device status
     void SetCommand(uint16_t cmd);  ///< Writing to port 177130 -- commands
-    void WriteData(uint16_t Data);  ///< Writing to port 177132 -- data
+    void WriteData(uint16_t data);  ///< Writing to port 177132 -- data
     void Periodic();            ///< Rotate disk; call it each 64 us -- 15625 times per second
+    void SetTrace(bool okTrace) { m_okTrace = okTrace; }  // Set trace mode on/off
 
 private:
     void PrepareTrack();

@@ -168,6 +168,7 @@ CMotherboard::CMotherboard ()
     memset(m_chanpputx, 0, sizeof(m_chanpputx));
     memset(m_chanppurx, 0, sizeof(m_chanppurx));
 
+    m_dwTrace = TRACE_NONE;
     m_TapeReadCallback = NULL;
     m_TapeWriteCallback = NULL;
     m_nTapeSampleRate = 0;
@@ -259,6 +260,13 @@ CMotherboard::~CMotherboard ()
     if (m_pROMCart[1] != NULL) free(m_pROMCart[1]);
     if (m_pHardDrives[0] != NULL) delete m_pHardDrives[0];
     if (m_pHardDrives[1] != NULL) delete m_pHardDrives[1];
+}
+
+void CMotherboard::SetTrace(uint32_t dwTrace)
+{
+    m_dwTrace = dwTrace;
+    if (m_pFloppyCtl != NULL)
+        m_pFloppyCtl->SetTrace(dwTrace & TRACE_FLOPPY);
 }
 
 void CMotherboard::Reset ()

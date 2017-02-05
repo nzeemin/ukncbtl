@@ -23,6 +23,11 @@ class CMemoryController;
 #define FLOPPY_FSM_WAITFORTERM1	2
 #define FLOPPY_FSM_WAITFORTERM2	3
 
+// Trace flags
+#define TRACE_NONE         0  // Turn off all tracing
+#define TRACE_FLOPPY    0100  // Trace floppies
+#define TRACE_ALL    0177777  // Trace all
+
 // Emulator image constants
 #define UKNCIMAGE_HEADER_SIZE 512
 #define UKNCIMAGE_SIZE (UKNCIMAGE_HEADER_SIZE + (32 + 64 * 3) * 1024)
@@ -161,6 +166,8 @@ public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
     void        SetCPUBreakpoint(uint16_t bp) { m_CPUbp = bp; } ///< Set current CPU breakpoint
     void        SetPPUBreakpoint(uint16_t bp) { m_PPUbp = bp; } ///< Set current PPU breakpoint
+    uint32_t    GetTrace() const { return m_dwTrace; }
+    void        SetTrace(uint32_t dwTrace);
     chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
     {
         //cpu==1 ,ppu==0; tx==1, rx==0
@@ -284,6 +291,7 @@ private: // Timing
 private:
     uint16_t    m_CPUbp;  ///< Current CPU breakpoint, 177777 if not set
     uint16_t    m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
+    uint32_t    m_dwTrace;  ///< Trace flags
 
     uint16_t	m_timer;
     uint16_t	m_timerreload;

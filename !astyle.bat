@@ -1,5 +1,6 @@
 @echo off
-c:\bin\astyle.exe -n -Q --options=astyle-cpp-options emubase\*.h emubase\*.cpp
-c:\bin\astyle.exe -n -Q --options=astyle-cpp-options Util\*.h Util\*.cpp
-c:\bin\astyle.exe -n -Q --options=astyle-cpp-options *.h --exclude=Resource.h --exclude=Version.h --exclude=stdafx.h
-c:\bin\astyle.exe -n -Q --options=astyle-cpp-options *.cpp --exclude=stdafx.cpp
+set ASTYLEEXE=c:\bin\astyle.exe
+set ASTYLEOPT=-n -Q --options=astyle-cpp-options
+%ASTYLEEXE% %ASTYLEOPT% emubase\*.h emubase\*.cpp Util\*.h Util\*.cpp
+%ASTYLEEXE% %ASTYLEOPT% *.h --exclude=Resource.h --exclude=Version.h --exclude=stdafx.h
+%ASTYLEEXE% %ASTYLEOPT% *.cpp --exclude=stdafx.cpp

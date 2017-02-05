@@ -89,10 +89,19 @@ void DebugLogCreateFile()
 {
     if (Common_LogFile == NULL)
     {
-        Common_LogFile = CreateFile(TRACELOG_FILE_NAME,
+        Common_LogFile = ::CreateFile(TRACELOG_FILE_NAME,
                 GENERIC_WRITE, FILE_SHARE_READ, NULL,
                 CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
     }
+}
+
+void DebugLogCloseFile()
+{
+    if (Common_LogFile == NULL)
+        return;
+
+    ::CloseHandle(Common_LogFile);
+    Common_LogFile = NULL;
 }
 
 void DebugLogClear()
