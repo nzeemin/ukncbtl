@@ -52,6 +52,7 @@
     <ClCompile Include="TapeView.cpp" />
     <ClCompile Include="ToolWindow.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="SpriteView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="emubase\Board.h">

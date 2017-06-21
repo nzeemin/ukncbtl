@@ -58,6 +58,7 @@ void MainWindow_DoViewTape();
 void MainWindow_DoViewFullscreen();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
 void MainWindow_DoSelectRenderMode(int newMode);
+void MainWindow_DoViewSpriteViewer();
 void MainWindow_DoEmulatorRun();
 void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
@@ -104,6 +105,7 @@ void MainWindow_RegisterClass()
     RegisterClassEx(&wcex);
 
     ToolWindow_RegisterClass();
+    OverlappedWindow_RegisterClass();
     SplitterWindow_RegisterClass();
 
     // Register view classes
@@ -114,6 +116,7 @@ void MainWindow_RegisterClass()
     DisasmView_RegisterClass();
     ConsoleView_RegisterClass();
     TapeView_RegisterClass();
+    SpriteView_RegisterClass();
 }
 
 BOOL CreateMainWindow()
@@ -795,6 +798,19 @@ void MainWindow_ShowHideTape()
     MainWindow_UpdateMenu();
 }
 
+void MainWindow_ShowHideSpriteViewer()
+{
+    if (g_hwndSprite == INVALID_HANDLE_VALUE)
+    {
+        RECT rcScreen;  ::GetWindowRect(g_hwndScreen, &rcScreen);
+        SpriteView_Create(rcScreen.right, rcScreen.top - 4 - ::GetSystemMetrics(SM_CYSMCAPTION));
+    }
+    else
+    {
+        ::SetFocus(g_hwndSprite);
+    }
+}
+
 void MainWindow_UpdateMenu()
 {
     // Get main menu
@@ -974,6 +990,9 @@ bool MainWindow_DoCommand(int commandId)
         if (!g_okEmulatorRunning && Settings_GetDebug())
             DebugView_SwitchCpuPpu();
         break;
+    case ID_DEBUG_SPRITES:
+        MainWindow_DoViewSpriteViewer();
+        break;
     case ID_DEBUG_MEMORY_ROM:
         MemoryView_SetViewMode(MEMMODE_ROM);
         break;
@@ -1096,6 +1115,10 @@ void MainWindow_DoViewTape()
 {
     Settings_SetTape(!Settings_GetTape());
     MainWindow_ShowHideTape();
+}
+void MainWindow_DoViewSpriteViewer()
+{
+    MainWindow_ShowHideSpriteViewer();
 }
 
 void MainWindow_DoViewScreenMode(ScreenViewMode newMode)
@@ -1542,6 +1565,8 @@ void MainWindow_UpdateAllViews()
         InvalidateRect(g_hwndDisasm, NULL, TRUE);
     if (g_hwndMemory != NULL)
         InvalidateRect(g_hwndMemory, NULL, TRUE);
+    if (g_hwndSprite != NULL)
+        InvalidateRect(g_hwndSprite, NULL, TRUE);
 }
 
 void MainWindow_SetToolbarImage(int commandId, int imageIndex)

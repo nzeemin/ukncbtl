@@ -21,6 +21,7 @@ const LPCTSTR CLASSNAME_KEYBOARDVIEW = _T("UKNCBTLKEYBOARD");
 const LPCTSTR CLASSNAME_DEBUGVIEW   = _T("UKNCBTLDEBUG");
 const LPCTSTR CLASSNAME_DISASMVIEW  = _T("UKNCBTLDISASM");
 const LPCTSTR CLASSNAME_MEMORYVIEW  = _T("UKNCBTLMEMORY");
+const LPCTSTR CLASSNAME_SPRITEVIEW  = _T("UKNCBTLSPRITE");
 const LPCTSTR CLASSNAME_CONSOLEVIEW = _T("UKNCBTLCONSOLE");
 const LPCTSTR CLASSNAME_TAPEVIEW    = _T("UKNCBTLTAPE");
 
@@ -116,6 +117,17 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void MemoryView_SetViewMode(MemoryViewMode);
+
+
+//////////////////////////////////////////////////////////////////////
+// SpriteView
+
+extern HWND g_hwndSprite;  // Sprite view window handler
+
+void SpriteView_RegisterClass();
+void SpriteView_Create(int x, int y);
+LRESULT CALLBACK SpriteViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK SpriteViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
 //////////////////////////////////////////////////////////////////////

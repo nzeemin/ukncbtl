@@ -17,11 +17,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 const LPCTSTR CLASSNAME_TOOLWINDOW = _T("UKNCBTLTOOLWINDOW");
+const LPCTSTR CLASSNAME_OVERLAPPEDWINDOW = _T("UKNCBTLOVERLAPPEDWINDOW");
 const LPCTSTR CLASSNAME_SPLITTERWINDOW = _T("UKNCBTLSPLITTERWINDOW");
 
 void ToolWindow_RegisterClass();
 LRESULT CALLBACK ToolWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
 
+void OverlappedWindow_RegisterClass();
 
 void SplitterWindow_RegisterClass();
 LRESULT CALLBACK SplitterWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
