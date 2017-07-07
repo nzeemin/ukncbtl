@@ -27,6 +27,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define COLOR_BLUE      RGB(0,0,255)
 #define COLOR_SUBTITLE  RGB(0,128,0)
 #define COLOR_VALUE     RGB(128,128,128)
+#define COLOR_VALUEROM  RGB(128,128,192)
 #define COLOR_JUMP      RGB(80,192,224)
 #define COLOR_CURRENT   RGB(255,255,224)
 
@@ -563,11 +564,11 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
     // Читаем из памяти процессора в буфер
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
+    int addrtype[nWindowSize + 2];
     for (int idx = 0; idx < nWindowSize; idx++)
     {
-        BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-                (WORD)(current + idx * 2 - 10), pProc->IsHaltMode(), TRUE, &okValidAddress);
+                (WORD)(current + idx * 2 - 10), pProc->IsHaltMode(), TRUE, addrtype + idx);
     }
 
     WORD address = current - 10;
@@ -597,7 +598,8 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
         DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
         // Value at the address
         WORD value = memory[index];
-        ::SetTextColor(hdc, COLOR_VALUE);
+        int memorytype = addrtype[index];
+        ::SetTextColor(hdc, (memorytype == ADDRTYPE_ROM) ? COLOR_VALUEROM : COLOR_VALUE);
         DrawOctalValue(hdc, x + 13 * cxChar, y, value);
         ::SetTextColor(hdc, colorText);
 

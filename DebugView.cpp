@@ -442,6 +442,8 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
 void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y, WORD oldValue)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
+    COLORREF colorOld = SetTextColor(hdc, colorText);
 
     WORD current = pProc->GetReg(reg);
     WORD previous = oldValue;
@@ -449,28 +451,31 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
 
     // Читаем из памяти процессора в буфер
     WORD memory[16];
+    int addrtype[16];
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     for (int idx = 0; idx < 16; idx++)
     {
-        BOOL okValidAddress;
         memory[idx] = pMemCtl->GetWordView(
-                (WORD)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, &okValidAddress);
+                (WORD)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, addrtype + idx);
     }
 
     WORD address = current - 16;
     for (int index = 0; index < 16; index++)    // Рисуем строки
     {
-        SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
         // Адрес
+        SetTextColor(hdc, colorText);
         DrawOctalValue(hdc, x + 3 * cxChar, y, address);
 
         // Значение по адресу
         WORD value = memory[index];
+        WORD wChanged = Emulator_GetChangeRamStatus(addrtype[index], address);
+        SetTextColor(hdc, (wChanged != 0) ? COLOR_RED : colorText);
         DrawOctalValue(hdc, x + 10 * cxChar, y, value);
 
         // Текущая позиция
         if (address == current)
         {
+            SetTextColor(hdc, colorText);
             TextOut(hdc, x + 2 * cxChar, y, _T(">"), 1);
             if (current != previous) ::SetTextColor(hdc, COLOR_RED);
             TextOut(hdc, x, y, REGISTER_NAME[reg], 2);
@@ -485,6 +490,7 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
         y += cyLine;
     }
 
+    SetTextColor(hdc, colorOld);
 }
 
 void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y)

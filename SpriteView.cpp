@@ -311,10 +311,10 @@ void SpriteView_PrepareBitmap()
             for (int w = 0; w < m_nSprite_width; w++)
             {
                 // Get byte from memory -- CPU memory only for now
-                BOOL okValid = TRUE;
+                int addrtype = 0;
                 BOOL okHalt = FALSE;
                 okHalt = g_pBoard->GetCPU()->IsHaltMode();
-                WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &okValid);
+                WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
                 if (address & 1)
                     value = value >> 8;
 

@@ -406,9 +406,9 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
 
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
-    BOOL okValid;
+    int addrtype;
     for (WORD i = 0; i < nWindowSize + 2; i++)
-        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, TRUE, &okValid);
+        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, TRUE, &addrtype);
 
     TCHAR bufaddr[7];
     TCHAR bufvalue[7];

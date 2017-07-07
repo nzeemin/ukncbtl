@@ -23,7 +23,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 // Colors
-#define COLOR_RED   RGB(255,0,0)
+#define COLOR_RED       RGB(255,0,0)
+#define COLOR_BLUE      RGB(0,0,255)
+#define COLOR_GREEN     RGB(0,192,0)
 
 
 HWND g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // Memory view window handler
@@ -245,6 +247,7 @@ void MemoryView_OnDraw(HDC hdc)
         {
             // Get word from memory
             WORD word = 0;
+            int addrtype = ADDRTYPE_NONE;
             BOOL okValid = TRUE;
             BOOL okHalt = FALSE;
             WORD wChanged = 0;
@@ -260,26 +263,32 @@ void MemoryView_OnDraw(HDC hdc)
                 if (address < 0100000)
                     okValid = FALSE;
                 else
+                {
+                    addrtype = ADDRTYPE_ROM;
                     word = g_pBoard->GetROMWord(address - 0100000);
+                }
                 break;
             case MEMMODE_CPU:
                 okHalt = g_pBoard->GetCPU()->IsHaltMode();
-                word = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
+                word = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, FALSE, &addrtype);
+                okValid = (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY);
                 wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM12, address);
                 break;
             case MEMMODE_PPU:
                 okHalt = g_pBoard->GetPPU()->IsHaltMode();
-                word = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, FALSE, &okValid);
+                word = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, FALSE, &addrtype);
+                okValid = (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY);
                 if (address < 0100000)
                     wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM0, address);
-                else
-                    wChanged = 0;
                 break;
             }
 
             if (okValid)
             {
-                ::SetTextColor(hdc, (wChanged != 0) ? COLOR_RED : colorText);
+                if (addrtype == ADDRTYPE_ROM)
+                    ::SetTextColor(hdc, COLOR_BLUE);
+                else
+                    ::SetTextColor(hdc, (wChanged != 0) ? COLOR_RED : colorText);
                 if (m_okMemoryByteMode)
                 {
                     PrintOctalValue(buffer, (word & 0xff));
@@ -289,6 +298,14 @@ void MemoryView_OnDraw(HDC hdc)
                 }
                 else
                     DrawOctalValue(hdc, x, y, word);
+            }
+            else  // !okValid
+            {
+                if (addrtype == ADDRTYPE_IO)
+                {
+                    ::SetTextColor(hdc, COLOR_GREEN);
+                    TextOut(hdc, x, y, _T("  IO"), 4);
+                }
             }
 
             // Prepare characters to draw at right

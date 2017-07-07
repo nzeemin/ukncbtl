@@ -85,20 +85,20 @@ void CMemoryController::UpdateMemoryMap()
 }
 
 // Read word from memory for debugger
-uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec, bool* pValid) const
+// To check if the address is valid: (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY)
+uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const
 {
     uint16_t offset;
     int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true);
+    *pAddrType = addrtype;
 
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        *pValid = true;
         return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset);
     case ADDRTYPE_RAM12:
-        *pValid = true;
         return MAKEWORD(
                 m_pBoard->GetRAMByte(1, offset / 2),
                 m_pBoard->GetRAMByte(2, offset / 2));
@@ -107,13 +107,10 @@ uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool 
     case ADDRTYPE_ROMCART2:
         return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_ROM:
-        *pValid = true;
         return m_pBoard->GetROMWord(offset);
-    case ADDRTYPE_IO:
-        *pValid = false;  // I/O port, not memory
+    case ADDRTYPE_IO:  // I/O port, not memory
         return 0;
-    case ADDRTYPE_DENY:
-        *pValid = true;  // This memory is inaccessible for reading
+    case ADDRTYPE_DENY:  // This memory is inaccessible for reading
         return 0;
     }
 

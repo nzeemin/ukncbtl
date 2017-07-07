@@ -71,7 +71,7 @@ public:  // Access to memory
     /// \brief Write byte
     void SetByte(uint16_t address, bool okHaltMode, uint8_t byte);
     /// \brief Read word from memory for debugger
-    uint16_t GetWordView(uint16_t address, bool okHaltMode, bool okExec, bool* pValid) const;
+    uint16_t GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const;
     /// \brief Read word from port for debugger
     virtual uint16_t GetPortView(uint16_t address) const = 0;
     /// \brief Read SEL register
