@@ -186,16 +186,6 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         DisasmView_SetCurrentProc(!m_okDisasmProcessor);
         DebugView_SetCurrentProc(m_okDisasmProcessor);   // Switch DebugView to current processor
         break;
-    case VK_DOWN:
-        DisasmView_SetBaseAddr(m_wDisasmNextBaseAddr);
-        break;
-    case 0x47:  // G - Go To Address
-        {
-            WORD value = m_wDisasmBaseAddr;
-            if (InputBoxOctal(m_hwndDisasmViewer, _T("Go To Address"), _T("Address (octal):"), &value))
-                DisasmView_SetBaseAddr(value);
-            break;
-        }
     case 0x53:  // S - Load/Unload Subtitles
         DisasmView_DoSubtitles();
         break;

@@ -97,6 +97,9 @@
 #define ID_DEBUG_MEMORY_RAM0            32866
 #define ID_DEBUG_MEMORY_RAM1            32867
 #define ID_DEBUG_MEMORY_RAM2            32868
+#define ID_DEBUG_MEMORY_RAM             32869
+#define ID_DEBUG_MEMORY_WORDBYTE        32870
+#define ID_DEBUG_MEMORY_GOTO            32871
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -105,7 +108,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        151
-#define _APS_NEXT_COMMAND_VALUE         32869
+#define _APS_NEXT_COMMAND_VALUE         32872
 #define _APS_NEXT_CONTROL_VALUE         1031
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

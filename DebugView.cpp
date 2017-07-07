@@ -126,7 +126,7 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndDebugToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
     SendMessage(m_hwndDebugToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
 
-    TBBUTTON buttons[4];
+    TBBUTTON buttons[5];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -136,12 +136,13 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
     }
     buttons[0].idCommand = ID_DEBUG_CPUPPU;
     buttons[0].iBitmap = 17;
-    buttons[1].idCommand = ID_DEBUG_STEPINTO;
-    buttons[1].iBitmap = 15;
-    buttons[2].idCommand = ID_DEBUG_STEPOVER;
-    buttons[2].iBitmap = 16;
-    buttons[3].idCommand = ID_DEBUG_SPRITES;
-    buttons[3].iBitmap = 27;
+    buttons[1].idCommand = ID_DEBUG_SPRITES;
+    buttons[1].iBitmap = 27;
+    buttons[2].fsStyle = BTNS_SEP;
+    buttons[3].idCommand = ID_DEBUG_STEPINTO;
+    buttons[3].iBitmap = 15;
+    buttons[4].idCommand = ID_DEBUG_STEPOVER;
+    buttons[4].iBitmap = 16;
 
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 }

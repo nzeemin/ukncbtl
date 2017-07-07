@@ -1002,14 +1002,14 @@ bool MainWindow_DoCommand(int commandId)
     case ID_DEBUG_MEMORY_PPU:
         MemoryView_SetViewMode(MEMMODE_PPU);
         break;
-    case ID_DEBUG_MEMORY_RAM0:
-        MemoryView_SetViewMode(MEMMODE_RAM0);
+    case ID_DEBUG_MEMORY_RAM:
+        MemoryView_SwitchRamMode();
         break;
-    case ID_DEBUG_MEMORY_RAM1:
-        MemoryView_SetViewMode(MEMMODE_RAM1);
+    case ID_DEBUG_MEMORY_WORDBYTE:
+        MemoryView_SwitchWordByte();
         break;
-    case ID_DEBUG_MEMORY_RAM2:
-        MemoryView_SetViewMode(MEMMODE_RAM2);
+    case ID_DEBUG_MEMORY_GOTO:
+        MemoryView_SelectAddress();
         break;
     case ID_EMULATOR_RESET:
         MainWindow_DoEmulatorReset();

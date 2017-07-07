@@ -25,7 +25,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Colors
 #define COLOR_RED       RGB(255,0,0)
 #define COLOR_BLUE      RGB(0,0,255)
-#define COLOR_GREEN     RGB(0,192,0)
+#define COLOR_GREEN     RGB(128,192,128)
+#define COLOR_NA        RGB(128,128,128)
 
 
 HWND g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // Memory view window handler
@@ -83,6 +84,7 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     m_Mode = Settings_GetDebugMemoryMode();
     if (m_Mode > MEMMODE_LAST) m_Mode = MEMMODE_LAST;
+    m_okMemoryByteMode = Settings_GetDebugMemoryByte();
 
     g_hwndMemory = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
@@ -118,7 +120,7 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndMemoryToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
     SendMessage(m_hwndMemoryToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
 
-    TBBUTTON buttons[6];
+    TBBUTTON buttons[8];
     ZeroMemory(buttons, sizeof(buttons));
     for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
     {
@@ -126,19 +128,20 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
         buttons[i].fsStyle = BTNS_BUTTON | TBSTYLE_GROUP;
         buttons[i].iString = -1;
     }
-    buttons[0].idCommand = ID_DEBUG_MEMORY_RAM0;
-    buttons[0].iBitmap = 24;
-    buttons[1].idCommand = ID_DEBUG_MEMORY_RAM1;
-    buttons[1].iBitmap = 25;
-    buttons[2].idCommand = ID_DEBUG_MEMORY_RAM2;
-    buttons[2].iBitmap = 26;
+    buttons[0].idCommand = ID_DEBUG_MEMORY_GOTO;
+    buttons[0].iBitmap = 26;
+    buttons[1].fsStyle = BTNS_SEP;
+    buttons[2].idCommand = ID_DEBUG_MEMORY_RAM;
+    buttons[2].iBitmap = 24;
     buttons[3].idCommand = ID_DEBUG_MEMORY_ROM;
-    buttons[3].fsState |= TBSTATE_CHECKED;
     buttons[3].iBitmap = 21;
     buttons[4].idCommand = ID_DEBUG_MEMORY_CPU;
     buttons[4].iBitmap = 22;
     buttons[5].idCommand = ID_DEBUG_MEMORY_PPU;
     buttons[5].iBitmap = 23;
+    buttons[6].fsStyle = BTNS_SEP;
+    buttons[7].idCommand = ID_DEBUG_MEMORY_WORDBYTE;
+    buttons[7].iBitmap = 25;
 
     SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 
@@ -306,6 +309,11 @@ void MemoryView_OnDraw(HDC hdc)
                     ::SetTextColor(hdc, COLOR_GREEN);
                     TextOut(hdc, x, y, _T("  IO"), 4);
                 }
+                else
+                {
+                    ::SetTextColor(hdc, COLOR_NA);
+                    TextOut(hdc, x, y, _T("  NA"), 4);
+                }
             }
 
             // Prepare characters to draw at right
@@ -348,12 +356,12 @@ void MemoryView_OnDraw(HDC hdc)
 
 void MemoryView_UpdateToolbar()
 {
-    int command = MEMMODE_RAM0;
+    int command = ID_DEBUG_MEMORY_RAM;
     switch (m_Mode)
     {
-    case MEMMODE_RAM0: command = ID_DEBUG_MEMORY_RAM0; break;
-    case MEMMODE_RAM1: command = ID_DEBUG_MEMORY_RAM1; break;
-    case MEMMODE_RAM2: command = ID_DEBUG_MEMORY_RAM2; break;
+    case MEMMODE_RAM0: command = ID_DEBUG_MEMORY_RAM; break;
+    case MEMMODE_RAM1: command = ID_DEBUG_MEMORY_RAM; break;
+    case MEMMODE_RAM2: command = ID_DEBUG_MEMORY_RAM; break;
     case MEMMODE_ROM:  command = ID_DEBUG_MEMORY_ROM;  break;
     case MEMMODE_CPU:  command = ID_DEBUG_MEMORY_CPU;  break;
     case MEMMODE_PPU:  command = ID_DEBUG_MEMORY_PPU;  break;
@@ -374,6 +382,14 @@ void MemoryView_SetViewMode(MemoryViewMode mode)
     MemoryView_UpdateToolbar();
 }
 
+void MemoryView_SwitchRamMode()
+{
+    if (m_Mode >= MEMMODE_RAM2)
+        MemoryView_SetViewMode(MEMMODE_RAM0);
+    else
+        MemoryView_SetViewMode((MemoryViewMode)(m_Mode + 1));
+}
+
 LPCTSTR MemoryView_GetMemoryModeName()
 {
     switch (m_Mode)
@@ -387,6 +403,21 @@ LPCTSTR MemoryView_GetMemoryModeName()
     default:
         return _T("UKWN");  // Unknown mode
     }
+}
+
+void MemoryView_SwitchWordByte()
+{
+    m_okMemoryByteMode = !m_okMemoryByteMode;
+    Settings_SetDebugMemoryByte(m_okMemoryByteMode);
+
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+}
+
+void MemoryView_SelectAddress()
+{
+    WORD value = m_wBaseAddress;
+    if (InputBoxOctal(m_hwndMemoryViewer, _T("Go To Address"), _T("Address (octal):"), &value))
+        MemoryView_ScrollTo(value);
 }
 
 void MemoryView_UpdateWindowText()
@@ -428,16 +459,11 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         MemoryView_Scroll(m_nPageSize * 16);
         break;
     case 0x47:  // G - Go To Address
-        {
-            WORD value = m_wBaseAddress;
-            if (InputBoxOctal(m_hwndMemoryViewer, _T("Go To Address"), _T("Address (octal):"), &value))
-                MemoryView_ScrollTo(value);
-            break;
-        }
+        MemoryView_SelectAddress();
+        break;
     case 0x42:  // B - change byte/word mode
     case 0x57:  // W
-        m_okMemoryByteMode = !m_okMemoryByteMode;
-        InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+        MemoryView_SwitchWordByte();
         break;
     default:
         return TRUE;

@@ -163,6 +163,8 @@ void Settings_SetDebugMemoryMode(WORD speed);
 WORD Settings_GetDebugMemoryMode();
 void Settings_SetDebugMemoryAddress(WORD speed);
 WORD Settings_GetDebugMemoryAddress();
+BOOL Settings_GetDebugMemoryByte();
+void Settings_SetDebugMemoryByte(BOOL flag);
 void Settings_SetAutostart(BOOL flag);
 BOOL Settings_GetAutostart();
 void Settings_SetRealSpeed(WORD speed);

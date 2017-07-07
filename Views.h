@@ -117,6 +117,9 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 void MemoryView_SetViewMode(MemoryViewMode);
+void MemoryView_SwitchRamMode();
+void MemoryView_SwitchWordByte();
+void MemoryView_SelectAddress();
 
 
 //////////////////////////////////////////////////////////////////////
