@@ -104,6 +104,11 @@ void SpriteView_Create(int x, int y)
             0, 0, rcClient.right, rcClient.bottom,
             g_hwndSprite, NULL, g_hInst, NULL);
 
+    m_wSprite_BaseAddress = Settings_GetSpriteAddress();
+    m_nSprite_width = (int)Settings_GetSpriteWidth();
+    if (m_nSprite_width <= 0) m_nSprite_width = 1;
+    if (m_nSprite_width > 32) m_nSprite_width = 32;
+
     SpriteView_InitBitmap();
     SpriteView_UpdateWindowText();
     SpriteView_UpdateScrollPos();
@@ -215,6 +220,7 @@ void SpriteView_GoToAddress(WORD address)
         return;
 
     m_wSprite_BaseAddress = address;
+    Settings_SetSpriteAddress(m_wSprite_BaseAddress);
 
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
@@ -228,6 +234,7 @@ void SpriteView_SetSpriteWidth(int width)
         return;
 
     m_nSprite_width = width;
+    Settings_SetSpriteWidth((WORD)width);
 
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
@@ -245,12 +252,6 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 {
     switch (vkey)
     {
-        //case VK_OEM_MINUS:
-        //    SpriteView_Zoom(FALSE);
-        //    break;
-        //case VK_OEM_PLUS:
-        //    SpriteView_Zoom(TRUE);
-        //    break;
     case VK_LEFT:
         SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)(m_nSprite_ImageCY * m_nSprite_width));
         break;
@@ -270,12 +271,19 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         else
             SpriteView_GoToAddress(m_wSprite_BaseAddress + 1);
         break;
-    case VK_OEM_4: // '['
+    case VK_OEM_4: // '[' -- Decrement Sprite Width
         SpriteView_SetSpriteWidth(m_nSprite_width - 1);
         break;
-    case VK_OEM_6: // ']'
+    case VK_OEM_6: // ']' -- Increment Sprite Width
         SpriteView_SetSpriteWidth(m_nSprite_width + 1);
         break;
+    case 0x47:  // G - Go To Address
+        {
+            WORD value = m_wSprite_BaseAddress;
+            if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), _T("Address (octal):"), &value))
+                SpriteView_GoToAddress(value);
+            break;
+        }
     default:
         return TRUE;
     }

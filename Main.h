@@ -157,6 +157,12 @@ void Settings_SetDebug(BOOL flag);
 BOOL Settings_GetDebug();
 void Settings_GetDebugFontName(LPTSTR buffer);
 void Settings_SetDebugFontName(LPCTSTR sFontName);
+BOOL Settings_GetDebugCpuPpu();
+void Settings_SetDebugCpuPpu(BOOL flag);
+void Settings_SetDebugMemoryMode(WORD speed);
+WORD Settings_GetDebugMemoryMode();
+void Settings_SetDebugMemoryAddress(WORD speed);
+WORD Settings_GetDebugMemoryAddress();
 void Settings_SetAutostart(BOOL flag);
 BOOL Settings_GetAutostart();
 void Settings_SetRealSpeed(WORD speed);
@@ -187,6 +193,10 @@ void Settings_GetNetComPort(LPTSTR buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
 void Settings_GetNetComConfig(DCB * pDcb);
 void Settings_SetNetComConfig(const DCB * pDcb);
+WORD Settings_GetSpriteAddress();
+void Settings_SetSpriteAddress(WORD value);
+WORD Settings_GetSpriteWidth();
+void Settings_SetSpriteWidth(WORD value);
 
 
 //////////////////////////////////////////////////////////////////////

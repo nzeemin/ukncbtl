@@ -75,6 +75,8 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
+    m_okCurrentProc = Settings_GetDebugCpuPpu();
+
     g_hwndConsole = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
             WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,

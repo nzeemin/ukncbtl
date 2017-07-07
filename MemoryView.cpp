@@ -22,6 +22,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
+// Colors
+#define COLOR_RED   RGB(255,0,0)
+
 
 HWND g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // Memory view window handler
 WNDPROC m_wndprocMemoryToolWindow = NULL;  // Old window proc address of the ToolWindow
@@ -40,6 +43,7 @@ void MemoryView_ScrollTo(WORD wAddress);
 void MemoryView_Scroll(int nDeltaLines);
 void MemoryView_UpdateScrollPos();
 void MemoryView_UpdateWindowText();
+void MemoryView_UpdateToolbar();
 LPCTSTR MemoryView_GetMemoryModeName();
 void MemoryView_AdjustWindowLayout();
 
@@ -74,6 +78,9 @@ void MemoryView_RegisterClass()
 void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
+
+    m_Mode = Settings_GetDebugMemoryMode();
+    if (m_Mode > MEMMODE_LAST) m_Mode = MEMMODE_LAST;
 
     g_hwndMemory = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
@@ -133,7 +140,8 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 
-    MemoryView_ScrollTo(0);
+    MemoryView_ScrollTo(Settings_GetDebugMemoryAddress());
+    MemoryView_UpdateToolbar();
 }
 
 // Adjust position of client windows
@@ -200,7 +208,6 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     }
     return (LRESULT)FALSE;
 }
-
 
 void MemoryView_OnDraw(HDC hdc)
 {
@@ -272,7 +279,7 @@ void MemoryView_OnDraw(HDC hdc)
 
             if (okValid)
             {
-                ::SetTextColor(hdc, (wChanged != 0) ? RGB(255, 0, 0) : colorText);
+                ::SetTextColor(hdc, (wChanged != 0) ? COLOR_RED : colorText);
                 if (m_okMemoryByteMode)
                 {
                     PrintOctalValue(buffer, (word & 0xff));
@@ -322,17 +329,10 @@ void MemoryView_OnDraw(HDC hdc)
     }
 }
 
-void MemoryView_SetViewMode(MemoryViewMode mode)
+void MemoryView_UpdateToolbar()
 {
-    if (mode < 0) mode = MEMMODE_RAM0;
-    if (mode > MEMMODE_LAST) mode = MEMMODE_LAST;
-    m_Mode = mode;
-
-    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
-    MemoryView_UpdateWindowText();
-
     int command = MEMMODE_RAM0;
-    switch (mode)
+    switch (m_Mode)
     {
     case MEMMODE_RAM0: command = ID_DEBUG_MEMORY_RAM0; break;
     case MEMMODE_RAM1: command = ID_DEBUG_MEMORY_RAM1; break;
@@ -342,6 +342,19 @@ void MemoryView_SetViewMode(MemoryViewMode mode)
     case MEMMODE_PPU:  command = ID_DEBUG_MEMORY_PPU;  break;
     }
     SendMessage(m_hwndMemoryToolbar, TB_CHECKBUTTON, command, TRUE);
+}
+
+void MemoryView_SetViewMode(MemoryViewMode mode)
+{
+    if (mode < 0) mode = MEMMODE_RAM0;
+    if (mode > MEMMODE_LAST) mode = MEMMODE_LAST;
+    m_Mode = mode;
+    Settings_SetDebugMemoryMode((WORD)m_Mode);
+
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    MemoryView_UpdateWindowText();
+
+    MemoryView_UpdateToolbar();
 }
 
 LPCTSTR MemoryView_GetMemoryModeName()
@@ -389,12 +402,7 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         MemoryView_Scroll(16);
         break;
     case VK_SPACE:
-        if (m_Mode == MEMMODE_LAST)
-            m_Mode = 0;
-        else
-            m_Mode++;
-        InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
-        MemoryView_UpdateWindowText();
+        MemoryView_SetViewMode((MemoryViewMode)((m_Mode == MEMMODE_LAST) ? 0 : m_Mode + 1));
         break;
     case VK_PRIOR:
         MemoryView_Scroll(-m_nPageSize * 16);
@@ -463,6 +471,8 @@ BOOL MemoryView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 void MemoryView_ScrollTo(WORD wAddress)
 {
     m_wBaseAddress = wAddress & ((WORD)~1);
+    Settings_SetDebugMemoryAddress(m_wBaseAddress);
+
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
 
     MemoryView_UpdateScrollPos();
@@ -472,8 +482,9 @@ void MemoryView_Scroll(int nDelta)
 {
     if (nDelta == 0) return;
 
-    m_wBaseAddress = (WORD)(m_wBaseAddress + nDelta);
-    m_wBaseAddress = m_wBaseAddress & ((WORD)~1);
+    m_wBaseAddress = (WORD)(m_wBaseAddress + nDelta) & ((WORD)~1);
+    Settings_SetDebugMemoryAddress(m_wBaseAddress);
+
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
 
     MemoryView_UpdateScrollPos();

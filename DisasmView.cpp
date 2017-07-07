@@ -96,6 +96,8 @@ void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
+    m_okDisasmProcessor = Settings_GetDebugCpuPpu();
+
     g_hwndDisasm = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
             WS_CHILD | WS_VISIBLE,

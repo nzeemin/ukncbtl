@@ -310,6 +310,11 @@ void Settings_SetDebugFontName(LPCTSTR sFontName)
     Settings_SaveStringValue(_T("DebugFontName"), sFontName);
 }
 
+SETTINGS_GETSET_DWORD(DebugCpuPpu, _T("DebugCpuPpu"), BOOL, FALSE);
+
+SETTINGS_GETSET_DWORD(DebugMemoryMode, _T("DebugMemoryMode"), WORD, 3);
+SETTINGS_GETSET_DWORD(DebugMemoryAddress, _T("DebugMemoryAddress"), WORD, 3);
+
 SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 
 SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), WORD, 1);
@@ -398,6 +403,10 @@ void Settings_SetNetComConfig(const DCB * pDcb)
     Settings_SaveBinaryValue(_T("NetComConfig"), (const void *)pDcb, sizeof(DCB));
     m_Settings_NetComConfig_Valid = TRUE;
 }
+
+SETTINGS_GETSET_DWORD(SpriteAddress, _T("SpriteAddress"), WORD, 0);
+
+SETTINGS_GETSET_DWORD(SpriteWidth, _T("SpriteWidth"), WORD, 2);
 
 
 //////////////////////////////////////////////////////////////////////
