@@ -88,8 +88,8 @@
 #define ID_DEBUG_CPUPPU                 32825
 #define ID_VIEW_FULLSCREEN              32826
 #define ID_VIEW_RENDERMODE              32827
-#define ID_DEBUG_SPRITES                32828
 #define ID_RENDER                       32860
+#define ID_DEBUG_SPRITES                32861
 #define ID_EMULATOR_CONFIGURATION       32862
 #define ID_DEBUG_MEMORY_ROM             32863
 #define ID_DEBUG_MEMORY_CPU             32864

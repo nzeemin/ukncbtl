@@ -264,7 +264,6 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         else
             SpriteView_GoToAddress(m_wSprite_BaseAddress - 1);
         break;
-        break;
     case VK_DOWN:
         if (GetKeyState(VK_CONTROL) & 0x8000)
             SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)m_nSprite_width);
