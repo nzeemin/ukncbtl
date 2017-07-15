@@ -338,14 +338,14 @@ void DebugView_DoDraw(HDC hdc)
     DebugView_DrawMemoryForRegister(hdc, 6, pDebugPU, 30 + 35 * cxChar, 2 + 0 * cyLine, oldSP);
 
     CMemoryController* pDebugMemCtl = pDebugPU->GetMemoryController();
-    DebugView_DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 30 + 53 * cxChar, 2 + 0 * cyLine);
+    DebugView_DrawPorts(hdc, m_okDebugProcessor, pDebugMemCtl, g_pBoard, 30 + 54 * cxChar, 2 + 0 * cyLine);
 
     //DebugView_DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
 
     if (m_okDebugProcessor)
-        DebugView_DrawCPUMemoryMap(hdc, 30 + 68 * cxChar, 0 * cyLine, pDebugPU->IsHaltMode());
+        DebugView_DrawCPUMemoryMap(hdc, 30 + 70 * cxChar, 0 * cyLine, pDebugPU->IsHaltMode());
     else
-        DebugView_DrawPPUMemoryMap(hdc, 30 + 68 * cxChar, 0 * cyLine, pDebugMemCtl);
+        DebugView_DrawPPUMemoryMap(hdc, 30 + 70 * cxChar, 0 * cyLine, pDebugMemCtl);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -360,7 +360,7 @@ void DebugView_DoDraw(HDC hdc)
     }
 }
 
-void DrawRectangle(HDC hdc, int x1, int y1, int x2, int y2)
+void DebugView_DrawRectangle(HDC hdc, int x1, int y1, int x2, int y2)
 {
     HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetSysColorBrush(COLOR_BTNSHADOW));
     PatBlt(hdc, x1, y1, x2 - x1, 1, PATCOPY);
@@ -375,7 +375,7 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
 
-    DrawRectangle(hdc, x - cxChar, y - 8, x + cxChar + 31 * cxChar, y + 8 + cyLine * 14);
+    DebugView_DrawRectangle(hdc, x - cxChar, y - 8, x + cxChar + 31 * cxChar, y + 8 + cyLine * 14);
 
     // Registers
     for (int r = 0; r < 8; r++)

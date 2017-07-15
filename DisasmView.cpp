@@ -482,7 +482,7 @@ void DisasmView_DoDraw(HDC hdc)
         GetClientRect(m_hwndDisasmViewer, &rcFocus);
         if (yFocus >= 0)
         {
-            rcFocus.top = yFocus;
+            rcFocus.top = yFocus - 1;
             rcFocus.bottom = yFocus + cyLine;
         }
         DrawFocusRect(hdc, &rcFocus);
