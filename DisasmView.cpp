@@ -29,6 +29,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define COLOR_VALUE     RGB(128,128,128)
 #define COLOR_VALUEROM  RGB(128,128,192)
 #define COLOR_JUMP      RGB(80,192,224)
+#define COLOR_JUMPHINT  RGB(64,160,180)
 #define COLOR_CURRENT   RGB(255,255,224)
 
 
@@ -532,6 +533,29 @@ BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
     return FALSE;
 }
 
+BOOL DisasmView_GetJumpConditionHint(const WORD* memory, WORD psw, LPTSTR buffer)
+{
+    *buffer = 0;
+    WORD instr = *memory;
+
+    if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
+        _sntprintf(buffer, 12, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
+    else if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
+        _sntprintf(buffer, 12, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
+    else if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
+        _sntprintf(buffer, 12, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+    else if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
+        _sntprintf(buffer, 12, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
+    else if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
+        _sntprintf(buffer, 12, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+    else if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
+        _sntprintf(buffer, 12, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
+    else if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
+        _sntprintf(buffer, 12, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
+
+    return (*buffer != 0);
+}
+
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int result = -1;
@@ -540,6 +564,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     WORD proccurrent = pProc->GetPC();
+    WORD proc_psw = pProc->GetPSW();
     WORD current = base;
 
     // Draw current line background
@@ -643,10 +668,21 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
                 int delta;
                 if (!m_okDisasmSubtitles &&  //NOTE: Subtitles can move lines down
-                    DisasmView_CheckForJump(memory + index, address, &delta) &&
-                    abs(delta) < 32)
+                    DisasmView_CheckForJump(memory + index, address, &delta))
                 {
-                    DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine);
+                    if (abs(delta) < 32)
+                        DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine);
+
+                    if (address == proccurrent)  // For current instruction, draw "Jump Hint" if we have a conditional branch instruction
+                    {
+                        TCHAR strHint[12];
+                        if (DisasmView_GetJumpConditionHint(memory + index, proc_psw, strHint))
+                        {
+                            ::SetTextColor(hdc, COLOR_JUMPHINT);
+                            TextOut(hdc, x + 46 * cxChar, y, strHint, (int)_tcslen(strHint));
+                            ::SetTextColor(hdc, colorText);
+                        }
+                    }
                 }
             }
             if (index + length <= nWindowSize)
