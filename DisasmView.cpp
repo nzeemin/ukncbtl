@@ -533,10 +533,11 @@ BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
     return FALSE;
 }
 
-BOOL DisasmView_GetJumpConditionHint(const WORD* memory, WORD psw, LPTSTR buffer)
+BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pProc, LPTSTR buffer)
 {
     *buffer = 0;
     WORD instr = *memory;
+    WORD psw = pProc->GetPSW();
 
     if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
         _sntprintf(buffer, 12, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
@@ -552,6 +553,12 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, WORD psw, LPTSTR buffer
         _sntprintf(buffer, 12, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
     else if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
         _sntprintf(buffer, 12, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
+    else if (instr >= 0077000 && instr <= 0077777)  // SOB
+    {
+        int reg = (instr >> 6) & 7;
+        WORD regvalue = pProc->GetReg(reg);
+        _sntprintf(buffer, 12, _T("R%d=%06o"), reg, regvalue);
+    }
 
     return (*buffer != 0);
 }
@@ -564,7 +571,6 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     WORD proccurrent = pProc->GetPC();
-    WORD proc_psw = pProc->GetPSW();
     WORD current = base;
 
     // Draw current line background
@@ -676,7 +682,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                     if (address == proccurrent)  // For current instruction, draw "Jump Hint" if we have a conditional branch instruction
                     {
                         TCHAR strHint[12];
-                        if (DisasmView_GetJumpConditionHint(memory + index, proc_psw, strHint))
+                        if (DisasmView_GetJumpConditionHint(memory + index, pProc, strHint))
                         {
                             ::SetTextColor(hdc, COLOR_JUMPHINT);
                             TextOut(hdc, x + 46 * cxChar, y, strHint, (int)_tcslen(strHint));
