@@ -683,11 +683,11 @@ BOOL DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc,
     // Destination only
     if ((instr & ~(uint16_t)0100077) == PI_CLR || (instr & ~(uint16_t)0100077) == PI_COM ||
         (instr & ~(uint16_t)0100077) == PI_INC || (instr & ~(uint16_t)0100077) == PI_DEC || (instr & ~(uint16_t)0100077) == PI_NEG ||
-        (instr & ~(uint16_t)0100077) == PI_ADC || (instr & ~(uint16_t)0100077) == PI_SBC || (instr & ~(uint16_t)0100077) == PI_TST ||
-        (instr & ~(uint16_t)0100077) == PI_ROR || (instr & ~(uint16_t)0100077) == PI_ROL ||
+        (instr & ~(uint16_t)0100077) == PI_TST ||
         (instr & ~(uint16_t)0100077) == PI_ASR || (instr & ~(uint16_t)0100077) == PI_ASL ||
         (instr & ~(uint16_t)077) == PI_JMP ||
-        (instr & ~(uint16_t)077) == PI_SWAB || (instr & ~(uint16_t)077) == PI_SXT)
+        (instr & ~(uint16_t)077) == PI_SWAB || (instr & ~(uint16_t)077) == PI_SXT ||
+        (instr & ~(uint16_t)077) == PI_MTPS || (instr & ~(uint16_t)077) == PI_MFPS)
     {
         int dstreg = instr & 7;
         //int dstmod = (instr >> 3) & 7;
@@ -699,10 +699,42 @@ BOOL DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc,
         }
     }
 
-    //TODO: ADC, SBC -- "RN=XXXXXX, C=X"
-    //TODO: CLC..CCC, SEC..SCC -- show flags
-    //TODO: MFPC, MTPC, MFPS, MTPS
-    //TODO: MFUS, MTUS
+    // ADC, SBC, ROR, ROL: also show C flag
+    if ((instr & ~(uint16_t)0100077) == PI_ADC || (instr & ~(uint16_t)0100077) == PI_SBC ||
+        (instr & ~(uint16_t)0100077) == PI_ROR || (instr & ~(uint16_t)0100077) == PI_ROL)
+    {
+        int dstreg = instr & 7;
+        //int dstmod = (instr >> 3) & 7;
+        WORD dstregval = pProc->GetReg(dstreg);
+        WORD psw = pProc->GetPSW();
+        if (dstreg != 7)
+        {
+            _sntprintf(buffer, 32, _T("%s=%06o, C=%c"), REGISTER_NAME[dstreg], dstregval, (psw & PSW_C) ? '1' : '0');  // "RN=XXXXXX, C=X"
+            return TRUE;
+        }
+    }
+
+    // CLC..CCC, SEC..SCC -- show flags
+    if (instr >= 0000241 && instr <= 0000257 || instr >= 0000261 && instr <= 0000277)
+    {
+        WORD psw = pProc->GetPSW();
+        _sntprintf(buffer, 32, _T("C=%c, V=%c, Z=%c, N=%c"),
+                (psw & PSW_C) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0', (psw & PSW_N) ? '1' : '0');
+        return TRUE;
+    }
+
+    // HALT mode commands
+    if (instr == PI_MFUS)
+    {
+        _sntprintf(buffer, 32, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
+        return TRUE;
+    }
+    if (instr == PI_MTUS)
+    {
+        _sntprintf(buffer, 32, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
+        return TRUE;
+    }
+    //TODO: MFPC, MTPC
 
     return (*buffer != 0);
 }
