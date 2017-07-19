@@ -29,6 +29,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define COLOR_VALUE     RGB(128,128,128)
 #define COLOR_VALUEROM  RGB(128,128,192)
 #define COLOR_JUMP      RGB(80,192,224)
+#define COLOR_JUMPYES   RGB(80,240,80)
+#define COLOR_JUMPGRAY  RGB(180,180,180)
 #define COLOR_JUMPHINT  RGB(64,160,180)
 #define COLOR_CURRENT   RGB(255,255,224)
 
@@ -429,7 +431,7 @@ void DisasmView_SetBaseAddr(WORD base)
 //////////////////////////////////////////////////////////////////////
 // Draw functions
 
-void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine)
+void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLORREF color = COLOR_JUMP)
 {
     int dist = abs(delta);
     if (dist < 2) dist = 2;
@@ -438,7 +440,7 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine)
     int yTo = yFrom + delta * cyLine;
     yFrom += cyLine / 2;
 
-    HGDIOBJ oldPen = SelectObject(hdc, CreatePen(PS_SOLID, 1, COLOR_JUMP));
+    HGDIOBJ oldPen = SelectObject(hdc, CreatePen(PS_SOLID, 1, color));
 
     POINT points[4];
     points[0].x = x;  points[0].y = yFrom;
@@ -533,6 +535,8 @@ BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
     return FALSE;
 }
 
+// Prepare "Jump Hint" string, and also calculate condition for conditional jump
+// Returns: jump prediction flag: TRUE = will jump, FALSE = will not jump
 BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pProc, LPTSTR buffer)
 {
     *buffer = 0;
@@ -540,27 +544,70 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     WORD psw = pProc->GetPSW();
 
     if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
+    {
         _sntprintf(buffer, 12, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
-    else if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
+        // BNE: IF (Z == 0)
+        // BEQ: IF (Z == 1)
+        BOOL value = ((psw & PSW_Z) != 0);
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
+    {
         _sntprintf(buffer, 12, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
-    else if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
+        // BGE: IF ((N xor V) == 0)
+        // BLT: IF ((N xor V) == 1)
+        BOOL value = (((psw & PSW_N) != 0) != ((psw & PSW_V) != 0));
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
+    {
         _sntprintf(buffer, 12, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
-    else if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
+        // BGT: IF (((N xor V) or Z) == 0)
+        // BLE: IF (((N xor V) or Z) == 1)
+        BOOL value = ((((psw & PSW_N) != 0) != ((psw & PSW_V) != 0)) || ((psw & PSW_Z) != 0));
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
+    {
         _sntprintf(buffer, 12, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
-    else if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
+        // BPL: IF (N == 0)
+        // BMI: IF (N == 1)
+        BOOL value = ((psw & PSW_N) != 0);
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
+    {
         _sntprintf(buffer, 12, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
-    else if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
+        // BHI:  IF ((Ñ or Z) == 0)
+        // BLOS: IF ((Ñ or Z) == 1)
+        BOOL value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
+    {
         _sntprintf(buffer, 12, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
-    else if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
+        // BVC: IF (V == 0)
+        // BVS: IF (V == 1)
+        BOOL value = ((psw & PSW_V) != 0);
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
+    {
         _sntprintf(buffer, 12, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
-    else if (instr >= 0077000 && instr <= 0077777)  // SOB
+        // BCC/BHIS: IF (C == 0)
+        // BCS/BLO:  IF (C == 1)
+        BOOL value = ((psw & PSW_C) != 0);
+        return ((instr & 0400) == 0) ? !value : value;
+    }
+    if (instr >= 0077000 && instr <= 0077777)  // SOB
     {
         int reg = (instr >> 6) & 7;
         WORD regvalue = pProc->GetReg(reg);
         _sntprintf(buffer, 12, _T("R%d=%06o"), reg, regvalue);
+        return (regvalue != 1);
     }
 
-    return (*buffer != 0);
+    return TRUE;  // All other jumps are non-conditional
 }
 
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
@@ -676,17 +723,23 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                 if (!m_okDisasmSubtitles &&  //NOTE: Subtitles can move lines down
                     DisasmView_CheckForJump(memory + index, address, &delta))
                 {
-                    if (abs(delta) < 32)
+                    if (abs(delta) < 40)
                         DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine);
 
                     if (address == proccurrent)  // For current instruction, draw "Jump Hint" if we have a conditional branch instruction
                     {
                         TCHAR strHint[12];
-                        if (DisasmView_GetJumpConditionHint(memory + index, pProc, strHint))
+                        BOOL jumppredict = DisasmView_GetJumpConditionHint(memory + index, pProc, strHint);
+                        if (*strHint != 0)  // If we have the hint
                         {
                             ::SetTextColor(hdc, COLOR_JUMPHINT);
                             TextOut(hdc, x + 46 * cxChar, y, strHint, (int)_tcslen(strHint));
                             ::SetTextColor(hdc, colorText);
+                        }
+                        if (abs(delta) < 40)
+                        {
+                            COLORREF jumpcolor = jumppredict ? COLOR_JUMPYES : COLOR_JUMPGRAY;
+                            DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, jumpcolor);
                         }
                     }
                 }
