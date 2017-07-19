@@ -31,7 +31,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define COLOR_JUMP      RGB(80,192,224)
 #define COLOR_JUMPYES   RGB(80,240,80)
 #define COLOR_JUMPGRAY  RGB(180,180,180)
-#define COLOR_JUMPHINT  RGB(64,160,180)
+#define COLOR_JUMPHINT  RGB(40,128,160)
+#define COLOR_HINT      RGB(40,40,160)
 #define COLOR_CURRENT   RGB(255,255,224)
 
 
@@ -505,7 +506,7 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
     return NULL;
 }
 
-BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
+BOOL DisasmView_CheckForJump(const WORD* memory, int* pDelta)
 {
     WORD instr = *memory;
 
@@ -537,7 +538,7 @@ BOOL DisasmView_CheckForJump(const WORD* memory, WORD /*address*/, int* pDelta)
 
 // Prepare "Jump Hint" string, and also calculate condition for conditional jump
 // Returns: jump prediction flag: TRUE = will jump, FALSE = will not jump
-BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pProc, LPTSTR buffer)
+BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer)
 {
     *buffer = 0;
     WORD instr = *memory;
@@ -545,7 +546,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
 
     if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
     {
-        _sntprintf(buffer, 12, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
         // BNE: IF (Z == 0)
         // BEQ: IF (Z == 1)
         BOOL value = ((psw & PSW_Z) != 0);
@@ -553,7 +554,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
     {
-        _sntprintf(buffer, 12, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
         // BGE: IF ((N xor V) == 0)
         // BLT: IF ((N xor V) == 1)
         BOOL value = (((psw & PSW_N) != 0) != ((psw & PSW_V) != 0));
@@ -561,7 +562,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
     {
-        _sntprintf(buffer, 12, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
         // BGT: IF (((N xor V) or Z) == 0)
         // BLE: IF (((N xor V) or Z) == 1)
         BOOL value = ((((psw & PSW_N) != 0) != ((psw & PSW_V) != 0)) || ((psw & PSW_Z) != 0));
@@ -569,7 +570,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
     {
-        _sntprintf(buffer, 12, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
         // BPL: IF (N == 0)
         // BMI: IF (N == 1)
         BOOL value = ((psw & PSW_N) != 0);
@@ -577,7 +578,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
     {
-        _sntprintf(buffer, 12, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
         // BHI:  IF ((Ñ or Z) == 0)
         // BLOS: IF ((Ñ or Z) == 1)
         BOOL value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
@@ -585,7 +586,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
     {
-        _sntprintf(buffer, 12, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
         // BVC: IF (V == 0)
         // BVS: IF (V == 1)
         BOOL value = ((psw & PSW_V) != 0);
@@ -593,7 +594,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
     {
-        _sntprintf(buffer, 12, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
+        _sntprintf(buffer, 32, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
         // BCC/BHIS: IF (C == 0)
         // BCS/BLO:  IF (C == 1)
         BOOL value = ((psw & PSW_C) != 0);
@@ -603,11 +604,107 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     {
         int reg = (instr >> 6) & 7;
         WORD regvalue = pProc->GetReg(reg);
-        _sntprintf(buffer, 12, _T("R%d=%06o"), reg, regvalue);
+        _sntprintf(buffer, 32, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
         return (regvalue != 1);
     }
 
+    if (instr >= 004000 && instr <= 004677)  // JSR (except CALL)
+    {
+        int reg = (instr >> 6) & 7;
+        WORD regvalue = pProc->GetReg(reg);
+        _sntprintf(buffer, 32, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
+        return TRUE;
+    }
+    if (instr >= 000200 && instr <= 000207)  // RTS / RETURN
+    {
+        WORD spvalue = pProc->GetSP();
+        int addrtype;
+        WORD value = pMemCtl->GetWordView(spvalue, pProc->IsHaltMode(), FALSE, &addrtype);
+        if (instr == 000207)  // RETURN
+            _sntprintf(buffer, 32, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
+        else  // RTS
+        {
+            int reg = instr & 7;
+            WORD regvalue = pProc->GetReg(reg);
+            _sntprintf(buffer, 32, _T("R%d=%06o, (SP)=%06o"), reg, regvalue, value);  // "RN=XXXXXX, (SP)=XXXXXX"
+        }
+        return TRUE;
+    }
+
+    //TODO: RTI, RTT
+
     return TRUE;  // All other jumps are non-conditional
+}
+
+// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one)
+// Returns: flag indicating that we have a hint prepared
+BOOL DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, const CMemoryController * /*pMemCtl*/, LPTSTR buffer)
+{
+    *buffer = 0;
+    WORD instr = *memory;
+
+    // Source and Destination
+    if ((instr & ~(uint16_t)0107777) == PI_MOV || (instr & ~(uint16_t)0107777) == PI_CMP ||
+        (instr & ~(uint16_t)0107777) == PI_BIT || (instr & ~(uint16_t)0107777) == PI_BIC || (instr & ~(uint16_t)0107777) == PI_BIS ||
+        (instr & ~(uint16_t)0007777) == PI_ADD || (instr & ~(uint16_t)0007777) == PI_SUB)
+    {
+        int srcreg = (instr >> 6) & 7;
+        //int srcmod = (instr >> 9) & 7;
+        WORD srcregval = pProc->GetReg(srcreg);
+        int dstreg = instr & 7;
+        //int dstmod = (instr >> 3) & 7;
+        WORD dstregval = pProc->GetReg(dstreg);
+        if ((srcreg != 7 && dstreg == 7) || (srcreg != 7 && dstreg == srcreg))
+            _sntprintf(buffer, 32, _T("%s=%06o"), REGISTER_NAME[srcreg], srcregval);  // "RN=XXXXXX"
+        else if (srcreg == 7 && dstreg != 7)
+            _sntprintf(buffer, 32, _T("%s=%06o"), REGISTER_NAME[dstreg], dstregval);  // "RN=XXXXXX"
+        else if (srcreg != 7 && dstreg != 7)
+            _sntprintf(buffer, 32, _T("%s=%06o, %s=%06o"), REGISTER_NAME[srcreg], srcregval, REGISTER_NAME[dstreg], dstregval);  // "RN=XXXXXX, RN=XXXXXX"
+    }
+
+    // Register and Destination
+    if ((instr & ~(uint16_t)0777) == PI_MUL || (instr & ~(uint16_t)0777) == PI_DIV ||
+        (instr & ~(uint16_t)0777) == PI_ASH || (instr & ~(uint16_t)0777) == PI_ASHC ||
+        (instr & ~(uint16_t)0777) == PI_XOR)
+    {
+        int srcreg = (instr >> 6) & 7;
+        WORD srcregval = pProc->GetReg(srcreg);
+        int dstreg = instr & 7;
+        //int dstmod = (instr >> 3) & 7;
+        WORD dstregval = pProc->GetReg(dstreg);
+        if ((srcreg != 7 && dstreg == 7) || (srcreg != 7 && dstreg == srcreg))
+            _sntprintf(buffer, 32, _T("%s=%06o"), REGISTER_NAME[srcreg], srcregval);  // "RN=XXXXXX"
+        else if (srcreg == 7 && dstreg != 7)
+            _sntprintf(buffer, 32, _T("%s=%06o"), REGISTER_NAME[dstreg], dstregval);  // "RN=XXXXXX"
+        else if (srcreg != 7 && dstreg != 7)
+            _sntprintf(buffer, 32, _T("%s=%06o, %s=%06o"), REGISTER_NAME[srcreg], srcregval, REGISTER_NAME[dstreg], dstregval);  // "RN=XXXXXX, RN=XXXXXX"
+    }
+
+    // Destination only
+    if ((instr & ~(uint16_t)0100077) == PI_CLR || (instr & ~(uint16_t)0100077) == PI_COM ||
+        (instr & ~(uint16_t)0100077) == PI_INC || (instr & ~(uint16_t)0100077) == PI_DEC || (instr & ~(uint16_t)0100077) == PI_NEG ||
+        (instr & ~(uint16_t)0100077) == PI_ADC || (instr & ~(uint16_t)0100077) == PI_SBC || (instr & ~(uint16_t)0100077) == PI_TST ||
+        (instr & ~(uint16_t)0100077) == PI_ROR || (instr & ~(uint16_t)0100077) == PI_ROL ||
+        (instr & ~(uint16_t)0100077) == PI_ASR || (instr & ~(uint16_t)0100077) == PI_ASL ||
+        (instr & ~(uint16_t)077) == PI_JMP ||
+        (instr & ~(uint16_t)077) == PI_SWAB || (instr & ~(uint16_t)077) == PI_SXT)
+    {
+        int dstreg = instr & 7;
+        //int dstmod = (instr >> 3) & 7;
+        WORD dstregval = pProc->GetReg(dstreg);
+        if (dstreg != 7)
+        {
+            _sntprintf(buffer, 32, _T("%s=%06o"), REGISTER_NAME[dstreg], dstregval);  // "RN=XXXXXX"
+            return TRUE;
+        }
+    }
+
+    //TODO: ADC, SBC -- "RN=XXXXXX, C=X"
+    //TODO: CLC..CCC, SEC..SCC -- show flags
+    //TODO: MFPC, MTPC, MFPS, MTPS
+    //TODO: MFUS, MTUS
+
+    return (*buffer != 0);
 }
 
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
@@ -719,24 +816,32 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             {
                 length = DisassembleInstruction(memory + index, address, strInstr, strArg);
 
-                int delta;
-                if (!m_okDisasmSubtitles &&  //NOTE: Subtitles can move lines down
-                    DisasmView_CheckForJump(memory + index, address, &delta))
+                if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
                 {
-                    if (abs(delta) < 40)
+                    int delta;
+                    BOOL isjump = DisasmView_CheckForJump(memory + index, &delta);
+                    if (isjump && abs(delta) < 40)
                         DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine);
 
-                    if (address == proccurrent)  // For current instruction, draw "Jump Hint" if we have a conditional branch instruction
+                    if (address == proccurrent)
                     {
-                        TCHAR strHint[12];
-                        BOOL jumppredict = DisasmView_GetJumpConditionHint(memory + index, pProc, strHint);
+                        // For current instruction, draw "Instruction Hint"
+                        TCHAR strHint[32];  *strHint = 0;
+                        BOOL jumppredict = DisasmView_GetJumpConditionHint(memory + index, pProc, pMemCtl, strHint);
                         if (*strHint != 0)  // If we have the hint
                         {
                             ::SetTextColor(hdc, COLOR_JUMPHINT);
-                            TextOut(hdc, x + 46 * cxChar, y, strHint, (int)_tcslen(strHint));
+                            TextOut(hdc, x + 48 * cxChar, y, strHint, (int)_tcslen(strHint));
                             ::SetTextColor(hdc, colorText);
                         }
-                        if (abs(delta) < 40)
+                        else if (DisasmView_GetInstructionHint(memory + index, pProc, pMemCtl, strHint))
+                        {
+                            ::SetTextColor(hdc, COLOR_HINT);
+                            TextOut(hdc, x + 52 * cxChar, y, strHint, (int)_tcslen(strHint));
+                            ::SetTextColor(hdc, colorText);
+                        }
+
+                        if (isjump && abs(delta) < 40)
                         {
                             COLORREF jumpcolor = jumppredict ? COLOR_JUMPYES : COLOR_JUMPGRAY;
                             DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, jumpcolor);
