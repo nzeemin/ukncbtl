@@ -35,6 +35,7 @@ WORD m_wEmulatorCPUBreakpoint = 0177777;
 WORD m_wEmulatorPPUBreakpoint = 0177777;
 
 bool m_okEmulatorSound = false;
+WORD m_wEmulatorSoundSpeed = 100;
 
 WORD m_Settings_NetStation_Bits = 0;
 bool m_okEmulatorNetwork = false;
@@ -244,6 +245,23 @@ bool Emulator_IsBreakpoint()
     return false;
 }
 
+void Emulator_SetSpeed(WORD realspeed)
+{
+    WORD speedpercent = 100;
+    switch (realspeed)
+    {
+    case 0: speedpercent = 200; break;
+    case 1: speedpercent = 100; break;
+    case 2: speedpercent = 200; break;
+    case 0x7fff: speedpercent = 50; break;
+    default: speedpercent = 100; break;
+    }
+    m_wEmulatorSoundSpeed = speedpercent;
+
+    if (m_okEmulatorSound)
+        SoundGen_SetSpeed(m_wEmulatorSoundSpeed);
+}
+
 void Emulator_SetSound(bool soundOnOff)
 {
     if (m_okEmulatorSound != soundOnOff)
@@ -251,6 +269,7 @@ void Emulator_SetSound(bool soundOnOff)
         if (soundOnOff)
         {
             SoundGen_Initialize(Settings_GetSoundVolume());
+            SoundGen_SetSpeed(m_wEmulatorSoundSpeed);
             g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
         }
         else

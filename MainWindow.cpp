@@ -113,10 +113,11 @@ void MainWindow_RegisterClass()
     KeyboardView_RegisterClass();
     MemoryView_RegisterClass();
     DebugView_RegisterClass();
+    //MemoryMapView_RegisterClass();
+    SpriteView_RegisterClass();
     DisasmView_RegisterClass();
     ConsoleView_RegisterClass();
     TapeView_RegisterClass();
-    SpriteView_RegisterClass();
 }
 
 BOOL CreateMainWindow()
@@ -148,6 +149,7 @@ BOOL CreateMainWindow()
     MainWindow_ShowHideKeyboard();
     MainWindow_ShowHideTape();
     MainWindow_ShowHideDebug();
+    //MainWindow_ShowHideMemoryMap();
 
     MainWindow_RestorePositionAndShow();
 
@@ -1211,6 +1213,7 @@ void MainWindow_DoEmulatorReset()
 void MainWindow_DoEmulatorSpeed(WORD speed)
 {
     Settings_SetRealSpeed(speed);
+    Emulator_SetSpeed(speed);
 
     MainWindow_UpdateMenu();
 }

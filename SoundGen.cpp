@@ -26,8 +26,7 @@ static WAVEHDR*         waveBlocks;
 static volatile int     waveFreeBlockCount;
 static int              waveCurrentBlock;
 
-static bool m_SoundGenInitialized = FALSE;
-
+static bool m_SoundGenInitialized = false;
 
 HWAVEOUT hWaveOut;
 
@@ -98,7 +97,7 @@ void SoundGen_Initialize(WORD volume)
         return;
     }
 
-    waveOutSetVolume(hWaveOut, (DWORD)volume);
+    waveOutSetVolume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
 
     InitializeCriticalSection(&waveCriticalSection);
     bufcurpos = 0;
@@ -113,7 +112,7 @@ void SoundGen_Finalize()
         return;
 
     while (waveFreeBlockCount < BLOCK_COUNT)
-        Sleep(10);
+        Sleep(3);
 
     for (int i = 0; i < waveFreeBlockCount; i++)
     {
@@ -135,7 +134,16 @@ void SoundGen_SetVolume(WORD volume)
     if (!m_SoundGenInitialized)
         return;
 
-    waveOutSetVolume(hWaveOut, (DWORD)volume);
+    waveOutSetVolume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
+}
+
+void SoundGen_SetSpeed(WORD speedpercent)
+{
+    DWORD dwRate = 0x00010000;
+    if (speedpercent > 0 && speedpercent < 1000)
+        dwRate = (((DWORD)speedpercent / 100) << 16) | ((speedpercent % 100) * 0x00010000 / 100);
+
+    waveOutSetPlaybackRate(hWaveOut, dwRate);
 }
 
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
