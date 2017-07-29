@@ -90,17 +90,17 @@ void MainWindow_RegisterClass()
     WNDCLASSEX wcex;
     wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style			= CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc	= MainWindow_WndProc;
-    wcex.cbClsExtra		= 0;
-    wcex.cbWndExtra		= 0;
-    wcex.hInstance		= g_hInst;
-    wcex.hIcon			= LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_UKNCBTL));
-    wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground	= (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_UKNCBTL);
-    wcex.lpszClassName	= g_szWindowClass;
-    wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.style          = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc    = MainWindow_WndProc;
+    wcex.cbClsExtra     = 0;
+    wcex.cbWndExtra     = 0;
+    wcex.hInstance      = g_hInst;
+    wcex.hIcon          = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_UKNCBTL));
+    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
+    wcex.lpszMenuName   = MAKEINTRESOURCE(IDC_UKNCBTL);
+    wcex.lpszClassName  = g_szWindowClass;
+    wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
     RegisterClassEx(&wcex);
 
@@ -342,9 +342,9 @@ void MainWindow_RestoreSettings()
     }
 
     // Restore ScreenViewMode
-    int mode = Settings_GetScreenViewMode();
-    if (mode <= 0 || mode > 3) mode = RGBScreen;
-    ScreenView_SetMode((ScreenViewMode) mode);
+    int scrmode = Settings_GetScreenViewMode();
+    if (scrmode <= 0 || scrmode > 3) scrmode = RGBScreen;
+    ScreenView_SetMode((ScreenViewMode) scrmode);
 
     // Restore Serial flag
     if (Settings_GetSerial())
@@ -408,16 +408,20 @@ void MainWindow_RestorePositionAndShow()
         MainWindow_DoViewFullscreen();
 }
 
+void MainWindow_UpdateWindowTitle(LPCTSTR emustate)
+{
+    TCHAR buffer[100];
+    wsprintf(buffer, _T("%s [%s]"), g_szTitle, emustate);
+    SetWindowText(g_hwnd, buffer);
+}
+
 // Processes messages for the main window
 LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
     case WM_ACTIVATE:
-        if (Settings_GetDebug())
-            ConsoleView_Activate();
-        else
-            SetFocus(g_hwndScreen);
+        SetFocus(g_hwndScreen);
         break;
     case WM_COMMAND:
         {
@@ -687,9 +691,6 @@ void MainWindow_ShowHideDebug()
             DestroyWindow(g_hwndMemory);
 
         MainWindow_AdjustWindowSize();
-        MainWindow_AdjustWindowLayout();
-
-        SetFocus(g_hwndScreen);
     }
     else  // Debug Views ON
     {
@@ -721,11 +722,13 @@ void MainWindow_ShowHideDebug()
         if (g_hwndMemory == INVALID_HANDLE_VALUE)
             MemoryView_Create(g_hwnd, xDebugLeft, yMemoryTop, cxDebugWidth, cyMemoryHeight);
         m_hwndSplitter = SplitterWindow_Create(g_hwnd, g_hwndDisasm, g_hwndMemory);
-
-        MainWindow_AdjustWindowLayout();
     }
 
+    MainWindow_AdjustWindowLayout();
+
     MainWindow_UpdateMenu();
+
+    SetFocus(g_hwndScreen);
 }
 
 void MainWindow_ShowHideToolbar()

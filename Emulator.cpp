@@ -190,7 +190,7 @@ void Emulator_Start()
     g_okEmulatorRunning = TRUE;
 
     // Set title bar text
-    SetWindowText(g_hwnd, _T("UKNC Back to Life [run]"));
+    MainWindow_UpdateWindowTitle(_T("run"));
     MainWindow_UpdateMenu();
 
     m_nFrameCount = 0;
@@ -206,7 +206,7 @@ void Emulator_Stop()
         ::fflush(m_fpEmulatorParallelOut);
 
     // Reset title bar message
-    SetWindowText(g_hwnd, _T("UKNC Back to Life [stop]"));
+    MainWindow_UpdateWindowTitle(_T("stop"));
     MainWindow_UpdateMenu();
     // Reset FPS indicator
     MainWindow_SetStatusbarText(StatusbarPartFPS, _T(""));

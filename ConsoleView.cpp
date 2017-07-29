@@ -191,7 +191,12 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         }
         if (wParam == VK_ESCAPE)
         {
-            SetFocus(g_hwndScreen);
+            TCHAR command[32];
+            GetWindowText(m_hwndConsoleEdit, command, 32);
+            if (*command == 0)  // If command is empty
+                SetFocus(g_hwndScreen);
+            else
+                SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T(""));  // Clear command
             return 0;
         }
         break;
@@ -414,7 +419,7 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
     }
 }
 // Print disassembled instructions
-// Return value: number of words in the last instruction
+// Return value: number of words disassembled
 int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okShort)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
@@ -430,6 +435,7 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
     TCHAR bufvalue[7];
     TCHAR buffer[64];
 
+    int totalLength = 0;
     int lastLength = 0;
     int length = 0;
     for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
@@ -464,9 +470,10 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
         }
         length--;
         address += 2;
+        totalLength++;
     }
 
-    return lastLength;
+    return totalLength;
 }
 
 void ConsoleView_SetCurrentProc(BOOL okCPU)
@@ -507,7 +514,13 @@ void ConsoleView_ShowHelp()
             _T("  s          Step Into; executes one instruction\r\n")
             _T("  so         Step Over; executes and stops after the current instruction\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
-            _T("  udl        Save display list dump to file displaylist.txt\r\n"));
+            _T("  udl        Save display list dump to file displaylist.txt\r\n")
+#if !defined(PRODUCT)
+            _T("  t          Tracing on/off to trace.log file\r\n")
+            _T("  tXXXXXX    Set tracing flags\r\n")
+            _T("  tc         Clear trace.log file\r\n")
+#endif
+                     );
 }
 
 void DoConsoleCommand()
@@ -629,20 +642,27 @@ void DoConsoleCommand()
     case _T('D'):  // Disassemble, short format
         {
             BOOL okShort = (command[0] == _T('D'));
+            WORD address = 0;
             if (command[1] == 0)  // "d" - disassemble at current address
-                PrintDisassemble(pProc, pProc->GetPC(), FALSE, okShort);
+                address = pProc->GetPC();
             else if (command[1] >= _T('0') && command[1] <= _T('7'))  // "dXXXXXX" - disassemble at address XXXXXX
             {
-                WORD value;
-                if (! ParseOctalValue(command + 1, &value))
-                    ConsoleView_Print(MESSAGE_WRONG_VALUE);
-                else
+                if (!ParseOctalValue(command + 1, &address))
                 {
-                    PrintDisassemble(pProc, value, FALSE, okShort);
+                    ConsoleView_Print(MESSAGE_WRONG_VALUE);
+                    break;
                 }
             }
             else
+            {
                 ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+                break;
+            }
+
+            int length = PrintDisassemble(pProc, address, FALSE, okShort);
+            TCHAR buffer[32];  buffer[0] = command[0];
+            PrintOctalValue(buffer + 1, (WORD)(address + length * 2));
+            SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)buffer);
         }
         break;
     case _T('u'):

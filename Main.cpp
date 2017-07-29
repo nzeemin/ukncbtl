@@ -197,7 +197,6 @@ void ParseCommandLine()
 {
     LPTSTR commandline = ::GetCommandLine();
 
-    //TODO: Needs non-Unicode variant
     int argnum = 0;
     LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
 

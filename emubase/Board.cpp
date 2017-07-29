@@ -659,8 +659,8 @@ void CMotherboard::DebugTicks()
 */
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_CPU  { if (m_pCPU->GetPC() == m_CPUbp) return false;  m_pCPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_PPU  { if (m_pPPU->GetPC() == m_PPUbp) return false;  m_pPPU->Execute(); }
+#define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute();  if (m_pCPU->GetPC() == m_CPUbp) return false; }
+#define SYSTEMFRAME_EXECUTE_BP_PPU  { m_pPPU->Execute();  if (m_pPPU->GetPC() == m_PPUbp) return false; }
 bool CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks

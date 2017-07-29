@@ -33,7 +33,7 @@ HBITMAP m_hSpriteBitmap = NULL;
 DWORD * m_pSprite_bits = NULL;
 
 const int m_nSprite_scale = 2;
-const int m_nSprite_ImageCX = 256;
+const int m_nSprite_ImageCX = 262;
 const int m_nSprite_ImageCY = 256;
 const int m_nSprite_ViewCX = m_nSprite_ImageCX * m_nSprite_scale;
 const int m_nSprite_ViewCY = m_nSprite_ImageCY * m_nSprite_scale;
@@ -80,11 +80,10 @@ void SpriteView_Create(int x, int y)
     int cxBorder = ::GetSystemMetrics(SM_CXDLGFRAME);
     int cyBorder = ::GetSystemMetrics(SM_CYDLGFRAME);
     int cxScroll = ::GetSystemMetrics(SM_CXVSCROLL);
-    int cyScroll = ::GetSystemMetrics(SM_CYHSCROLL);
     int cyCaption = ::GetSystemMetrics(SM_CYSMCAPTION);
 
     int width = m_nSprite_ViewCX + cxScroll + cxBorder * 2;
-    int height = m_nSprite_ViewCY + cyScroll + cyBorder * 2 + cyCaption;
+    int height = m_nSprite_ViewCY + cyBorder * 2 + cyCaption;
     g_hwndSprite = CreateWindowEx(
             WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
             CLASSNAME_OVERLAPPEDWINDOW, _T("Sprite Viewer"),
@@ -100,7 +99,7 @@ void SpriteView_Create(int x, int y)
 
     m_hwndSpriteViewer = CreateWindow(
             CLASSNAME_SPRITEVIEW, NULL,
-            WS_CHILD | WS_VISIBLE | WS_HSCROLL | WS_VSCROLL | WS_TABSTOP,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
             0, 0, rcClient.right, rcClient.bottom,
             g_hwndSprite, NULL, g_hInst, NULL);
 

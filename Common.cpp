@@ -40,7 +40,7 @@ BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
 
 void AlertWarning(LPCTSTR sMessage)
 {
-    ::MessageBox(NULL, sMessage, _T("UKNC Back to Life"), MB_OK | MB_ICONEXCLAMATION);
+    ::MessageBox(NULL, sMessage, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
 }
 void AlertWarningFormat(LPCTSTR sFormat, ...)
 {
@@ -51,7 +51,12 @@ void AlertWarningFormat(LPCTSTR sFormat, ...)
     _vsntprintf_s(buffer, 512, 512 - 1, sFormat, ptr);
     va_end(ptr);
 
-    ::MessageBox(NULL, buffer, _T("UKNC Back to Life"), MB_OK | MB_ICONEXCLAMATION);
+    ::MessageBox(NULL, buffer, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
+}
+BOOL AlertOkCancel(LPCTSTR sMessage)
+{
+    int result = ::MessageBox(NULL, sMessage, g_szTitle, MB_OKCANCEL | MB_ICONQUESTION | MB_TOPMOST);
+    return (result == IDOK);
 }
 
 
@@ -125,11 +130,7 @@ void DebugLog(LPCTSTR message)
     DWORD dwLength = lstrlen(message) * sizeof(TCHAR);
 
     char ascii[256];  *ascii = 0;
-#ifdef  _UNICODE
     WideCharToMultiByte(CP_ACP, 0, message, dwLength, ascii, 256, NULL, NULL);
-#else
-    strcpy(ascii, message);
-#endif
 
     DWORD dwBytesWritten = 0;
     //WriteFile(Common_LogFile, message, dwLength, &dwBytesWritten, NULL);
@@ -137,8 +138,6 @@ void DebugLog(LPCTSTR message)
 
     //dwLength = lstrlen(TRACELOG_NEWLINE) * sizeof(TCHAR);
     //WriteFile(Common_LogFile, TRACELOG_NEWLINE, dwLength, &dwBytesWritten, NULL);
-
-    //TODO
 }
 
 void DebugLogFormat(LPCTSTR pszFormat, ...)
