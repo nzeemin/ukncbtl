@@ -1840,7 +1840,7 @@ void CProcessor::ExecuteMUL ()  // MUL
 void CProcessor::ExecuteDIV ()  // DIV
 {
     uint16_t ea = 0;
-    int longsrc;
+    int32_t longsrc;
     int res, res1, src2;
     uint8_t new_psw = GetLPSW() & 0xF0;
 
@@ -1849,7 +1849,7 @@ void CProcessor::ExecuteDIV ()  // DIV
     src2 = (int)(signed short)(m_methdest ? GetWord(ea) : GetReg(m_regdest));
     if (m_RPLYrq) return;
 
-    longsrc = (int)MAKELONG(GetReg(m_regsrc | 1), GetReg(m_regsrc));
+    longsrc = (int32_t)(((uint32_t)GetReg(m_regsrc | 1)) | ((uint32_t)GetReg(m_regsrc) << 16));
 
     m_internalTick = DIV_TIMING[m_methdest];
 
@@ -1929,23 +1929,23 @@ void CProcessor::ExecuteASH ()  // ASH
 void CProcessor::ExecuteASHC ()  // ASHC
 {
     uint16_t ea = 0;
-    short src;
-    long dst;
+    int16_t src;
+    int32_t dst;
     uint8_t new_psw = GetLPSW() & 0xF0;
 
     if (m_methdest) ea = GetWordAddr(m_methdest, m_regdest);
     if (m_RPLYrq) return;
-    src = (short)(m_methdest ? GetWord(ea) : GetReg(m_regdest));
+    src = (int16_t)(m_methdest ? GetWord(ea) : GetReg(m_regdest));
     if (m_RPLYrq) return;
     src &= 0x3F;
     src |= (src & 040) ? 0177700 : 0;
-    dst = MAKELONG(GetReg(m_regsrc | 1), GetReg(m_regsrc));
+    dst = ((uint32_t)GetReg(m_regsrc | 1)) | ((uint32_t)GetReg(m_regsrc) << 16);
     m_internalTick = ASHC_TIMING[m_methdest];
     if (src >= 0)
     {
         while (src--)
         {
-            if (dst & 0x80000000L) new_psw |= PSW_C; else new_psw &= ~PSW_C;
+            if (dst & (int32_t)0x80000000L) new_psw |= PSW_C; else new_psw &= ~PSW_C;
             dst <<= 1;
             if ((dst < 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
             m_internalTick = m_internalTick + ASHC_S_TIMING;
