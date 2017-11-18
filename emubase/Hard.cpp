@@ -139,7 +139,6 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
         return false;
 
     // Autodetect inverted image
-    m_okInverted = false;
     uint8_t test = 0xff;
     for (int i = 0x1f0; i <= 0x1fb; i++)
         test &= m_buffer[i];

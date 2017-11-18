@@ -522,7 +522,7 @@ BOOL DisasmView_CheckForJump(const WORD* memory, int* pDelta)
     // SOB
     if ((instr & ~(WORD)0777) == PI_SOB)
     {
-        *pDelta = -(GetDigit(instr, 1) * 4 + GetDigit(instr, 0)) + 1;
+        *pDelta = -(GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) + 1;
         return TRUE;
     }
 
@@ -881,12 +881,12 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                     }
                 }
             }
+            ::SetTextColor(hdc, colorText);
             if (index + length <= nWindowSize)
             {
                 TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) _tcslen(strInstr));
                 TextOut(hdc, x + 29 * cxChar, y, strArg, (int) _tcslen(strArg));
             }
-            ::SetTextColor(hdc, colorText);
             if (wNextBaseAddr == 0)
                 wNextBaseAddr = (WORD)(address + length * 2);
         }

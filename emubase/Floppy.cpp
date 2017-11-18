@@ -61,6 +61,7 @@ CFloppyController::CFloppyController()
     m_trackchanged = false;
     m_status = FLOPPY_STATUS_TRACK0 | FLOPPY_STATUS_WRITEPROTECT;
     m_flags = FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC;
+    m_okTrace = 0;
 }
 
 CFloppyController::~CFloppyController()
