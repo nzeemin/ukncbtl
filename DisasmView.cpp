@@ -639,6 +639,20 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
         _sntprintf(buffer, 32, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
         return TRUE;
     }
+    if (instr == 000003 || instr == 000004 ||  // IOT, BPT
+        instr >= 0104000 && instr <= 0104777)  // TRAP, EMT
+    {
+        WORD intvec;
+        if (instr == 000003) intvec = 000014;
+        else if (instr == 000004) intvec = 000020;
+        else if (instr < 0104400) intvec = 000030;
+        else intvec = 000034;
+
+        int addrtype;
+        WORD value = pMemCtl->GetWordView(intvec, pProc->IsHaltMode(), FALSE, &addrtype);
+        _sntprintf(buffer, 32, _T("(%06o)=%06o"), intvec, value);  // "(VVVVVV)=XXXXXX"
+        return TRUE;
+    }
 
     return TRUE;  // All other jumps are non-conditional
 }
@@ -652,42 +666,32 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
     WORD srcval2 = 0;
 
     _sntprintf(hint1, 20, _T("%s=%06o"), REGISTER_NAME[regnum], regval);  // "RN=XXXXXX"
-    if (regmod == 1)
+    switch (regmod)
     {
+    case 1:
+    case 2:
+        srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
         if (byteword)
         {
-            if (regval & 1)
-                srcval2 = 0xff & (pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype));
-            else
-                srcval2 = (pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype)) >> 8;
+            srcval2 = (regval & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
             _sntprintf(hint2, 20, _T("(%s)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXX"
         }
         else
         {
-            srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
             _sntprintf(hint2, 20, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
         }
-    }
-    else if (regmod == 2)
-    {
-        //TODO: if (byteword)
-        srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
-        _sntprintf(hint2, 20, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
-    }
-    else if (regmod == 3)
-    {
+        break;
+    case 3:
         srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
         _sntprintf(hint2, 20, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
         //TODO: Show the real value in hint line 3
-    }
-    else if (regmod == 4)
-    {
+        break;
+    case 4:
         if (byteword)
         {
-            if (regval & 1)
-                srcval2 = 0xff & (pMemCtl->GetWordView(regval - 1, pProc->IsHaltMode(), false, &addrtype));
-            else
-                srcval2 = (pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype)) >> 8;
+            srcval2 = (regval & 1) ?
+                    ((pMemCtl->GetWordView(regval - 1, pProc->IsHaltMode(), false, &addrtype)) & 0xff) :
+                    ((pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype)) >> 8);
             _sntprintf(hint2, 20, _T("(%s-1)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN-1)=XXX"
         }
         else
@@ -695,24 +699,32 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
             srcval2 = pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype);
             _sntprintf(hint2, 20, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN-2)=XXXXXX"
         }
-    }
-    else if (regmod == 5)
-    {
+        break;
+    case 5:
         srcval2 = pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype);
         _sntprintf(hint2, 20, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN+2)=XXXXXX"
         //TODO: Show the real value in hint line 3
-    }
-    else if (regmod == 6)
-    {
-        //TODO: if (byteword)
-        srcval2 = pMemCtl->GetWordView(regval + indexval, pProc->IsHaltMode(), false, &addrtype);
-        _sntprintf(hint2, 20, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
-    }
-    else if (regmod == 7)
-    {
+        break;
+    case 6:
+        {
+            WORD addr2 = regval + indexval;
+            srcval2 = pMemCtl->GetWordView(addr2 & ~1, pProc->IsHaltMode(), false, &addrtype);
+            if (byteword)
+            {
+                srcval2 = (addr2 & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
+                _sntprintf(hint2, 20, _T("(%s+%06o)=%03o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXX"
+            }
+            else
+            {
+                _sntprintf(hint2, 20, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
+            }
+            break;
+        }
+    case 7:
         srcval2 = pMemCtl->GetWordView(regval + indexval, pProc->IsHaltMode(), false, &addrtype);
         _sntprintf(hint2, 20, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
         //TODO: Show the real value in hint line 3
+        break;
     }
 }
 
@@ -847,18 +859,18 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         DisasmView_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, -1, -1, dstreg, dstmod);
     }
 
-    // ADC, SBC, ROR, ROL: also show C flag
+    // ADC, SBC, ROR, ROL: destination only, and also show C flag
     if ((instr & ~(uint16_t)0100077) == PI_ADC || (instr & ~(uint16_t)0100077) == PI_SBC ||
         (instr & ~(uint16_t)0100077) == PI_ROR || (instr & ~(uint16_t)0100077) == PI_ROL)
     {
         int dstreg = instr & 7;
-        //int dstmod = (instr >> 3) & 7;
-        WORD dstregval = pProc->GetReg(dstreg);
-        WORD psw = pProc->GetPSW();
+        int dstmod = (instr >> 3) & 7;
         if (dstreg != 7)
         {
-            _sntprintf(buffer, 32, _T("%s=%06o, C=%c"), REGISTER_NAME[dstreg], dstregval, (psw & PSW_C) ? '1' : '0');  // "RN=XXXXXX, C=X"
-            return TRUE;
+            TCHAR tempbuf[32];
+            DisasmView_InstructionHint(memory, pProc, pMemCtl, tempbuf, buffer2, -1, -1, dstreg, dstmod);
+            WORD psw = pProc->GetPSW();
+            _sntprintf(buffer, 32, _T("%s, C=%c"), tempbuf, (psw & PSW_C) ? '1' : '0');  // "..., C=X"
         }
     }
 
@@ -868,19 +880,16 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         WORD psw = pProc->GetPSW();
         _sntprintf(buffer, 32, _T("C=%c, V=%c, Z=%c, N=%c"),
                 (psw & PSW_C) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0', (psw & PSW_N) ? '1' : '0');
-        return TRUE;
     }
 
     // HALT mode commands
     if (instr == PI_MFUS)
     {
         _sntprintf(buffer, 32, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
-        return TRUE;
     }
     if (instr == PI_MTUS)
     {
         _sntprintf(buffer, 32, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
-        return TRUE;
     }
     //TODO: MFPC, MTPC
 
