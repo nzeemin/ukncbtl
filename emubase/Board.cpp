@@ -178,6 +178,7 @@ CMotherboard::CMotherboard ()
     m_ParallelOutCallback = NULL;
     m_NetworkInCallback = NULL;
     m_NetworkOutCallback = NULL;
+    m_TerminalOutCallback = NULL;
 
     // Create devices
     m_pCPU = new CProcessor(_T("CPU"));
@@ -1041,9 +1042,6 @@ void CMotherboard::ChanWriteByCPU(uint8_t chan, uint8_t data)
     chan &= 3;
     ASSERT(chan < 3);
 
-//	if((chan==0)&&(m_chan0disabled))
-//		return;
-
     m_chanppurx[chan].data = data;
     m_chanppurx[chan].ready = 1;
     m_chancputx[chan].ready = 0;
@@ -1054,15 +1052,15 @@ void CMotherboard::ChanWriteByCPU(uint8_t chan, uint8_t data)
         m_chanppurx[chan].rdwr = 0;
         m_pPPU->InterruptVIRQ(5 + chan * 2, 0320 + (010 * chan));
     }
+
+    if (chan == 0 && m_TerminalOutCallback != NULL)
+        m_TerminalOutCallback(data);
 }
 void CMotherboard::ChanWriteByPPU(uint8_t chan, uint8_t data)
 {
     uint8_t oldc_ready = m_chancpurx[chan].ready;
     chan &= 3;
     ASSERT(chan < 2);
-
-//	if((chan==0)&&(m_chan0disabled))
-//		return;
 
     m_chancpurx[chan].data = data;
     m_chancpurx[chan].ready = 1;
@@ -1081,9 +1079,6 @@ uint8_t CMotherboard::ChanReadByCPU(uint8_t chan)
 
     chan &= 3;
     ASSERT(chan < 2);
-
-//	if((chan==0)&&(m_chan0disabled))
-//		return 0;
 
     res = m_chancpurx[chan].data;
     m_chancpurx[chan].ready = 0;

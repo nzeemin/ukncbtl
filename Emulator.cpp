@@ -133,6 +133,8 @@ bool Emulator_Init()
         g_pBoard->SetSoundGenCallback(SoundGen_FeedDAC);
     }
 
+    //g_pBoard->SetTerminalCallback(Emulator_TerminalOut_Callback);
+
     m_nUptimeFrameCount = 0;
     m_dwEmulatorUptime = 0;
 
@@ -498,6 +500,15 @@ void Emulator_SetParallel(bool parallelOnOff)
 
     m_okEmulatorParallel = parallelOnOff;
 }
+
+//void CALLBACK Emulator_TerminalOut_Callback(BYTE byte)
+//{
+//#if !defined(PRODUCT)
+//    TCHAR buffer[2];
+//    buffer[0] = byte;  buffer[1] = 0;
+//    DebugLog(buffer);
+//#endif
+//}
 
 int Emulator_SystemFrame()
 {

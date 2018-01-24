@@ -101,6 +101,8 @@ typedef bool (CALLBACK* SERIALOUTCALLBACK)(uint8_t byte);
 //   result     true means OK, false means we have an error
 typedef bool (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
 
+// Terminal out callback -- CPU sends character by channel 0
+typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
 
 class CFloppyController;
 class CHardDrive;
@@ -276,6 +278,8 @@ public:  // System control
     void        SetParallelOutCallback(PARALLELOUTCALLBACK outcallback);
     /// \brief Assign network port input/output callback functions.
     void        SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTCALLBACK outcallback);
+    /// \brief Assign terminal callback functions.
+    void        SetTerminalCallback(TERMINALOUTCALLBACK callback) { m_TerminalOutCallback = callback; }
 public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);
@@ -319,6 +323,7 @@ private:
     PARALLELOUTCALLBACK m_ParallelOutCallback;
     NETWORKINCALLBACK   m_NetworkInCallback;
     NETWORKOUTCALLBACK  m_NetworkOutCallback;
+    TERMINALOUTCALLBACK m_TerminalOutCallback;
 
     void DoSound(void);
 
