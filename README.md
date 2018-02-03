@@ -1,6 +1,8 @@
 # ukncbtl
 UKNCBTL -- UKNC Back to Life! emulator, Win32 version.
 
+[![Build status](https://ci.appveyor.com/api/projects/status/xicur65lusd5c3ab?svg=true)](https://ci.appveyor.com/project/nzeemin/ukncbtl)
+
 *UKNCBTL -- UKNC Back to Life!*
 -- is cross-platform UKNC emulator for Windows/Linux/Mac OS X.
 *UKNC* (*УКНЦ*, Электроника МС-0511) is soviet school computer based on two PDP-11 compatible processors KM1801VM2.
