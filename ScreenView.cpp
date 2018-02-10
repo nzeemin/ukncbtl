@@ -188,7 +188,7 @@ void ScreenView_RegisterClass()
 
 void ScreenView_Init()
 {
-    m_bits = (DWORD*) ::malloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
+    m_bits = (DWORD*) ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4, 1);
 }
 
 void ScreenView_Done()
@@ -605,7 +605,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
 {
     ASSERT(sFileName != NULL);
 
-    DWORD* pBits = (DWORD*) ::malloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
+    DWORD* pBits = (DWORD*) ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
     const DWORD* colors = ScreenView_GetPalette();
     Emulator_PrepareScreenRGB32(pBits, colors);
 

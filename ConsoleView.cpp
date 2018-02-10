@@ -281,7 +281,7 @@ void PrintRegister(LPCTSTR strName, WORD value)
 BOOL SaveMemoryDump(CProcessor *pProc)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    WORD * pData = (WORD *) ::malloc(65536);
+    WORD * pData = (WORD *) ::calloc(65536, 1);
     if (pData == NULL)
         return false;
 

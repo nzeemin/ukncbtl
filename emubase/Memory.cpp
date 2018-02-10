@@ -54,7 +54,7 @@ void CMemoryController::AttachDevices(const CBusDevice **pDevices)
     }
 
     // Allocate memory and store the devices
-    m_pDevices = (CBusDevice **) malloc((deviceCount + 1) * sizeof(CBusDevice*));
+    m_pDevices = (CBusDevice **) calloc((deviceCount + 1), sizeof(CBusDevice*));
     m_pDevices[0] = NULL;
     memcpy(m_pDevices + 1, pDevices, deviceCount * sizeof(CBusDevice*));
     m_nDeviceCount = deviceCount;

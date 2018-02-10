@@ -67,10 +67,9 @@ const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
 bool Emulator_LoadUkncRom()
 {
-    void * pData = ::malloc(32768);
+    void * pData = ::calloc(32768, 1);
     if (pData == NULL)
         return false;
-    ::memset(pData, 0, 32768);
 
     FILE* fpFile = ::_tfsopen(_T("uknc_rom.bin"), _T("rb"), _SH_DENYWR);
     if (fpFile != NULL)
@@ -141,10 +140,8 @@ bool Emulator_Init()
     // Allocate memory for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        g_pEmulatorRam[i] = (BYTE*) ::malloc(65536);
-        if (g_pEmulatorRam[i] != NULL) memset(g_pEmulatorRam[i], 0, 65536);
-        g_pEmulatorChangedRam[i] = (BYTE*) ::malloc(65536);
-        if (g_pEmulatorChangedRam[i] != NULL) memset(g_pEmulatorChangedRam[i], 0, 65536);
+        g_pEmulatorRam[i] = (BYTE*) ::calloc(65536, 1);
+        g_pEmulatorChangedRam[i] = (BYTE*) ::calloc(65536, 1);
     }
 
     g_okEmulatorInitialized = TRUE;
@@ -642,7 +639,7 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     }
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::malloc(24 * 1024);
+    BYTE* pImage = (BYTE*) ::calloc(24 * 1024, 1);
     if (pImage == NULL)
     {
         ::fclose(fpFile);
@@ -830,13 +827,12 @@ bool Emulator_SaveImage(LPCTSTR sFilePath)
         return false;
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
+    BYTE* pImage = (BYTE*) ::calloc(UKNCIMAGE_SIZE, 1);
     if (pImage == NULL)
     {
         ::fclose(fpFile);
         return false;
     }
-    memset(pImage, 0, UKNCIMAGE_SIZE);
     // Prepare header
     DWORD* pHeader = (DWORD*) pImage;
     *pHeader++ = UKNCIMAGE_HEADER1;
@@ -878,7 +874,7 @@ bool Emulator_LoadImage(LPCTSTR sFilePath)
     //TODO: Check version and size
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::malloc(UKNCIMAGE_SIZE);
+    BYTE* pImage = (BYTE*) ::calloc(UKNCIMAGE_SIZE, 1);
     if (pImage == NULL)
     {
         ::fclose(fpFile);

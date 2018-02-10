@@ -194,24 +194,24 @@ CMotherboard::CMotherboard ()
     m_pSecondMemCtl->Attach(this, m_pPPU);
 
     // Allocate memory for RAM and ROM
-    m_pRAM[0] = (uint8_t*) malloc(65536);  memset(m_pRAM[0], 0, 65536);
-    m_pRAM[1] = (uint8_t*) malloc(65536);  memset(m_pRAM[1], 0, 65536);
-    m_pRAM[2] = (uint8_t*) malloc(65536);  memset(m_pRAM[2], 0, 65536);
-    m_pROM    = (uint8_t*) malloc(32768);  memset(m_pROM, 0, 32768);
+    m_pRAM[0] = (uint8_t*) calloc(65536, 1);
+    m_pRAM[1] = (uint8_t*) calloc(65536, 1);
+    m_pRAM[2] = (uint8_t*) calloc(65536, 1);
+    m_pROM    = (uint8_t*) calloc(32768, 1);
     m_pROMCart[0] = NULL;
     m_pROMCart[1] = NULL;
     m_pHardDrives[0] = NULL;
     m_pHardDrives[1] = NULL;
 
     // Prepare bus devices
-    m_pCpuDevices = (CBusDevice**) malloc(6 * sizeof(CBusDevice*));
+    m_pCpuDevices = (CBusDevice**) calloc(6, sizeof(CBusDevice*));
     m_pCpuDevices[0] = new CBusDeviceProcessorTimer();
     m_pCpuDevices[1] = new CBusDeviceCpuChannels();
     m_pCpuDevices[2] = new CBusDeviceNetworkAdapter();
     m_pCpuDevices[3] = new CBusDeviceSerialPort();
     m_pCpuDevices[4] = new CBusDeviceCpuMemoryAccess();
     m_pCpuDevices[5] = NULL;
-    m_pPpuDevices = (CBusDevice**) malloc(8 * sizeof(CBusDevice*));
+    m_pPpuDevices = (CBusDevice**) calloc(8, sizeof(CBusDevice*));
     m_pPpuDevices[0] = new CBusDeviceProcessorTimer();
     m_pPpuDevices[1] = new CBusDevicePpuChannels();
     m_pPpuDevices[2] = new CBusDevicePpuMemoryAccess();
@@ -316,7 +316,7 @@ void CMotherboard::LoadROMCartridge(int cartno, const uint8_t* pBuffer)  // Load
 
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == NULL)
-        m_pROMCart[cartindex] = (uint8_t*) malloc(24 * 1024);
+        m_pROMCart[cartindex] = (uint8_t*) calloc(24 * 1024, 1);
 
     memcpy(m_pROMCart[cartindex], pBuffer, 24 * 1024);
 }
