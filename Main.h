@@ -156,6 +156,8 @@ void Settings_SetScreenViewMode(int mode);
 int  Settings_GetScreenViewMode();
 void Settings_SetScreenHeightMode(int mode);
 int  Settings_GetScreenHeightMode();
+void Settings_SetScreenshotMode(int mode);
+int  Settings_GetScreenshotMode();
 void Settings_SetDebug(BOOL flag);
 BOOL Settings_GetDebug();
 void Settings_GetDebugFontName(LPTSTR buffer);

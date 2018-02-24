@@ -15,6 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <commctrl.h>
 #include "Dialogs.h"
 #include "Main.h"
+#include "Views.h"
 #include "Emulator.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -286,6 +287,22 @@ void FillRenderCombo(HWND hRender)
     ::SendMessage(hRender, CB_SELECTSTRING, 0, (LPARAM)buffer);
 }
 
+void FillScreenshotModeCombo(HWND hScreenshotMode)
+{
+    int screenshotMode = 0;
+    for (;;)
+    {
+        LPCTSTR sModeName = ScreenView_GetScreenshotModeName(screenshotMode);
+        if (sModeName == NULL)
+            break;
+        ::SendMessage(hScreenshotMode, CB_ADDSTRING, 0, (LPARAM)sModeName);
+        screenshotMode++;
+    }
+
+    screenshotMode = Settings_GetScreenshotMode();
+    ::SendMessage(hScreenshotMode, CB_SETCURSEL, screenshotMode, 0);
+}
+
 int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC* /*lpntme*/, DWORD /*FontType*/, LPARAM lParam)
 {
     if ((lpelfe->lfPitchAndFamily & FIXED_PITCH) == 0)
@@ -332,6 +349,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
             HWND hRender = GetDlgItem(hDlg, IDC_RENDER);
             FillRenderCombo(hRender);
 
+            HWND hScreenshotMode = GetDlgItem(hDlg, IDC_SCREENSHOTMODE);
+            FillScreenshotModeCombo(hScreenshotMode);
+
             HWND hDebugFont = GetDlgItem(hDlg, IDC_DEBUGFONT);
             FillDebugFontCombo(hDebugFont);
 
@@ -363,6 +383,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
 
                 GetDlgItemText(hDlg, IDC_RENDER, buffer, 32);
                 Settings_SetRender(buffer);
+
+                int screenshotMode = ::SendMessage(GetDlgItem(hDlg, IDC_SCREENSHOTMODE), CB_GETCURSEL, 0, 0);
+                Settings_SetScreenshotMode(screenshotMode);
 
                 GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
                 Settings_SetSerialPort(buffer);

@@ -1325,7 +1325,8 @@ void MainWindow_DoFileScreenshot()
     wsprintf(bufFileName, _T("%04d%02d%02d%02d%02d%02d%03d.png"),
             st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 
-    if (!ScreenView_SaveScreenshot(bufFileName))
+    int screenshotMode = Settings_GetScreenshotMode();
+    if (!ScreenView_SaveScreenshot(bufFileName, screenshotMode))
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
     }
@@ -1341,7 +1342,8 @@ void MainWindow_DoFileScreenshotSaveAs()
             bufFileName);
     if (! okResult) return;
 
-    if (!ScreenView_SaveScreenshot(bufFileName))
+    int screenshotMode = Settings_GetScreenshotMode();
+    if (!ScreenView_SaveScreenshot(bufFileName, screenshotMode))
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
     }

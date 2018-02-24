@@ -54,6 +54,11 @@ BOOL bEntPressed = FALSE;
 
 void ScreenView_OnDraw(HDC hdc);
 
+typedef void (CALLBACK* PREPARE_SCREENSHOT_CALLBACK)(const void * pSrcBits, void * pDestBits);
+
+void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei);
+PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode);
+
 
 //////////////////////////////////////////////////////////////////////
 // Colors
@@ -601,7 +606,7 @@ void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed)
     ScreenView_PutKeyEventToQueue(MAKEWORD(keyscan, pressed ? 128 : 0));
 }
 
-BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
+BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 {
     ASSERT(sFileName != NULL);
 
@@ -611,16 +616,255 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName)
 
     const DWORD * palette = ScreenView_GetPalette();
 
+    int scrwidth, scrheight;
+    ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
+    PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
+
+    DWORD* pScrBits = (DWORD*) ::calloc(scrwidth * scrheight, 4);
+    callback(pBits, pScrBits);
+    ::free(pBits);
+
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
     BOOL result = FALSE;
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".png")) == 0)
-        result = PngFile_SaveScreenshot((const uint32_t *)pBits, (const uint32_t *)palette, sFileName);
+        result = PngFile_SaveScreenshot((const uint32_t *)pScrBits, (const uint32_t *)palette, sFileName, scrwidth, scrheight);
     else
-        result = BmpFile_SaveScreenshot((const uint32_t *)pBits, (const uint32_t *)palette, sFileName);
+        result = BmpFile_SaveScreenshot((const uint32_t *)pScrBits, (const uint32_t *)palette, sFileName, scrwidth, scrheight);
 
-    ::free(pBits);
+    ::free(pScrBits);
 
     return result;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+
+
+void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale2(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale2d(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale4(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits);
+void CALLBACK PrepareScreenUpscale5(const void * pSrcBits, void * pDestBits);
+
+struct ScreenshotModeStruct
+{
+    int width;
+    int height;
+    PREPARE_SCREENSHOT_CALLBACK callback;
+    LPCTSTR description;
+}
+static ScreenshotModeReference[] =
+{
+    {  640,  288, PrepareScreenCopy,        _T("640 x 288 Standard") },
+    {  640,  432, PrepareScreenUpscale,     _T("640 x 432 Upscaled to 1.5") },
+    {  640,  576, PrepareScreenUpscale2,    _T("640 x 576 Interlaced") },
+    {  640,  576, PrepareScreenUpscale2d,   _T("640 x 576 Doubled") },
+    {  960,  576, PrepareScreenUpscale3,    _T("960 x 576 Interlaced") },
+    {  960,  720, PrepareScreenUpscale4,    _T("960 x 720, 4:3") },
+    { 1120,  864, PrepareScreenUpscale175,  _T("1120 x 864 Interlaced") },
+    { 1280,  864, PrepareScreenUpscale5,    _T("1280 x 864 Interlaced") },
+};
+const int ScreenshotModeCount = sizeof(ScreenshotModeReference) / sizeof(ScreenshotModeStruct);
+
+void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei)
+{
+    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
+        screenshotMode = 1;
+    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
+    *pwid = pinfo->width;
+    *phei = pinfo->height;
+}
+
+PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode)
+{
+    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
+        screenshotMode = 1;
+    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
+    return pinfo->callback;
+}
+
+LPCTSTR ScreenView_GetScreenshotModeName(int screenshotMode)
+{
+    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
+        return NULL;
+    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
+    return pinfo->description;
+}
+
+#define AVERAGERGB(a, b)  ( (((a) & 0xfefefeffUL) + ((b) & 0xfefefeffUL)) >> 1 )
+
+void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits)
+{
+    for (int line = 0; line < UKNC_SCREEN_HEIGHT; line++)
+    {
+        DWORD * pSrc = ((DWORD*)pSrcBits) + UKNC_SCREEN_WIDTH * line;
+        DWORD * pDest = ((DWORD*)pDestBits) + UKNC_SCREEN_WIDTH * line;
+        ::memcpy(pDest, pSrc, UKNC_SCREEN_WIDTH * 4);
+    }
+    //::memcpy(pDestBits, pSrcBits, UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
+}
+
+// Upscale screen from height 288 to 432
+void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits)
+{
+    int ukncline = 0;
+    for (int line = 0; line < 432; line++)
+    {
+        DWORD* pdest = ((DWORD*)pDestBits) + line * UKNC_SCREEN_WIDTH;
+        if (line % 3 == 1)
+        {
+            DWORD* psrc1 = ((DWORD*)pSrcBits) + (ukncline - 1) * UKNC_SCREEN_WIDTH;
+            DWORD* psrc2 = ((DWORD*)pSrcBits) + (ukncline + 0) * UKNC_SCREEN_WIDTH;
+            DWORD* pdst1 = (DWORD*)pdest;
+            for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
+            {
+                *pdst1 = AVERAGERGB(*psrc1, *psrc2);
+                psrc1++;  psrc2++;  pdst1++;
+            }
+        }
+        else
+        {
+            DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+            memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+            ukncline++;
+        }
+    }
+}
+
+// Upscale screen to twice height with "interlaced" effect
+void CALLBACK PrepareScreenUpscale2(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
+    {
+        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
+        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+
+        pdest += UKNC_SCREEN_WIDTH;
+        memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
+    }
+}
+
+// Upscale screen to twice height
+void CALLBACK PrepareScreenUpscale2d(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
+    {
+        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
+        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+
+        pdest += UKNC_SCREEN_WIDTH;
+        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+    }
+}
+
+// Upscale screen width 640->960, height 288->720
+void CALLBACK PrepareScreenUpscale4(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline += 2)
+    {
+        DWORD* psrc1 = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* psrc2 = psrc1 + UKNC_SCREEN_WIDTH;
+        DWORD* pdest0 = ((DWORD*)pDestBits) + ukncline / 2 * 5 * 960;
+        DWORD* pdest1 = pdest0 + 960;
+        DWORD* pdest2 = pdest1 + 960;
+        DWORD* pdest3 = pdest2 + 960;
+        DWORD* pdest4 = pdest3 + 960;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
+        {
+            DWORD c1a = *(psrc1++);  DWORD c1b = *(psrc1++);
+            DWORD c2a = *(psrc2++);  DWORD c2b = *(psrc2++);
+            DWORD c1 = AVERAGERGB(c1a, c1b);
+            DWORD c2 = AVERAGERGB(c2a, c2b);
+            DWORD ca = AVERAGERGB(c1a, c2a);
+            DWORD cb = AVERAGERGB(c1b, c2b);
+            DWORD c  = AVERAGERGB(ca,  cb);
+            (*pdest0++) = c1a;  (*pdest0++) = c1;  (*pdest0++) = c1b;
+            (*pdest1++) = c1a;  (*pdest1++) = c1;  (*pdest1++) = c1b;
+            (*pdest2++) = ca;   (*pdest2++) = c;   (*pdest2++) = cb;
+            (*pdest3++) = c2a;  (*pdest3++) = c2;  (*pdest3++) = c2b;
+            (*pdest4++) = c2a;  (*pdest4++) = c2;  (*pdest4++) = c2b;
+        }
+    }
+}
+
+// Upscale screen width 640->960, height 288->576 with "interlaced" effect
+void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = UKNC_SCREEN_HEIGHT - 1; ukncline >= 0; ukncline--)
+    {
+        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        psrc += UKNC_SCREEN_WIDTH - 1;
+        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * 960;
+        pdest += 960 - 1;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
+        {
+            DWORD c1 = *psrc;  psrc--;
+            DWORD c2 = *psrc;  psrc--;
+            DWORD c12 = AVERAGERGB(c1, c2);
+            *pdest = c1;  pdest--;
+            *pdest = c12; pdest--;
+            *pdest = c2;  pdest--;
+        }
+
+        pdest += 960;
+        memset(pdest, 0, 960 * 4);
+    }
+}
+
+// Upscale screen width 640->1120 (x1.75), height 288->864 (x3) with "interlaced" effect
+void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
+    {
+        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest1 = ((DWORD*)pDestBits) + ukncline * 3 * 1120;
+        DWORD* pdest2 = pdest1 + 1120;
+        //DWORD* pdest3 = pdest2 + 1120;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH / 4; i++)
+        {
+            DWORD c1 = *(psrc++);
+            DWORD c2 = *(psrc++);
+            DWORD c3 = *(psrc++);
+            DWORD c4 = *(psrc++);
+
+            *(pdest1++) = *(pdest2++) = c1;
+            *(pdest1++) = *(pdest2++) = AVERAGERGB(c1, c2);
+            *(pdest1++) = *(pdest2++) = c2;
+            *(pdest1++) = *(pdest2++) = AVERAGERGB(c2, c3);
+            *(pdest1++) = *(pdest2++) = c3;
+            *(pdest1++) = *(pdest2++) = AVERAGERGB(c3, c4);
+            *(pdest1++) = *(pdest2++) = c4;
+        }
+    }
+}
+
+// Upscale screen width 640->1280, height 288->864 with "interlaced" effect
+void CALLBACK PrepareScreenUpscale5(const void * pSrcBits, void * pDestBits)
+{
+    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
+    {
+        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        DWORD* pdest = ((DWORD*)pDestBits) + ukncline * 3 * 1280;
+        psrc += UKNC_SCREEN_WIDTH - 1;
+        pdest += 1280 - 1;
+        DWORD* pdest2 = pdest + 1280;
+        DWORD* pdest3 = pdest2 + 1280;
+        for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
+        {
+            DWORD color = *psrc;  psrc--;
+            *pdest = color;  pdest--;
+            *pdest = color;  pdest--;
+            *pdest2 = color;  pdest2--;
+            *pdest2 = color;  pdest2--;
+            *pdest3 = 0;  pdest3--;
+            *pdest3 = 0;  pdest3--;
+        }
+    }
 }
 
 
