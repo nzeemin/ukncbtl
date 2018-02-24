@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "BitmapFile.h"
+#include <Share.h>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -51,6 +52,11 @@ bool BmpFile_SaveScreenshot(
     DWORD dwBytesWritten = 0;
 
     uint8_t * pData = (uint8_t *) ::calloc(1, bih.biSizeImage);
+    if (pData == NULL)
+    {
+        CloseHandle(hFile);
+        return FALSE;
+    }
 
     // Prepare the image data
     const uint32_t * psrc = pBits;
@@ -78,35 +84,35 @@ bool BmpFile_SaveScreenshot(
     WriteFile(hFile, &hdr, sizeof(BITMAPFILEHEADER), &dwBytesWritten, NULL);
     if (dwBytesWritten != sizeof(BITMAPFILEHEADER))
     {
-        ::free(pData);
+        ::free(pData);  CloseHandle(hFile);
         return false;
     }
     WriteFile(hFile, &bih, sizeof(BITMAPINFOHEADER), &dwBytesWritten, NULL);
     if (dwBytesWritten != sizeof(BITMAPINFOHEADER))
     {
-        ::free(pData);
+        ::free(pData);  CloseHandle(hFile);
         return false;
     }
     WriteFile(hFile, palette, sizeof(RGBQUAD) * 128, &dwBytesWritten, NULL);
     if (dwBytesWritten != sizeof(RGBQUAD) * 128)
     {
-        ::free(pData);
+        ::free(pData);  CloseHandle(hFile);
         return false;
     }
     //NOTE: Write the palette for the second time, to fill colors #128-255
     WriteFile(hFile, palette, sizeof(RGBQUAD) * 128, &dwBytesWritten, NULL);
     if (dwBytesWritten != sizeof(RGBQUAD) * 128)
     {
-        ::free(pData);
+        ::free(pData);  CloseHandle(hFile);
         return false;
     }
-
     WriteFile(hFile, pData, bih.biSizeImage, &dwBytesWritten, NULL);
-    ::free(pData);
     if (dwBytesWritten != bih.biSizeImage)
+    {
+        ::free(pData);  CloseHandle(hFile);
         return false;
-
-    // Close file
+    }
+    ::free(pData);
     CloseHandle(hFile);
 
     return true;
@@ -219,6 +225,8 @@ bool PngFile_WriteImageData8(FILE * fpFile, uint32_t framenum, const uint32_t* p
     uint32_t pDataLength = 8 + 2 + (6 + UKNC_SCREEN_WIDTH) * UKNC_SCREEN_HEIGHT + 4/*adler*/ + 4;
     if (framenum > 1) pDataLength += 4;
     uint8_t * pData = (uint8_t *) ::calloc((size_t)pDataLength, 1);
+    if (pData == NULL)
+        return false;
     SaveValueMSB(pData, pDataLength - 12);
     memcpy(pData + 4, (framenum <= 1) ? "IDAT" : "fdAT", 4);
     if (framenum > 1) SaveValueMSB(pData + 8, framenum);
@@ -284,7 +292,7 @@ bool PngFile_SaveScreenshot(
     ASSERT(sFileName != NULL);
 
     // Create file
-    FILE * fpFile = ::_tfopen(sFileName, _T("w+b"));
+    FILE * fpFile = ::_tfsopen(sFileName, _T("w+b"), _SH_DENYWR);
     if (fpFile == NULL)
         return false;
 
