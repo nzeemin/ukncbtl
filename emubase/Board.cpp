@@ -194,24 +194,24 @@ CMotherboard::CMotherboard ()
     m_pSecondMemCtl->Attach(this, m_pPPU);
 
     // Allocate memory for RAM and ROM
-    m_pRAM[0] = (uint8_t*) calloc(65536, 1);
-    m_pRAM[1] = (uint8_t*) calloc(65536, 1);
-    m_pRAM[2] = (uint8_t*) calloc(65536, 1);
-    m_pROM    = (uint8_t*) calloc(32768, 1);
+    m_pRAM[0] = static_cast<uint8_t*>(calloc(65536, 1));
+    m_pRAM[1] = static_cast<uint8_t*>(calloc(65536, 1));
+    m_pRAM[2] = static_cast<uint8_t*>(calloc(65536, 1));
+    m_pROM    = static_cast<uint8_t*>(calloc(32768, 1));
     m_pROMCart[0] = nullptr;
     m_pROMCart[1] = nullptr;
     m_pHardDrives[0] = nullptr;
     m_pHardDrives[1] = nullptr;
 
     // Prepare bus devices
-    m_pCpuDevices = (CBusDevice**) calloc(6, sizeof(CBusDevice*));
+    m_pCpuDevices = static_cast<CBusDevice**>(calloc(6, sizeof(CBusDevice*)));
     m_pCpuDevices[0] = new CBusDeviceProcessorTimer();
     m_pCpuDevices[1] = new CBusDeviceCpuChannels();
     m_pCpuDevices[2] = new CBusDeviceNetworkAdapter();
     m_pCpuDevices[3] = new CBusDeviceSerialPort();
     m_pCpuDevices[4] = new CBusDeviceCpuMemoryAccess();
     m_pCpuDevices[5] = nullptr;
-    m_pPpuDevices = (CBusDevice**) calloc(8, sizeof(CBusDevice*));
+    m_pPpuDevices = static_cast<CBusDevice**>(calloc(8, sizeof(CBusDevice*)));
     m_pPpuDevices[0] = new CBusDeviceProcessorTimer();
     m_pPpuDevices[1] = new CBusDevicePpuChannels();
     m_pPpuDevices[2] = new CBusDevicePpuMemoryAccess();
@@ -316,7 +316,7 @@ void CMotherboard::LoadROMCartridge(int cartno, const uint8_t* pBuffer)  // Load
 
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
-        m_pROMCart[cartindex] = (uint8_t*) calloc(24 * 1024, 1);
+        m_pROMCart[cartindex] = static_cast<uint8_t*>(calloc(24 * 1024, 1));
 
     memcpy(m_pROMCart[cartindex], pBuffer, 24 * 1024);
 }
@@ -688,35 +688,35 @@ bool CMotherboard::SystemFrame()
         // CPU - 16 times, PPU - 12.5 times
         if (m_CPUbp == 0177777 && m_PPUbp == 0177777)  // No breakpoints, no need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
             /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
             /*  4 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
             /*  7 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
             /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
+            /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
                 SYSTEMFRAME_EXECUTE_PPU;
         }
         else  // Have breakpoint, need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
             /*  1 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
             /*  4 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
             /*  7 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
             /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
+            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
                 SYSTEMFRAME_EXECUTE_BP_PPU;
         }

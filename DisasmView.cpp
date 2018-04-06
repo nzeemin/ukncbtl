@@ -392,7 +392,6 @@ BOOL DisasmView_ParseSubtitles()
             {
                 *pText = 0;  // Обозначаем конец комментария - для комментария к блоку
                 pText++;
-                continue;
             }
         }
     }

@@ -136,7 +136,7 @@ CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = nullptr;
 void CProcessor::Init()
 {
     ASSERT(m_pExecuteMethodMap == nullptr);
-    m_pExecuteMethodMap = (CProcessor::ExecuteMethodRef*) ::calloc(65536, sizeof(CProcessor::ExecuteMethodRef));
+    m_pExecuteMethodMap = static_cast<CProcessor::ExecuteMethodRef*>(::calloc(65536, sizeof(CProcessor::ExecuteMethodRef)));
 
     // —начала заполн€ем таблицу ссылками на метод ExecuteUNKNOWN, выполн€ющий TRAP 10
     RegisterMethodRef( 0000000, 0177777, &CProcessor::ExecuteUNKNOWN );

@@ -22,7 +22,7 @@ CMemoryController::CMemoryController ()
 {
     m_pProcessor = nullptr;
     m_pBoard = nullptr;
-    m_pMapping = (uint8_t*) malloc(65536);
+    m_pMapping = static_cast<uint8_t*>(malloc(65536));
     memset(m_pMapping, ADDRTYPE_NONE, 65536);
     m_pDevices = nullptr;
     m_nDeviceCount = 0;
@@ -54,7 +54,7 @@ void CMemoryController::AttachDevices(const CBusDevice **pDevices)
     }
 
     // Allocate memory and store the devices
-    m_pDevices = (CBusDevice **) calloc((deviceCount + 1), sizeof(CBusDevice*));
+    m_pDevices = static_cast<CBusDevice **>(calloc((deviceCount + 1), sizeof(CBusDevice*)));
     m_pDevices[0] = nullptr;
     memcpy(m_pDevices + 1, pDevices, deviceCount * sizeof(CBusDevice*));
     m_nDeviceCount = deviceCount;

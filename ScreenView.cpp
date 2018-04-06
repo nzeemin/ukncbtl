@@ -193,7 +193,7 @@ void ScreenView_RegisterClass()
 
 void ScreenView_Init()
 {
-    m_bits = (DWORD*) ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4, 1);
+    m_bits = static_cast<DWORD*>(::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4, 1));
 }
 
 void ScreenView_Done()
@@ -379,8 +379,7 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
             SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
             return (LRESULT) TRUE;
         }
-        else
-            return DefWindowProc(hWnd, message, wParam, lParam);
+        return DefWindowProc(hWnd, message, wParam, lParam);
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -610,7 +609,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 {
     ASSERT(sFileName != NULL);
 
-    DWORD* pBits = (DWORD*) ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    DWORD* pBits = static_cast<DWORD*>(::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4));
     const DWORD* colors = ScreenView_GetPalette();
     Emulator_PrepareScreenRGB32(pBits, colors);
 
@@ -620,7 +619,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
     PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
 
-    DWORD* pScrBits = (DWORD*) ::calloc(scrwidth * scrheight, 4);
+    DWORD* pScrBits = static_cast<DWORD*>(::calloc(scrwidth * scrheight, 4));
     callback(pBits, pScrBits);
     ::free(pBits);
 

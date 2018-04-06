@@ -140,8 +140,8 @@ bool Emulator_Init()
     // Allocate memory for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        g_pEmulatorRam[i] = (BYTE*) ::calloc(65536, 1);
-        g_pEmulatorChangedRam[i] = (BYTE*) ::calloc(65536, 1);
+        g_pEmulatorRam[i] = static_cast<BYTE*>(::calloc(65536, 1));
+        g_pEmulatorChangedRam[i] = static_cast<BYTE*>(::calloc(65536, 1));
     }
 
     g_okEmulatorInitialized = TRUE;
@@ -639,7 +639,7 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     }
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::calloc(24 * 1024, 1);
+    BYTE* pImage = static_cast<BYTE*>(::calloc(24 * 1024, 1));
     if (pImage == NULL)
     {
         ::fclose(fpFile);
@@ -827,7 +827,7 @@ bool Emulator_SaveImage(LPCTSTR sFilePath)
         return false;
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::calloc(UKNCIMAGE_SIZE, 1);
+    BYTE* pImage = static_cast<BYTE*>(::calloc(UKNCIMAGE_SIZE, 1));
     if (pImage == NULL)
     {
         ::fclose(fpFile);
@@ -874,7 +874,7 @@ bool Emulator_LoadImage(LPCTSTR sFilePath)
     //TODO: Check version and size
 
     // Allocate memory
-    BYTE* pImage = (BYTE*) ::calloc(UKNCIMAGE_SIZE, 1);
+    BYTE* pImage = static_cast<BYTE*>(::calloc(UKNCIMAGE_SIZE, 1));
     if (pImage == NULL)
     {
         ::fclose(fpFile);

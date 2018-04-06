@@ -281,9 +281,9 @@ void PrintRegister(LPCTSTR strName, WORD value)
 BOOL SaveMemoryDump(CProcessor *pProc)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    WORD * pData = (WORD *) ::calloc(65536, 1);
+    WORD * pData = static_cast<WORD*>(::calloc(65536, 1));
     if (pData == NULL)
-        return false;
+        return FALSE;
 
     int isHaltMode = pProc->IsHaltMode();
     for (WORD i = 0; i <= 32767; i++)
@@ -300,9 +300,9 @@ BOOL SaveMemoryDump(CProcessor *pProc)
     ::free(pData);
     ::CloseHandle(file);
     if (dwBytesWritten != 65536)
-        return false;
+        return FALSE;
 
-    return true;
+    return TRUE;
 }
 
 void SaveDisplayListDump()
