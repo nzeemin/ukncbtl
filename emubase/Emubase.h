@@ -112,7 +112,7 @@ public:
     /// \brief Detach image from the drive -- remove disk
     void DetachImage(int drive);
     /// \brief Check if the drive has an image attached
-    bool IsAttached(int drive) const { return (m_drivedata[drive].fpFile != NULL); }
+    bool IsAttached(int drive) const { return (m_drivedata[drive].fpFile != nullptr); }
     /// \brief Check if the drive's attached image is read-only
     bool IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     /// \brief Check if floppy engine now rotates

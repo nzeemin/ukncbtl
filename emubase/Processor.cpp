@@ -125,7 +125,7 @@ uint16_t RESET_TIMING = 105 + 968;  // ТО КМ1801ВМ2 стр. 134
 //////////////////////////////////////////////////////////////////////
 
 
-CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = NULL;
+CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = nullptr;
 
 #define RegisterMethodRef(/*uint16_t*/ opstart, /*uint16_t*/ opend, /*CProcessor::ExecuteMethodRef*/ methodref) \
 	{ \
@@ -135,7 +135,7 @@ CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = NULL;
 
 void CProcessor::Init()
 {
-    ASSERT(m_pExecuteMethodMap == NULL);
+    ASSERT(m_pExecuteMethodMap == nullptr);
     m_pExecuteMethodMap = (CProcessor::ExecuteMethodRef*) ::calloc(65536, sizeof(CProcessor::ExecuteMethodRef));
 
     // Сначала заполняем таблицу ссылками на метод ExecuteUNKNOWN, выполняющий TRAP 10
@@ -248,7 +248,7 @@ void CProcessor::Init()
 
 void CProcessor::Done()
 {
-    ::free(m_pExecuteMethodMap);  m_pExecuteMethodMap = NULL;
+    ::free(m_pExecuteMethodMap);  m_pExecuteMethodMap = nullptr;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -262,7 +262,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_savepc = 0177777;
     m_okStopped = true;
     m_internalTick = 0;
-    m_pMemoryController = NULL;
+    m_pMemoryController = nullptr;
     m_waitmode = false;
     m_stepmode = false;
     m_buserror = false;
@@ -1859,7 +1859,7 @@ void CProcessor::ExecuteDIV ()  // DIV
         SetLPSW(new_psw);
         return;
     }
-    if ((longsrc == 020000000000) && (src2 == -1))
+    if ((longsrc == (int32_t)020000000000) && (src2 == -1))
     {
         new_psw |= PSW_V; // переполняемся, товарищи
         SetLPSW(new_psw);

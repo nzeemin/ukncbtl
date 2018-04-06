@@ -32,7 +32,7 @@ static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest);
 
 CFloppyDrive::CFloppyDrive()
 {
-    fpFile = NULL;
+    fpFile = nullptr;
     okNetRT11Image = okReadOnly = false;
     datatrack = dataside = 0;
     dataptr = 0;
@@ -92,27 +92,27 @@ void CFloppyController::Reset()
 
 bool CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 {
-    ASSERT(sFileName != NULL);
+    ASSERT(sFileName != nullptr);
 
     // If image attached - detach one first
-    if (m_drivedata[drive].fpFile != NULL)
+    if (m_drivedata[drive].fpFile != nullptr)
         DetachImage(drive);
 
     // Определяем, это .dsk-образ или .rtd-образ - по расширению файла
     m_drivedata[drive].okNetRT11Image = false;
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
-    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".rtd")) == 0)
+    if (sFileNameExt != nullptr && _tcsicmp(sFileNameExt, _T(".rtd")) == 0)
         m_drivedata[drive].okNetRT11Image = true;
 
     // Open file
     m_drivedata[drive].okReadOnly = false;
     m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("r+b"));
-    if (m_drivedata[drive].fpFile == NULL)
+    if (m_drivedata[drive].fpFile == nullptr)
     {
         m_drivedata[drive].okReadOnly = true;
         m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("rb"));
     }
-    if (m_drivedata[drive].fpFile == NULL)
+    if (m_drivedata[drive].fpFile == nullptr)
         return false;
 
     m_side = m_track = m_drivedata[drive].datatrack = m_drivedata[drive].dataside = 0;
@@ -131,12 +131,12 @@ bool CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 
 void CFloppyController::DetachImage(int drive)
 {
-    if (m_drivedata[drive].fpFile == NULL) return;
+    if (m_drivedata[drive].fpFile == nullptr) return;
 
     FlushChanges();
 
     ::fclose(m_drivedata[drive].fpFile);
-    m_drivedata[drive].fpFile = NULL;
+    m_drivedata[drive].fpFile = nullptr;
     m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = false;
     m_drivedata[drive].Reset();
 }
@@ -157,7 +157,7 @@ uint16_t CFloppyController::GetState(void)
 
     uint16_t res = m_status;
 
-    if (m_drivedata[m_drive].fpFile == NULL)
+    if (m_drivedata[m_drive].fpFile == nullptr)
         res |= FLOPPY_STATUS_MOREDATA;
 
 //#if !defined(PRODUCT)
@@ -419,7 +419,7 @@ void CFloppyController::PrepareTrack()
     uint8_t data[5120];
     memset(data, 0, 5120);
 
-    if (m_pDrive->fpFile != NULL)
+    if (m_pDrive->fpFile != nullptr)
     {
         ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
         count = ::fread(&data, 1, 5120, m_pDrive->fpFile);
@@ -491,8 +491,8 @@ void CFloppyController::FlushChanges()
 
     ////DEBUG: Save raw m_data/m_marker into rawdata.bin
     //HANDLE hRawFile = CreateFile(_T("rawdata.bin"),
-    //            GENERIC_WRITE, FILE_SHARE_READ, NULL,
-    //            CREATE_ALWAYS, 0, NULL);
+    //            GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+    //            CREATE_ALWAYS, 0, nullptr);
 }
 
 

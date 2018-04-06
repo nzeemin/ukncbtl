@@ -125,7 +125,7 @@ uint16_t DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInst
     uint16_t instr = *pMemory;
 
     uint16_t length = 1;
-    LPCTSTR strReg = NULL;
+    LPCTSTR strReg = nullptr;
     TCHAR strSrc[24];
     TCHAR strDst[24];
     bool okByte;

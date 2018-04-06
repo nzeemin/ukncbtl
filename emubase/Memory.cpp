@@ -20,11 +20,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 CMemoryController::CMemoryController ()
 {
-    m_pProcessor = NULL;
-    m_pBoard = NULL;
+    m_pProcessor = nullptr;
+    m_pBoard = nullptr;
     m_pMapping = (uint8_t*) malloc(65536);
     memset(m_pMapping, ADDRTYPE_NONE, 65536);
-    m_pDevices = NULL;
+    m_pDevices = nullptr;
     m_nDeviceCount = 0;
 }
 
@@ -32,22 +32,22 @@ CMemoryController::~CMemoryController ()
 {
     free(m_pMapping);
 
-    if (m_pDevices != NULL)
+    if (m_pDevices != nullptr)
         free(m_pDevices);
 }
 
 void CMemoryController::AttachDevices(const CBusDevice **pDevices)
 {
     // Free the previously allocated memory
-    if (m_pDevices != NULL)
+    if (m_pDevices != nullptr)
     {
-        free(m_pDevices);  m_pDevices = NULL;
+        free(m_pDevices);  m_pDevices = nullptr;
     }
 
     // Calculate device count
     const CBusDevice ** p = pDevices;
     int deviceCount = 0;
-    while (*p != NULL)
+    while (*p != nullptr)
     {
         deviceCount++;
         p++;
@@ -55,7 +55,7 @@ void CMemoryController::AttachDevices(const CBusDevice **pDevices)
 
     // Allocate memory and store the devices
     m_pDevices = (CBusDevice **) calloc((deviceCount + 1), sizeof(CBusDevice*));
-    m_pDevices[0] = NULL;
+    m_pDevices[0] = nullptr;
     memcpy(m_pDevices + 1, pDevices, deviceCount * sizeof(CBusDevice*));
     m_nDeviceCount = deviceCount;
 
@@ -71,7 +71,7 @@ void CMemoryController::UpdateMemoryMap()
     for (int device = 1; device <= m_nDeviceCount; device++, pDevices++)
     {
         CBusDevice * pDevice = *pDevices;
-        if (pDevice == NULL) continue;
+        if (pDevice == nullptr) continue;
         uint8_t deviceIndex = (uint8_t)device | ADDRTYPE_IO;
         const uint16_t * pRanges = (*pDevices)->GetAddressRanges();
         while (*pRanges != 0)

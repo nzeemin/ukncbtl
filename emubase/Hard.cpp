@@ -77,7 +77,7 @@ static void InvertBuffer(void* buffer)
 
 CHardDrive::CHardDrive()
 {
-    m_fpFile = NULL;
+    m_fpFile = nullptr;
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
@@ -113,17 +113,17 @@ void CHardDrive::Reset()
 
 bool CHardDrive::AttachImage(LPCTSTR sFileName)
 {
-    ASSERT(sFileName != NULL);
+    ASSERT(sFileName != nullptr);
 
     // Open file
     m_okReadOnly = false;
     m_fpFile = ::_tfopen(sFileName, _T("r+b"));
-    if (m_fpFile == NULL)
+    if (m_fpFile == nullptr)
     {
         m_okReadOnly = true;
         m_fpFile = ::_tfopen(sFileName, _T("rb"));
     }
-    if (m_fpFile == NULL)
+    if (m_fpFile == nullptr)
         return false;
 
     // Check file size
@@ -166,12 +166,12 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
 
 void CHardDrive::DetachImage()
 {
-    if (m_fpFile == NULL) return;
+    if (m_fpFile == nullptr) return;
 
     //FlushChanges();
 
     ::fclose(m_fpFile);
-    m_fpFile = NULL;
+    m_fpFile = nullptr;
 }
 
 uint16_t CHardDrive::ReadPort(uint16_t port)
