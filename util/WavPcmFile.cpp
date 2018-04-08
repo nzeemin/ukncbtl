@@ -147,7 +147,7 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
         return (HWAVPCMFILE) INVALID_HANDLE_VALUE;  // Failed to open file
 
     uint32_t offset = 0;
-    uint32_t bytesRead;
+    size_t bytesRead;
     ::fseek(fpFileOpen, 0, SEEK_END);
     uint32_t fileSize = ::ftell(fpFileOpen);
     ::fseek(fpFileOpen, 0, SEEK_SET);
@@ -315,9 +315,8 @@ unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 
     // Read one sample
     uint32_t bytesToRead = pWavPcm->nBlockAlign;
-    uint32_t bytesRead;
     uint8_t data[16];
-    bytesRead = ::fread(data, 1, bytesToRead, pWavPcm->fpFile);
+    size_t bytesRead = ::fread(data, 1, bytesToRead, pWavPcm->fpFile);
     if (bytesRead != bytesToRead)
         return 0;
 

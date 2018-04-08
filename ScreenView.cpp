@@ -455,7 +455,7 @@ void ScreenView_PrepareScreen()
 
     const DWORD* colors = ScreenView_GetPalette();
 
-    Emulator_PrepareScreenRGB32(m_bits, colors);
+    Emulator_PrepareScreenRGB32(m_bits, (const uint32_t*)colors);
 }
 
 void ScreenView_PutKeyEventToQueue(WORD keyevent)
@@ -556,8 +556,7 @@ void ScreenView_ScanKeyboard()
             bEntPressed = FALSE;
         }
         // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
-        BYTE ukncRegister = (BYTE) g_pBoard->GetKeyboardRegister();
-        const BYTE* pTable;
+        uint16_t ukncRegister = g_pBoard->GetKeyboardRegister();
 
         // Check every key for state change
         for (int scan = 0; scan < 256; scan++)
@@ -566,7 +565,8 @@ void ScreenView_ScanKeyboard()
             BYTE oldstate = m_ScreenKeyState[scan];
             if ((newstate & 128) != (oldstate & 128))  // Key state changed - key pressed or released
             {
-                BYTE pcscan = (BYTE) scan;
+                const BYTE* pTable = nullptr;
+                BYTE pcscan = (BYTE)scan;
                 BYTE ukncscan;
                 if (oldstate & 128)
                 {
@@ -609,9 +609,9 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 {
     ASSERT(sFileName != NULL);
 
-    DWORD* pBits = static_cast<DWORD*>(::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4));
+    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
     const DWORD* colors = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(pBits, colors);
+    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)colors);
 
     const DWORD * palette = ScreenView_GetPalette();
 
@@ -619,7 +619,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
     PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
 
-    DWORD* pScrBits = static_cast<DWORD*>(::calloc(scrwidth * scrheight, 4));
+    void* pScrBits = ::calloc(scrwidth * scrheight, 4);
     callback(pBits, pScrBits);
     ::free(pBits);
 

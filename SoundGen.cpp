@@ -60,15 +60,9 @@ void SoundGen_Initialize(WORD volume)
 
     size_t totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
 
-    mbuffer = (unsigned char*) HeapAlloc(
-            GetProcessHeap(),
-            HEAP_ZERO_MEMORY,
-            totalBufferSize);
-    if (mbuffer == NULL)
-    {
-        //ExitProcess(1);
+    mbuffer = static_cast<unsigned char*>(calloc(totalBufferSize, 1));
+    if (mbuffer == nullptr)
         return;
-    }
 
     waveBlocks = (WAVEHDR*)mbuffer;
     mbuffer += sizeof(WAVEHDR) * BLOCK_COUNT;
@@ -123,8 +117,8 @@ void SoundGen_Finalize()
     DeleteCriticalSection(&waveCriticalSection);
     waveOutClose(hWaveOut);
 
-    HeapFree(GetProcessHeap(), 0, waveBlocks);
-    waveBlocks = NULL;
+    ::free(waveBlocks);
+    waveBlocks = nullptr;
 
     m_SoundGenInitialized = FALSE;
 }

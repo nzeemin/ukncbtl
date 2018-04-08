@@ -89,10 +89,9 @@ int APIENTRY _tWinMain(
                 Emulator_Stop();
             else
             {
-                if (Emulator_SystemFrame())
-                {
-                    ScreenView_RedrawScreen();
-                }
+                Emulator_SystemFrame();
+
+                ScreenView_RedrawScreen();
             }
         }
 
