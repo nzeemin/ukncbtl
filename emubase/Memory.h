@@ -58,10 +58,6 @@ public:
     virtual void DCLO_Signal() = 0;  ///< DCLO signal
     virtual void ResetDevices() = 0;  ///< INIT signal
 public:  // Access to memory
-    /// \brief Read command for execution
-    uint16_t GetWordExec(uint16_t address, bool okHaltMode) { return GetWord(address, okHaltMode, true); }
-    /// \brief Read word from memory
-    uint16_t GetWord(uint16_t address, bool okHaltMode) { return GetWord(address, okHaltMode, false); }
     /// \brief Read word
     uint16_t GetWord(uint16_t address, bool okHaltMode, bool okExec);
     /// \brief Write word

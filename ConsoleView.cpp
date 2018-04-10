@@ -286,8 +286,9 @@ BOOL SaveMemoryDump(CProcessor *pProc)
         return FALSE;
 
     int isHaltMode = pProc->IsHaltMode();
+    int addrtype;
     for (WORD i = 0; i <= 32767; i++)
-        pData[i] = pMemCtl->GetWord(i * 2, isHaltMode);
+        pData[i] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
 
     TCHAR fname[20];
     wsprintf(fname, _T("memdump%s.bin"), pProc->GetName());
@@ -381,8 +382,9 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
     for (int line = 0; line < lines; line++)
     {
         WORD dump[8];
+        int addrtype;
         for (WORD i = 0; i < 8; i++)
-            dump[i] = pMemCtl->GetWord(address + i * 2, okHaltMode);
+            dump[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, false, &addrtype);
 
         TCHAR buffer[2 + 6 + 2 + 7 * 8 + 1 + 16 + 1 + 2];
         TCHAR* pBuf = buffer;
