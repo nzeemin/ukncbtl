@@ -18,38 +18,74 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 uint16_t MOV_TIMING[8][8] =
 {
-    {0x000B, 0x0022, 0x0022, 0x0033, 0x0022, 0x0037, 0x0033, 0x0043},
-    {0x0020, 0x0031, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0054},
-    {0x0020, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053},
-    {0x0025, 0x0043, 0x0043, 0x004F, 0x0047, 0x0054, 0x004F, 0x0060},
-    {0x0020, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053},
-    {0x0025, 0x0043, 0x0043, 0x004F, 0x0047, 0x0054, 0x004F, 0x0060},
-    {0x0029, 0x0039, 0x003F, 0x004C, 0x003F, 0x004C, 0x004B, 0x005C},
-    {0x0035, 0x0045, 0x004C, 0x0057, 0x004C, 0x0057, 0x0057, 0x0068}
+    { 0x0007, 0x001A, 0x001A, 0x0023, 0x001A, 0x0023, 0x0023, 0x002F },
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
+    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047 },
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
+    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047 },
+    { 0x0022, 0x0031, 0x0031, 0x003D, 0x0031, 0x003D, 0x003B, 0x0047 },
+    { 0x002B, 0x003B, 0x003B, 0x0047, 0x003B, 0x0047, 0x0047, 0x0051 }
 };
 
 uint16_t MOVB_TIMING[8][8] =
 {
-    {0x000B, 0x0025, 0x002B, 0x0037, 0x002F, 0x003B, 0x003B, 0x0047},
-    {0x0018, 0x0035, 0x003B, 0x0047, 0x003F, 0x004C, 0x004B, 0x0057},
-    {0x0019, 0x003B, 0x003B, 0x0047, 0x0040, 0x004B, 0x004C, 0x0057},
-    {0x0025, 0x0047, 0x0047, 0x0054, 0x004B, 0x0057, 0x0057, 0x0063},
-    {0x0019, 0x003B, 0x003B, 0x0047, 0x0040, 0x004B, 0x004C, 0x0057},
-    {0x0025, 0x0047, 0x0047, 0x0054, 0x004B, 0x0057, 0x0057, 0x0063},
-    {0x0029, 0x003D, 0x0043, 0x004F, 0x0043, 0x004F, 0x0054, 0x005F},
-    {0x0035, 0x0049, 0x004F, 0x005B, 0x004F, 0x005B, 0x005F, 0x006C}
+    { 0x0008, 0x001B, 0x001B, 0x0037, 0x0022, 0x003B, 0x003B, 0x002E },
+    { 0x0018, 0x0025, 0x003B, 0x0047, 0x003F, 0x004C, 0x004B, 0x003B },
+    { 0x0018, 0x003B, 0x003B, 0x0047, 0x0040, 0x004B, 0x004C, 0x003B },
+    { 0x0025, 0x0047, 0x0047, 0x0054, 0x004B, 0x0047, 0x0047, 0x0043 },
+    { 0x0019, 0x003B, 0x003B, 0x0047, 0x0040, 0x004B, 0x004C, 0x0044 },
+    { 0x0025, 0x0047, 0x0047, 0x0048, 0x004B, 0x0047, 0x0047, 0x004D },
+    { 0x0029, 0x003D, 0x0043, 0x004F, 0x0043, 0x004F, 0x0044, 0x004D },
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x0049, 0x004D, 0x0057 }
 };
 
 uint16_t CMP_TIMING[8][8] =
 {
-    {0x000B, 0x001C, 0x001D, 0x0029, 0x0021, 0x002D, 0x0035, 0x0041},
-    {0x0018, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051},
-    {0x0019, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051},
-    {0x0025, 0x0039, 0x0039, 0x0045, 0x003D, 0x0049, 0x0051, 0x005E},
-    {0x0019, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051},
-    {0x0025, 0x0039, 0x0039, 0x0045, 0x003D, 0x0049, 0x0051, 0x005E},
-    {0x0029, 0x0035, 0x0035, 0x0041, 0x0035, 0x0041, 0x004D, 0x005A},
-    {0x0035, 0x0041, 0x0041, 0x004E, 0x0041, 0x004E, 0x005A, 0x0065}
+    { 0x0008, 0x0018, 0x0018, 0x0022, 0x0018, 0x0022, 0x0022, 0x002B },
+    { 0x0018, 0x0022, 0x0022, 0x0031, 0x0025, 0x0034, 0x0030, 0x003D },
+    { 0x0018, 0x0022, 0x0022, 0x0031, 0x0025, 0x0034, 0x0030, 0x003D },
+    { 0x0022, 0x002B, 0x002B, 0x0039, 0x0034, 0x003C, 0x003B, 0x0045 },
+    { 0x0018, 0x0022, 0x0022, 0x0030, 0x0024, 0x0034, 0x0030, 0x003D },
+    { 0x0022, 0x0034, 0x0034, 0x0039, 0x0034, 0x003C, 0x003B, 0x0047 },
+    { 0x0022, 0x0030, 0x0030, 0x003B, 0x0030, 0x003B, 0x0039, 0x0045 },
+    { 0x002B, 0x003B, 0x003B, 0x0045, 0x003B, 0x0045, 0x0045, 0x004F }
+};
+
+uint16_t CMPB_TIMING[8][8] =
+{
+    { 0x0008, 0x0018, 0x0018, 0x0022, 0x0018, 0x0022, 0x0022, 0x002B },
+    { 0x0018, 0x0022, 0x0022, 0x0031, 0x0025, 0x0034, 0x0030, 0x003D },
+    { 0x0018, 0x0022, 0x0022, 0x0031, 0x0025, 0x0034, 0x0030, 0x003B },
+    { 0x0022, 0x002B, 0x002B, 0x0039, 0x0034, 0x003C, 0x003B, 0x0045 },
+    { 0x0018, 0x0022, 0x0022, 0x0030, 0x0024, 0x0034, 0x0030, 0x003B },
+    { 0x0022, 0x0034, 0x0034, 0x0039, 0x0034, 0x003C, 0x003B, 0x0045 },
+    { 0x0022, 0x0030, 0x0030, 0x003B, 0x0030, 0x003B, 0x0039, 0x0045 },
+    { 0x002B, 0x003B, 0x003B, 0x0045, 0x003B, 0x0045, 0x0045, 0x004F }
+};
+
+uint16_t BIS_TIMING[8][8] =
+{
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033 },
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0039, 0x0044 },
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x0030, 0x003B, 0x0037, 0x0044 },
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D },
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044 },
+    { 0x0022, 0x0033, 0x0033, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E },
+    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D },
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057 }
+};
+
+uint16_t BISB_TIMING[8][8] =
+{
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033 },
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0037, 0x0044 },
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044 },
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E },
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0038, 0x0044 },
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D },
+    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D },
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057 }
 };
 
 uint16_t CLR_TIMING[8] =
@@ -79,15 +115,15 @@ uint16_t XOR_TIMING[8] =
 
 uint16_t ASH_TIMING[8] =
 {
-    0x0029, 0x003D, 0x003D, 0x0049, 0x0041, 0x004D, 0x0055, 0x0062
+    0x0017, 0x003D, 0x003D, 0x0049, 0x0041, 0x004D, 0x0055, 0x0062
 };
-uint16_t ASH_S_TIMING = 0x0008;
+uint16_t ASH_S_TIMING = 0x0004;
 
 uint16_t ASHC_TIMING[8] =
 {
-    0x0039, 0x004E, 0x004D, 0x005A, 0x0051, 0x005D, 0x0066, 0x0072
+    0x001F, 0x004E, 0x004D, 0x005A, 0x0051, 0x005D, 0x0066, 0x0072
 };
-uint16_t ASHC_S_TIMING = 0x0008;
+uint16_t ASHC_S_TIMING = 0x0004;
 
 uint16_t MUL_TIMING[8] =
 {
@@ -96,7 +132,7 @@ uint16_t MUL_TIMING[8] =
 
 uint16_t DIV_TIMING[8] =
 {
-    0x0080, 0x00E8, 0x00E7, 0x00F4, 0x00EB, 0x00F8, 0x0100, 0x010D
+    0x007B, 0x00E3, 0x00E3, 0x00F0, 0x00E7, 0x00F4, 0x00FC, 0x0108
 };
 
 uint16_t JMP_TIMING[7] =
@@ -112,14 +148,16 @@ uint16_t BRANCH_TRUE_TIMING = 0x0025;
 uint16_t BRANCH_FALSE_TIMING = 0x0010;
 uint16_t BPT_TIMING = 0x0094;
 uint16_t EMT_TIMING = 0x009C;
-uint16_t RTI_TIMING = 0x0059;
+uint16_t IOT_TRAP_TIMING = 0x006D;
+uint16_t RTI_TIMING = 0x0046;
 uint16_t RTS_TIMING = 0x0031;
 uint16_t NOP_TIMING = 0x0010;
+uint16_t CCC_SCC_TIMING = 0x0009;
 uint16_t SOB_TIMING = 0x002D;
 uint16_t SOB_LAST_TIMING = 0x0019; //last iteration of SOB
 uint16_t BR_TIMING = 0x0025;
 uint16_t MARK_TIMING = 0x0041;
-uint16_t RESET_TIMING = 105 + 968;  // ТО КМ1801ВМ2 стр. 134
+uint16_t RESET_TIMING = 1048;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -714,7 +752,7 @@ void CProcessor::ExecuteMFUS ()  // ЧЧП, move from user space - Чтение памяти ад
     SetReg(5, addr + 2);
     if (!m_RPLYrq)  SetReg(0, word);
 
-    m_internalTick = MOV_TIMING[0][2];
+    m_internalTick += MOV_TIMING[0][2];
 }
 
 void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space - Запись в память адресного пространства USER
@@ -731,7 +769,7 @@ void CProcessor::ExecuteMTUS()  // ЗЧП, move to user space - Запись в память адр
     SetWord(GetReg(5), GetReg(0));  // Write in USER mode
     SetHALT(true);
 
-    m_internalTick = MOV_TIMING[0][2];
+    m_internalTick += MOV_TIMING[0][2];
 }
 
 void CProcessor::ExecuteRTI()  // RTI - Return from Interrupt - Возврат из прерывания
@@ -780,7 +818,7 @@ void CProcessor::ExecuteBPT ()  // BPT - Breakpoint
 void CProcessor::ExecuteIOT ()  // IOT - I/O trap
 {
     m_IOT_rq = true;
-    m_internalTick = EMT_TIMING;
+    m_internalTick = IOT_TRAP_TIMING;
 }
 
 void CProcessor::ExecuteRESET ()  // Reset input/output devices -- Сброс внешних устройств
@@ -805,12 +843,12 @@ void CProcessor::ExecuteRTS ()  // RTS - return from subroutine - Возврат из про
 void CProcessor::ExecuteCCC ()
 {
     SetLPSW(GetLPSW() &  ~((uint8_t)(m_instruction & 0xff) & 017));
-    m_internalTick = NOP_TIMING;
+    m_internalTick += CCC_SCC_TIMING;
 }
 void CProcessor::ExecuteSCC ()
 {
     SetLPSW(GetLPSW() |  ((uint8_t)(m_instruction & 0xff) & 017));
-    m_internalTick = NOP_TIMING;
+    m_internalTick += CCC_SCC_TIMING;
 }
 
 void CProcessor::ExecuteJMP ()  // JMP - jump: PC = &d (a-mode > 0)
@@ -858,7 +896,7 @@ void CProcessor::ExecuteSWAB ()
     if ((dst & 0200) != 0) new_psw |= PSW_N;
     if ((uint8_t)(dst & 0xff) == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOV_TIMING[m_methdest][m_methdest];
+    m_internalTick += MOV_TIMING[m_methdest][m_methdest];
 }
 
 void CProcessor::ExecuteCLR ()  // CLR
@@ -1851,7 +1889,7 @@ void CProcessor::ExecuteDIV ()  // DIV
 
     longsrc = (int32_t)(((uint32_t)GetReg(m_regsrc | 1)) | ((uint32_t)GetReg(m_regsrc) << 16));
 
-    m_internalTick = DIV_TIMING[m_methdest];
+    m_internalTick += DIV_TIMING[m_methdest];
 
     if (src2 == 0)
     {
@@ -1918,6 +1956,7 @@ void CProcessor::ExecuteASH ()  // ASH
             dst >>= 1;
             m_internalTick = m_internalTick + ASH_S_TIMING;
         }
+        m_internalTick -= ASH_S_TIMING;
     }
 
     SetReg(m_regsrc, dst);
@@ -1959,6 +1998,7 @@ void CProcessor::ExecuteASHC ()  // ASHC
             dst >>= 1;
             m_internalTick = m_internalTick + ASHC_S_TIMING;
         }
+        m_internalTick -= ASHC_S_TIMING;
     }
 
     SetReg(m_regsrc, (uint16_t)((dst >> 16) & 0xffff));
@@ -2015,7 +2055,7 @@ void CProcessor::ExecuteMOV ()  // MOV only, see also ExecuteMOVB()
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOV_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOV_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteMOVB ()  // MOVB only, see also ExecuteMOV()
@@ -2049,7 +2089,7 @@ void CProcessor::ExecuteMOVB ()  // MOVB only, see also ExecuteMOV()
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOVB_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteCMP ()
@@ -2092,7 +2132,7 @@ void CProcessor::ExecuteCMP ()
     if (((src ^ src2) & ~(dst ^ src2)) & 0100000) new_psw |= PSW_V;
     if (((~src & src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
+    m_internalTick += CMP_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteCMPB ()
@@ -2134,7 +2174,7 @@ void CProcessor::ExecuteCMPB ()
     if (((src ^ src2) & ~(dst ^ src2)) & 0200) new_psw |= PSW_V;
     if (((~src & src2) | (~(src ^ src2) & dst)) & 0200) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
+    m_internalTick += CMPB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteBIT ()  // BIT - bit test
@@ -2170,7 +2210,7 @@ void CProcessor::ExecuteBIT ()  // BIT - bit test
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
+    m_internalTick += CMP_TIMING[m_methsrc][m_methdest];
 }
 void CProcessor::ExecuteBITB ()  // BITB - bit test
 {
@@ -2205,7 +2245,7 @@ void CProcessor::ExecuteBITB ()  // BITB - bit test
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = CMP_TIMING[m_methsrc][m_methdest];
+    m_internalTick += CMPB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteBIC()  // BIC - bit clear
@@ -2247,7 +2287,7 @@ void CProcessor::ExecuteBIC()  // BIC - bit clear
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOV_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOV_TIMING[m_methsrc][m_methdest];
 }
 void CProcessor::ExecuteBICB ()  // BICB - bit clear
 {
@@ -2289,7 +2329,7 @@ void CProcessor::ExecuteBICB ()  // BICB - bit clear
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOVB_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteBIS()  // BIS - bit set
@@ -2331,7 +2371,7 @@ void CProcessor::ExecuteBIS()  // BIS - bit set
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOV_TIMING[m_methsrc][m_methdest];
+    m_internalTick += BIS_TIMING[m_methsrc][m_methdest];
 }
 void CProcessor::ExecuteBISB ()  // BISB - bit set
 {
@@ -2372,7 +2412,7 @@ void CProcessor::ExecuteBISB ()  // BISB - bit set
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = MOVB_TIMING[m_methsrc][m_methdest];
+    m_internalTick += BISB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteADD ()  // ADD
@@ -2414,7 +2454,7 @@ void CProcessor::ExecuteADD ()  // ADD
     if ((~(src ^ src2) & (dst ^ src2)) & 0100000) new_psw |= PSW_V;
     if (((src & src2) | ((src ^ src2) & ~dst)) & 0100000) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = MOVB_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteSUB ()
@@ -2456,7 +2496,7 @@ void CProcessor::ExecuteSUB ()
     if (((src ^ src2) & ~(dst ^ src)) & 0100000) new_psw |= PSW_V;
     if (((src & ~src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = MOVB_TIMING[m_methsrc][m_methdest];
+    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
 }
 
 void CProcessor::ExecuteEMT ()  // EMT - emulator trap
@@ -2468,7 +2508,7 @@ void CProcessor::ExecuteEMT ()  // EMT - emulator trap
 void CProcessor::ExecuteTRAP ()
 {
     m_TRAPrq = true;
-    m_internalTick = EMT_TIMING;
+    m_internalTick = IOT_TRAP_TIMING;
 }
 
 void CProcessor::ExecuteJSR ()  // JSR - Jump subroutine: *--SP = R; R = PC; PC = &d (a-mode > 0)

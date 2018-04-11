@@ -59,13 +59,13 @@ public:
     virtual void ResetDevices() = 0;  ///< INIT signal
 public:  // Access to memory
     /// \brief Read word
-    uint16_t GetWord(uint16_t address, bool okHaltMode, bool okExec);
+    uint16_t GetWord(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pTicksToUpdate = nullptr);
     /// \brief Write word
-    void SetWord(uint16_t address, bool okHaltMode, uint16_t word);
+    void SetWord(uint16_t address, bool okHaltMode, uint16_t word, uint16_t* pTicksToUpdate = nullptr);
     /// \brief Read byte
-    uint8_t GetByte(uint16_t address, bool okHaltMode);
+    uint8_t GetByte(uint16_t address, bool okHaltMode, uint16_t* pTicksToUpdate = nullptr);
     /// \brief Write byte
-    void SetByte(uint16_t address, bool okHaltMode, uint8_t byte);
+    void SetByte(uint16_t address, bool okHaltMode, uint8_t byte, uint16_t* pTicksToUpdate = nullptr);
     /// \brief Read word from memory for debugger
     uint16_t GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const;
     /// \brief Read word from port for debugger
@@ -80,7 +80,8 @@ protected:
     /// \param okHaltMode  processor mode (USER/HALT)
     /// \param okExec  true: read instruction for execution; false: read memory
     /// \param pOffset  result -- offset in memory plane
-    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView = false) const = 0;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec,
+            uint16_t* pOffset, bool okView, uint16_t* ticks) const = 0;
 protected:  // Access to I/O ports
     virtual uint16_t GetPortWord(uint16_t address) = 0;
     virtual void SetPortWord(uint16_t address, uint16_t word) = 0;
@@ -97,7 +98,8 @@ public:
     virtual void DCLO_Signal();  ///< DCLO signal
     virtual void ResetDevices();  ///< INIT signal
 public:
-    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec,
+            uint16_t* pOffset, bool okView, uint16_t* pTicks) const;
     virtual uint16_t GetSelRegister() { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
@@ -139,7 +141,8 @@ public:
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
+    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec,
+            uint16_t* pOffset, bool okView, uint16_t* pTicks) const;
     virtual uint16_t GetSelRegister() { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports

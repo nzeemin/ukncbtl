@@ -89,7 +89,8 @@ void CMemoryController::UpdateMemoryMap()
 uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true);
+    uint16_t ticks;
+    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true, &ticks);
     *pAddrType = addrtype;
 
     switch (addrtype)
@@ -118,10 +119,12 @@ uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool 
     return 0;
 }
 
-uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okExec)
+uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pTicksToUpdate)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset);
+    uint16_t ticks;
+    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, false, &ticks);
+    if (pTicksToUpdate != nullptr) *pTicksToUpdate += ticks;
 
     switch (addrtype)
     {
@@ -151,10 +154,12 @@ uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okEx
     return 0;
 }
 
-uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
+uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode, uint16_t* pTicksToUpdate)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
+    uint16_t ticks;
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset, false, &ticks);
+    if (pTicksToUpdate != nullptr) *pTicksToUpdate += ticks;
 
     switch (addrtype)
     {
@@ -187,10 +192,12 @@ uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
     return 0;
 }
 
-void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word)
+void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word, uint16_t* pTicksToUpdate)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
+    uint16_t ticks;
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset, false, &ticks);
+    if (pTicksToUpdate != nullptr) *pTicksToUpdate += ticks;
 
     switch (addrtype)
     {
@@ -222,10 +229,12 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
     ASSERT(false);  // If we are here - then addrtype has invalid value
 }
 
-void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
+void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte, uint16_t* pTicksToUpdate)
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, false, &offset);
+    uint16_t ticks;
+    int addrtype = TranslateAddress(address, okHaltMode, false, &offset, false, &ticks);
+    if (pTicksToUpdate != nullptr) *pTicksToUpdate += ticks;
 
     switch (addrtype)
     {
@@ -305,8 +314,11 @@ void CFirstMemoryController::ResetDevices()
     //TODO
 }
 
-int CFirstMemoryController::TranslateAddress(uint16_t address, bool okHaltMode, bool /*okExec*/, uint16_t* pOffset, bool okView) const
+int CFirstMemoryController::TranslateAddress(uint16_t address, bool okHaltMode, bool /*okExec*/,
+        uint16_t* pOffset, bool okView, uint16_t* pTicks) const
 {
+    *pTicks = 4;
+
     if ((!okView) && ((m_Port176644 & 0x101) == 0x101) && (address == m_Port176646) && (((m_Port176644 & 2) == 2) == okHaltMode))
     {
         m_pProcessor->InterruptVIRQ(6, m_Port176644 & 0xFC);
@@ -844,7 +856,8 @@ void CSecondMemoryController::UpdateMemoryMap()
             m_pMapping[addr] = ADDRTYPE_IO;
 }
 
-int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMode*/, bool okExec, uint16_t* pOffset, bool /*okView*/) const
+int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMode*/, bool okExec,
+        uint16_t* pOffset, bool /*okView*/, uint16_t* pTicks) const
 {
     //uint8_t addrtype = m_pMapping[address];
     //switch (addrtype)
@@ -880,6 +893,8 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
     //    }
     //}
 
+    *pTicks = 8;
+
     switch ((address >> 13) & 7)
     {
     default:  // case 0..3 - 000000-077777 - PPU RAM
@@ -896,6 +911,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
             }
             else if ((m_Port177054 & 1) != 0)  // ROM selected
             {
+                *pTicks = 4;
                 *pOffset = address - 0100000;
                 return ADDRTYPE_ROM;
             }
@@ -904,11 +920,13 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                 int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
                 if (m_pBoard->IsHardImageAttached(slot) && address >= 0110000)
                 {
+                    *pTicks = 4;
                     *pOffset = address;
                     return ADDRTYPE_IO;  // 110000-117777 - HDD ports
                 }
                 else
                 {
+                    *pTicks = 4;
                     int bank = (m_Port177054 & 6) >> 1;
                     *pOffset = address - 0100000 + (((uint16_t)bank - 1) << 13);
                     return (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
@@ -923,6 +941,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                 *pOffset = address;
                 return ADDRTYPE_RAM0;
             }
+            *pTicks = 4;
             *pOffset = address - 0100000;
             return ADDRTYPE_ROM;
         }
@@ -933,6 +952,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                 *pOffset = address;
                 return ADDRTYPE_RAM0;
             }
+            *pTicks = 4;
             *pOffset = address - 0100000;
             return ADDRTYPE_ROM;
         }
@@ -958,6 +978,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                 *pOffset = address;
                 return ADDRTYPE_RAM0;
             }
+            *pTicks = 4;
             *pOffset = address - 0100000;
             return ADDRTYPE_ROM;
         }

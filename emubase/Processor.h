@@ -145,12 +145,12 @@ protected:  // Implementation
     void        TranslateInstruction();  ///< Execute the instruction
 protected:  // Implementation - memory access
     /// \brief Read word from the bus for execution
-    uint16_t    GetWordExec(uint16_t address) { return m_pMemoryController->GetWord(address, IsHaltMode(), true); }
+    uint16_t    GetWordExec(uint16_t address) { return m_pMemoryController->GetWord(address, IsHaltMode(), true, &m_internalTick); }
     /// \brief Read word from the bus
-    uint16_t    GetWord(uint16_t address) { return m_pMemoryController->GetWord(address, IsHaltMode(), false); }
-    void        SetWord(uint16_t address, uint16_t word) { m_pMemoryController->SetWord(address, IsHaltMode(), word); }
-    uint8_t     GetByte(uint16_t address) { return m_pMemoryController->GetByte(address, IsHaltMode()); }
-    void        SetByte(uint16_t address, uint8_t byte) { m_pMemoryController->SetByte(address, IsHaltMode(), byte); }
+    uint16_t    GetWord(uint16_t address) { return m_pMemoryController->GetWord(address, IsHaltMode(), false, &m_internalTick); }
+    void        SetWord(uint16_t address, uint16_t word) { m_pMemoryController->SetWord(address, IsHaltMode(), word, &m_internalTick); }
+    uint8_t     GetByte(uint16_t address) { return m_pMemoryController->GetByte(address, IsHaltMode(), &m_internalTick); }
+    void        SetByte(uint16_t address, uint8_t byte) { m_pMemoryController->SetByte(address, IsHaltMode(), byte, &m_internalTick); }
 
 protected:  // PSW bits calculations
     bool static CheckForNegative(uint8_t byte) { return (byte & 0200) != 0; }
