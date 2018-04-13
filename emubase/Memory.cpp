@@ -893,7 +893,7 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
     //    }
     //}
 
-    *pTicks = 8;
+    *pTicks = 6;
 
     switch ((address >> 13) & 7)
     {
