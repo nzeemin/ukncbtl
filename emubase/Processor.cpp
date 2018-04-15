@@ -16,28 +16,32 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // Timings ///////////////////////////////////////////////////////////
 
-uint16_t MOV_TIMING[8][8] =
+uint16_t MOV_TIMING[9][9] =
 {
-    { 0x0007, 0x001A, 0x001A, 0x0023, 0x001A, 0x0023, 0x0023, 0x002F },
-    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
-    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
-    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047 },
-    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D },
-    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047 },
-    { 0x0022, 0x0031, 0x0031, 0x003D, 0x0031, 0x003D, 0x003B, 0x0047 },
-    { 0x002B, 0x003B, 0x003B, 0x0047, 0x003B, 0x0047, 0x0047, 0x0051 }
+    //  R0     (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    { 0x0007, 0x001A, 0x001A, 0x0023, 0x001A, 0x0023, 0x0023, 0x002F, 0x0026 }, // R0
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D, 0x0035 }, // (R0)
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D, 0x0035 }, // (R2)+
+    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047, 0x0041 }, // @(R2)+
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0035, 0x0031, 0x003D, 0x0035 }, // -(R1)
+    { 0x0022, 0x0035, 0x0035, 0x003B, 0x0035, 0x003E, 0x003D, 0x0047, 0x0041 }, // @-(R1)
+    { 0x0022, 0x0031, 0x0031, 0x003D, 0x0031, 0x003D, 0x003B, 0x0047, 0x003F }, // Addr
+    { 0x002B, 0x003B, 0x003B, 0x0047, 0x003B, 0x0047, 0x0047, 0x0051, 0x004B }, // @Tab(R0)
+    { 0x0018, 0x0025, 0x0025, 0x0031, 0x0025, 0x0031, 0x0031, 0x003D, 0x0035 }  // (PC)+
 };
 
-uint16_t MOVB_TIMING[8][8] =
+uint16_t MOVB_TIMING[9][9] =
 {
-    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0032 },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044 },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044 },
-    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044 },
-    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D },
-    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D },
-    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057 }
+    //  R0     (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0032, 0x002C }, // R0
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044, 0x003B }, // (R0)
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044, 0x003B }, // (R2)+
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E, 0x0048 }, // @(R2)+
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044, 0x003B }, // -(R1)
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D, 0x0048 }, // @-(R1)
+    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D, 0x0040 }, // Addr
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057, 0x004C }, // @Tab(R0)
+    { 0x0026, 0x003B, 0x003B, 0x0048, 0x003B, 0x0048, 0x0040, 0x004E, 0x0044 }  // (PC)+
 };
 
 uint16_t CMP_TIMING[9][9] =
@@ -68,54 +72,91 @@ uint16_t CMPB_TIMING[9][9] =
     { 0x0026, 0x0035, 0x0035, 0x003F, 0x0035, 0x003F, 0x003F, 0x0049, 0x0043 }  // (PC)+
 };
 
-uint16_t BIS_TIMING[8][8] =
+uint16_t BIS_TIMING[9][9] =
 {
-    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033 },
-    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0039, 0x0044 },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x0030, 0x003B, 0x0037, 0x0044 },
-    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044 },
-    { 0x0022, 0x0033, 0x0033, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E },
-    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D },
-    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057 }
+    //  R0     (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033, 0x002C }, // R0
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0039, 0x0044, 0x003E }, // (R0)
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x0030, 0x003B, 0x0037, 0x0044, 0x003B }, // (R2)+
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D, 0x0048 }, // @(R2)+
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0037, 0x0044, 0x003C }, // -(R1)
+    { 0x0022, 0x0033, 0x0033, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E, 0x0048 }, // @-(R1)
+    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D, 0x0040 }, // Addr
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057, 0x004C }, // @Tab(R0)
+    { 0x0018, 0x002B, 0x002B, 0x003B, 0x002B, 0x003B, 0x0036, 0x0044, 0x003A }  // (PC)+
 };
 
-uint16_t BISB_TIMING[8][8] =
+uint16_t BISB_TIMING[9][9] =
 {
-    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033 },
-    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0037, 0x0044 },
-    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044 },
-    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E },
-    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0038, 0x0044 },
-    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D },
-    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D },
-    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057 }
+    //  R0     (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033, 0x002C }, // R0
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0037, 0x0044, 0x003B }, // (R0)
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044, 0x003C }, // (R2)+
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E, 0x0048 }, // @(R2)+
+    { 0x0018, 0x002A, 0x002A, 0x0038, 0x0030, 0x003B, 0x0038, 0x0044, 0x003E }, // -(R1)
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004D, 0x0048 }, // @-(R1)
+    { 0x0022, 0x003B, 0x003B, 0x0044, 0x003B, 0x0044, 0x003C, 0x004D, 0x0040 }, // Addr
+    { 0x002B, 0x0040, 0x0040, 0x004D, 0x0040, 0x004D, 0x004D, 0x0057, 0x004C }, // @Tab(R0)
+    { 0x0026, 0x003B, 0x003B, 0x0048, 0x003B, 0x0048, 0x0040, 0x004E, 0x0044 }  // (PC)+
 };
 
-uint16_t CLR_TIMING[8] =
+uint16_t ADD_TIMING[9][9] =
 {
-    0x000B, 0x001C, 0x0023, 0x002F, 0x0023, 0x002F, 0x002F, 0x003F
+    //  R0     (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    { 0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0033, 0x002C }, // R0
+    { 0x0018, 0x002A, 0x002A, 0x0037, 0x002F, 0x003B, 0x0036, 0x0044, 0x003B }, // (R0)
+    { 0x0018, 0x002A, 0x002A, 0x0036, 0x002F, 0x003B, 0x0036, 0x0044, 0x003B }, // (R2)+
+    { 0x0022, 0x0033, 0x0033, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E, 0x0048 }, // @(R2)+
+    { 0x0018, 0x002A, 0x002A, 0x0035, 0x002F, 0x003B, 0x0035, 0x0044, 0x0039 }, // -(R1)
+    { 0x0022, 0x0032, 0x0032, 0x003C, 0x003B, 0x0045, 0x0044, 0x004E, 0x0048 }, // @-(R1)
+    { 0x0022, 0x003A, 0x003A, 0x0044, 0x003A, 0x0044, 0x003C, 0x004D, 0x0040 }, // Addr
+    { 0x002B, 0x003F, 0x003F, 0x004E, 0x003F, 0x004E, 0x004D, 0x0057, 0x004C }, // @Tab(R0)
+    { 0x0018, 0x002B, 0x002B, 0x003B, 0x002B, 0x003B, 0x0036, 0x0044, 0x003A }  // (PC)+
 };
 
-uint16_t CLRB_TIMING[8] =
+uint16_t CLR_TIMING[9] =
 {
-    0x000D, 0x0028, 0x0027, 0x0033, 0x0027, 0x0033, 0x0037, 0x0043
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x001A, 0x001A, 0x0023, 0x001A, 0x0023, 0x0023, 0x002F, 0x0026
 };
 
-uint16_t TST_TIMING[8] =
+uint16_t CLRB_TIMING[9] =
 {
-    0x000B, 0x0018, 0x0019, 0x0025, 0x0019, 0x0025, 0x0031, 0x003D
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0032, 0x002B
 };
 
-uint16_t MTPS_TIMING[8] =
+uint16_t TST_TIMING[9] =
 {
-    0x0018, 0x0029, 0x0029, 0x0035, 0x0029, 0x0035, 0x0041, 0x004D
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x0018, 0x0018, 0x0022, 0x0018, 0x0022, 0x0022, 0x002B, 0x001A
 };
 
-uint16_t XOR_TIMING[8] =
+uint16_t TSTB_TIMING[9] =
 {
-    0x000B, 0x0025, 0x002B, 0x0037, 0x002F, 0x003B, 0x003B, 0x0047
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x0018, 0x0018, 0x0022, 0x0018, 0x0022, 0x0022, 0x002B, 0x0026
 };
+
+uint16_t INC_TIMING[9] =
+{
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0032, 0x002B
+};
+
+uint16_t MTPS_TIMING[9] =
+{
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x000B, 0x001F, 0x001F, 0x0029, 0x001F, 0x0029, 0x0029, 0x0035, 0x0029
+};
+
+uint16_t MFPS_TIMING[9] =
+{
+    // R0    (R0)    (R2)+  @(R2)+   -(R1)  @-(R1)   Addr  @Tab(R0)  (PC)+
+    0x0008, 0x001B, 0x001B, 0x002A, 0x001B, 0x002A, 0x002A, 0x0032, 0x002B
+};
+
+#define XOR_TIMING CLRB_TIMING
 
 uint16_t ASH_TIMING[8] =
 {
@@ -900,7 +941,9 @@ void CProcessor::ExecuteSWAB ()
     if ((dst & 0200) != 0) new_psw |= PSW_N;
     if ((uint8_t)(dst & 0xff) == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += MOV_TIMING[m_methdest][m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += INC_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteCLR ()  // CLR
@@ -918,7 +961,9 @@ void CProcessor::ExecuteCLR ()  // CLR
         SetReg(m_regdest, 0);
 
     SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteCLRB ()  // CLRB
@@ -938,7 +983,9 @@ void CProcessor::ExecuteCLRB ()  // CLRB
         SetLReg(m_regdest, 0);
 
     SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
-    m_internalTick = CLRB_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLRB_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteCOM()  // COM
@@ -969,7 +1016,9 @@ void CProcessor::ExecuteCOM()  // COM
     if (dst == 0) new_psw |= PSW_Z;
     new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteCOMB ()  // COM
 {
@@ -999,7 +1048,9 @@ void CProcessor::ExecuteCOMB ()  // COM
     if (dst == 0) new_psw |= PSW_Z;
     new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteINC ()  // INC - Инкремент
@@ -1030,7 +1081,9 @@ void CProcessor::ExecuteINC ()  // INC - Инкремент
     if (dst == 0) new_psw |= PSW_Z;
     if (dst == 0100000) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += INC_TIMING[idxdest];
 }
 void CProcessor::ExecuteINCB ()  // INCB - Инкремент
 {
@@ -1060,7 +1113,9 @@ void CProcessor::ExecuteINCB ()  // INCB - Инкремент
     if (dst == 0) new_psw |= PSW_Z;
     if (dst == 0200) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += INC_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteDEC ()  // DEC - Декремент
@@ -1091,7 +1146,9 @@ void CProcessor::ExecuteDEC ()  // DEC - Декремент
     if (dst == 0) new_psw |= PSW_Z;
     if (dst == 077777) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += INC_TIMING[idxdest];
 }
 void CProcessor::ExecuteDECB ()  // DEC - Декремент
 {
@@ -1121,7 +1178,9 @@ void CProcessor::ExecuteDECB ()  // DEC - Декремент
     if (dst == 0) new_psw |= PSW_Z;
     if (dst == 0177) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += INC_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteNEG ()
@@ -1153,7 +1212,9 @@ void CProcessor::ExecuteNEG ()
     if (dst == 0100000) new_psw |= PSW_V;
     if (dst != 0) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteNEGB ()
 {
@@ -1184,7 +1245,9 @@ void CProcessor::ExecuteNEGB ()
     if (dst == 0200) new_psw |= PSW_V;
     if (dst != 0) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteADC ()
@@ -1216,7 +1279,9 @@ void CProcessor::ExecuteADC ()
     if ((dst == 0100000) && GetC()) new_psw |= PSW_V;
     if ((dst == 0) && GetC()) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteADCB ()  // ADCB
 {
@@ -1247,7 +1312,9 @@ void CProcessor::ExecuteADCB ()  // ADCB
     if ((dst == 0200) && GetC()) new_psw |= PSW_V;
     if ((dst == 0) && GetC()) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteSBC ()
@@ -1279,7 +1346,9 @@ void CProcessor::ExecuteSBC ()
     if ((dst == 077777) && GetC()) new_psw |= PSW_V;
     if ((dst == 0177777) && GetC()) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteSBCB ()
 {
@@ -1310,7 +1379,9 @@ void CProcessor::ExecuteSBCB ()
     if ((dst == 0177) && GetC()) new_psw |= PSW_V;
     if ((dst == 0377) && GetC()) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteTST ()  // TST only, see also ExecuteTSTB()
@@ -1331,7 +1402,9 @@ void CProcessor::ExecuteTST ()  // TST only, see also ExecuteTSTB()
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = TST_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += TST_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteTSTB ()  // TSTB only, see also ExecuteTST()
@@ -1352,7 +1425,9 @@ void CProcessor::ExecuteTSTB ()  // TSTB only, see also ExecuteTST()
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = TST_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += TSTB_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteROR ()  // ROR
@@ -1384,7 +1459,9 @@ void CProcessor::ExecuteROR ()  // ROR
     if (src & 1) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteRORB ()  // RORB
 {
@@ -1415,7 +1492,9 @@ void CProcessor::ExecuteRORB ()  // RORB
     if (src & 1) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteROL ()  // ROL
@@ -1447,7 +1526,9 @@ void CProcessor::ExecuteROL ()  // ROL
     if (src & 0100000) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteROLB ()  // ROLB
 {
@@ -1478,7 +1559,9 @@ void CProcessor::ExecuteROLB ()  // ROLB
     if (src & 0200) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteASR ()  // ASR
@@ -1510,7 +1593,9 @@ void CProcessor::ExecuteASR ()  // ASR
     if (src & 1) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteASRB ()  // ASRB
 {
@@ -1541,7 +1626,9 @@ void CProcessor::ExecuteASRB ()  // ASRB
     if (src & 1) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteASL ()  // ASL
@@ -1573,7 +1660,9 @@ void CProcessor::ExecuteASL ()  // ASL
     if (src & 0100000) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 void CProcessor::ExecuteASLB ()  // ASLB
 {
@@ -1604,7 +1693,9 @@ void CProcessor::ExecuteASLB ()  // ASLB
     if (src & 0200) new_psw |= PSW_C;
     if (((new_psw & PSW_N) != 0) != ((new_psw & PSW_C) != 0)) new_psw |= PSW_V;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteSXT ()  // SXT - sign-extend
@@ -1622,7 +1713,9 @@ void CProcessor::ExecuteSXT ()  // SXT - sign-extend
 
     if (!GetN()) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += CLR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
@@ -1640,7 +1733,9 @@ void CProcessor::ExecuteMTPS ()  // MTPS - move to PS
 
     SetLPSW((GetLPSW() & 0x10) | (dst & 0xEF));
     SetPC(GetPC());
-    m_internalTick = MTPS_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MTPS_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
@@ -1663,7 +1758,9 @@ void CProcessor::ExecuteMFPS ()  // MFPS - move from PS
     if (psw & 0200) new_psw |= PSW_N;
     if (psw == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = CLR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MFPS_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteBR ()
@@ -1853,7 +1950,9 @@ void CProcessor::ExecuteXOR ()  // XOR
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick = XOR_TIMING[m_methdest];
+
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += XOR_TIMING[idxdest];
 }
 
 void CProcessor::ExecuteMUL ()  // MUL
@@ -2059,7 +2158,10 @@ void CProcessor::ExecuteMOV ()  // MOV only, see also ExecuteMOVB()
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += MOV_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MOV_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteMOVB ()  // MOVB only, see also ExecuteMOV()
@@ -2093,7 +2195,10 @@ void CProcessor::ExecuteMOVB ()  // MOVB only, see also ExecuteMOV()
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MOVB_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteCMP ()
@@ -2303,7 +2408,10 @@ void CProcessor::ExecuteBIC()  // BIC - bit clear
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += MOV_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MOV_TIMING[idxsrc][idxdest];
 }
 void CProcessor::ExecuteBICB ()  // BICB - bit clear
 {
@@ -2345,7 +2453,10 @@ void CProcessor::ExecuteBICB ()  // BICB - bit clear
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += MOVB_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteBIS()  // BIS - bit set
@@ -2387,7 +2498,10 @@ void CProcessor::ExecuteBIS()  // BIS - bit set
     if (dst & 0100000) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += BIS_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += BIS_TIMING[idxsrc][idxdest];
 }
 void CProcessor::ExecuteBISB ()  // BISB - bit set
 {
@@ -2428,7 +2542,10 @@ void CProcessor::ExecuteBISB ()  // BISB - bit set
     if (dst & 0200) new_psw |= PSW_N;
     if (dst == 0) new_psw |= PSW_Z;
     SetLPSW(new_psw);
-    m_internalTick += BISB_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += BISB_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteADD ()  // ADD
@@ -2470,7 +2587,10 @@ void CProcessor::ExecuteADD ()  // ADD
     if ((~(src ^ src2) & (dst ^ src2)) & 0100000) new_psw |= PSW_V;
     if (((src & src2) | ((src ^ src2) & ~dst)) & 0100000) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += ADD_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteSUB ()
@@ -2512,7 +2632,10 @@ void CProcessor::ExecuteSUB ()
     if (((src ^ src2) & ~(dst ^ src)) & 0100000) new_psw |= PSW_V;
     if (((src & ~src2) | (~(src ^ src2) & dst)) & 0100000) new_psw |= PSW_C;
     SetLPSW(new_psw);
-    m_internalTick += MOVB_TIMING[m_methsrc][m_methdest];
+
+    uint8_t idxsrc = (m_methsrc == 2 && m_regsrc == 7) ? 8 : m_methsrc;
+    uint8_t idxdest = (m_methdest == 2 && m_regdest == 7) ? 8 : m_methdest;
+    m_internalTick += ADD_TIMING[idxsrc][idxdest];
 }
 
 void CProcessor::ExecuteEMT ()  // EMT - emulator trap
