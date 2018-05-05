@@ -635,6 +635,92 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     return result;
 }
 
+static BYTE RecognizeCharacter(const BYTE * pFontData, const DWORD * pBits)
+{
+    int16_t bestmatch = -32767;
+    BYTE bestchar = 0;
+
+    for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
+    {
+        int16_t match = 0;
+        const DWORD * pb = pBits;
+        const BYTE * pCharFontData = pFontData + charidx * 8 * 11;
+        for (int y = 0; y < 11; y++)
+        {
+            for (int x = 0; x < 8; x++)
+            {
+                DWORD color = pb[x];
+                int sum = (color & 0xff) + ((color >> 8) & 0xff) + ((color >> 16) & 0xff);
+                BYTE fontdata = pCharFontData[y * 8 + x];
+                if (sum > 384)
+                    match += fontdata;
+                else
+                    match -= fontdata;
+            }
+            pb += 640;
+        }
+        if (match > bestmatch)
+        {
+            bestmatch = match;
+            bestchar = charidx;
+        }
+    }
+
+    return 0x20 + bestchar;
+}
+
+// buffer size is 82 * 26 + 1 means 26 lines, 80 chars in every line plus CR/LF
+BOOL ScreenView_ScreenToText(BYTE* buffer)
+{
+    BYTE * pFontData = (BYTE*) ::calloc(19712, 1);
+    if (pFontData == nullptr)
+        return FALSE;
+
+    // Load FontPattern.bin resource file
+    HRSRC hRes = NULL;
+    DWORD dwDataSize = 0;
+    HGLOBAL hResLoaded = NULL;
+    void * pResData = nullptr;
+    if ((hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_FONT_PATTERN), _T("BIN"))) == NULL ||
+        (dwDataSize = ::SizeofResource(NULL, hRes)) < 19712 ||
+        (hResLoaded = ::LoadResource(NULL, hRes)) == NULL ||
+        (pResData = ::LockResource(hResLoaded)) == NULL)
+    {
+        ::free(pFontData);
+        return FALSE;
+    }
+    ::memcpy(pFontData, pResData, 19712);
+
+    // Get screenshot
+    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    const DWORD* colors = ScreenView_GrayColors;
+    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)colors);
+
+    // Loop for lines
+    int charidx = 0;
+    int y = 2;
+    while (y <= 288 - 11)
+    {
+        DWORD * pCharBits = ((DWORD*)pBits) + y * 640;
+
+        for (int x = 0; x < 640; x += 8)
+        {
+            BYTE ch = RecognizeCharacter(pFontData, pCharBits + x);
+            buffer[charidx] = ch;
+            charidx++;
+        }
+        buffer[charidx++] = 0x0d;
+        buffer[charidx++] = 0x0a;
+
+        y += 11;
+    }
+
+    ::free(pBits);
+    ::free(pFontData);
+
+    return TRUE;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 

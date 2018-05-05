@@ -55,7 +55,7 @@ void ScreenView_Create(HWND hwndParent, int x, int y);
 LRESULT CALLBACK ScreenViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LPCTSTR ScreenView_GetScreenshotModeName(int screenshotMode);
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode);
-BOOL ScreenView_SaveApngFrame(HANDLE hFile);
+BOOL ScreenView_ScreenToText(BYTE* buffer);
 void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 

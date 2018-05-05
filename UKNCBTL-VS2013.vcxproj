@@ -211,6 +211,7 @@
     <Xml Include="manifest.xml" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="FontPattern.bin" />
     <None Include="uknc_rom.bin" />
     <None Include="Version.tpl" />
   </ItemGroup>

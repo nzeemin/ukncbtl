@@ -124,6 +124,7 @@
       <Filter>res</Filter>
     </None>
     <None Include="Version.tpl" />
+    <None Include="FontPattern.bin" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="UKNCBTL.rc">

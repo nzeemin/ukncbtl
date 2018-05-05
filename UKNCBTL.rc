@@ -89,6 +89,7 @@ BEGIN
         MENUITEM MFT_SEPARATOR
         MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT,MFT_STRING,MFS_ENABLED
         MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS,MFT_STRING,MFS_ENABLED
+        MENUITEM "Screen Text to Clipboard",    ID_FILE_SCREENTOCLIPBOARD,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Create Disk...",              ID_FILE_CREATEDISK,MFT_STRING,MFS_ENABLED
         MENUITEM "Settings",                    ID_FILE_SETTINGS,MFT_STRING,MFS_ENABLED
@@ -352,6 +353,8 @@ IDB_KEYBOARDMASK        BITMAP                  "keyboardmask.bmp"
 //
 
 IDR_UKNC_ROM            BIN                     "uknc_rom.bin"
+
+IDR_FONT_PATTERN        BIN                     "FontPattern.bin"
 
 /////////////////////////////////////////////////////////////////////////////
 //

@@ -25,6 +25,7 @@
 #define IDD_DCB_EDITOR                  148
 #define IDB_KEYBOARDMASK                149
 #define IDD_CONFIGDLG                   150
+#define IDR_FONT_PATTERN                151
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002
@@ -101,6 +102,7 @@
 #define ID_DEBUG_MEMORY_RAM             32869
 #define ID_DEBUG_MEMORY_WORDBYTE        32870
 #define ID_DEBUG_MEMORY_GOTO            32871
+#define ID_FILE_SCREENTOCLIPBOARD       32872
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -108,8 +110,8 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        151
-#define _APS_NEXT_COMMAND_VALUE         32872
+#define _APS_NEXT_RESOURCE_VALUE        152
+#define _APS_NEXT_COMMAND_VALUE         32873
 #define _APS_NEXT_CONTROL_VALUE         1032
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

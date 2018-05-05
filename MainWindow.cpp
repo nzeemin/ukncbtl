@@ -74,6 +74,7 @@ void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
 void MainWindow_DoFileScreenshotSaveAs();
+void MainWindow_DoFileScreenToClipboard();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
 void MainWindow_DoEmulatorConfiguration();
@@ -1082,6 +1083,9 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SAVESCREENSHOTAS:
         MainWindow_DoFileScreenshotSaveAs();
         break;
+    case ID_FILE_SCREENTOCLIPBOARD:
+        MainWindow_DoFileScreenToClipboard();
+        break;
     case ID_FILE_CREATEDISK:
         MainWindow_DoFileCreateDisk();
         break;
@@ -1347,6 +1351,32 @@ void MainWindow_DoFileScreenshotSaveAs()
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
     }
+}
+
+void MainWindow_DoFileScreenToClipboard()
+{
+    BYTE buffer[82 * 26 + 1];
+    memset(buffer, 0, sizeof(buffer));
+
+    if (!ScreenView_ScreenToText(buffer))
+    {
+        AlertWarning(_T("Failed to prepare text clipboard from screen."));
+        return;
+    }
+
+    // Prepare Unicode text
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, sizeof(buffer) * sizeof(TCHAR));
+    TCHAR * pUnicodeBuffer = (TCHAR*)GlobalLock(hMem);
+    for (int i = 0; i < sizeof(buffer) - 1; i++)
+        pUnicodeBuffer[i] = Translate_KOI8R(buffer[i]);
+    pUnicodeBuffer[sizeof(buffer) - 1] = 0;
+    GlobalUnlock(hMem);
+
+    // Put text to Clipboard
+    OpenClipboard(0);
+    EmptyClipboard();
+    SetClipboardData(CF_UNICODETEXT, hMem);
+    CloseClipboard();
 }
 
 void MainWindow_DoFileCreateDisk()
