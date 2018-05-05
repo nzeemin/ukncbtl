@@ -59,7 +59,7 @@ uint16_t CLR_TIMING[8] =
 
 uint16_t CLRB_TIMING[8] =
 {
-    0x000D, 0x0028, 0x0027, 0x0033, 0x0027, 0x0033, 0x0037, 0x0043
+    0x000B, 0x0021, 0x0027, 0x0033, 0x0027, 0x0033, 0x0037, 0x0043
 };
 
 uint16_t TST_TIMING[8] =
@@ -896,7 +896,7 @@ void CProcessor::ExecuteCLRB ()  // CLRB
         SetLReg(m_regdest, 0);
 
     SetLPSW((GetLPSW() & 0xF0) | PSW_Z);
-    m_internalTick = CLRB_TIMING[m_methdest];
+    m_internalTick = CLR_TIMING[m_methdest];
 }
 
 void CProcessor::ExecuteCOM()  // COM
