@@ -15,7 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Views.h"
 #include "Emulator.h"
 #include "util\BitmapFile.h"
-
+#include "emubase\Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -635,27 +635,26 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     return result;
 }
 
-static BYTE RecognizeCharacter(const BYTE * pFontData, const DWORD * pBits)
+static BYTE RecognizeCharacter(const BYTE* font, const DWORD* pBits)
 {
     int16_t bestmatch = -32767;
     BYTE bestchar = 0;
-
     for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
     {
         int16_t match = 0;
         const DWORD * pb = pBits;
-        const BYTE * pCharFontData = pFontData + charidx * 8 * 11;
-        for (int y = 0; y < 11; y++)
+        for (int16_t y = 0; y < 11; y++)
         {
+            BYTE fontdata = font[charidx * 11 + y];
             for (int x = 0; x < 8; x++)
             {
                 DWORD color = pb[x];
                 int sum = (color & 0xff) + ((color >> 8) & 0xff) + ((color >> 16) & 0xff);
-                BYTE fontdata = pCharFontData[y * 8 + x];
+                BYTE fontbit = (fontdata >> x) & 1;
                 if (sum > 384)
-                    match += fontdata;
+                    match += fontbit;
                 else
-                    match -= fontdata;
+                    match -= fontbit;
             }
             pb += 640;
         }
@@ -672,40 +671,37 @@ static BYTE RecognizeCharacter(const BYTE * pFontData, const DWORD * pBits)
 // buffer size is 82 * 26 + 1 means 26 lines, 80 chars in every line plus CR/LF
 BOOL ScreenView_ScreenToText(BYTE* buffer)
 {
-    BYTE * pFontData = (BYTE*) ::calloc(19712, 1);
-    if (pFontData == nullptr)
-        return FALSE;
-
-    // Load FontPattern.bin resource file
-    HRSRC hRes = NULL;
-    DWORD dwDataSize = 0;
-    HGLOBAL hResLoaded = NULL;
-    void * pResData = nullptr;
-    if ((hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_FONT_PATTERN), _T("BIN"))) == NULL ||
-        (dwDataSize = ::SizeofResource(NULL, hRes)) < 19712 ||
-        (hResLoaded = ::LoadResource(NULL, hRes)) == NULL ||
-        (pResData = ::LockResource(hResLoaded)) == NULL)
-    {
-        ::free(pFontData);
-        return FALSE;
-    }
-    ::memcpy(pFontData, pResData, 19712);
-
     // Get screenshot
     void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
     const DWORD* colors = ScreenView_GrayColors;
-    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)colors);
+    Emulator_PrepareScreenToText(pBits, (const uint32_t*)colors);
+
+    // Prepare font, get current font data from PPU memory
+    CMemoryController* pPpuMemCtl = g_pBoard->GetPPUMemoryController();
+    BYTE font[11 * 16 * 14];
+    WORD fontaddr = 014142 + 32 * 2;
+    int addrtype = 0;
+    for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
+    {
+        WORD charaddr = pPpuMemCtl->GetWordView(fontaddr + charidx * 2, FALSE, FALSE, &addrtype);
+        for (int16_t y = 0; y < 11; y++)
+        {
+            WORD fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, FALSE, FALSE, &addrtype);
+            if (((charaddr + y) & 1) == 1) fontdata >>= 8;
+            font[charidx * 11 + y] = (BYTE)(fontdata & 0xff);
+        }
+    }
 
     // Loop for lines
     int charidx = 0;
-    int y = 2;
+    int y = 0;
     while (y <= 288 - 11)
     {
         DWORD * pCharBits = ((DWORD*)pBits) + y * 640;
 
         for (int x = 0; x < 640; x += 8)
         {
-            BYTE ch = RecognizeCharacter(pFontData, pCharBits + x);
+            BYTE ch = RecognizeCharacter(font, pCharBits + x);
             buffer[charidx] = ch;
             charidx++;
         }
@@ -713,10 +709,10 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
         buffer[charidx++] = 0x0a;
 
         y += 11;
+        if (y == 11) y++;  // Extra line after upper indicator lines
     }
 
     ::free(pBits);
-    ::free(pFontData);
 
     return TRUE;
 }

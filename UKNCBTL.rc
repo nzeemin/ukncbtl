@@ -354,8 +354,6 @@ IDB_KEYBOARDMASK        BITMAP                  "keyboardmask.bmp"
 
 IDR_UKNC_ROM            BIN                     "uknc_rom.bin"
 
-IDR_FONT_PATTERN        BIN                     "FontPattern.bin"
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // String Table

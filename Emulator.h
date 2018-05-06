@@ -49,6 +49,7 @@ uint32_t Emulator_GetUptime();  // UKNC uptime, in seconds
 void Emulator_SetSpeed(uint16_t realspeed);
 
 void Emulator_PrepareScreenRGB32(void* pBits, const uint32_t* colors);
+void Emulator_PrepareScreenToText(void* pBits, const uint32_t* colors);
 
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 

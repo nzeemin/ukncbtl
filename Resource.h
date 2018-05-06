@@ -25,7 +25,6 @@
 #define IDD_DCB_EDITOR                  148
 #define IDB_KEYBOARDMASK                149
 #define IDD_CONFIGDLG                   150
-#define IDR_FONT_PATTERN                151
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
 #define IDC_TRACKS40                    1002

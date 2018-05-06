@@ -802,6 +802,94 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const uint32_t* colors)
     }
 }
 
+void Emulator_PrepareScreenToText(void* pImageBits, const uint32_t* colors)
+{
+    if (pImageBits == nullptr) return;
+    if (!g_okEmulatorInitialized) return;
+
+    // Tag parsing loop
+    WORD address = 0000270;  // Tag sequence start address
+    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
+    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
+    int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
+    for (int yy = 0; yy < 307; yy++)
+    {
+        if (okTagSize)  // 4-word tag
+        {
+            //WORD tag1 = g_pBoard->GetRAMWord(0, address);
+            address += 2;
+            WORD tag2 = g_pBoard->GetRAMWord(0, address);
+            address += 2;
+
+            if (okTagType)  // 4-word palette tag
+            {
+                //palette = MAKELONG(tag1, tag2);
+            }
+            else  // 4-word params tag
+            {
+                scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
+                scale = 1 << scale;
+            }
+        }
+
+        WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
+        address += 2;
+
+        // Calculate size, type and address of the next tag
+        WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
+        okTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
+        if (okTagSize)
+        {
+            address = tagB & ~7;
+            okTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
+        }
+        else
+            address = tagB & ~3;
+
+        // Draw bits into the bitmap, from line 20 to line 307
+        if (yy < 19 /*|| yy > 306*/)
+            continue;
+
+        // Loop thru bits from addressBits, planes 0,1,2
+        int xr = 640;
+        int y = yy - 19;
+        uint32_t* pBits = ((uint32_t*)pImageBits) + y * 640;
+        int pos = 0;
+        for (;;)
+        {
+            // Get bit from planes 0,1,2
+            BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
+            BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
+            BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
+            // Loop through the bits of the byte
+            int bit = 0;
+            for (;;)
+            {
+                // Make 3-bit value from the bits
+                BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
+                uint32_t valueRGB = colors[value012];  // 3-bit to 32-bit color
+
+                // Put value to m_bits; (do not repeat using scale value)
+                *pBits++ = valueRGB;
+                xr -= scale;
+
+                if (bit == 7)
+                    break;
+                bit++;
+
+                // Shift to the next bit
+                src0 >>= 1;
+                src1 >>= 1;
+                src2 >>= 1;
+            }
+            if (xr <= 0)
+                break;  // End of line
+            addressBits++;  // Go to the next byte
+            pos++;
+        }
+    }
+}
+
 
 //////////////////////////////////////////////////////////////////////
 //
