@@ -635,32 +635,44 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     return result;
 }
 
-static BYTE RecognizeCharacter(const BYTE* font, const DWORD* pBits)
+static BYTE RecognizeCharacter(const BYTE* fontcur, const BYTE* fontstd, const DWORD* pBits)
 {
     int16_t bestmatch = -32767;
     BYTE bestchar = 0;
     for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
     {
-        int16_t match = 0;
+        int16_t matchcur = 0;
+        int16_t matchstd = 0;
         const DWORD * pb = pBits;
         for (int16_t y = 0; y < 11; y++)
         {
-            BYTE fontdata = font[charidx * 11 + y];
+            BYTE fontcurdata = fontcur[charidx * 11 + y];
+            BYTE fontstddata = fontstd[charidx * 11 + y];
             for (int x = 0; x < 8; x++)
             {
                 DWORD color = pb[x];
                 int sum = (color & 0xff) + ((color >> 8) & 0xff) + ((color >> 16) & 0xff);
-                BYTE fontbit = (fontdata >> x) & 1;
+                BYTE fontcurbit = (fontcurdata >> x) & 1;
+                BYTE fontstdbit = (fontstddata >> x) & 1;
                 if (sum > 384)
-                    match += fontbit;
+                {
+                    matchcur += fontcurbit;  matchstd += fontstdbit;
+                }
                 else
-                    match -= fontbit;
+                {
+                    matchcur -= fontcurbit;  matchstd -= fontstdbit;
+                }
             }
             pb += 640;
         }
-        if (match > bestmatch)
+        if (matchcur > bestmatch)
         {
-            bestmatch = match;
+            bestmatch = matchcur;
+            bestchar = charidx;
+        }
+        if (matchstd > bestmatch)
+        {
+            bestmatch = matchstd;
             bestchar = charidx;
         }
     }
@@ -678,7 +690,7 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
 
     // Prepare font, get current font data from PPU memory
     CMemoryController* pPpuMemCtl = g_pBoard->GetPPUMemoryController();
-    BYTE font[11 * 16 * 14];
+    BYTE fontcur[11 * 16 * 14];
     WORD fontaddr = 014142 + 32 * 2;
     int addrtype = 0;
     for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
@@ -688,8 +700,18 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
         {
             WORD fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, FALSE, FALSE, &addrtype);
             if (((charaddr + y) & 1) == 1) fontdata >>= 8;
-            font[charidx * 11 + y] = (BYTE)(fontdata & 0xff);
+            fontcur[charidx * 11 + y] = (BYTE)(fontdata & 0xff);
         }
+    }
+    // Prepare font, get standard font data from PPU memory
+    BYTE fontstd[11 * 16 * 14];
+    WORD charstdaddr = 0120170;
+    for (WORD idx = 0; idx < 16 * 14 * 11; idx++)
+    {
+        WORD fontdata = pPpuMemCtl->GetWordView(charstdaddr & ~1, FALSE, FALSE, &addrtype);
+        if ((charstdaddr & 1) == 1) fontdata >>= 8;
+        fontstd[idx] = (BYTE)(fontdata & 0xff);
+        charstdaddr++;
     }
 
     // Loop for lines
@@ -701,7 +723,7 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
 
         for (int x = 0; x < 640; x += 8)
         {
-            BYTE ch = RecognizeCharacter(font, pCharBits + x);
+            BYTE ch = RecognizeCharacter(fontcur, fontstd, pCharBits + x);
             buffer[charidx] = ch;
             charidx++;
         }
