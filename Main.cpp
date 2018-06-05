@@ -120,7 +120,9 @@ int APIENTRY _tWinMain(
                 LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
                         * 1000 / nPerformanceFrequency.QuadPart;
                 LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
-                if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
+                if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
+                    nFrameDelay = 1000 / 25 * 4 - 1;
+                else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
                     nFrameDelay = 1000 / 25 * 2 - 1;
                 else if (Settings_GetRealSpeed() == 2)  // Speed 200%
                     nFrameDelay = 1000 / 25 / 2 - 1;
@@ -172,7 +174,8 @@ BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
 
     ParseCommandLine();  // Override settings by command-line option if needed
 
-    if (!Emulator_Init()) return FALSE;
+    if (!Emulator_Init())
+        return FALSE;
     Emulator_SetSound(Settings_GetSound());
     Emulator_SetSpeed(Settings_GetRealSpeed());
 
