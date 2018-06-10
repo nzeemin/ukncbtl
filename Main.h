@@ -86,9 +86,19 @@ enum ToolbarButtonImages
     ToolbarImageHardDriveWP = 12,
     ToolbarImageScreenshot = 13,
     ToolbarImageScreenshotStop = 14,
+    ToolbarImageStepInto = 15,
+    ToolbarImageStepOver = 16,
+    ToolbarImageCpuPpu = 17,
     ToolbarImageSerial = 18,
     ToolbarImageParallel = 19,
     ToolbarImageNetwork = 20,
+    ToolbarImageMemoryRom = 21,
+    ToolbarImageMemoryCpu = 22,
+    ToolbarImageMemoryPpu = 23,
+    ToolbarImageMemoryRam = 24,
+    ToolbarImageWordByte = 25,
+    ToolbarImageGotoAddress = 26,
+    ToolbarImageSpriteViewer = 27,
 };
 
 enum StatusbarParts

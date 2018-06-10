@@ -135,14 +135,14 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
         buttons[i].iString = -1;
     }
     buttons[0].idCommand = ID_DEBUG_CPUPPU;
-    buttons[0].iBitmap = 17;
+    buttons[0].iBitmap = ToolbarImageCpuPpu;
     buttons[1].idCommand = ID_DEBUG_SPRITES;
-    buttons[1].iBitmap = 27;
+    buttons[1].iBitmap = ToolbarImageSpriteViewer;
     buttons[2].fsStyle = BTNS_SEP;
     buttons[3].idCommand = ID_DEBUG_STEPINTO;
-    buttons[3].iBitmap = 15;
+    buttons[3].iBitmap = ToolbarImageStepInto;
     buttons[4].idCommand = ID_DEBUG_STEPOVER;
-    buttons[4].iBitmap = 16;
+    buttons[4].iBitmap = ToolbarImageStepOver;
 
     SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 }

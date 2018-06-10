@@ -129,19 +129,19 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
         buttons[i].iString = -1;
     }
     buttons[0].idCommand = ID_DEBUG_MEMORY_GOTO;
-    buttons[0].iBitmap = 26;
+    buttons[0].iBitmap = ToolbarImageGotoAddress;
     buttons[1].fsStyle = BTNS_SEP;
     buttons[2].idCommand = ID_DEBUG_MEMORY_RAM;
-    buttons[2].iBitmap = 24;
+    buttons[2].iBitmap = ToolbarImageMemoryRam;
     buttons[3].idCommand = ID_DEBUG_MEMORY_ROM;
-    buttons[3].iBitmap = 21;
+    buttons[3].iBitmap = ToolbarImageMemoryRom;
     buttons[4].idCommand = ID_DEBUG_MEMORY_CPU;
-    buttons[4].iBitmap = 22;
+    buttons[4].iBitmap = ToolbarImageMemoryCpu;
     buttons[5].idCommand = ID_DEBUG_MEMORY_PPU;
-    buttons[5].iBitmap = 23;
+    buttons[5].iBitmap = ToolbarImageMemoryPpu;
     buttons[6].fsStyle = BTNS_SEP;
     buttons[7].idCommand = ID_DEBUG_MEMORY_WORDBYTE;
-    buttons[7].iBitmap = 25;
+    buttons[7].iBitmap = ToolbarImageWordByte;
 
     SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
 
