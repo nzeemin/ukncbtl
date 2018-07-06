@@ -132,6 +132,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <AdditionalOptions>/arch:SSE %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>Vfw32.lib;comctl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
