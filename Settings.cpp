@@ -328,6 +328,7 @@ SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), WORD, 1);
 
 SETTINGS_GETSET_DWORD(Sound, _T("Sound"), BOOL, FALSE);
 SETTINGS_GETSET_DWORD(SoundVolume, _T("SoundVolume"), WORD, 0x3fff);
+SETTINGS_GETSET_DWORD(SoundAY, _T("SoundAY"), BOOL, FALSE);
 
 SETTINGS_GETSET_DWORD(Keyboard, _T("Keyboard"), BOOL, TRUE);
 

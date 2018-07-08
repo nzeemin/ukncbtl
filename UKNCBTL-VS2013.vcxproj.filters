@@ -53,6 +53,7 @@
     <ClCompile Include="ToolWindow.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="SpriteView.cpp" />
+    <ClCompile Include="emubase\SoundAY.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="emubase\Board.h">

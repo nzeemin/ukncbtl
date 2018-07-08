@@ -1273,6 +1273,10 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
         SetPortWord(address, word);
         break;
 
+    case 0177734:  // Sound AY
+        m_pBoard->SetSoundAYVal(byte ^ 0xff);
+        break;
+
         // HDD ports
     case 0110016:
     case 0110014:
@@ -1504,6 +1508,10 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
             m_pBoard->SetSound(word);
             break;
         }
+
+    case 0177734:  // Sound AY
+        m_pBoard->SetSoundAYReg((uint8_t)(word ^ 0xff));
+        break;
 
         // HDD ports
     case 0110016:
