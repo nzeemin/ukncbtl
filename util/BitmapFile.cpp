@@ -362,13 +362,6 @@ bool PngFile_SaveScreenshot(
 
 //////////////////////////////////////////////////////////////////////
 
-struct APNGFILE
-{
-    FILE* fpFile;
-    uint32_t dwNextFrameNumber;
-    fpos_t nActlOffset;       // "acTL" chunk offset
-};
-
 bool PngFile_WriteActl(FILE * fpFile, uint32_t numframes)
 {
     uint8_t acTLchunk[12 + 8];

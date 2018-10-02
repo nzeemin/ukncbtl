@@ -319,10 +319,10 @@ void SaveDisplayListDump()
     {
         _ftprintf(fpFile, _T("%4d  %06o  "), yy, address);
 
-        WORD tag1 = 0, tag2 = 0;
+        WORD tag2 = 0;
         if (okTagSize)  // 4-word tag
         {
-            tag1 = g_pBoard->GetRAMWord(0, address);
+            WORD tag1 = g_pBoard->GetRAMWord(0, address);
             address += 2;
             tag2 = g_pBoard->GetRAMWord(0, address);
             address += 2;

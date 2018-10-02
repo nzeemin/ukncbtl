@@ -218,11 +218,11 @@ void DisasmView_UpdateWindowText()
 
 void DisasmView_ResizeSubtitleArray(int newSize)
 {
-    DisasmSubtitleItem* pNewMemory = (DisasmSubtitleItem*) ::LocalAlloc(LPTR, sizeof(DisasmSubtitleItem) * newSize);
+    DisasmSubtitleItem* pNewMemory = (DisasmSubtitleItem*) ::calloc(newSize, sizeof(DisasmSubtitleItem));
     if (m_pDisasmSubtitleItems != NULL)
     {
         ::memcpy(pNewMemory, m_pDisasmSubtitleItems, sizeof(DisasmSubtitleItem) * m_nDisasmSubtitleMax);
-        ::LocalFree(m_pDisasmSubtitleItems);
+        ::free(m_pDisasmSubtitleItems);
     }
 
     m_pDisasmSubtitleItems = pNewMemory;
@@ -247,8 +247,8 @@ void DisasmView_DoSubtitles()
 {
     if (m_okDisasmSubtitles)  // Reset subtitles
     {
-        ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
-        ::LocalFree(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
+        ::free(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
+        ::free(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
         m_nDisasmSubtitleMax = m_nDisasmSubtitleCount = 0;
         m_okDisasmSubtitles = FALSE;
         DisasmView_UpdateWindowText();
@@ -279,7 +279,7 @@ void DisasmView_DoSubtitles()
         return;
     }
 
-    m_strDisasmSubtitles = (TCHAR*) ::LocalAlloc(LPTR, dwSubFileSize + 2);
+    m_strDisasmSubtitles = (TCHAR*) ::calloc(dwSubFileSize + 2, 1);
     DWORD dwBytesRead;
     ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
     ASSERT(dwBytesRead == dwSubFileSize);
@@ -294,8 +294,8 @@ void DisasmView_DoSubtitles()
     // Parse subtitles
     if (!DisasmView_ParseSubtitles())
     {
-        ::LocalFree(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
-        ::LocalFree(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
+        ::free(m_strDisasmSubtitles);  m_strDisasmSubtitles = NULL;
+        ::free(m_pDisasmSubtitleItems);  m_pDisasmSubtitleItems = NULL;
         AlertWarning(_T("Failed to parse subtitles file."));
         return;
     }

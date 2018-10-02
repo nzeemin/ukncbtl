@@ -402,7 +402,6 @@ void CFloppyController::PrepareTrack()
 #endif
 
     //TCHAR buffer[512];
-    size_t count;
 
     m_trackchanged = false;
     m_status |= FLOPPY_STATUS_MOREDATA;
@@ -422,7 +421,7 @@ void CFloppyController::PrepareTrack()
     if (m_pDrive->fpFile != nullptr)
     {
         ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
-        count = ::fread(&data, 1, 5120, m_pDrive->fpFile);
+        size_t count = ::fread(&data, 1, 5120, m_pDrive->fpFile);
         //TODO: Контроль ошибок чтения
     }
 

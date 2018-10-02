@@ -164,7 +164,7 @@ const TCHAR* REGISTER_NAME[] = { _T("R0"), _T("R1"), _T("R2"), _T("R3"), _T("R4"
 
 HFONT CreateMonospacedFont()
 {
-    HFONT font = NULL;
+    HFONT font;
     LOGFONT logfont;  memset(&logfont, 0, sizeof(logfont));
     logfont.lfHeight = 12;
     logfont.lfWeight = FW_NORMAL;
@@ -194,8 +194,8 @@ HFONT CreateMonospacedFont()
 
 HFONT CreateDialogFont()
 {
-    HFONT font = NULL;
-    font = CreateFont(14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
+    HFONT font = CreateFont(
+            14, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
             DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY,
             VARIABLE_PITCH,
