@@ -106,7 +106,6 @@ typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
 
 class CFloppyController;
 class CHardDrive;
-class CSoundAY;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -138,7 +137,6 @@ protected:  // Devices
     CMemoryController*  m_pSecondMemCtl;  ///< PPU memory control
     CFloppyController*  m_pFloppyCtl;  ///< FDD control
     CHardDrive* m_pHardDrives[2];  ///< HDD control
-    CSoundAY*   m_pSoundAY;
 
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU; }  ///< Getter for m_pCPU
@@ -249,8 +247,6 @@ public:  // System control
     uint16_t    GetFloppyData();
     void        SetFloppyState(uint16_t val);
     void        SetFloppyData(uint16_t val);
-    void        SetSoundAYReg(uint8_t reg) { m_nSoundAYReg = reg; }
-    void        SetSoundAYVal(uint8_t val);
 
     /// \brief Check if ROM cartridge image assigned to the cartridge slot.
     bool        IsROMCartridgeLoaded(int cartno) const;
@@ -286,7 +282,6 @@ public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);
     void        SetSound(uint16_t val);
-    void        SetSoundAY(bool onoff) { m_okSoundAY = onoff; }
 private: // Timing
     uint16_t    m_multiply;
     uint16_t    freq_per[6];
@@ -315,9 +310,6 @@ private:
 
     uint8_t		m_scanned_key;
     kbd_row		m_kbd_matrix[16];
-
-    bool        m_okSoundAY;
-    uint8_t     m_nSoundAYReg;  ///< AY current register
 
 private:
     TAPEREADCALLBACK m_TapeReadCallback;

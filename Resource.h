@@ -87,7 +87,6 @@
 #define ID_EMULATOR_PARALLEL            32827
 #define ID_EMULATOR_NETWORK             32828
 #define ID_EMULATOR_SOUND               32831
-#define ID_EMULATOR_SOUNDAY             32833
 #define ID_VIEW_RENDERMODE              32847
 #define ID_VIEW_RENDERMODE1             32848
 #define ID_VIEW_RENDERMODE2             32849

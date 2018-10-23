@@ -179,7 +179,6 @@ CMotherboard::CMotherboard ()
     m_NetworkInCallback = nullptr;
     m_NetworkOutCallback = nullptr;
     m_TerminalOutCallback = nullptr;
-    m_okSoundAY = false;
 
     // Create devices
     m_pCPU = new CProcessor(_T("CPU"));
@@ -187,7 +186,6 @@ CMotherboard::CMotherboard ()
     m_pFirstMemCtl = new CFirstMemoryController();
     m_pSecondMemCtl = new CSecondMemoryController();
     m_pFloppyCtl = new CFloppyController();
-    m_pSoundAY = new CSoundAY();
 
     // Connect devices
     m_pCPU->AttachMemoryController(m_pFirstMemCtl);
@@ -253,7 +251,6 @@ CMotherboard::~CMotherboard ()
     delete m_pFirstMemCtl;
     delete m_pSecondMemCtl;
     delete m_pFloppyCtl;
-    delete m_pSoundAY;
 
     // Free memory
     free(m_pRAM[0]);
@@ -298,9 +295,6 @@ void CMotherboard::Reset ()
     m_scanned_key = 0;
     memset(m_kbd_matrix, 0, sizeof(m_kbd_matrix));
     m_kbd_matrix[3].row_Y = 0xFF;
-
-    m_nSoundAYReg = 0;
-    m_pSoundAY->Reset();
 
     //ChanResetByCPU();
     //ChanResetByPPU();
@@ -630,14 +624,6 @@ void CMotherboard::SetTimerState(uint16_t val) // Sets timer state
     case 3:
         m_multiply = 1;
         break;
-    }
-}
-
-void CMotherboard::SetSoundAYVal(uint8_t val)
-{
-    if (m_okSoundAY)
-    {
-        m_pSoundAY->SetReg(m_nSoundAYReg, val);
     }
 }
 
@@ -1485,14 +1471,6 @@ void CMotherboard::DoSound(void)
         return;
 
     uint8_t value = global ? 0xff : 0;
-    if (m_okSoundAY)
-    {
-        uint8_t bufferay[2];
-        m_pSoundAY->Callback(bufferay, sizeof(bufferay));
-        uint8_t valueay = bufferay[sizeof(bufferay) - 1];
-        value = value | valueay;
-    }
-
     uint16_t value16 = value << 7;
     (*m_SoundGenCallback)(value16, value16);
 }
