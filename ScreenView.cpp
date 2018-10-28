@@ -635,25 +635,25 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     return result;
 }
 
-static BYTE RecognizeCharacter(const BYTE* fontcur, const BYTE* fontstd, const DWORD* pBits)
+static BYTE RecognizeCharacter(const uint8_t* fontcur, const uint8_t* fontstd, const uint32_t* pBits)
 {
     int16_t bestmatch = -32767;
-    BYTE bestchar = 0;
-    for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
+    uint8_t bestchar = 0;
+    for (uint8_t charidx = 0; charidx < 16 * 14; charidx++)
     {
         int16_t matchcur = 0;
         int16_t matchstd = 0;
-        const DWORD * pb = pBits;
+        const uint32_t * pb = pBits;
         for (int16_t y = 0; y < 11; y++)
         {
-            BYTE fontcurdata = fontcur[charidx * 11 + y];
-            BYTE fontstddata = fontstd[charidx * 11 + y];
+            uint8_t fontcurdata = fontcur[charidx * 11 + y];
+            uint8_t fontstddata = fontstd[charidx * 11 + y];
             for (int x = 0; x < 8; x++)
             {
-                DWORD color = pb[x];
+                uint32_t color = pb[x];
                 int sum = (color & 0xff) + ((color >> 8) & 0xff) + ((color >> 16) & 0xff);
-                BYTE fontcurbit = (fontcurdata >> x) & 1;
-                BYTE fontstdbit = (fontstddata >> x) & 1;
+                uint8_t fontcurbit = (fontcurdata >> x) & 1;
+                uint8_t fontstdbit = (fontstddata >> x) & 1;
                 if (sum > 384)
                 {
                     matchcur += fontcurbit;  matchstd += fontstdbit;
@@ -680,37 +680,37 @@ static BYTE RecognizeCharacter(const BYTE* fontcur, const BYTE* fontstd, const D
     return 0x20 + bestchar;
 }
 
-// buffer size is 82 * 26 + 1 means 26 lines, 80 chars in every line plus CR/LF
-BOOL ScreenView_ScreenToText(BYTE* buffer)
+// buffer size is 82 * 26 + 1 means 26 lines, 80 chars in every line plus CR/LF plus trailing zero
+BOOL ScreenView_ScreenToText(uint8_t* buffer)
 {
     // Get screenshot
     void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
-    const DWORD* colors = ScreenView_GrayColors;
-    Emulator_PrepareScreenToText(pBits, (const uint32_t*)colors);
+    const uint32_t* colors = (const uint32_t*)ScreenView_GrayColors;
+    Emulator_PrepareScreenToText(pBits, colors);
 
     // Prepare font, get current font data from PPU memory
     CMemoryController* pPpuMemCtl = g_pBoard->GetPPUMemoryController();
-    BYTE fontcur[11 * 16 * 14];
-    WORD fontaddr = 014142 + 32 * 2;
+    uint8_t fontcur[11 * 16 * 14];
+    uint16_t fontaddr = 014142 + 32 * 2;
     int addrtype = 0;
     for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
     {
-        WORD charaddr = pPpuMemCtl->GetWordView(fontaddr + charidx * 2, FALSE, FALSE, &addrtype);
+        uint16_t charaddr = pPpuMemCtl->GetWordView(fontaddr + charidx * 2, FALSE, FALSE, &addrtype);
         for (int16_t y = 0; y < 11; y++)
         {
-            WORD fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, FALSE, FALSE, &addrtype);
+            uint16_t fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, FALSE, FALSE, &addrtype);
             if (((charaddr + y) & 1) == 1) fontdata >>= 8;
-            fontcur[charidx * 11 + y] = (BYTE)(fontdata & 0xff);
+            fontcur[charidx * 11 + y] = (uint8_t)(fontdata & 0xff);
         }
     }
     // Prepare font, get standard font data from PPU memory
-    BYTE fontstd[11 * 16 * 14];
-    WORD charstdaddr = 0120170;
-    for (WORD idx = 0; idx < 16 * 14 * 11; idx++)
+    uint8_t fontstd[11 * 16 * 14];
+    uint16_t charstdaddr = 0120170;
+    for (uint16_t idx = 0; idx < 16 * 14 * 11; idx++)
     {
-        WORD fontdata = pPpuMemCtl->GetWordView(charstdaddr & ~1, FALSE, FALSE, &addrtype);
+        uint16_t fontdata = pPpuMemCtl->GetWordView(charstdaddr & ~1, FALSE, FALSE, &addrtype);
         if ((charstdaddr & 1) == 1) fontdata >>= 8;
-        fontstd[idx] = (BYTE)(fontdata & 0xff);
+        fontstd[idx] = (uint8_t)(fontdata & 0xff);
         charstdaddr++;
     }
 
@@ -719,11 +719,11 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
     int y = 0;
     while (y <= 288 - 11)
     {
-        DWORD * pCharBits = ((DWORD*)pBits) + y * 640;
+        uint32_t * pCharBits = ((uint32_t*)pBits) + y * 640;
 
         for (int x = 0; x < 640; x += 8)
         {
-            BYTE ch = RecognizeCharacter(fontcur, fontstd, pCharBits + x);
+            uint8_t ch = RecognizeCharacter(fontcur, fontstd, pCharBits + x);
             buffer[charidx] = ch;
             charidx++;
         }
@@ -732,6 +732,7 @@ BOOL ScreenView_ScreenToText(BYTE* buffer)
 
         y += 11;
         if (y == 11) y++;  // Extra line after upper indicator lines
+        if (y == 276) y++;  // Extra line before lower indicator lines
     }
 
     ::free(pBits);
