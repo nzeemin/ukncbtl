@@ -104,11 +104,11 @@ bool BmpFile_SaveScreenshot(
             uint32_t rgb = *psrc;
             psrc++;
             uint8_t color = 0;
-            for (uint8_t c = 0; c < 256; c++)
+            for (int c = 0; c < 256; c++)
             {
                 if (palette256[c] == rgb)
                 {
-                    color = c;
+                    color = (uint8_t)c;
                     break;
                 }
             }
@@ -274,7 +274,7 @@ bool PngFile_WriteImageData8(FILE * fpFile, uint32_t framenum, const uint32_t* p
         *(pdst++) = (line < screenHeight - 1) ? 0 : 1;  // Last?
         *(pdst++) = linelen & 0xff;
         *(pdst++) = (linelen >> 8) & 0xff;
-        *(pdst++) = ~linelen & 0xff;
+        *(pdst++) = (~linelen) & 0xff;
         *(pdst++) = (~linelen >> 8) & 0xff;
 
         uint8_t * pline = pdst;
@@ -284,11 +284,11 @@ bool PngFile_WriteImageData8(FILE * fpFile, uint32_t framenum, const uint32_t* p
         {
             uint32_t rgb = *(psrc++);
             uint8_t color = 0;
-            for (uint8_t c = 0; c < 256; c++)
+            for (int c = 0; c < 256; c++)
             {
                 if (palette256[c] == rgb)
                 {
-                    color = c;
+                    color = (uint8_t)c;
                     break;
                 }
             }

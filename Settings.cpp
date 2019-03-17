@@ -360,10 +360,8 @@ void Settings_GetSerialConfig(DCB * pDcb)
 
         m_Settings_SerialConfig_Valid = TRUE;
     }
-    if (m_Settings_SerialConfig_Valid)
-    {
-        ::memcpy(pDcb, &m_Settings_SerialConfig, sizeof(DCB));
-    }
+
+    ::memcpy(pDcb, &m_Settings_SerialConfig, sizeof(DCB));
 }
 void Settings_SetSerialConfig(const DCB * pDcb)
 {
@@ -399,10 +397,8 @@ void Settings_GetNetComConfig(DCB * pDcb)
 
         m_Settings_NetComConfig_Valid = TRUE;
     }
-    if (m_Settings_NetComConfig_Valid)
-    {
-        ::memcpy(pDcb, &m_Settings_NetComConfig, sizeof(DCB));
-    }
+
+    ::memcpy(pDcb, &m_Settings_NetComConfig, sizeof(DCB));
 }
 void Settings_SetNetComConfig(const DCB * pDcb)
 {

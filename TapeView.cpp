@@ -22,6 +22,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
+LPCTSTR g_sOpenWav = _T("Open WAV");
+LPCTSTR g_sSaveWav = _T("Save WAV");
+LPCTSTR g_sCloseWav = _T("Close WAV");
+LPCTSTR g_sPlay = _T("Play");
+LPCTSTR g_sRecord = _T("Record");
+LPCTSTR g_sStop = _T("Stop");
 
 HWND g_hwndTape = (HWND) INVALID_HANDLE_VALUE;  // Tape View window handle
 WNDPROC m_wndprocTapeToolWindow = NULL;  // Old window proc address of the ToolWindow
@@ -135,7 +141,7 @@ void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
             8, 22, TAPE_BUFFER_SIZE, 32,
             g_hwndTape, NULL, g_hInst, NULL);
     m_hwndTapePlay = CreateWindow(
-            _T("BUTTON"), _T("Play"),
+            _T("BUTTON"), g_sPlay,
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
             8 + 100 + 16, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
@@ -145,12 +151,12 @@ void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
             8 + 100 + 16 + 4 + 96, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
     m_hwndTapeOpen = CreateWindow(
-            _T("BUTTON"), _T("Open WAV"),
+            _T("BUTTON"), g_sOpenWav,
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 4 - 96 - 8, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
     m_hwndTapeSave = CreateWindow(
-            _T("BUTTON"), _T("Save WAV"),
+            _T("BUTTON"), g_sSaveWav,
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 8, 60, 96, 22,
             g_hwndTape, NULL, g_hInst, NULL);
@@ -237,14 +243,14 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
     m_okTapeRecording = TRUE;
 
     EnableWindow(m_hwndTapePlay, TRUE);
-    SetWindowText(m_hwndTapePlay, _T("Record"));
+    SetWindowText(m_hwndTapePlay, g_sRecord);
     EnableWindow(m_hwndTapeRewind, TRUE);
     SetWindowText(m_hwndTapeFile, lpszFile);
 
     TapeView_UpdatePosition();
     TapeView_ClearGraph();
 
-    SetWindowText(m_hwndTapeSave, _T("Close WAV"));
+    SetWindowText(m_hwndTapeSave, g_sCloseWav);
     EnableWindow(m_hwndTapeOpen, FALSE);
 }
 void TapeView_OpenTape(LPCTSTR lpszFile)
@@ -258,7 +264,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
     m_okTapeRecording = FALSE;
 
     EnableWindow(m_hwndTapePlay, TRUE);
-    SetWindowText(m_hwndTapePlay, _T("Play"));
+    SetWindowText(m_hwndTapePlay, g_sPlay);
     EnableWindow(m_hwndTapeRewind, TRUE);
     SetWindowText(m_hwndTapeFile, lpszFile);
 
@@ -274,7 +280,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
             int(wavLengthSeconds) / 60, int(wavLengthSeconds) % 60, int(wavLengthSeconds * 100) % 100, wavFreq);
     SetWindowText(m_hwndTapeTotal, buffer);
 
-    SetWindowText(m_hwndTapeOpen, _T("Close WAV"));
+    SetWindowText(m_hwndTapeOpen, g_sCloseWav);
     EnableWindow(m_hwndTapeSave, FALSE);
 }
 void TapeView_CloseTape()
@@ -291,11 +297,11 @@ void TapeView_CloseTape()
     EnableWindow(m_hwndTapeRewind, FALSE);
     EnableWindow(m_hwndTapeOpen, TRUE);
     EnableWindow(m_hwndTapeSave, TRUE);
-    SetWindowText(m_hwndTapeFile, NULL);
-    SetWindowText(m_hwndTapeTotal, NULL);
-    SetWindowText(m_hwndTapeCurrent, NULL);
-    SetWindowText(m_hwndTapeOpen, _T("Open WAV"));
-    SetWindowText(m_hwndTapeSave, _T("Save WAV"));
+    SetWindowText(m_hwndTapeFile, _T(""));
+    SetWindowText(m_hwndTapeTotal, _T(""));
+    SetWindowText(m_hwndTapeCurrent, _T(""));
+    SetWindowText(m_hwndTapeOpen, g_sOpenWav);
+    SetWindowText(m_hwndTapeSave, g_sSaveWav);
 
     TapeView_ClearGraph();
 }
@@ -312,7 +318,7 @@ void TapeView_PlayTape()
         g_pBoard->SetTapeReadCallback(TapeView_TapeReadCallback, sampleRate);
 
     m_okTapePlaying = TRUE;
-    SetWindowText(m_hwndTapePlay, _T("Stop"));
+    SetWindowText(m_hwndTapePlay, g_sStop);
 }
 void TapeView_StopTape()
 {
@@ -325,7 +331,7 @@ void TapeView_StopTape()
 
     m_okTapePlaying = FALSE;
 
-    SetWindowText(m_hwndTapePlay, m_okTapeRecording ? _T("Record") : _T("Play"));
+    SetWindowText(m_hwndTapePlay, m_okTapeRecording ? g_sRecord : g_sPlay);
 }
 
 void TapeView_UpdatePosition()
