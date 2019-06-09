@@ -284,25 +284,25 @@ uint16_t DisassembleInstruction(uint16_t* pMemory, uint16_t addr, TCHAR* strInst
         _tcscpy(strInstr, _T("MUL"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_DIV:
         _tcscpy(strInstr, _T("DIV"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASH:
         _tcscpy(strInstr, _T("ASH"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASHC:
         _tcscpy(strInstr, _T("ASHC"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_XOR:
         _tcscpy(strInstr, _T("XOR"));
