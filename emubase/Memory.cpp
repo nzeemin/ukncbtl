@@ -111,6 +111,7 @@ uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool 
     case ADDRTYPE_IO:  // I/O port, not memory
         return 0;
     case ADDRTYPE_DENY:  // This memory is inaccessible for reading
+    case ADDRTYPE_NONE:
         return 0;
     }
 
@@ -143,6 +144,7 @@ uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okEx
         //TODO: What to do if okExec == true ?
         return GetPortWord(address);
     case ADDRTYPE_DENY:
+    case ADDRTYPE_NONE:
         //TODO: Exception processing
         return 0;
     }
@@ -179,6 +181,7 @@ uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
         //TODO: What to do if okExec == true ?
         return GetPortByte(address);
     case ADDRTYPE_DENY:
+    case ADDRTYPE_NONE:
         //TODO: Exception processing
         return 0;
     }
@@ -203,18 +206,16 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
         m_pBoard->SetRAMByte(1, offset / 2, (uint8_t)(word & 0xff));
         m_pBoard->SetRAMByte(2, offset / 2, (uint8_t)((word >> 8) & 0xff));
         return;
-
     case ADDRTYPE_ROMCART1:
     case ADDRTYPE_ROMCART2:
     case ADDRTYPE_ROM:
         // Nothing to do: writing to ROM
         return;
-
     case ADDRTYPE_IO:
         SetPortWord(address, word);
         return;
-
     case ADDRTYPE_DENY:
+    case ADDRTYPE_NONE:
         //TODO: Exception processing
         return;
     }
@@ -249,6 +250,7 @@ void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
         SetPortByte(address, byte);
         return;
     case ADDRTYPE_DENY:
+    case ADDRTYPE_NONE:
         //TODO: Exception processing
         return;
     }
