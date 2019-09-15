@@ -38,6 +38,10 @@ BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
     return FALSE;
 }
 
+void AlertInfo(LPCTSTR sMessage)
+{
+    ::MessageBox(NULL, sMessage, g_szTitle, MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+}
 void AlertWarning(LPCTSTR sMessage)
 {
     ::MessageBox(NULL, sMessage, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
