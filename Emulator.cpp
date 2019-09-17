@@ -59,6 +59,12 @@ uint16_t g_wEmulatorPrevCpuPC = 0177777;  // Previous PC value
 uint16_t g_wEmulatorPpuPC = 0177777;      // Current PC value
 uint16_t g_wEmulatorPrevPpuPC = 0177777;  // Previous PC value
 
+// Digit keys scan codes uset for AutoBoot feature
+const BYTE m_arrDigitKeyScans[] =
+{
+    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177  // 0, 1, ... 9
+};
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -553,18 +559,19 @@ bool Emulator_SystemFrame()
     }
 
     // Auto-boot option processing: select "boot from disk" and press Enter
-    if (Option_AutoBoot)
+    if (Option_AutoBoot > 0)
     {
+        BYTE digitKeyScan = m_arrDigitKeyScans[Option_AutoBoot];
         if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 6)
-            ScreenView_KeyEvent(0030, TRUE);  // Press "1"
+            ScreenView_KeyEvent(digitKeyScan, TRUE);  // Press the digit key
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 10)
-            ScreenView_KeyEvent(0030, false);  // Release "1"
+            ScreenView_KeyEvent(digitKeyScan, FALSE);  // Release the digit key
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 16)
             ScreenView_KeyEvent(0153, TRUE);  // Press "Enter"
         else if (m_dwEmulatorUptime == 2 && m_nUptimeFrameCount == 20)
         {
-            ScreenView_KeyEvent(0153, false);  // Release "Enter"
-            Option_AutoBoot = false;  // All done
+            ScreenView_KeyEvent(0153, FALSE);  // Release "Enter"
+            Option_AutoBoot = 0;  // All done
         }
     }
 

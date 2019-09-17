@@ -209,10 +209,12 @@ void ParseCommandLine()
     {
         LPTSTR arg = args[curargn];
 
-        if (_tcscmp(arg, _T("/boot")) == 0)
+        if (_tcslen(arg) >= 5 && _tcsncmp(arg, _T("/boot"), 5) == 0)
         {
+            Option_AutoBoot = 1;
+            if (_tcslen(arg) >= 6 && arg[5] >= _T('1') && arg[5] <= _T('7'))
+                Option_AutoBoot = arg[5] - _T('0');
             //TODO: Check if we have Floppy0 image assigned
-            Option_AutoBoot = TRUE;
         }
         else if (_tcscmp(arg, _T("/autostart")) == 0 || _tcscmp(arg, _T("/autostarton")) == 0)
         {
