@@ -440,7 +440,8 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLOR
     int yTo = yFrom + delta * cyLine;
     yFrom += cyLine / 2;
 
-    HGDIOBJ oldPen = SelectObject(hdc, CreatePen(PS_SOLID, 1, color));
+    HPEN hPenJump = ::CreatePen(PS_SOLID, 1, color);
+    HGDIOBJ oldPen = ::SelectObject(hdc, hPenJump);
 
     POINT points[4];
     points[0].x = x;  points[0].y = yFrom;
@@ -453,7 +454,8 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLOR
     MoveToEx(hdc, x - 4, points[3].y, NULL);
     LineTo(hdc, x + 4, yTo + 1);
 
-    SelectObject(hdc, oldPen);
+    ::SelectObject(hdc, oldPen);
+    ::DeleteObject(hPenJump);
 }
 
 void DisasmView_DoDraw(HDC hdc)
@@ -913,10 +915,12 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
     // Draw current line background
     if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
     {
-        HGDIOBJ oldBrush = SelectObject(hdc, CreateSolidBrush(COLOR_CURRENT));
+        HBRUSH hBrushCurrent = ::CreateSolidBrush(COLOR_CURRENT);
+        HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
         int yCurrent = (proccurrent - (current - 5)) * cyLine;
         PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
-        SelectObject(hdc, oldBrush);
+        ::SelectObject(hdc, oldBrush);
+        ::DeleteObject(hBrushCurrent);
     }
 
     // Читаем из памяти процессора в буфер
