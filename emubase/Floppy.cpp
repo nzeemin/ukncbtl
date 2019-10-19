@@ -388,7 +388,6 @@ void CFloppyController::Periodic()
                     m_status |= FLOPPY_STATUS_CHECKSUMOK;
                 }
             }
-
         }
     }
 }

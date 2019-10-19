@@ -202,9 +202,6 @@ void ParseCommandLine()
     int argnum = 0;
     LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
 
-    if (argnum <= 1)
-        return;
-
     for (int curargn = 1; curargn < argnum; curargn++)
     {
         LPTSTR arg = args[curargn];
@@ -214,7 +211,6 @@ void ParseCommandLine()
             Option_AutoBoot = 1;
             if (_tcslen(arg) >= 6 && arg[5] >= _T('1') && arg[5] <= _T('7'))
                 Option_AutoBoot = arg[5] - _T('0');
-            //TODO: Check if we have Floppy0 image assigned
         }
         else if (_tcscmp(arg, _T("/autostart")) == 0 || _tcscmp(arg, _T("/autostarton")) == 0)
         {

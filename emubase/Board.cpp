@@ -1256,7 +1256,6 @@ void CMotherboard::ChanRxStateSetPPU(uint8_t state)
         m_chanppurx[2].rdwr = 0;
         m_pPPU->InterruptVIRQ(9, 0340);
     }
-
 }
 void CMotherboard::ChanTxStateSetPPU(uint8_t state)
 {
@@ -1597,6 +1596,38 @@ void CMotherboard::SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTC
         //TODO: Set port value to indicate we are ready to translate
     }
 }
+
+
+//////////////////////////////////////////////////////////////////////
+
+#if !defined(PRODUCT)
+
+void TraceInstruction(CProcessor* pProc, CMotherboard* /*pBoard*/)
+{
+    uint16_t address = pProc->GetPC();
+    bool okHaltMode = pProc->IsHaltMode();
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
+
+    uint16_t memory[4];
+    int addrtype = 0;
+    memory[0] = pMemCtl->GetWordView(address + 0 * 2, okHaltMode, true, &addrtype);
+    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
+    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
+    memory[3] = pMemCtl->GetWordView(address + 3 * 2, okHaltMode, true, &addrtype);
+
+    TCHAR bufaddr[7];
+    PrintOctalValue(bufaddr, address);
+
+    TCHAR instr[8];
+    TCHAR args[32];
+    DisassembleInstruction(memory, address, instr, args);
+    TCHAR buffer[64];
+    _sntprintf(buffer, 64, _T("%s\t%s\t%s\r\n"), bufaddr, instr, args);
+
+    DebugLog(buffer);
+}
+
+#endif
 
 
 //////////////////////////////////////////////////////////////////////

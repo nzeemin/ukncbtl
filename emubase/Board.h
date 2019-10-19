@@ -26,6 +26,7 @@ class CMemoryController;
 // Trace flags
 #define TRACE_NONE         0  // Turn off all tracing
 #define TRACE_FLOPPY    0100  // Trace floppies
+#define TRACE_CPU       0400  // Trace CPU
 #define TRACE_ALL    0177777  // Trace all
 
 // Emulator image constants
@@ -125,7 +126,6 @@ public:
 /// \brief UKNC computer
 class CMotherboard
 {
-
 public:  // Construct / destruct
     CMotherboard();
     ~CMotherboard();
@@ -324,7 +324,6 @@ private:
     TERMINALOUTCALLBACK m_TerminalOutCallback;
 
     void DoSound(void);
-
 };
 
 inline uint16_t CMotherboard::GetRAMWord(int plan, uint16_t offset) const

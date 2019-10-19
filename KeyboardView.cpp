@@ -132,7 +132,6 @@ const WORD m_arrKeyboardKeys[] =
     506, 174, 28, 27,    0126, // 0 NumPad
     536, 174, 27, 27,    0146, // . NumPad
     565, 174, 28, 27,    0166, // ENTER NumPad
-
 };
 const int m_nKeyboardKeysCount = sizeof(m_arrKeyboardKeys) / sizeof(WORD) / 5;
 
