@@ -38,8 +38,11 @@ const int m_nSprite_ImageCY = 256;
 const int m_nSprite_ViewCX = m_nSprite_ImageCX * m_nSprite_scale;
 const int m_nSprite_ViewCY = m_nSprite_ImageCY * m_nSprite_scale;
 
+
 WORD m_wSprite_BaseAddress = 0;
 int m_nSprite_width = 2;
+const int m_nSprite_format_max = 1;
+int m_nSprite_format = 0;
 
 void SpriteView_OnDraw(HDC hdc);
 BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -242,8 +245,26 @@ void SpriteView_SetSpriteWidth(int width)
 
 void SpriteView_UpdateWindowText()
 {
-    TCHAR buffer[48];
-    _stprintf_s(buffer, 48, _T("Sprite Viewer - address %06o, width %d"), m_wSprite_BaseAddress, m_nSprite_width);
+    LPCTSTR formats[] =
+    {
+        _T(" black and white 8 bits"),
+        _T(" {g8, r8} green and red plane bits")
+    };
+
+    const std::size_t formats_max = sizeof(formats) / sizeof(formats[0]);
+    LPCTSTR p_nSrpite_format_description = _T("");
+    if (m_nSprite_format < formats_max)
+        p_nSrpite_format_description = formats[m_nSprite_format];
+
+    const std::size_t buffer_size = 128;
+    TCHAR buffer[buffer_size];
+    _stprintf_s(buffer, buffer_size,
+        _T("Sprite Viewer - address %06o, width %d, mode%d%s"), 
+        m_wSprite_BaseAddress, 
+        m_nSprite_width,
+        m_nSprite_format,
+        p_nSrpite_format_description
+    );
     ::SetWindowText(g_hwndSprite, buffer);
 }
 
@@ -274,6 +295,17 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         break;
     case VK_OEM_6: // ']' -- Increment Sprite Width
         SpriteView_SetSpriteWidth(m_nSprite_width + 1);
+        break;
+    case 0x4D: // 'M' - Switch sprite decode mode
+        if (m_nSprite_format == m_nSprite_format_max)
+            m_nSprite_format = 0;
+        else
+            ++ m_nSprite_format;
+
+        SpriteView_UpdateWindowText();
+        SpriteView_PrepareBitmap();
+        InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+
         break;
     case 0x47:  // G - Go To Address
         {
@@ -344,23 +376,52 @@ void SpriteView_PrepareBitmap()
 
             for (int w = 0; w < m_nSprite_width; w++)
             {
-                // Get byte from memory -- CPU memory only for now
-                int addrtype = 0;
-                BOOL okHalt = g_pBoard->GetCPU()->IsHaltMode();
-                WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
-                if (address & 1)
-                    value = value >> 8;
-
-                for (int i = 0; i < 8; i++)
+                if (m_nSprite_format == 1)
                 {
-                    COLORREF color = (value & 1) ? 0xffffff : 0;
-                    *pBits = color;
-                    pBits++;
+                    int addrtype = 0;
+                    BOOL okHalt = g_pBoard->GetCPU()->IsHaltMode();
+                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    if (address & 1)
+                        value = value >> 8;
+                    ++address;
+                    WORD value1 = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    if (address & 1)
+                        value1 = value1 >> 8;
+                    ++address;
 
-                    value = value >> 1;
+                    for (int i = 0; i < 8; ++i)
+                    {
+                        COLORREF color = 0;
+                        color |= (value & 1) ? 0x00FF00 : 0;
+                        color |= (value1 & 1) ? 0xFF0000 : 0;
+
+                        *pBits = color;
+                        pBits++;
+
+                        value = value >> 1;
+                        value1 = value1 >> 1;
+                    }
                 }
+                else
+                {
+                    // Get byte from memory -- CPU memory only for now
+                    int addrtype = 0;
+                    BOOL okHalt = g_pBoard->GetCPU()->IsHaltMode();
+                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    if (address & 1)
+                        value = value >> 8;
 
-                address++;
+                    for (int i = 0; i < 8; i++)
+                    {
+                        COLORREF color = (value & 1) ? 0xffffff : 0;
+                        *pBits = color;
+                        pBits++;
+
+                        value = value >> 1;
+                    }
+
+                    address++;
+                }
             }
         }
     }
