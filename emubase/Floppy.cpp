@@ -106,11 +106,11 @@ bool CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 
     // Open file
     m_drivedata[drive].okReadOnly = false;
-    m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("r+b"));
+    m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("r+b"), _SH_DENYNO);
     if (m_drivedata[drive].fpFile == nullptr)
     {
         m_drivedata[drive].okReadOnly = true;
-        m_drivedata[drive].fpFile = ::_tfopen(sFileName, _T("rb"));
+        m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("rb"), _SH_DENYNO);
     }
     if (m_drivedata[drive].fpFile == nullptr)
         return false;
