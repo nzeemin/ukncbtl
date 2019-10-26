@@ -412,5 +412,7 @@ SETTINGS_GETSET_DWORD(SpriteAddress, _T("SpriteAddress"), WORD, 0);
 
 SETTINGS_GETSET_DWORD(SpriteWidth, _T("SpriteWidth"), WORD, 2);
 
+SETTINGS_GETSET_DWORD(SpriteMode, _T("SpriteMode"), WORD, 0);
+
 
 //////////////////////////////////////////////////////////////////////

@@ -119,6 +119,8 @@ void SpriteView_Create(int x, int y)
     m_nSprite_width = (int)Settings_GetSpriteWidth();
     if (m_nSprite_width <= 0) m_nSprite_width = 1;
     if (m_nSprite_width > 32) m_nSprite_width = 32;
+    m_nSprite_Mode = Settings_GetSpriteMode();
+    if (m_nSprite_Mode > m_nSprite_ModeMax) m_nSprite_Mode = m_nSprite_ModeMax;
 
     SpriteView_InitBitmap();
     SpriteView_UpdateWindowText();
@@ -302,6 +304,7 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
             m_nSprite_Mode = 0;
         else
             ++m_nSprite_Mode;
+        Settings_SetSpriteMode((WORD)m_nSprite_Mode);
 
         SpriteView_UpdateWindowText();
         SpriteView_PrepareBitmap();

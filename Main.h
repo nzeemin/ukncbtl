@@ -198,6 +198,8 @@ WORD Settings_GetSpriteAddress();
 void Settings_SetSpriteAddress(WORD value);
 WORD Settings_GetSpriteWidth();
 void Settings_SetSpriteWidth(WORD value);
+WORD Settings_GetSpriteMode();
+void Settings_SetSpriteMode(WORD value);
 void Settings_SetSerial(BOOL flag);
 BOOL Settings_GetSerial();
 void Settings_GetSerialPort(LPTSTR buffer);
