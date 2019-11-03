@@ -201,8 +201,6 @@ LRESULT CALLBACK SpriteViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         break;
     case WM_KEYDOWN:
         return (LRESULT)SpriteView_OnKeyDown(wParam, lParam);
-        //case WM_HSCROLL:
-        //    return (LRESULT)SpriteView_OnHScroll(wParam, lParam);
     case WM_VSCROLL:
         return (LRESULT)SpriteView_OnVScroll(wParam, lParam);
     case WM_MOUSEWHEEL:
@@ -238,6 +236,7 @@ void SpriteView_GoToAddress(WORD address)
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
     InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+    SpriteView_UpdateScrollPos();
 }
 void SpriteView_SetSpriteWidth(int width)
 {
@@ -252,6 +251,7 @@ void SpriteView_SetSpriteWidth(int width)
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
     InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+    SpriteView_UpdateScrollPos();
 }
 
 void SpriteView_UpdateWindowText()
@@ -276,23 +276,22 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     switch (vkey)
     {
     case VK_LEFT:
-        SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)(m_nSprite_ImageCY * m_nSprite_width));
-        break;
     case VK_RIGHT:
-        SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)(m_nSprite_ImageCY * m_nSprite_width));
-        break;
+        {
+            int spriteWidth = ((m_nSprite_Mode == 0) ? 1 : 2) * m_nSprite_width * (vkey == VK_LEFT ? -1 : 1);
+            SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)(m_nSprite_ImageCY * spriteWidth));
+            break;
+        }
     case VK_UP:
-        if (GetKeyState(VK_CONTROL) & 0x8000)
-            SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)m_nSprite_width);
-        else
-            SpriteView_GoToAddress(m_wSprite_BaseAddress - 1);
-        break;
     case VK_DOWN:
-        if (GetKeyState(VK_CONTROL) & 0x8000)
-            SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)m_nSprite_width);
-        else
-            SpriteView_GoToAddress(m_wSprite_BaseAddress + 1);
-        break;
+        {
+            int spriteMult = ((m_nSprite_Mode == 0) ? 1 : 2) * (vkey == VK_UP ? -1 : 1);
+            if (GetKeyState(VK_CONTROL) & 0x8000)
+                SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)(spriteMult * m_nSprite_width));
+            else
+                SpriteView_GoToAddress((WORD)(m_wSprite_BaseAddress + spriteMult));
+            break;
+        }
     case VK_OEM_4: // '[' -- Decrement Sprite Width
         SpriteView_SetSpriteWidth(m_nSprite_width - 1);
         break;
@@ -332,22 +331,25 @@ BOOL SpriteView_OnMouseWheel(WPARAM wParam, LPARAM /*lParam*/)
     if (nDelta > 4) nDelta = 4;
     if (nDelta < -4) nDelta = -4;
 
-    SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)(nDelta * 3 * m_nSprite_width));
+    int spriteWidth = ((m_nSprite_Mode == 0) ? 1 : 2) * m_nSprite_width;
+    SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)(nDelta * 3 * spriteWidth));
 
     return FALSE;
 }
 
 BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 {
+    int spriteWidth = ((m_nSprite_Mode == 0) ? 1 : 2) * m_nSprite_width;
+
     //WORD scrollpos = HIWORD(wParam);
     WORD scrollcmd = LOWORD(wParam);
     switch (scrollcmd)
     {
     case SB_LINEDOWN:
-        SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)m_nSprite_width);
+        SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)spriteWidth);
         break;
     case SB_LINEUP:
-        SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)m_nSprite_width);
+        SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)spriteWidth);
         break;
         //case SB_PAGEDOWN:
         //    break;
@@ -362,7 +364,15 @@ BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 
 void SpriteView_UpdateScrollPos()
 {
-    //TODO
+    SCROLLINFO si;
+    ZeroMemory(&si, sizeof(si));
+    si.cbSize = sizeof(si);
+    si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
+    si.nPage = 0;  //TODO
+    si.nPos = m_wSprite_BaseAddress;
+    si.nMin = 0;
+    si.nMax = 0x10000 - 1;
+    SetScrollInfo(m_hwndSpriteViewer, SB_VERT, &si, TRUE);
 }
 
 void SpriteView_PrepareBitmap()
