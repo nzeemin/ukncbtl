@@ -89,28 +89,28 @@
     <ClInclude Include="Main.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="diskette.ico">
+    <Image Include="res\diskette.ico">
       <Filter>res</Filter>
     </Image>
-    <Image Include="diskettewp.ico">
+    <Image Include="res\diskettewp.ico">
       <Filter>res</Filter>
     </Image>
-    <Image Include="keyboard.bmp">
+    <Image Include="res\keyboard.bmp">
       <Filter>res</Filter>
     </Image>
-    <Image Include="keyboardmask.bmp">
+    <Image Include="res\keyboardmask.bmp">
       <Filter>res</Filter>
     </Image>
-    <Image Include="small.ico">
+    <Image Include="res\small.ico">
       <Filter>res</Filter>
     </Image>
-    <Image Include="Toolbar.bmp">
+    <Image Include="res\Toolbar.bmp">
       <Filter>res</Filter>
     </Image>
-    <Image Include="UKNC.bmp">
+    <Image Include="res\UKNC.bmp">
       <Filter>res</Filter>
     </Image>
-    <Image Include="UKNCBTL.ico">
+    <Image Include="res\UKNCBTL.ico">
       <Filter>res</Filter>
     </Image>
   </ItemGroup>
@@ -120,13 +120,13 @@
     </Xml>
   </ItemGroup>
   <ItemGroup>
-    <None Include="uknc_rom.bin">
+    <None Include="res\uknc_rom.bin">
       <Filter>res</Filter>
     </None>
     <None Include="Version.tpl" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="UKNCBTL.rc">
+    <ResourceCompile Include="res\UKNCBTL.rc">
       <Filter>res</Filter>
     </ResourceCompile>
   </ItemGroup>
