@@ -610,10 +610,8 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ASSERT(sFileName != NULL);
 
     void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
-    const DWORD* colors = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)colors);
-
-    const DWORD * palette = ScreenView_GetPalette();
+    const DWORD* palette = ScreenView_GetPalette();
+    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)palette);
 
     int scrwidth, scrheight;
     ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
@@ -633,6 +631,53 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ::free(pScrBits);
 
     return result;
+}
+
+HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
+{
+    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    const DWORD* palette = ScreenView_GetPalette();
+    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)palette);
+
+    int scrwidth, scrheight;
+    ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
+    PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
+
+    void* pScrBits = ::calloc(scrwidth * scrheight, 4);
+    callback(pBits, pScrBits);
+    ::free(pBits);
+
+    BITMAPINFOHEADER bi;
+    ::ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
+    bi.biSize = sizeof(BITMAPINFOHEADER);
+    bi.biWidth = scrwidth;
+    bi.biHeight = scrheight;
+    bi.biPlanes = 1;
+    bi.biBitCount = 32;
+    bi.biCompression = BI_RGB;
+    bi.biSizeImage = bi.biWidth * bi.biHeight * 4;
+
+    HGLOBAL hDIB = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(BITMAPINFOHEADER) + bi.biSizeImage);
+    if (hDIB == NULL)
+    {
+        ::free(pScrBits);
+        return NULL;
+    }
+
+    LPBYTE p = (LPBYTE) ::GlobalLock(hDIB);
+    ::CopyMemory(p, &bi, sizeof(BITMAPINFOHEADER));
+    p += sizeof(BITMAPINFOHEADER);
+    for (int line = 0; line < scrheight; line++)
+    {
+        LPBYTE psrc = (LPBYTE)pScrBits + (scrheight - line - 1) * scrwidth * 4;
+        ::CopyMemory(p, psrc, scrwidth * 4);
+        p += scrwidth * 4;
+    }
+    ::GlobalUnlock(hDIB);
+
+    ::free(pScrBits);
+
+    return hDIB;
 }
 
 static BYTE RecognizeCharacter(const uint8_t* fontcur, const uint8_t* fontstd, const uint32_t* pBits)

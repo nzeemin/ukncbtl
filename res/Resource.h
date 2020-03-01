@@ -54,6 +54,7 @@
 #define ID_FILE_SCREENSHOT              32774
 #define ID_FILE_SAVESCREENSHOTAS        32775
 #define ID_FILE_SCREENTOCLIPBOARD       32776
+#define ID_FILE_SCREENSHOTTOCLIPBOARD   32777
 #define ID_FILE_CREATEDISK              32778
 #define ID_FILE_SETTINGS                32779
 #define ID_VIEW                         32781

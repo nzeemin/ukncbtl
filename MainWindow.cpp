@@ -73,6 +73,7 @@ void MainWindow_DoEmulatorFloppy(int slot);
 void MainWindow_DoEmulatorCartridge(int slot);
 void MainWindow_DoEmulatorHardDrive(int slot);
 void MainWindow_DoFileScreenshot();
+void MainWindow_DoFileScreenshotToClipboard();
 void MainWindow_DoFileScreenshotSaveAs();
 void MainWindow_DoFileScreenToClipboard();
 void MainWindow_DoFileCreateDisk();
@@ -426,7 +427,7 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         break;
     case WM_COMMAND:
         {
-            int wmId    = LOWORD(wParam);
+            int wmId = LOWORD(wParam);
             //int wmEvent = HIWORD(wParam);
             bool okProcessed = MainWindow_DoCommand(wmId);
             if (!okProcessed)
@@ -1080,6 +1081,9 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SCREENSHOT:
         MainWindow_DoFileScreenshot();
         break;
+    case ID_FILE_SCREENSHOTTOCLIPBOARD:
+        MainWindow_DoFileScreenshotToClipboard();
+        break;
     case ID_FILE_SAVESCREENSHOTAS:
         MainWindow_DoFileScreenshotSaveAs();
         break;
@@ -1334,6 +1338,20 @@ void MainWindow_DoFileScreenshot()
     if (!ScreenView_SaveScreenshot(bufFileName, screenshotMode))
     {
         AlertWarning(_T("Failed to save screenshot bitmap."));
+    }
+}
+
+void MainWindow_DoFileScreenshotToClipboard()
+{
+    int screenshotMode = Settings_GetScreenshotMode();
+
+    HGLOBAL hDIB = ScreenView_GetScreenshotAsDIB(screenshotMode);
+    if (hDIB != NULL)
+    {
+        ::OpenClipboard(0);
+        ::EmptyClipboard();
+        ::SetClipboardData(CF_DIB, hDIB);
+        ::CloseClipboard();
     }
 }
 
