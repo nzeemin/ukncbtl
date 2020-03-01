@@ -1466,7 +1466,7 @@ void CMotherboard::DoSound(void)
             global = 1;
     }
 
-    if (m_SoundGenCallback == NULL)
+    if (m_SoundGenCallback == nullptr)
         return;
 
     uint8_t value = global ? 0xff : 0;

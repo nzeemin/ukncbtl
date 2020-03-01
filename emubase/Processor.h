@@ -134,7 +134,7 @@ public:  // Processor control
     bool        InterruptProcessing();
     /// \brief Execute next command and process interrupts
     void        CommandExecution();
-    int			GetInternalTick() const { return m_internalTick; }
+    int         GetInternalTick() const { return m_internalTick; }
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(uint8_t* pImage) const;

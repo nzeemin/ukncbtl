@@ -344,7 +344,7 @@ void MainWindow_RestoreSettings()
 
     // Restore ScreenViewMode
     int scrmode = Settings_GetScreenViewMode();
-    if (scrmode <= 0 || scrmode > 3) scrmode = RGBScreen;
+    if (scrmode <= 0 || scrmode > 3) scrmode = GRBScreen;
     ScreenView_SetMode((ScreenViewMode) scrmode);
 
     // Restore Serial flag
