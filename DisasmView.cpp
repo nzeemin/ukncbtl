@@ -805,7 +805,7 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
     if (*srchint2 != 0 && *dsthint2 != 0)
     {
         if (_tcscmp(srchint2, dsthint2) == 0)
-            _tcscpy_s(buffer, 42, srchint2);
+            _tcscpy_s(buffer2, 42, srchint2);
         else
             _sntprintf(buffer2, 42, _T("%s, %s"), srchint2, dsthint2);
     }
@@ -820,7 +820,7 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
 int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, const CMemoryController * pMemCtl,
         LPTSTR buffer, LPTSTR buffer2)
 {
-    *buffer = 0;
+    *buffer = 0;  *buffer2 = 0;
     WORD instr = *memory;
 
     // Source and Destination
@@ -893,6 +893,7 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         _sntprintf(buffer, 32, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
     }
     //TODO: MFPC, MTPC
+    //TODO: MARK
 
     int result = 0;
     if (*buffer != 0)

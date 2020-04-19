@@ -266,12 +266,12 @@ void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
 //
 // 174000-177777 I/O - USER - read/write
 // 160000-173777     - USER - access denied
-// 000000-157777 ÎÇÓ - USER - read/write/execute
+// 000000-157777 RAM - USER - read/write/execute
 //
 // 174000-177777 I/O - HALT - read/write
-// 174000-177777 ÎÇÓ - HALT - execute
-// 160000-173777 ÎÇÓ - HALT - read/write/execute
-// 000000-157777 ÎÇÓ - HALT - read/write/execute
+// 174000-177777 RAM - HALT - execute
+// 160000-173777 RAM - HALT - read/write/execute
+// 000000-157777 RAM - HALT - read/write/execute
 //
 // For RAM access, bytes at even addresses (low byte of word) belongs to plane 1,
 // and bytes at odd addresses (high byte of word) - belongs to plane 2.
@@ -282,7 +282,7 @@ CFirstMemoryController::CFirstMemoryController() : CMemoryController()
     m_Port176642 = 0;
     m_Port176644 = 0;
     m_Port176646 = 0;
-    m_Port176560 = m_Port176562 = m_Port176566 = 0;  // Network ÑÀ
+    m_Port176560 = m_Port176562 = m_Port176566 = 0;  // Network adapter
     m_Port176564 = 0200;
     m_Port176570 = m_Port176572 = m_Port176576 = 0;  // RS-232 ports
     m_Port176574 = 0200;

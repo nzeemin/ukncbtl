@@ -449,7 +449,7 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
     WORD previous = oldValue;
     BOOL okExec = (reg == 7);
 
-    // Читаем из памяти процессора в буфер
+    // Reading from memory into the buffer
     WORD memory[16];
     int addrtype[16];
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
@@ -460,29 +460,29 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
     }
 
     WORD address = current - 16;
-    for (int index = 0; index < 16; index++)    // Рисуем строки
+    for (int index = 0; index < 16; index++)    // Draw strings
     {
-        // Адрес
+        // Address
         SetTextColor(hdc, colorText);
         DrawOctalValue(hdc, x + 3 * cxChar, y, address);
 
-        // Значение по адресу
+        // Value at the address
         WORD value = memory[index];
         WORD wChanged = Emulator_GetChangeRamStatus(addrtype[index], address);
         SetTextColor(hdc, (wChanged != 0) ? COLOR_RED : colorText);
         DrawOctalValue(hdc, x + 10 * cxChar, y, value);
 
-        // Текущая позиция
+        // Current position
         if (address == current)
         {
             SetTextColor(hdc, colorText);
             TextOut(hdc, x + 2 * cxChar, y, _T(">"), 1);
-            if (current != previous) ::SetTextColor(hdc, COLOR_RED);
+            if (current != previous) SetTextColor(hdc, COLOR_RED);
             TextOut(hdc, x, y, REGISTER_NAME[reg], 2);
         }
         else if (address == previous)
         {
-            ::SetTextColor(hdc, COLOR_BLUE);
+            SetTextColor(hdc, COLOR_BLUE);
             TextOut(hdc, x + 2 * cxChar, y, _T(">"), 1);
         }
 

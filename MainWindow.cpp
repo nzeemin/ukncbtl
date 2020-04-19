@@ -49,6 +49,7 @@ BOOL MainWindow_InitToolbar();
 BOOL MainWindow_InitStatusbar();
 void MainWindow_RestorePositionAndShow();
 LRESULT CALLBACK MainWindow_WndProc(HWND, UINT, WPARAM, LPARAM);
+void MainWindow_GetMinMaxInfo(MINMAXINFO* mminfo);
 void MainWindow_AdjustWindowLayout();
 bool MainWindow_DoCommand(int commandId);
 void MainWindow_DoViewDebug();
@@ -443,15 +444,8 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         MainWindow_AdjustWindowLayout();
         break;
     case WM_GETMINMAXINFO:
-        {
-            DefWindowProc(hWnd, message, wParam, lParam);
-            MINMAXINFO* mminfo = (MINMAXINFO*)lParam;
-            if (!m_MainWindow_Fullscreen)
-            {
-                mminfo->ptMinTrackSize.x = m_MainWindowMinCx;
-                mminfo->ptMinTrackSize.y = m_MainWindowMinCy;
-            }
-        }
+        DefWindowProc(hWnd, message, wParam, lParam);
+        MainWindow_GetMinMaxInfo((MINMAXINFO*)lParam);
         break;
     case WM_NOTIFY:
         {
@@ -491,6 +485,15 @@ LRESULT CALLBACK MainWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return 0;
+}
+
+void MainWindow_GetMinMaxInfo(MINMAXINFO* mminfo)
+{
+    if (!m_MainWindow_Fullscreen)
+    {
+        mminfo->ptMinTrackSize.x = m_MainWindowMinCx;
+        mminfo->ptMinTrackSize.y = m_MainWindowMinCy;
+    }
 }
 
 void MainWindow_AdjustWindowSize()
