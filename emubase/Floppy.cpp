@@ -405,7 +405,7 @@ void CFloppyController::PrepareTrack()
 
     m_trackchanged = false;
     m_status |= FLOPPY_STATUS_MOREDATA;
-    m_pDrive->dataptr = 0;
+    //NOTE: Not changing m_pDrive->dataptr
     m_pDrive->datatrack = m_track;
     m_pDrive->dataside = m_side;
 
