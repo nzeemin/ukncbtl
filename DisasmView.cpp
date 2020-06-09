@@ -731,7 +731,7 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
 
 void DisasmView_RegisterHintPC(const CProcessor * pProc, const CMemoryController * pMemCtl,
         LPTSTR hint1, LPTSTR /*hint2*/,
-        int regmod, bool /*byteword*/, WORD value, WORD /*indexval*/)
+        int regmod, bool byteword, WORD curaddr, WORD value)
 {
     int addrtype = 0;
     WORD srcval2 = 0;
@@ -743,7 +743,20 @@ void DisasmView_RegisterHintPC(const CProcessor * pProc, const CMemoryController
         srcval2 = pMemCtl->GetWordView(value, pProc->IsHaltMode(), false, &addrtype);
         _sntprintf(hint1, 20, _T("(%06o)=%06o"), value, srcval2);  // "(NNNNNN)=XXXXXX"
     }
-    //TODO: else if (regmod == 6)
+    else if (regmod == 6)
+    {
+        WORD addr2 = curaddr + value;
+        srcval2 = pMemCtl->GetWordView(addr2, pProc->IsHaltMode(), false, &addrtype);
+        if (byteword)
+        {
+            srcval2 = (addr2 & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
+            _sntprintf(hint1, 20, _T("(%06o)=%03o"), addr2, srcval2);  // "(NNNNNN)=XXX"
+        }
+        else
+        {
+            _sntprintf(hint1, 20, _T("(%06o)=%06o"), addr2, srcval2);  // "(NNNNNN)=XXXXXX"
+        }
+    }
     //TODO: else if (regmod == 7)
 }
 
@@ -755,21 +768,19 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
     TCHAR srchint2[20] = { 0 }, dsthint2[20] = { 0 };
     bool byteword = ((*memory) & 0100000) != 0;  // Byte mode (true) or Word mode (false)
     const WORD* curmemory = memory + 1;
+    WORD curaddr = pProc->GetPC() + 2;
     WORD indexval = 0;
 
     if (srcreg >= 0)
     {
         if (srcreg == 7)
         {
-            WORD value = *(curmemory++);
-            if (srcmod == 6 || srcmod == 7)
-                indexval = *(curmemory++);
-            DisasmView_RegisterHintPC(pProc, pMemCtl, srchint1, srchint2, srcmod, byteword, value, indexval);
+            WORD value = *(curmemory++);  curaddr += 2;
+            DisasmView_RegisterHintPC(pProc, pMemCtl, srchint1, srchint2, srcmod, byteword, curaddr, value);
         }
         else
         {
-            if (srcmod == 6 || srcmod == 7)
-                indexval = *(curmemory++);
+            if (srcmod == 6 || srcmod == 7) { indexval = *(curmemory++);  curaddr += 2; }
             DisasmView_RegisterHint(pProc, pMemCtl, srchint1, srchint2, srcreg, srcmod, byteword, indexval);
         }
     }
@@ -777,15 +788,12 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
     {
         if (dstreg == 7)
         {
-            WORD value = *(curmemory++);
-            if (dstmod == 6 || dstmod == 7)
-                indexval = *(curmemory++);
-            DisasmView_RegisterHintPC(pProc, pMemCtl, dsthint1, dsthint2, dstmod, byteword, value, indexval);
+            WORD value = *(curmemory++);  curaddr += 2;
+            DisasmView_RegisterHintPC(pProc, pMemCtl, dsthint1, dsthint2, dstmod, byteword, curaddr, value);
         }
         else
         {
-            if (dstmod == 6 || dstmod == 7)
-                indexval = *(curmemory++);
+            if (dstmod == 6 || dstmod == 7) { indexval = *(curmemory++);  curaddr += 2; }
             DisasmView_RegisterHint(pProc, pMemCtl, dsthint1, dsthint2, dstreg, dstmod, byteword, indexval);
         }
     }
@@ -851,7 +859,6 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         (instr & ~(uint16_t)0100077) == PI_INC || (instr & ~(uint16_t)0100077) == PI_DEC || (instr & ~(uint16_t)0100077) == PI_NEG ||
         (instr & ~(uint16_t)0100077) == PI_TST ||
         (instr & ~(uint16_t)0100077) == PI_ASR || (instr & ~(uint16_t)0100077) == PI_ASL ||
-        (instr & ~(uint16_t)077) == PI_JMP ||
         (instr & ~(uint16_t)077) == PI_SWAB || (instr & ~(uint16_t)077) == PI_SXT ||
         (instr & ~(uint16_t)077) == PI_MTPS || (instr & ~(uint16_t)077) == PI_MFPS)
     {
@@ -883,6 +890,15 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
                 (psw & PSW_C) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0', (psw & PSW_N) ? '1' : '0');
     }
 
+    // JSR, JMP -- show non-trivial cases only
+    if ((instr & ~(uint16_t)0777) == PI_JSR && (instr & 077) != 067 && (instr & 077) != 037 ||
+        (instr & ~(uint16_t)077) == PI_JMP && (instr & 077) != 067 && (instr & 077) != 037)
+    {
+        int dstreg = instr & 7;
+        int dstmod = (instr >> 3) & 7;
+        DisasmView_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, -1, -1, dstreg, dstmod);
+    }
+
     // HALT mode commands
     if (instr == PI_MFUS)
     {
@@ -893,6 +909,7 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         _sntprintf(buffer, 32, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
     }
     //TODO: MFPC, MTPC
+
     //TODO: MARK
 
     int result = 0;
