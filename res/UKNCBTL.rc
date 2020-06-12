@@ -186,15 +186,14 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
-    LTEXT           "UKNCBTL Version 1.0",IDC_STATIC,10,10,119,8,SS_NOPREFIX
-    LTEXT           "Copyright (C) 2007-2020",IDC_STATIC,10,20,119,8
     DEFPUSHBUTTON   "OK",IDOK,211,10,57,15,WS_GROUP
-    LTEXT           "Authors:\r\nNikita Zimin\r\nFelix Lazarev\r\nAlexey Kisly",IDC_STATIC,10,57,174,36
-    LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,93,174,22
-    LTEXT           "https://github.com/nzeemin/ukncbtl\r\nhttp://code.google.com/p/ukncbtl/",IDC_STATIC,10,36,193,19
-    CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,10,136,199,105
-    LTEXT           "Build date:",IDC_STATIC,10,120,53,8
-    LTEXT           "????",IDC_BUILDDATE,71,120,139,8
+    LTEXT           "UKNCBTL Version 1.0.???",IDC_VERSION,10,10,139,8,SS_NOPREFIX
+    LTEXT           "Build date: ????",IDC_BUILDDATE,10,20,139,8
+    CONTROL         "<a>https://github.com/nzeemin/ukncbtl</a>",IDC_SYSLINK1,"SysLink",WS_TABSTOP,10,32,193,19
+    LTEXT           "Copyright (C) 2007-2020",IDC_STATIC,10,44,139,8
+    LTEXT           "Authors:\r\nNikita Zimin\r\nFelix Lazarev\r\nAlexey Kisly",IDC_STATIC,10,60,174,36
+    LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,98,174,22
+    CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,10,130,199,105
 END
 
 IDD_INPUTBOX DIALOGEX 0, 0, 209, 48
@@ -216,10 +215,11 @@ FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,90,76,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,144,76,50,14
+    LTEXT           "Create floppy disk image:",IDC_STATIC,8,15,188,8
     CONTROL         "40 tracks × 10 sectors × 2 sides × 512 B = 400 KB",IDC_TRACKS40,
-                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,6,18,188,10
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,8,27,188,10
     CONTROL         "80 tracks × 10 sectors × 2 sides × 512 B = 800 KB",IDC_TRACKS80,
-                    "Button",BS_AUTORADIOBUTTON,6,30,188,10
+                    "Button",BS_AUTORADIOBUTTON,8,42,188,10
 END
 
 IDD_SETTINGS DIALOGEX 64, 40, 246, 239

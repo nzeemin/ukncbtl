@@ -236,6 +236,10 @@ void ParseCommandLine()
         {
             Settings_SetSound(FALSE);
         }
+        //TODO: "/mz0:filepath"
+        //TODO: "/cart1:filepath"
+        //TODO: "/hdd1:filepath"
+        //TODO: "/state:filepath"
     }
 
     ::LocalFree(args);

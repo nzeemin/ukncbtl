@@ -13,6 +13,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include <commdlg.h>
 #include <commctrl.h>
+#include <shellapi.h>
 #include "Dialogs.h"
 #include "Main.h"
 #include "Views.h"
@@ -55,9 +56,11 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
     {
     case WM_INITDIALOG:
         {
-            TCHAR buf[64];
-            wsprintf(buf, _T("%S %S"), __DATE__, __TIME__);
-            ::SetWindowText(::GetDlgItem(hDlg, IDC_BUILDDATE), buf);
+            TCHAR buffer[64];
+            wsprintf(buffer, _T("UKNCBTL Version %s"), _T(UKNCBTL_VERSION_STRING));
+            ::SetDlgItemText(hDlg, IDC_VERSION, buffer);
+            wsprintf(buffer, _T("Build date: %S %S"), __DATE__, __TIME__);
+            ::SetDlgItemText(hDlg, IDC_BUILDDATE, buffer);
             return (INT_PTR)TRUE;
         }
     case WM_COMMAND:
@@ -65,6 +68,14 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         {
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
+        }
+        break;
+    case WM_NOTIFY:
+        if (wParam == IDC_SYSLINK1 &&
+            ((LPNMHDR)lParam)->code == NM_CLICK || ((LPNMHDR)lParam)->code == NM_RETURN)
+        {
+            ::ShellExecute(NULL, _T("open"), _T("https://github.com/nzeemin/ukncbtl"), NULL, NULL, SW_SHOW);
+            break;
         }
         break;
     }
