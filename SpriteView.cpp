@@ -56,14 +56,23 @@ void SpriteView_PrepareBitmap();
 void SpriteView_UpdateScrollPos();
 
 int m_nSprite_Mode = 0;
+const int m_nSprite_ModeMax = 4;
 static LPCTSTR SpriteModeNames[] =
 {
     _T("Black and White 8 bits"),
     _T("Green and Red on Black"),
-    _T("Green and Red on Blue")
+    _T("Cyan and Magenta on Blue"),
+    _T("Red and Green on Black"),
+    _T("Magenta and Cyan on Blue")
 };
-const int m_nSprite_ModeMax = 2;
-
+static DWORD SpriteModePalettes[][3] =
+{
+    { 0x000000, 0xFFFFFF, 0x000000 },
+    { 0x000000, 0x00FF00, 0xFF0000 },
+    { 0x0000FF, 0x00FFFF, 0xFF00FF },
+    { 0x000000, 0xFF0000, 0x00FF00 },
+    { 0x0000FF, 0xFF00FF, 0x00FFFF },
+};
 
 //////////////////////////////////////////////////////////////////////
 
@@ -257,17 +266,14 @@ void SpriteView_SetSpriteWidth(int width)
 void SpriteView_UpdateWindowText()
 {
     LPCTSTR spriteModeName = _T("");
-    if (m_nSprite_Mode < m_nSprite_ModeMax)
+    if (m_nSprite_Mode <= m_nSprite_ModeMax)
         spriteModeName = SpriteModeNames[m_nSprite_Mode];
 
     const size_t buffer_size = 128;
     TCHAR buffer[buffer_size];
     _stprintf_s(buffer, buffer_size,
             _T("Sprite Viewer - address %06o, width %d, mode%d %s"),
-            m_wSprite_BaseAddress,
-            m_nSprite_width,
-            m_nSprite_Mode,
-            spriteModeName);
+            m_wSprite_BaseAddress, m_nSprite_width, m_nSprite_Mode, spriteModeName);
     ::SetWindowText(g_hwndSprite, buffer);
 }
 
@@ -420,12 +426,12 @@ void SpriteView_PrepareBitmap()
                         value1 = value1 >> 8;
                     ++address;
 
-                    WORD background = (m_nSprite_Mode == 1) ? 0 : 0x0000ff;
+                    DWORD background = SpriteModePalettes[m_nSprite_Mode][0];
                     for (int i = 0; i < 8; ++i)
                     {
                         COLORREF color = background;
-                        color |= (value & 1) ? 0x00ff00 : 0;
-                        color |= (value1 & 1) ? 0xff0000 : 0;
+                        color |= (value & 1) ? SpriteModePalettes[m_nSprite_Mode][1] : 0;
+                        color |= (value1 & 1) ? SpriteModePalettes[m_nSprite_Mode][2] : 0;
                         *pBits = color;
                         pBits++;
                         value = value >> 1;
