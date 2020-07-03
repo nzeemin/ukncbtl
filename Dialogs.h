@@ -18,7 +18,7 @@ void ShowAboutBox();
 // Input octal value
 //   strTitle - dialog caption
 //   strPrompt - label text
-BOOL InputBoxOctal(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strPrompt, WORD* pValue);
+BOOL InputBoxOctal(HWND hwndOwner, LPCTSTR strTitle, WORD* pValue);
 
 BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, LPCTSTR strDefExt, TCHAR* bufFileName);
 BOOL ShowOpenDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName);

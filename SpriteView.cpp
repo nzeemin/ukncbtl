@@ -319,7 +319,7 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     case 0x47:  // G - Go To Address
         {
             WORD value = m_wSprite_BaseAddress;
-            if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), _T("Address (octal):"), &value))
+            if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), &value))
                 SpriteView_GoToAddress(value);
             break;
         }

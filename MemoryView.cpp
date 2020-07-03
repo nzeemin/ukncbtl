@@ -416,7 +416,7 @@ void MemoryView_SwitchWordByte()
 void MemoryView_SelectAddress()
 {
     WORD value = m_wBaseAddress;
-    if (InputBoxOctal(m_hwndMemoryViewer, _T("Go To Address"), _T("Address (octal):"), &value))
+    if (InputBoxOctal(m_hwndMemoryViewer, _T("Go To Address"), &value))
         MemoryView_ScrollTo(value);
 }
 

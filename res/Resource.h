@@ -27,6 +27,7 @@
 #define IDD_CONFIGDLG                   150
 #define IDC_EDIT1                       1000
 #define IDC_BUILDDATE                   1001
+#define IDC_EDIT2                       1002
 #define IDC_TRACKS40                    1002
 #define IDC_TRACKS80                    1003
 #define IDC_SERIALPORT                  1004
