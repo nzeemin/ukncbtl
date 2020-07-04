@@ -22,5 +22,5 @@ environment:
     - toolchain: msvc13
 
 build:
-  project: UKNCBTL-VS2013.sln
+  project: emulator\UKNCBTL-VS2013.sln
 

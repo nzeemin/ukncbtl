@@ -1,0 +1,388 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#define APSTUDIO_HIDDEN_SYMBOLS
+#include "windows.h"
+#undef APSTUDIO_HIDDEN_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// Russian resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
+#ifdef _WIN32
+LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
+#pragma code_page(1251)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#define APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "#include ""windows.h""\r\n"
+    "#undef APSTUDIO_HIDDEN_SYMBOLS\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+#endif    // Russian resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+#ifdef _WIN32
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1252)
+#endif //_WIN32
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDI_UKNCBTL             ICON                    "UKNCBTL.ico"
+IDI_SMALL               ICON                    "small.ico"
+IDI_DISKETTE            ICON                    "diskette.ico"
+IDI_DISKETTEWP          ICON                    "diskettewp.ico"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDC_UKNCBTL MENUEX 
+BEGIN
+    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Save State…",                 ID_FILE_SAVESTATE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Load State…",                 ID_FILE_LOADSTATE,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Screenshot",                  ID_FILE_SCREENSHOT,MFT_STRING,MFS_ENABLED
+        MENUITEM "Screenshot to Clipboard",     ID_FILE_SCREENSHOTTOCLIPBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Save Screenshot as...",       ID_FILE_SAVESCREENSHOTAS,MFT_STRING,MFS_ENABLED
+        MENUITEM "Screen Text to Clipboard",    ID_FILE_SCREENTOCLIPBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Create Disk...",              ID_FILE_CREATEDISK,MFT_STRING,MFS_ENABLED
+        MENUITEM "Settings",                    ID_FILE_SETTINGS,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "E&xit\tAlt+F4",               IDM_EXIT,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&View",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Toolbar",                     ID_VIEW_TOOLBAR,MFT_STRING,MFS_ENABLED
+        MENUITEM "Keyboard",                    ID_VIEW_KEYBOARD,MFT_STRING,MFS_ENABLED
+        MENUITEM "Tape",                        ID_VIEW_TAPE,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "RGB Screen",                  ID_VIEW_RGBSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "GRB Screen",                  ID_VIEW_GRBSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Grayscale Screen",            ID_VIEW_GRAYSCREEN,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "Render",                         65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Render Mode 0",               32827,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Emulator",                      65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Run\tPlay/Pause",             ID_EMULATOR_RUN,MFT_STRING,MFS_ENABLED
+        MENUITEM "Reset",                       ID_EMULATOR_RESET,MFT_STRING,MFS_ENABLED
+        MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Sound",                       ID_EMULATOR_SOUND,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Speed 25%",                   ID_EMULATOR_SPEED25
+        MENUITEM "Speed 50%",                   ID_EMULATOR_SPEED50,MFT_STRING,MFS_ENABLED
+        MENUITEM "Speed 100%",                  ID_EMULATOR_REALSPEED,MFT_STRING,MFS_ENABLED
+        MENUITEM "Speed 200%",                  ID_EMULATOR_SPEED200,MFT_STRING,MFS_ENABLED
+        MENUITEM "Speed MAX",                   ID_EMULATOR_SPEEDMAX,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Serial",                      ID_EMULATOR_SERIAL,MFT_STRING,MFS_ENABLED
+        MENUITEM "Parallel",                    ID_EMULATOR_PARALLEL,MFT_STRING,MFS_ENABLED
+        MENUITEM "Network",                     ID_EMULATOR_NETWORK,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Configuration",                 65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Floppy MZ0:",                 ID_EMULATOR_FLOPPY0,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ1:",                 ID_EMULATOR_FLOPPY1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ2:",                 ID_EMULATOR_FLOPPY2,MFT_STRING,MFS_ENABLED
+        MENUITEM "Floppy MZ3:",                 ID_EMULATOR_FLOPPY3,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Cartridge 1",                 ID_EMULATOR_CARTRIDGE1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Drive 1",                ID_EMULATOR_HARDDRIVE1,MFT_STRING,MFS_ENABLED
+        MENUITEM "Cartridge 2",                 ID_EMULATOR_CARTRIDGE2,MFT_STRING,MFS_ENABLED
+        MENUITEM "Hard Drive 2",                ID_EMULATOR_HARDDRIVE2,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "View Configuration",          ID_EMULATOR_CONFIGURATION,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "Debug",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "Debug Views",                 ID_VIEW_DEBUG,MFT_STRING,MFS_ENABLED
+        MENUITEM "Switch CPU / PPU",            ID_DEBUG_CPUPPU,MFT_STRING,MFS_ENABLED
+        MENUITEM "Sprite Viewer",               ID_DEBUG_SPRITES,MFT_STRING,MFS_ENABLED
+        MENUITEM MFT_SEPARATOR
+        MENUITEM "Step Into\tF8",               ID_DEBUG_STEPINTO,MFT_STRING,MFS_ENABLED
+        MENUITEM "Step Over\tShift+F8",         ID_DEBUG_STEPOVER,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
+    BEGIN
+        MENUITEM "&About",                      IDM_ABOUT,MFT_STRING,MFS_ENABLED
+    END
+    MENUITEM "Fullscreen",                  ID_VIEW_FULLSCREEN,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDC_UKNCBTL ACCELERATORS 
+BEGIN
+    VK_MEDIA_STOP,  ID_EMULATOR_RESET,      VIRTKEY, NOINVERT
+    VK_MEDIA_PLAY_PAUSE, ID_EMULATOR_RUN,   VIRTKEY, NOINVERT
+    VK_F8,          ID_DEBUG_STEPINTO,      VIRTKEY, NOINVERT
+    VK_F8,          ID_DEBUG_STEPOVER,      VIRTKEY, SHIFT, NOINVERT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 22, 17, 280, 253
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CAPTION | WS_SYSMENU
+CAPTION "About"
+FONT 8, "MS Shell Dlg", 400, 0, 0xCC
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,211,10,57,15,WS_GROUP
+    LTEXT           "UKNCBTL Version 1.0.???",IDC_VERSION,10,10,139,8,SS_NOPREFIX
+    LTEXT           "Build date: ????",IDC_BUILDDATE,10,20,139,8
+    CONTROL         "<a>https://github.com/nzeemin/ukncbtl</a>",IDC_SYSLINK1,"SysLink",WS_TABSTOP,10,32,193,19
+    LTEXT           "Copyright (C) 2007-2020",IDC_STATIC,10,44,139,8
+    LTEXT           "Authors:\r\nNikita Zimin\r\nFelix Lazarev\r\nAlexey Kisly",IDC_STATIC,10,60,174,36
+    LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,98,174,22
+    CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,10,130,199,105
+END
+
+IDD_INPUTBOX DIALOGEX 0, 0, 209, 48
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Dialog"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,145,7,57,14
+    PUSHBUTTON      "Cancel",IDCANCEL,146,24,57,14
+    LTEXT           "Octal:",IDC_STATIC,7,7,50,8
+    EDITTEXT        IDC_EDIT1,7,17,50,14,ES_AUTOHSCROLL
+    LTEXT           "Hex:",IDC_STATIC,67,7,50,8
+    EDITTEXT        IDC_EDIT2,67,17,50,14,ES_AUTOHSCROLL
+END
+
+IDD_CREATEDISK DIALOGEX 60, 40, 201, 97
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Create Disk"
+FONT 8, "MS Shell Dlg", 400, 0, 0xCC
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,90,76,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,144,76,50,14
+    LTEXT           "Create floppy disk image:",IDC_STATIC,8,15,188,8
+    CONTROL         "40 tracks × 10 sectors × 2 sides × 512 B = 400 KB",IDC_TRACKS40,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,8,27,188,10
+    CONTROL         "80 tracks × 10 sectors × 2 sides × 512 B = 800 KB",IDC_TRACKS80,
+                    "Button",BS_AUTORADIOBUTTON,8,42,188,10
+END
+
+IDD_SETTINGS DIALOGEX 64, 40, 246, 239
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Settings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Sound volume:",IDC_STATIC,8,15,64,8
+    CONTROL         "",IDC_VOLUME,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,75,7,164,23
+    LTEXT           "Render:",IDC_STATIC,8,42,64,8
+    COMBOBOX        IDC_RENDER,84,41,146,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Screenshot mode:",IDC_STATIC,8,62,64,8
+    COMBOBOX        IDC_SCREENSHOTMODE,84,61,146,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Serial port",IDC_STATIC,7,81,229,32
+    LTEXT           "COM port name:",IDC_STATIC,15,93,61,8
+    EDITTEXT        IDC_SERIALPORT,84,91,61,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    PUSHBUTTON      "Configuration",IDC_BUTTON1,150,90,74,14
+    GROUPBOX        "Network",IDC_STATIC,7,120,229,48
+    LTEXT           "Station number:",IDC_STATIC,15,133,66,8
+    EDITTEXT        IDC_NETWORKSTATION,84,131,61,12,ES_UPPERCASE | ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "COM port name:",IDC_STATIC,15,149,66,8
+    EDITTEXT        IDC_NETWORKPORT,84,147,61,12,ES_UPPERCASE | ES_AUTOHSCROLL
+    PUSHBUTTON      "Configuration",IDC_BUTTON2,150,146,74,14
+    LTEXT           "Debug font:",IDC_STATIC,8,180,61,8
+    COMBOBOX        IDC_DEBUGFONT,84,178,147,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,136,218,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,189,218,50,14
+END
+
+IDD_DCB_EDITOR DIALOGEX 180, 120, 250, 176
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Serial Port Parameters"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Baud rate:",IDC_STATIC,7,7,46,8
+    LISTBOX         IDC_BAUDRATE,7,18,48,120,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Parity:",IDC_STATIC,63,7,46,8
+    LISTBOX         IDC_PARITY,63,18,48,56,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Stop bits:",IDC_STATIC,63,80,46,8
+    LISTBOX         IDC_STOPBITS,63,91,48,47,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "DTR control:",IDC_STATIC,119,8,46,8
+    LISTBOX         IDC_DTRCONTROL,119,18,48,48,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "RTS control:",IDC_STATIC,119,74,46,8
+    LISTBOX         IDC_RTSCONTROL,119,85,48,53,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Outx CTS flow",IDC_OUTXCTSFLOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,17,66,10
+    CONTROL         "Outx DSR flow",IDC_OUTXDSRFLOW,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,30,66,10
+    CONTROL         "DSR sensitivity",IDC_DSRSENSITIVITY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,43,66,10
+    DEFPUSHBUTTON   "OK",IDOK,140,155,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,193,155,50,14
+END
+
+IDD_CONFIGDLG DIALOGEX 80, 40, 326, 328
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Configuration"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,269,307,50,14
+    CONTROL         "",IDC_TREE1,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_DISABLEDRAGDROP | TVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,7,138,291
+    LISTBOX         IDC_LIST1,151,7,168,291,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO 
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+        VERTGUIDE, 10
+        BOTTOMMARGIN, 241
+        HORZGUIDE, 10
+    END
+
+    IDD_INPUTBOX, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 302
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 41
+    END
+
+    IDD_CREATEDISK, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 194
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 90
+    END
+
+    IDD_SETTINGS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 239
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 212
+    END
+
+    IDD_DCB_EDITOR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 243
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 169
+    END
+
+    IDD_CONFIGDLG, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 319
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 321
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_UKNC                BITMAP                  "UKNC.bmp"
+IDB_KEYBOARD            BITMAP                  "keyboard.bmp"
+IDB_TOOLBAR             BITMAP                  "Toolbar.bmp"
+IDB_KEYBOARDMASK        BITMAP                  "keyboardmask.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+IDR_UKNC_ROM            BIN                     "uknc_rom.bin"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE 
+BEGIN
+    IDS_APP_TITLE           "UKNC Back to Life"
+    IDS_WELCOME             "UKNC Back to Life - version %s"
+    IDC_UKNCBTL             "UKNCBTL"
+END
+
+#endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
