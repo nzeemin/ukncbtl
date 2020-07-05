@@ -85,7 +85,7 @@ enum ToolbarButtonImages
     ToolbarImageHardDrive = 11,
     ToolbarImageHardDriveWP = 12,
     ToolbarImageScreenshot = 13,
-    ToolbarImageScreenshotStop = 14,
+    ToolbarImageDebugger = 14,
     ToolbarImageStepInto = 15,
     ToolbarImageStepOver = 16,
     ToolbarImageCpuPpu = 17,
