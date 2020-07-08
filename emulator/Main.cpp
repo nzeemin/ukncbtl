@@ -236,6 +236,14 @@ void ParseCommandLine()
         {
             Settings_SetSound(FALSE);
         }
+        else if (_tcscmp(arg, _T("/fullscreen")) == 0 || _tcscmp(arg, _T("/fullscreenon")) == 0)
+        {
+            Settings_SetWindowFullscreen(TRUE);
+        }
+        else if (_tcscmp(arg, _T("/windowed")) == 0 || _tcscmp(arg, _T("/fullscreenoff")) == 0)
+        {
+            Settings_SetWindowFullscreen(FALSE);
+        }
         //TODO: "/mz0:filepath"
         //TODO: "/cart1:filepath"
         //TODO: "/hdd1:filepath"

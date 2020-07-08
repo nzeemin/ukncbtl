@@ -286,15 +286,16 @@ BOOL MainWindow_InitStatusbar()
     if (! m_hwndStatusbar)
         return FALSE;
 
-    int statusbarParts[8];
-    statusbarParts[0] = 300;
-    statusbarParts[1] = 350;
-    statusbarParts[2] = statusbarParts[1] + 16 + 16;
+    int statusbarParts[9];
+    statusbarParts[0] = 270;
+    statusbarParts[1] = 315;
+    statusbarParts[2] = 360;
     statusbarParts[3] = statusbarParts[2] + 16 + 16;
     statusbarParts[4] = statusbarParts[3] + 16 + 16;
     statusbarParts[5] = statusbarParts[4] + 16 + 16;
-    statusbarParts[6] = statusbarParts[5] + 45;
-    statusbarParts[7] = -1;
+    statusbarParts[6] = statusbarParts[5] + 16 + 16;
+    statusbarParts[7] = statusbarParts[6] + 45;
+    statusbarParts[8] = -1;
     SendMessage(m_hwndStatusbar, SB_SETPARTS, sizeof(statusbarParts) / sizeof(int), (LPARAM) statusbarParts);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ0, 0);
     MainWindow_SetStatusbarBitmap(StatusbarPartMZ1, 0);

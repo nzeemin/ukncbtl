@@ -173,6 +173,7 @@ CMotherboard::CMotherboard ()
     m_TapeWriteCallback = nullptr;
     m_nTapeSampleRate = 0;
     m_SoundGenCallback = nullptr;
+    m_SoundPrevValue = 0;
     m_SerialInCallback = nullptr;
     m_SerialOutCallback = nullptr;
     m_ParallelOutCallback = nullptr;
@@ -666,6 +667,7 @@ bool CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
     const int audioticks = 20286 / (SAMPLERATE / 25);
+    m_SoundChanges = 0;
     const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
     const int networkOutTicks = 7; //20000 / (57600 / 25);
@@ -1465,6 +1467,9 @@ void CMotherboard::DoSound(void)
         if ( (!freq_enable[0]) && (!freq_enable[1]) && (!freq_enable[2]) && (!freq_enable[3]) && (!freq_enable[4]))
             global = 1;
     }
+
+    if (m_SoundPrevValue == 0 && global != 0)
+        m_SoundChanges++;
 
     if (m_SoundGenCallback == nullptr)
         return;

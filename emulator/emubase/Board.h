@@ -230,8 +230,9 @@ public:  // System control
     void        ExecutePPU();  ///< Execute one PPU instruction
     bool        SystemFrame();  ///< Do one frame -- use for normal run
     void        KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Key pressed or released
-    uint16_t    GetKeyboardRegister(void);
+    uint16_t    GetKeyboardRegister();
     uint16_t    GetScannedKey() { return m_scanned_key; }
+    int         GetSoundChanges() const { return m_SoundChanges; }  ///< Sound signal 0 to 1 changes since the beginning of the frame
 
     /// \brief Attach floppy image to the slot -- insert the disk.
     bool        AttachFloppyImage(int slot, LPCTSTR sFileName);
@@ -295,27 +296,29 @@ private:
     uint16_t    m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
     uint32_t    m_dwTrace;  ///< Trace flags
 
-    uint16_t	m_timer;
-    uint16_t	m_timerreload;
-    uint16_t	m_timerflags;
-    uint16_t	m_timerdivider;
+    uint16_t    m_timer;
+    uint16_t    m_timerreload;
+    uint16_t    m_timerflags;
+    uint16_t    m_timerdivider;
 
-    chan_stc	m_chancputx[3];
-    chan_stc	m_chancpurx[2];
-    chan_stc	m_chanpputx[2];
-    chan_stc	m_chanppurx[3];
+    chan_stc    m_chancputx[3];
+    chan_stc    m_chancpurx[2];
+    chan_stc    m_chanpputx[2];
+    chan_stc    m_chanppurx[3];
 
-    uint8_t		m_chan0disabled;
-    uint8_t		m_irq_cpureset;
+    uint8_t             m_chan0disabled;
+    uint8_t             m_irq_cpureset;
 
-    uint8_t		m_scanned_key;
-    kbd_row		m_kbd_matrix[16];
+    uint8_t             m_scanned_key;
+    kbd_row             m_kbd_matrix[16];
 
 private:
-    TAPEREADCALLBACK m_TapeReadCallback;
-    TAPEWRITECALLBACK m_TapeWriteCallback;
-    int			m_nTapeSampleRate;
-    SOUNDGENCALLBACK m_SoundGenCallback;
+    TAPEREADCALLBACK    m_TapeReadCallback;
+    TAPEWRITECALLBACK   m_TapeWriteCallback;
+    int	                m_nTapeSampleRate;
+    SOUNDGENCALLBACK    m_SoundGenCallback;
+    int                 m_SoundPrevValue;  ///< Previous value of the sound signal
+    int                 m_SoundChanges;  ///< Sound signal 0 to 1 changes since the beginning of the frame
     SERIALINCALLBACK    m_SerialInCallback;
     SERIALOUTCALLBACK   m_SerialOutCallback;
     PARALLELOUTCALLBACK m_ParallelOutCallback;

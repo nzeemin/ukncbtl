@@ -36,6 +36,7 @@ uint16_t m_wEmulatorPPUBreakpoint = 0177777;
 
 bool m_okEmulatorSound = false;
 uint16_t m_wEmulatorSoundSpeed = 100;
+int m_nEmulatorSoundChanges = 0;
 
 uint16_t m_Settings_NetStation_Bits = 0;
 bool m_okEmulatorNetwork = false;
@@ -502,15 +503,6 @@ void Emulator_SetParallel(bool parallelOnOff)
     m_okEmulatorParallel = parallelOnOff;
 }
 
-//void CALLBACK Emulator_TerminalOut_Callback(BYTE byte)
-//{
-//#if !defined(PRODUCT)
-//    TCHAR buffer[2];
-//    buffer[0] = byte;  buffer[1] = 0;
-//    DebugLog(buffer);
-//#endif
-//}
-
 bool Emulator_SystemFrame()
 {
     SoundGen_SetVolume(Settings_GetSoundVolume());
@@ -556,6 +548,15 @@ bool Emulator_SystemFrame()
         TCHAR buffer[20];
         _stprintf(buffer, _T("Uptime: %02d:%02d:%02d"), hours, minutes, seconds);
         MainWindow_SetStatusbarText(StatusbarPartUptime, buffer);
+    }
+
+    // Update "Sound" indicator every 5 frames
+    m_nEmulatorSoundChanges += g_pBoard->GetSoundChanges();
+    if (m_nUptimeFrameCount % 5 == 0)
+    {
+        bool soundOn = m_nEmulatorSoundChanges > 0;
+        MainWindow_SetStatusbarText(StatusbarPartSound, soundOn ? _T("Sound") : nullptr);
+        m_nEmulatorSoundChanges = 0;
     }
 
     // Auto-boot option processing: select "boot from disk" and press Enter

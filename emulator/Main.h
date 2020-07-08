@@ -104,13 +104,14 @@ enum ToolbarButtonImages
 enum StatusbarParts
 {
     StatusbarPartMessage = 0,
-    StatusbarPartFloppyEngine = 1,
-    StatusbarPartMZ0 = 2,
-    StatusbarPartMZ1 = 3,
-    StatusbarPartMZ2 = 4,
-    StatusbarPartMZ3 = 5,
-    StatusbarPartFPS = 6,
-    StatusbarPartUptime = 7,
+    StatusbarPartSound = 1,
+    StatusbarPartFloppyEngine = 2,
+    StatusbarPartMZ0 = 3,
+    StatusbarPartMZ1 = 4,
+    StatusbarPartMZ2 = 5,
+    StatusbarPartMZ3 = 6,
+    StatusbarPartFPS = 7,
+    StatusbarPartUptime = 8,
 };
 
 const DWORD CARTRIDGE1MODE_HARDDRIVE = 0x00000001;
