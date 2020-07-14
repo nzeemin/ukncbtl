@@ -420,6 +420,71 @@ void ScreenView_OnDraw(HDC hdc)
     {
         RenderDrawProc(m_bits, hdc);
     }
+
+    if (Settings_GetDebug() || !Settings_GetOnScreenDisplay())
+        return;
+
+    // OSD
+    int osdSize = 84;
+    int osdSize12 = osdSize / 2;
+    int osdSize13 = osdSize / 3;
+    int osdSize14 = osdSize / 4;
+    int osdSize23 = osdSize * 2 / 3;
+    int osdSize34 = osdSize * 3 / 4;
+    int osdLeft = osdSize14;
+    int osdTop = osdSize14;
+
+    HPEN hPenOsd = ::CreatePen(PS_SOLID, 3, RGB(120, 0, 0));
+    HGDIOBJ oldPen = ::SelectObject(hdc, hPenOsd);
+    HGDIOBJ oldBrush = ::SelectObject(hdc, ::GetStockObject(NULL_BRUSH));
+
+    if (g_okEmulatorRunning)
+    {
+        MoveToEx(hdc, osdLeft, osdTop, NULL);
+        LineTo(hdc, osdLeft + osdSize, osdTop + osdSize12);
+        LineTo(hdc, osdLeft, osdTop + osdSize);
+        LineTo(hdc, osdLeft, osdTop);
+    }
+    else
+    {
+        Rectangle(hdc, osdLeft, osdTop, osdLeft + osdSize13, osdTop + osdSize);
+        Rectangle(hdc, osdLeft + osdSize23, osdTop, osdLeft + osdSize, osdTop + osdSize);
+    }
+
+    osdTop += osdSize + osdSize14;
+    if (g_pBoard->IsFloppyEngineOn())
+    {
+        Rectangle(hdc, osdLeft, osdTop, osdLeft + osdSize, osdTop + osdSize);
+        Arc(hdc, osdLeft + osdSize14, osdTop + osdSize14, osdLeft + osdSize34, osdTop + osdSize34,
+            osdLeft + osdSize14, osdTop + osdSize12, osdLeft + osdSize12, osdTop + osdSize14);
+        //MoveToEx(hdc, osdLeft + osdSize12, osdTop + osdSize14, NULL);
+        //LineTo(hdc, osdLeft + osdSize34, osdTop + osdSize14);
+        //MoveToEx(hdc, osdLeft + osdSize12, osdTop + osdSize14, NULL);
+        //LineTo(hdc, osdLeft + osdSize23, osdTop + osdSize12);
+        //TODO
+    }
+
+    osdTop += osdSize + osdSize14;
+    if (Emulator_IsSound())
+    {
+        const double sin135 = 0.707106781186548;  // sin(135 degree)
+        int osdSize12sin135 = (int)(osdSize12 * sin135);
+        MoveToEx(hdc, osdLeft + osdSize13, osdTop + osdSize13, NULL);
+        LineTo(hdc, osdLeft, osdTop + osdSize13);
+        LineTo(hdc, osdLeft, osdTop + osdSize23);
+        LineTo(hdc, osdLeft + osdSize13, osdTop + osdSize23);
+        MoveToEx(hdc, osdLeft + osdSize13, osdTop + osdSize13, NULL);
+        LineTo(hdc, osdLeft + osdSize23, osdTop);
+        LineTo(hdc, osdLeft + osdSize23, osdTop + osdSize);
+        LineTo(hdc, osdLeft + osdSize13, osdTop + osdSize23);
+        Arc(hdc, osdLeft, osdTop, osdLeft + osdSize, osdTop + osdSize,
+            osdLeft + osdSize12 + osdSize12sin135, osdTop + osdSize12 + osdSize12sin135,
+            osdLeft + osdSize12 + osdSize12sin135, osdTop + osdSize12 - osdSize12sin135);
+    }
+
+    ::SelectObject(hdc, oldBrush);
+    ::SelectObject(hdc, oldPen);
+    ::DeleteObject(hPenOsd);
 }
 
 void ScreenView_RedrawScreen()

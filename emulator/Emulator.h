@@ -46,6 +46,7 @@ void Emulator_Stop();
 void Emulator_Reset();
 bool Emulator_SystemFrame();
 uint32_t Emulator_GetUptime();  // UKNC uptime, in seconds
+bool Emulator_IsSound();  // Did sound produced within the last frame?
 void Emulator_SetSpeed(uint16_t realspeed);
 
 void Emulator_PrepareScreenRGB32(void* pBits, const uint32_t* colors);

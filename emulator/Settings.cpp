@@ -301,6 +301,8 @@ SETTINGS_GETSET_DWORD(ScreenHeightMode, _T("ScreenHeightMode"), int, 0);
 
 SETTINGS_GETSET_DWORD(ScreenshotMode, _T("ScreenshotMode"), int, 1);
 
+SETTINGS_GETSET_DWORD(OnScreenDisplay, _T("OnScreenDisplay"), BOOL, FALSE);
+
 SETTINGS_GETSET_DWORD(Toolbar, _T("Toolbar"), BOOL, TRUE);
 
 SETTINGS_GETSET_DWORD(Debug, _T("Debug"), BOOL, FALSE);

@@ -56,6 +56,7 @@ void MainWindow_DoViewDebug();
 void MainWindow_DoViewToolbar();
 void MainWindow_DoViewKeyboard();
 void MainWindow_DoViewTape();
+void MainWindow_DoViewOnScreenDisplay();
 void MainWindow_DoViewFullscreen();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
 void MainWindow_DoSelectRenderMode(int newMode);
@@ -856,6 +857,7 @@ void MainWindow_UpdateMenu()
     UINT rendermodecmd = ID_VIEW_RENDERMODE + ScreenView_GetRenderMode();
     CheckMenuRadioItem(hMenu, ID_VIEW_RENDERMODE, ID_VIEW_RENDERMODE + 32 - 1, rendermodecmd, MF_BYCOMMAND);
 
+    CheckMenuItem(hMenu, ID_VIEW_ONSCREENDISPLAY, (Settings_GetOnScreenDisplay() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_FULLSCREEN, (m_MainWindow_Fullscreen ? MF_CHECKED : MF_UNCHECKED));
 
     // Emulator menu options
@@ -982,6 +984,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_FULLSCREEN:
         MainWindow_DoViewFullscreen();
+        break;
+    case ID_VIEW_ONSCREENDISPLAY:
+        MainWindow_DoViewOnScreenDisplay();
         break;
     case ID_EMULATOR_RUN:
         MainWindow_DoEmulatorRun();
@@ -1160,6 +1165,17 @@ void MainWindow_DoSelectRenderMode(int newMode)
     MainWindow_UpdateMenu();
 
     Settings_SetScreenHeightMode(newMode);
+}
+
+void MainWindow_DoViewOnScreenDisplay()
+{
+    BOOL onoff = !Settings_GetOnScreenDisplay();
+    Settings_SetOnScreenDisplay(onoff);
+
+    if (!g_okEmulatorRunning)
+        ScreenView_RedrawScreen();
+
+    MainWindow_UpdateMenu();
 }
 
 void MainWindow_DoViewFullscreen()

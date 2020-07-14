@@ -249,6 +249,11 @@ bool Emulator_IsBreakpoint()
     return false;
 }
 
+bool Emulator_IsSound()
+{
+    return m_nEmulatorSoundChanges > 0;
+}
+
 void Emulator_SetSpeed(uint16_t realspeed)
 {
     uint16_t speedpercent = 100;
