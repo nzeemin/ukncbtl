@@ -1,4 +1,4 @@
-/*  This file is part of UKNCBTL.
+п»ї/*  This file is part of UKNCBTL.
     UKNCBTL is free software: you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
@@ -232,7 +232,7 @@ void DisasmView_AddSubtitle(WORD address, int type, LPCTSTR pCommentText)
 {
     if (m_nDisasmSubtitleCount >= m_nDisasmSubtitleMax)
     {
-        // Расширить массив
+        // Р Р°СЃС€РёСЂРёС‚СЊ РјР°СЃСЃРёРІ
         int newsize = m_nDisasmSubtitleMax + m_nDisasmSubtitleMax / 2;
         DisasmView_ResizeSubtitleArray(newsize);
     }
@@ -304,9 +304,9 @@ void DisasmView_DoSubtitles()
     DisasmView_UpdateWindowText();
 }
 
-// Разбор текста "субтитров".
-// На входе -- текст в m_strDisasmSubtitles в формате UTF16 LE, заканчивается символом с кодом 0.
-// На выходе -- массив описаний [адрес в памяти, тип, адрес строки комментария] в m_pDisasmSubtitleItems.
+// Р Р°Р·Р±РѕСЂ С‚РµРєСЃС‚Р° "СЃСѓР±С‚РёС‚СЂРѕРІ".
+// РќР° РІС…РѕРґРµ -- С‚РµРєСЃС‚ РІ m_strDisasmSubtitles РІ С„РѕСЂРјР°С‚Рµ UTF16 LE, Р·Р°РєР°РЅС‡РёРІР°РµС‚СЃСЏ СЃРёРјРІРѕР»РѕРј СЃ РєРѕРґРѕРј 0.
+// РќР° РІС‹С…РѕРґРµ -- РјР°СЃСЃРёРІ РѕРїРёСЃР°РЅРёР№ [Р°РґСЂРµСЃ РІ РїР°РјСЏС‚Рё, С‚РёРї, Р°РґСЂРµСЃ СЃС‚СЂРѕРєРё РєРѕРјРјРµРЅС‚Р°СЂРёСЏ] РІ m_pDisasmSubtitleItems.
 BOOL DisasmView_ParseSubtitles()
 {
     ASSERT(m_strDisasmSubtitles != NULL);
@@ -329,9 +329,9 @@ BOOL DisasmView_ParseSubtitles()
             continue;
         }
 
-        if (*pText >= _T('0') && *pText <= _T('9'))  // Цифра -- считаем что это адрес
+        if (*pText >= _T('0') && *pText <= _T('9'))  // Р¦РёС„СЂР° -- СЃС‡РёС‚Р°РµРј С‡С‚Рѕ СЌС‚Рѕ Р°РґСЂРµСЃ
         {
-            // Парсим адрес
+            // РџР°СЂСЃРёРј Р°РґСЂРµСЃ
             TCHAR* pAddrStart = pText;
             while (*pText != 0 && *pText >= _T('0') && *pText <= _T('9')) pText++;
             if (*pText == 0) break;
@@ -341,23 +341,23 @@ BOOL DisasmView_ParseSubtitles()
             ParseOctalValue(pAddrStart, &address);
             *pText = chSave;
 
-            if (pBlockCommentStart != NULL)  // На предыдущей строке был комментарий к блоку
+            if (pBlockCommentStart != NULL)  // РќР° РїСЂРµРґС‹РґСѓС‰РµР№ СЃС‚СЂРѕРєРµ Р±С‹Р» РєРѕРјРјРµРЅС‚Р°СЂРёР№ Рє Р±Р»РѕРєСѓ
             {
-                // Сохраняем комментарий к блоку в массиве
+                // РЎРѕС…СЂР°РЅСЏРµРј РєРѕРјРјРµРЅС‚Р°СЂРёР№ Рє Р±Р»РѕРєСѓ РІ РјР°СЃСЃРёРІРµ
                 DisasmView_AddSubtitle(address, SUBTYPE_BLOCKCOMMENT, pBlockCommentStart);
                 pBlockCommentStart = NULL;
             }
 
-            // Пропускаем разделители
+            // РџСЂРѕРїСѓСЃРєР°РµРј СЂР°Р·РґРµР»РёС‚РµР»Рё
             while (*pText != 0 &&
                    (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
                 pText++;
             BOOL okDirective = (*pText == _T('.'));
 
-            // Ищем начало комментария и конец строки
+            // РС‰РµРј РЅР°С‡Р°Р»Рѕ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ Рё РєРѕРЅРµС† СЃС‚СЂРѕРєРё
             while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
             if (*pText == 0) break;
-            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, комментарий не обнаружен
+            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, РєРѕРјРјРµРЅС‚Р°СЂРёР№ РЅРµ РѕР±РЅР°СЂСѓР¶РµРЅ
             {
                 pText++;
 
@@ -366,22 +366,22 @@ BOOL DisasmView_ParseSubtitles()
                 continue;
             }
 
-            // Нашли начало комментария -- ищем конец строки или файла
+            // РќР°С€Р»Рё РЅР°С‡Р°Р»Рѕ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ -- РёС‰РµРј РєРѕРЅРµС† СЃС‚СЂРѕРєРё РёР»Рё С„Р°Р№Р»Р°
             TCHAR* pCommentStart = pText;
             while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
 
-            // Сохраняем комментарий в массиве
+            // РЎРѕС…СЂР°РЅСЏРµРј РєРѕРјРјРµРЅС‚Р°СЂРёР№ РІ РјР°СЃСЃРёРІРµ
             DisasmView_AddSubtitle(address,
                     (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
                     pCommentStart);
 
             if (*pText == 0) break;
-            *pText = 0;  // Обозначаем конец комментария
+            *pText = 0;  // РћР±РѕР·РЅР°С‡Р°РµРј РєРѕРЅРµС† РєРѕРјРјРµРЅС‚Р°СЂРёСЏ
             pText++;
         }
-        else  // Не цифра -- пропускаем до конца строки
+        else  // РќРµ С†РёС„СЂР° -- РїСЂРѕРїСѓСЃРєР°РµРј РґРѕ РєРѕРЅС†Р° СЃС‚СЂРѕРєРё
         {
-            if (*pText == _T(';'))  // Строка начинается с комментария - предположительно, комментарий к блоку
+            if (*pText == _T(';'))  // РЎС‚СЂРѕРєР° РЅР°С‡РёРЅР°РµС‚СЃСЏ СЃ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ - РїСЂРµРґРїРѕР»РѕР¶РёС‚РµР»СЊРЅРѕ, РєРѕРјРјРµРЅС‚Р°СЂРёР№ Рє Р±Р»РѕРєСѓ
                 pBlockCommentStart = pText;
             else
                 pBlockCommentStart = NULL;
@@ -390,7 +390,7 @@ BOOL DisasmView_ParseSubtitles()
             if (*pText == 0) break;
             if (*pText == _T('\n') || *pText == _T('\r'))  // EOL
             {
-                *pText = 0;  // Обозначаем конец комментария - для комментария к блоку
+                *pText = 0;  // РћР±РѕР·РЅР°С‡Р°РµРј РєРѕРЅРµС† РєРѕРјРјРµРЅС‚Р°СЂРёСЏ - РґР»СЏ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ Рє Р±Р»РѕРєСѓ
                 pText++;
             }
         }
@@ -580,8 +580,8 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
     {
         _sntprintf(buffer, 32, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
-        // BHI:  IF ((С or Z) == 0)
-        // BLOS: IF ((С or Z) == 1)
+        // BHI:  IF ((РЎ or Z) == 0)
+        // BLOS: IF ((РЎ or Z) == 1)
         BOOL value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
         return ((instr & 0400) == 0) ? !value : value;
     }
@@ -948,7 +948,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
         ::DeleteObject(hBrushCurrent);
     }
 
-    // Читаем из памяти процессора в буфер
+    // Р§РёС‚Р°РµРј РёР· РїР°РјСЏС‚Рё РїСЂРѕС†РµСЃСЃРѕСЂР° РІ Р±СѓС„РµСЂ
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
     int addrtype[nWindowSize + 2];
@@ -965,9 +965,9 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
     int length = 0;
     WORD wNextBaseAddr = 0;
-    for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
+    for (int index = 0; index < nWindowSize; index++)  // Р РёСЃСѓРµРј СЃС‚СЂРѕРєРё
     {
-        if (m_okDisasmSubtitles)  // Subtitles - комментарий к блоку
+        if (m_okDisasmSubtitles)  // Subtitles - РєРѕРјРјРµРЅС‚Р°СЂРёР№ Рє Р±Р»РѕРєСѓ
         {
             DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_BLOCKCOMMENT);
             if (pSubItem != NULL && pSubItem->comment != NULL)
@@ -1018,7 +1018,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                 TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) _tcslen(strSubtitle));
                 ::SetTextColor(hdc, colorText);
 
-                // Строку с субтитром мы можем использовать как опорную для дизассемблера
+                // РЎС‚СЂРѕРєСѓ СЃ СЃСѓР±С‚РёС‚СЂРѕРј РјС‹ РјРѕР¶РµРј РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ РєР°Рє РѕРїРѕСЂРЅСѓСЋ РґР»СЏ РґРёР·Р°СЃСЃРµРјР±Р»РµСЂР°
                 if (disasmfrom > address)
                     disasmfrom = address;
             }
@@ -1028,7 +1028,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
         {
             TCHAR strInstr[8];
             TCHAR strArg[32];
-            if (okData)  // По этому адресу лежат данные -- нет смысла дизассемблировать
+            if (okData)  // РџРѕ СЌС‚РѕРјСѓ Р°РґСЂРµСЃСѓ Р»РµР¶Р°С‚ РґР°РЅРЅС‹Рµ -- РЅРµС‚ СЃРјС‹СЃР»Р° РґРёР·Р°СЃСЃРµРјР±Р»РёСЂРѕРІР°С‚СЊ
             {
                 lstrcpy(strInstr, _T("data"));
                 PrintOctalValue(strArg, *(memory + index));

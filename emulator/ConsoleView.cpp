@@ -1,4 +1,4 @@
-/*  This file is part of UKNCBTL.
+ï»¿/*  This file is part of UKNCBTL.
     UKNCBTL is free software: you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
@@ -404,11 +404,11 @@ void PrintMemoryDump(CProcessor* pProc, WORD address, int lines)
             WORD word = dump[i];
             BYTE ch1 = LOBYTE(word);
             TCHAR wch1 = Translate_KOI8R(ch1);
-            if (ch1 < 32) wch1 = _T('·');
+            if (ch1 < 32) wch1 = _T('Â·');
             *pBuf = wch1;  pBuf++;
             BYTE ch2 = HIBYTE(word);
             TCHAR wch2 = Translate_KOI8R(ch2);
-            if (ch2 < 32) wch2 = _T('·');
+            if (ch2 < 32) wch2 = _T('Â·');
             *pBuf = wch2;  pBuf++;
         }
         *pBuf++ = _T('\r');
@@ -440,7 +440,7 @@ int PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okSh
     int totalLength = 0;
     int lastLength = 0;
     int length = 0;
-    for (int index = 0; index < nWindowSize; index++)  // Ðèñóåì ñòðîêè
+    for (int index = 0; index < nWindowSize; index++)  // Ð Ð¸ÑÑƒÐµÐ¼ ÑÑ‚Ñ€Ð¾ÐºÐ¸
     {
         PrintOctalValue(bufaddr, address);
         WORD value = memory[index];

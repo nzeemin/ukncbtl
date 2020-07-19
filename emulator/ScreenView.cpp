@@ -1,4 +1,4 @@
-/*  This file is part of UKNCBTL.
+ï»¿/*  This file is part of UKNCBTL.
     UKNCBTL is free software: you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
@@ -146,7 +146,7 @@ const DWORD ScreenView_GrayColors[16 * 8] =
 
 //////////////////////////////////////////////////////////////////////
 
-//Ïðîòîòèï ôóíêöèè ïðåîáðàçîâàíèÿ ýêðàíà
+//ÐŸÑ€Ð¾Ñ‚Ð¾Ñ‚Ð¸Ð¿ Ñ„ÑƒÐ½ÐºÑ†Ð¸Ð¸ Ð¿Ñ€ÐµÐ¾Ð±Ñ€Ð°Ð·Ð¾Ð²Ð°Ð½Ð¸Ñ ÑÐºÑ€Ð°Ð½Ð°
 typedef void (CALLBACK* PREPARE_SCREEN_CALLBACK)(void* pImageBits);
 
 struct ScreenModeStruct
@@ -499,7 +499,7 @@ void ScreenView_RedrawScreen()
 // Choose color palette depending of screen mode
 const DWORD* ScreenView_GetPalette()
 {
-    //TODO: Âûíåñòè switch â ScreenView_SetMode()
+    //TODO: Ð’Ñ‹Ð½ÐµÑÑ‚Ð¸ switch Ð² ScreenView_SetMode()
     const DWORD* colors;
     switch (m_ScreenMode)
     {
@@ -546,7 +546,7 @@ WORD ScreenView_GetKeyEventFromQueue()
     return keyevent;
 }
 
-const BYTE arrPcscan2UkncscanLat[256] =    // ËÀÒ
+const BYTE arrPcscan2UkncscanLat[256] =    // Ð›ÐÐ¢
 {
     /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
     /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
@@ -566,7 +566,7 @@ const BYTE arrPcscan2UkncscanLat[256] =    // ËÀÒ
     /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
     /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
 };
-const BYTE arrPcscan2UkncscanRus[256] =    // ÐÓÑ
+const BYTE arrPcscan2UkncscanRus[256] =    // Ð Ð£Ð¡
 {
     /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
     /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
@@ -620,7 +620,7 @@ void ScreenView_ScanKeyboard()
             }
             bEntPressed = FALSE;
         }
-        // Âûáèðàåì òàáëèöó ìàïïèíãà â çàâèñèìîñòè îò ôëàãà ÐÓÑ/ËÀÒ â ÓÊÍÖ
+        // Ð’Ñ‹Ð±Ð¸Ñ€Ð°ÐµÐ¼ Ñ‚Ð°Ð±Ð»Ð¸Ñ†Ñƒ Ð¼Ð°Ð¿Ð¿Ð¸Ð½Ð³Ð° Ð² Ð·Ð°Ð²Ð¸ÑÐ¸Ð¼Ð¾ÑÑ‚Ð¸ Ð¾Ñ‚ Ñ„Ð»Ð°Ð³Ð° Ð Ð£Ð¡/Ð›ÐÐ¢ Ð² Ð£ÐšÐÐ¦
         uint16_t ukncRegister = g_pBoard->GetKeyboardRegister();
 
         // Check every key for state change
