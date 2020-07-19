@@ -82,7 +82,7 @@ int APIENTRY _tWinMain(
         ::QueryPerformanceCounter(&nFrameStartTime);
 
         if (!g_okEmulatorRunning)
-            ::Sleep(20);
+            ::Sleep(1);
         else
         {
             if (Emulator_IsBreakpoint())

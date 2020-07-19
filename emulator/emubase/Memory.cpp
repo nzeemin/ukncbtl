@@ -95,9 +95,11 @@ uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool 
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
+        return m_pBoard->GetRAMWord(0, offset);
     case ADDRTYPE_RAM1:
+        return m_pBoard->GetRAMWord(1, offset);
     case ADDRTYPE_RAM2:
-        return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset);
+        return m_pBoard->GetRAMWord(2, offset);
     case ADDRTYPE_RAM12:
         return MAKEWORD(
                 m_pBoard->GetRAMByte(1, offset / 2),
@@ -127,22 +129,24 @@ uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okEx
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
+        return m_pBoard->GetRAMWord(0, offset);
     case ADDRTYPE_RAM1:
+        return m_pBoard->GetRAMWord(1, offset);
     case ADDRTYPE_RAM2:
-        return m_pBoard->GetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset);
+        return m_pBoard->GetRAMWord(2, offset);
     case ADDRTYPE_RAM12:
         return MAKEWORD(
                 m_pBoard->GetRAMByte(1, offset / 2),
                 m_pBoard->GetRAMByte(2, offset / 2));
-    case ADDRTYPE_ROMCART1:
-        return m_pBoard->GetROMCartWord(1, offset);
-    case ADDRTYPE_ROMCART2:
-        return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_ROM:
         return m_pBoard->GetROMWord(offset);
     case ADDRTYPE_IO:
         //TODO: What to do if okExec == true ?
         return GetPortWord(address);
+    case ADDRTYPE_ROMCART1:
+        return m_pBoard->GetROMCartWord(1, offset);
+    case ADDRTYPE_ROMCART2:
+        return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
         //TODO: Exception processing
@@ -161,25 +165,25 @@ uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
+        return m_pBoard->GetRAMByte(0, offset);
     case ADDRTYPE_RAM1:
+        return m_pBoard->GetRAMByte(1, offset);
     case ADDRTYPE_RAM2:
-        return m_pBoard->GetRAMByte((addrtype & ADDRTYPE_MASK_RAM), offset);
+        return m_pBoard->GetRAMByte(2, offset);
     case ADDRTYPE_RAM12:
         if ((offset & 1) == 0)
             return m_pBoard->GetRAMByte(1, offset / 2);
         else
             return m_pBoard->GetRAMByte(2, offset / 2);
-
-    case ADDRTYPE_ROMCART1:
-        return m_pBoard->GetROMCartByte(1, offset);
-    case ADDRTYPE_ROMCART2:
-        return m_pBoard->GetROMCartByte(2, offset);
-
     case ADDRTYPE_ROM:
         return m_pBoard->GetROMByte(offset);
     case ADDRTYPE_IO:
         //TODO: What to do if okExec == true ?
         return GetPortByte(address);
+    case ADDRTYPE_ROMCART1:
+        return m_pBoard->GetROMCartByte(1, offset);
+    case ADDRTYPE_ROMCART2:
+        return m_pBoard->GetROMCartByte(2, offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
         //TODO: Exception processing
@@ -198,21 +202,25 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
+        m_pBoard->SetRAMWord(0, offset, word);
+        return;
     case ADDRTYPE_RAM1:
+        m_pBoard->SetRAMWord(1, offset, word);
+        return;
     case ADDRTYPE_RAM2:
-        m_pBoard->SetRAMWord((addrtype & ADDRTYPE_MASK_RAM), offset, word);
+        m_pBoard->SetRAMWord(2, offset, word);
         return;
     case ADDRTYPE_RAM12:
         m_pBoard->SetRAMByte(1, offset / 2, (uint8_t)(word & 0xff));
         m_pBoard->SetRAMByte(2, offset / 2, (uint8_t)((word >> 8) & 0xff));
         return;
+    case ADDRTYPE_IO:
+        SetPortWord(address, word);
+        return;
     case ADDRTYPE_ROMCART1:
     case ADDRTYPE_ROMCART2:
     case ADDRTYPE_ROM:
         // Nothing to do: writing to ROM
-        return;
-    case ADDRTYPE_IO:
-        SetPortWord(address, word);
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
@@ -231,23 +239,27 @@ void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
+        m_pBoard->SetRAMByte(0, offset, byte);
+        return;
     case ADDRTYPE_RAM1:
+        m_pBoard->SetRAMByte(1, offset, byte);
+        return;
     case ADDRTYPE_RAM2:
-        m_pBoard->SetRAMByte((addrtype & ADDRTYPE_MASK_RAM), offset, byte);
+        m_pBoard->SetRAMByte(2, offset, byte);
         return;
     case ADDRTYPE_RAM12:
         if ((offset & 1) == 0)
             m_pBoard->SetRAMByte(1, offset / 2, byte);
         else
             m_pBoard->SetRAMByte(2, offset / 2, byte);
-
+        return;
+    case ADDRTYPE_IO:
+        SetPortByte(address, byte);
+        return;
     case ADDRTYPE_ROMCART1:
     case ADDRTYPE_ROMCART2:
     case ADDRTYPE_ROM:
         // Nothing to do: writing to ROM
-        return;
-    case ADDRTYPE_IO:
-        SetPortByte(address, byte);
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
