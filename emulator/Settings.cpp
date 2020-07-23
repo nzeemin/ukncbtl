@@ -120,6 +120,34 @@ BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
     return TRUE;
 }
 
+BOOL Settings_SaveColorValue(LPCTSTR sName, COLORREF color)
+{
+    // 00BBGGRR -> 00RRGGBB conversion
+    DWORD dwValue = ((color & 0x0000ff) << 16) | (color & 0x00ff00) | ((color & 0xff0000) >> 16);
+
+    TCHAR buffer[12];
+    wsprintf(buffer, _T("%06lX"), dwValue);
+
+    return Settings_SaveStringValue(sName, buffer);
+}
+BOOL Settings_LoadColorValue(LPCTSTR sName, COLORREF* pColor)
+{
+    TCHAR buffer[12];
+    if (!Settings_LoadStringValue(sName, buffer, 12))
+        return FALSE;
+
+    DWORD dwValue;
+    int result = _stscanf(buffer, _T("%lX"), &dwValue);
+    if (result == 0)
+        return FALSE;
+
+    // 00RRGGBB -> 00BBGGRR conversion
+    *pColor = ((dwValue & 0x0000ff) << 16) | (dwValue & 0x00ff00) | ((dwValue & 0xff0000) >> 16);
+
+    return TRUE;
+}
+
+
 BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
 {
     TCHAR* buffer = static_cast<TCHAR*>(::calloc(size * 2 + 1, sizeof(TCHAR)));
@@ -415,6 +443,54 @@ SETTINGS_GETSET_DWORD(SpriteAddress, _T("SpriteAddress"), WORD, 0);
 SETTINGS_GETSET_DWORD(SpriteWidth, _T("SpriteWidth"), WORD, 2);
 
 SETTINGS_GETSET_DWORD(SpriteMode, _T("SpriteMode"), WORD, 0);
+
+
+//////////////////////////////////////////////////////////////////////
+// Colors
+
+struct ColorDescriptorStruct
+{
+    LPCTSTR  settingname;
+    COLORREF color;
+    BOOL     valid;
+}
+static ColorDescriptors[ColorIndicesCount] =
+{
+    { _T("ColorDebugText"),         RGB(0,   0,   0),   FALSE },
+    { _T("ColorDebugBackCurrent"),  RGB(255, 255, 224), FALSE },
+    { _T("ColorDebugValueChanged"), RGB(255, 0,   0),   FALSE },
+    { _T("ColorDebugPrevious"),     RGB(0,   0,   255), FALSE },
+    { _T("ColorDebugMemoryROM"),    RGB(0,   0,   255), FALSE },
+    { _T("ColorDebugMemoryIO"),     RGB(128, 192, 128), FALSE },
+    { _T("ColorDebugMemoryNA"),     RGB(128, 128, 128), FALSE },
+    { _T("ColorDebugValue"),        RGB(128, 128, 128), FALSE },
+    { _T("ColorDebugValueRom"),     RGB(128, 128, 192), FALSE },
+    { _T("ColorDebugSubtitles"),    RGB(0,   128, 0),   FALSE },
+    { _T("ColorDebugJump"),         RGB(80,  192, 224), FALSE },
+    { _T("ColorDebugJumpYes"),      RGB(80,  240, 80),  FALSE },
+    { _T("ColorDebugJumpNo"),       RGB(180, 180, 180), FALSE },
+    { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE },
+    { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE },
+};
+
+COLORREF Settings_GetColor(ColorIndices colorIndex)
+{
+    ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
+
+    if (desc->valid)
+        return desc->color;  // Cached value valid => return the cached value
+
+    COLORREF color;
+    if (Settings_LoadColorValue(desc->settingname, &color))
+    {
+        desc->color = color;
+        desc->valid = TRUE;
+        return color;  // Load successful => return value loaded
+    }
+
+    desc->valid = TRUE;
+    return desc->color;  // Return default value
+}
 
 
 //////////////////////////////////////////////////////////////////////

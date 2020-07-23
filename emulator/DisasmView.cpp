@@ -22,19 +22,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-// Colors
-#define COLOR_RED       RGB(255,0,0)
-#define COLOR_BLUE      RGB(0,0,255)
-#define COLOR_SUBTITLE  RGB(0,128,0)
-#define COLOR_VALUE     RGB(128,128,128)
-#define COLOR_VALUEROM  RGB(128,128,192)
-#define COLOR_JUMP      RGB(80,192,224)
-#define COLOR_JUMPYES   RGB(80,240,80)
-#define COLOR_JUMPGRAY  RGB(180,180,180)
-#define COLOR_JUMPHINT  RGB(40,128,160)
-#define COLOR_HINT      RGB(40,40,160)
-#define COLOR_CURRENT   RGB(255,255,224)
-
 
 HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
 WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
@@ -431,7 +418,7 @@ void DisasmView_SetBaseAddr(WORD base)
 //////////////////////////////////////////////////////////////////////
 // Draw functions
 
-void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLORREF color = COLOR_JUMP)
+void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLORREF color)
 {
     int dist = abs(delta);
     if (dist < 2) dist = 2;
@@ -930,8 +917,20 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int result = -1;
+
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
-    COLORREF colorText = GetSysColor(COLOR_WINDOWTEXT);
+    COLORREF colorText = Settings_GetColor(ColorDebugText);
+    COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
+    COLORREF colorValue = Settings_GetColor(ColorDebugValue);
+    COLORREF colorValueRom = Settings_GetColor(ColorDebugValueRom);
+    COLORREF colorBackCurr = Settings_GetColor(ColorDebugBackCurrent);
+    COLORREF colorSubtitle = Settings_GetColor(ColorDebugSubtitles);
+    COLORREF colorHint = Settings_GetColor(ColorDebugHint);
+    COLORREF colorJump = Settings_GetColor(ColorDebugJump);
+    COLORREF colorJumpHint = Settings_GetColor(ColorDebugJumpHint);
+    COLORREF colorJumpYes = Settings_GetColor(ColorDebugJumpYes);
+    COLORREF colorJumpNo = Settings_GetColor(ColorDebugJumpNo);
+    ::SetTextColor(hdc, colorText);
 
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     WORD proccurrent = pProc->GetPC();
@@ -940,7 +939,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
     // Draw current line background
     if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
     {
-        HBRUSH hBrushCurrent = ::CreateSolidBrush(COLOR_CURRENT);
+        HBRUSH hBrushCurrent = ::CreateSolidBrush(colorBackCurr);
         HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
         int yCurrent = (proccurrent - (current - 5)) * cyLine;
         PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
@@ -974,7 +973,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             {
                 LPCTSTR strBlockSubtitle = pSubItem->comment;
 
-                ::SetTextColor(hdc, COLOR_SUBTITLE);
+                ::SetTextColor(hdc, colorSubtitle);
                 TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) _tcslen(strBlockSubtitle));
                 ::SetTextColor(hdc, colorText);
 
@@ -986,7 +985,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
         // Value at the address
         WORD value = memory[index];
         int memorytype = addrtype[index];
-        ::SetTextColor(hdc, (memorytype == ADDRTYPE_ROM) ? COLOR_VALUEROM : COLOR_VALUE);
+        ::SetTextColor(hdc, (memorytype == ADDRTYPE_ROM) ? colorValueRom : colorValue);
         DrawOctalValue(hdc, x + 13 * cxChar, y, value);
         ::SetTextColor(hdc, colorText);
 
@@ -1000,7 +999,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             TextOut(hdc, x + 1 * cxChar, y, _T("PC>>"), 4);
         else if (address == previous)
         {
-            ::SetTextColor(hdc, COLOR_BLUE);
+            ::SetTextColor(hdc, colorPrev);
             TextOut(hdc, x + 1 * cxChar, y, _T("  > "), 4);
         }
 
@@ -1014,7 +1013,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             {
                 LPCTSTR strSubtitle = pSubItem->comment;
 
-                ::SetTextColor(hdc, COLOR_SUBTITLE);
+                ::SetTextColor(hdc, colorSubtitle);
                 TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) _tcslen(strSubtitle));
                 ::SetTextColor(hdc, colorText);
 
@@ -1043,7 +1042,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                     int delta;
                     BOOL isjump = DisasmView_CheckForJump(memory + index, &delta);
                     if (isjump && abs(delta) < 40)
-                        DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine);
+                        DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, colorJump);
 
                     if (address == proccurrent)
                     {
@@ -1053,7 +1052,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                         BOOL jumppredict = DisasmView_GetJumpConditionHint(memory + index, pProc, pMemCtl, strHint);
                         if (*strHint != 0)  // If we have the hint
                         {
-                            ::SetTextColor(hdc, COLOR_JUMPHINT);
+                            ::SetTextColor(hdc, colorJumpHint);
                             TextOut(hdc, x + 52 * cxChar, y, strHint, (int)_tcslen(strHint));
                             ::SetTextColor(hdc, colorText);
                         }
@@ -1062,7 +1061,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
                             int hint = DisasmView_GetInstructionHint(memory + index, pProc, pMemCtl, strHint, strHint2);
                             if (hint > 0)
                             {
-                                ::SetTextColor(hdc, COLOR_HINT);
+                                ::SetTextColor(hdc, colorHint);
                                 TextOut(hdc, x + 52 * cxChar, y, strHint, (int)_tcslen(strHint));
                                 if (*strHint2 != 0)
                                     TextOut(hdc, x + 52 * cxChar, y + cyLine, strHint2, (int)_tcslen(strHint2));
@@ -1072,7 +1071,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
                         if (isjump && abs(delta) < 40)
                         {
-                            COLORREF jumpcolor = jumppredict ? COLOR_JUMPYES : COLOR_JUMPGRAY;
+                            COLORREF jumpcolor = jumppredict ? colorJumpYes : colorJumpNo;
                             DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, jumpcolor);
                         }
                     }

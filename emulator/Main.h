@@ -117,6 +117,27 @@ enum StatusbarParts
 const DWORD CARTRIDGE1MODE_HARDDRIVE = 0x00000001;
 const DWORD CARTRIDGE2MODE_HARDDRIVE = 0x00010000;
 
+enum ColorIndices
+{
+    ColorDebugText          = 0,
+    ColorDebugBackCurrent   = 1,
+    ColorDebugValueChanged  = 2,
+    ColorDebugPrevious      = 3,
+    ColorDebugMemoryRom     = 4,
+    ColorDebugMemoryIO      = 5,
+    ColorDebugMemoryNA      = 6,
+    ColorDebugValue         = 7,
+    ColorDebugValueRom      = 8,
+    ColorDebugSubtitles     = 9,
+    ColorDebugJump          = 10,
+    ColorDebugJumpYes       = 11,
+    ColorDebugJumpNo        = 12,
+    ColorDebugJumpHint      = 13,
+    ColorDebugHint          = 14,
+
+    ColorIndicesCount       = 15,
+};
+
 
 //////////////////////////////////////////////////////////////////////
 // Renders
@@ -219,6 +240,7 @@ void Settings_GetNetComPort(LPTSTR buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
 void Settings_GetNetComConfig(DCB * pDcb);
 void Settings_SetNetComConfig(const DCB * pDcb);
+COLORREF Settings_GetColor(ColorIndices colorIndex);
 
 
 //////////////////////////////////////////////////////////////////////
