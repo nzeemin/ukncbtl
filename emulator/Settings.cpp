@@ -473,8 +473,18 @@ static ColorDescriptors[ColorIndicesCount] =
     { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE },
 };
 
+LPCTSTR Settings_GetColorName(ColorIndices colorIndex)
+{
+    ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
+
+    return desc->settingname;
+}
+
 COLORREF Settings_GetColor(ColorIndices colorIndex)
 {
+    if (colorIndex < 0 || colorIndex >= ColorIndicesCount)
+        return 0;
+
     ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
 
     if (desc->valid)
@@ -490,6 +500,19 @@ COLORREF Settings_GetColor(ColorIndices colorIndex)
 
     desc->valid = TRUE;
     return desc->color;  // Return default value
+}
+
+void Settings_SetColor(ColorIndices colorIndex, COLORREF color)
+{
+    if (colorIndex < 0 || colorIndex >= ColorIndicesCount)
+        return;
+
+    ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
+
+    desc->color = color;
+    desc->valid = TRUE;
+
+    Settings_SaveColorValue(desc->settingname, color);
 }
 
 

@@ -240,7 +240,10 @@ void Settings_GetNetComPort(LPTSTR buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
 void Settings_GetNetComConfig(DCB * pDcb);
 void Settings_SetNetComConfig(const DCB * pDcb);
+
+LPCTSTR Settings_GetColorName(ColorIndices colorIndex);
 COLORREF Settings_GetColor(ColorIndices colorIndex);
+void Settings_SetColor(ColorIndices colorIndex, COLORREF color);
 
 
 //////////////////////////////////////////////////////////////////////

@@ -80,6 +80,7 @@ void MainWindow_DoFileScreenshotSaveAs();
 void MainWindow_DoFileScreenToClipboard();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
+void MainWindow_DoFileSettingsColors();
 void MainWindow_DoEmulatorConfiguration();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
@@ -1105,6 +1106,9 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SETTINGS:
         MainWindow_DoFileSettings();
         break;
+    case ID_FILE_SETTINGS_COLORS:
+        MainWindow_DoFileSettingsColors();
+        break;
     case ID_EMULATOR_CONFIGURATION:
         ShowConfigurationDialog();
         break;
@@ -1426,6 +1430,14 @@ void MainWindow_DoFileCreateDisk()
 void MainWindow_DoFileSettings()
 {
     ShowSettingsDialog();
+}
+
+void MainWindow_DoFileSettingsColors()
+{
+    if (ShowSettingsColorsDialog())
+    {
+        RedrawWindow(g_hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+    }
 }
 
 void MainWindow_DoEmulatorFloppy(int slot)

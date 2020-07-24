@@ -21,6 +21,7 @@
 #define IDB_TOOLBAR                     143
 #define IDD_CREATEDISK                  144
 #define IDD_SETTINGS                    145
+#define IDD_SETTINGS_COLORS             146
 #define IDR_UKNC_ROM                    147
 #define IDD_DCB_EDITOR                  148
 #define IDB_KEYBOARDMASK                149
@@ -60,6 +61,7 @@
 #define ID_FILE_SCREENSHOTTOCLIPBOARD   32777
 #define ID_FILE_CREATEDISK              32778
 #define ID_FILE_SETTINGS                32779
+#define ID_FILE_SETTINGS_COLORS         32780
 #define ID_VIEW                         32781
 #define ID_VIEW_MEMORY                  32782
 #define ID_VIEW_KEYBOARD                32783
