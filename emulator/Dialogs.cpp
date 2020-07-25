@@ -381,20 +381,59 @@ void FillScreenshotModeCombo(HWND hScreenshotMode)
     ::SendMessage(hScreenshotMode, CB_SETCURSEL, screenshotMode, 0);
 }
 
-int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC* /*lpntme*/, DWORD /*FontType*/, LPARAM lParam)
+void SettingsDialog_InitGeneralDialog(HWND hDlg)
 {
-    if ((lpelfe->lfPitchAndFamily & FIXED_PITCH) == 0)
-        return TRUE;
-    if (lpelfe->lfFaceName[0] == _T('@'))  // Skip vertical fonts
-        return TRUE;
+    HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
+    SendMessage(hVolume, TBM_SETRANGEMIN, 0, (LPARAM)0);
+    SendMessage(hVolume, TBM_SETRANGEMAX, 0, (LPARAM)0xffff);
+    SendMessage(hVolume, TBM_SETTICFREQ, 0x1000, 0);
+    SendMessage(hVolume, TBM_SETPOS, TRUE, (LPARAM)Settings_GetSoundVolume());
 
-    HWND hCombo = (HWND)lParam;
+    HWND hRender = GetDlgItem(hDlg, IDC_RENDER);
+    FillRenderCombo(hRender);
 
-    int item = ::SendMessage(hCombo, CB_FINDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
-    if (item < 0)
-        ::SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
+    HWND hScreenshotMode = GetDlgItem(hDlg, IDC_SCREENSHOTMODE);
+    FillScreenshotModeCombo(hScreenshotMode);
 
-    return TRUE;
+    TCHAR buffer[10];
+
+    Settings_GetSerialPort(buffer);
+    SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
+
+    SetDlgItemInt(hDlg, IDC_NETWORKSTATION, Settings_GetNetStation(), FALSE);
+
+    Settings_GetNetComPort(buffer);
+    SetDlgItemText(hDlg, IDC_NETWORKPORT, buffer);
+
+    Settings_GetSerialConfig(&m_DialogSettings_SerialConfig);
+    Settings_GetNetComConfig(&m_DialogSettings_NetComConfig);
+}
+
+void SettingsDialog_SaveGeneralSettings(HWND hDlg)
+{
+    HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
+    DWORD volume = SendMessage(hVolume, TBM_GETPOS, 0, 0);
+    Settings_SetSoundVolume((WORD)volume);
+
+    TCHAR buffer[32];
+
+    GetDlgItemText(hDlg, IDC_RENDER, buffer, 32);
+    Settings_SetRender(buffer);
+
+    int screenshotMode = ::SendMessage(GetDlgItem(hDlg, IDC_SCREENSHOTMODE), CB_GETCURSEL, 0, 0);
+    Settings_SetScreenshotMode(screenshotMode);
+
+    GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
+    Settings_SetSerialPort(buffer);
+
+    int netStation = GetDlgItemInt(hDlg, IDC_NETWORKSTATION, 0, FALSE);
+    Settings_SetNetStation(netStation);
+
+    GetDlgItemText(hDlg, IDC_NETWORKPORT, buffer, 10);
+    Settings_SetNetComPort(buffer);
+
+    Settings_SetSerialConfig(&m_DialogSettings_SerialConfig);
+    Settings_SetNetComConfig(&m_DialogSettings_NetComConfig);
 }
 
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
@@ -402,80 +441,25 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
     switch (message)
     {
     case WM_INITDIALOG:
-        {
-            HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
-            SendMessage(hVolume, TBM_SETRANGEMIN, 0, (LPARAM)0);
-            SendMessage(hVolume, TBM_SETRANGEMAX, 0, (LPARAM)0xffff);
-            SendMessage(hVolume, TBM_SETTICFREQ, 0x1000, 0);
-            SendMessage(hVolume, TBM_SETPOS, TRUE, (LPARAM)Settings_GetSoundVolume());
-
-            HWND hRender = GetDlgItem(hDlg, IDC_RENDER);
-            FillRenderCombo(hRender);
-
-            HWND hScreenshotMode = GetDlgItem(hDlg, IDC_SCREENSHOTMODE);
-            FillScreenshotModeCombo(hScreenshotMode);
-
-            TCHAR buffer[10];
-
-            Settings_GetSerialPort(buffer);
-            SetDlgItemText(hDlg, IDC_SERIALPORT, buffer);
-
-            SetDlgItemInt(hDlg, IDC_NETWORKSTATION, Settings_GetNetStation(), FALSE);
-
-            Settings_GetNetComPort(buffer);
-            SetDlgItemText(hDlg, IDC_NETWORKPORT, buffer);
-
-            Settings_GetSerialConfig(&m_DialogSettings_SerialConfig);
-            Settings_GetNetComConfig(&m_DialogSettings_NetComConfig);
-
-            return (INT_PTR)FALSE;
-        }
+        SettingsDialog_InitGeneralDialog(hDlg);
+        return (INT_PTR)FALSE;
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
         case IDOK:
-            {
-                HWND hVolume = GetDlgItem(hDlg, IDC_VOLUME);
-                DWORD volume = SendMessage(hVolume, TBM_GETPOS, 0, 0);
-                Settings_SetSoundVolume((WORD)volume);
-
-                TCHAR buffer[32];
-
-                GetDlgItemText(hDlg, IDC_RENDER, buffer, 32);
-                Settings_SetRender(buffer);
-
-                int screenshotMode = ::SendMessage(GetDlgItem(hDlg, IDC_SCREENSHOTMODE), CB_GETCURSEL, 0, 0);
-                Settings_SetScreenshotMode(screenshotMode);
-
-                GetDlgItemText(hDlg, IDC_SERIALPORT, buffer, 10);
-                Settings_SetSerialPort(buffer);
-
-                int netStation = GetDlgItemInt(hDlg, IDC_NETWORKSTATION, 0, FALSE);
-                Settings_SetNetStation(netStation);
-
-                GetDlgItemText(hDlg, IDC_NETWORKPORT, buffer, 10);
-                Settings_SetNetComPort(buffer);
-
-                Settings_SetSerialConfig(&m_DialogSettings_SerialConfig);
-                Settings_SetNetComConfig(&m_DialogSettings_NetComConfig);
-            }
-
+            SettingsDialog_SaveGeneralSettings(hDlg);
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         case IDCANCEL:
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         case IDC_BUTTON1:
-            {
-                ShowSerialPortSettings(&m_DialogSettings_SerialConfig);
-                SetFocus(GetDlgItem(hDlg, IDC_BUTTON1));
-            }
+            ShowSerialPortSettings(&m_DialogSettings_SerialConfig);
+            SetFocus(GetDlgItem(hDlg, IDC_BUTTON1));
             break;
         case IDC_BUTTON2:
-            {
-                ShowSerialPortSettings(&m_DialogSettings_NetComConfig);
-                SetFocus(GetDlgItem(hDlg, IDC_BUTTON2));
-            }
+            ShowSerialPortSettings(&m_DialogSettings_NetComConfig);
+            SetFocus(GetDlgItem(hDlg, IDC_BUTTON2));
             break;
         default:
             return (INT_PTR)FALSE;
@@ -492,6 +476,22 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
 BOOL ShowSettingsColorsDialog()
 {
     return IDOK == DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS_COLORS), g_hwnd, SettingsColorsProc);
+}
+
+int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC* /*lpntme*/, DWORD /*FontType*/, LPARAM lParam)
+{
+    if ((lpelfe->lfPitchAndFamily & FIXED_PITCH) == 0)
+        return TRUE;
+    if (lpelfe->lfFaceName[0] == _T('@'))  // Skip vertical fonts
+        return TRUE;
+
+    HWND hCombo = (HWND)lParam;
+
+    int item = ::SendMessage(hCombo, CB_FINDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
+    if (item < 0)
+        ::SendMessage(hCombo, CB_ADDSTRING, 0, (LPARAM)lpelfe->lfFaceName);
+
+    return TRUE;
 }
 
 void SettingsDialog_FillDebugFontCombo(HWND hCombo)
@@ -513,12 +513,21 @@ void SettingsDialog_FillColorsList(HWND hList)
 {
     for (int itemIndex = 0; itemIndex < ColorIndicesCount; itemIndex++)
     {
-        LPCTSTR colorName = Settings_GetColorName((ColorIndices)itemIndex);
+        LPCTSTR colorName = Settings_GetColorFriendlyName((ColorIndices)itemIndex);
         ::SendMessage(hList, LB_ADDSTRING, 0, (LPARAM)colorName);
         ::SendMessage(hList, LB_SETITEMDATA, itemIndex, (LPARAM)Settings_GetColor((ColorIndices)itemIndex));
     }
 
     ::SendMessage(hList, LB_SETCURSEL, 0, 0);
+}
+
+void SettingsDialog_InitColorDialog(HWND hDlg)
+{
+    HWND hDebugFont = GetDlgItem(hDlg, IDC_DEBUGFONT);
+    SettingsDialog_FillDebugFontCombo(hDebugFont);
+
+    HWND hColorList = GetDlgItem(hDlg, IDC_LIST1);
+    SettingsDialog_FillColorsList(hColorList);
 }
 
 void SettingsDialog_OnColorListDrawItem(PDRAWITEMSTRUCT lpDrawItem)
@@ -546,7 +555,7 @@ void SettingsDialog_OnColorListDrawItem(PDRAWITEMSTRUCT lpDrawItem)
             ::SetTextColor(hdc, ::GetSysColor((lpDrawItem->itemState & ODS_SELECTED) ? COLOR_HIGHLIGHTTEXT : COLOR_WINDOWTEXT));
             RECT rcText;  ::CopyRect(&rcText, &lpDrawItem->rcItem);
             ::InflateRect(&rcText, -2, 0);
-            LPCTSTR colorName = Settings_GetColorName((ColorIndices)colorIndex);
+            LPCTSTR colorName = Settings_GetColorFriendlyName((ColorIndices)colorIndex);
             ::DrawText(hdc, colorName, _tcslen(colorName), &rcText, DT_LEFT | DT_NOPREFIX);
         }
         break;
@@ -575,6 +584,16 @@ void SettingsDialog_OnChooseColor(HWND hDlg)
     }
 }
 
+void SettingsDialog_OnResetColor(HWND hDlg)
+{
+    HWND hList = GetDlgItem(hDlg, IDC_LIST1);
+    int itemIndex = ::SendMessage(hList, LB_GETCURSEL, 0, 0);
+    COLORREF color = Settings_GetDefaultColor((ColorIndices)itemIndex);
+
+    ::SendMessage(hList, LB_SETITEMDATA, itemIndex, color);
+    ::InvalidateRect(hList, NULL, TRUE);
+}
+
 void SettingsDialog_SaveFontsAndColors(HWND hDlg)
 {
     TCHAR buffer[32];
@@ -594,20 +613,16 @@ INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
     switch (message)
     {
     case WM_INITDIALOG:
-        {
-            HWND hDebugFont = GetDlgItem(hDlg, IDC_DEBUGFONT);
-            SettingsDialog_FillDebugFontCombo(hDebugFont);
-
-            HWND hColorList = GetDlgItem(hDlg, IDC_LIST1);
-            SettingsDialog_FillColorsList(hColorList);
-
-            return (INT_PTR)FALSE;
-        }
+        SettingsDialog_InitColorDialog(hDlg);
+        return (INT_PTR)FALSE;
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
         case IDC_BUTTON1:
             SettingsDialog_OnChooseColor(hDlg);
+            break;
+        case IDC_BUTTON2:
+            SettingsDialog_OnResetColor(hDlg);
             break;
         case IDOK:
             SettingsDialog_SaveFontsAndColors(hDlg);
@@ -623,12 +638,7 @@ INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
     case WM_CTLCOLORLISTBOX:
         return (LRESULT)CreateSolidBrush(GetSysColor(COLOR_WINDOW));
     case WM_DRAWITEM:
-        {
-            PDRAWITEMSTRUCT pdis = (PDRAWITEMSTRUCT)lParam;
-            if (pdis->itemID == -1) break;
-            SettingsDialog_OnColorListDrawItem(pdis);
-            break;
-        }
+        SettingsDialog_OnColorListDrawItem((PDRAWITEMSTRUCT)lParam);
         break;
     }
     return (INT_PTR)FALSE;

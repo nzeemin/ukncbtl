@@ -473,33 +473,35 @@ SETTINGS_GETSET_DWORD(OsdLineWidth, _T("OnScreenDisplayLineWidth"), WORD, 3);
 struct ColorDescriptorStruct
 {
     LPCTSTR  settingname;
-    COLORREF color;
+    COLORREF defaultcolor;
     BOOL     valid;
+    LPCTSTR  friendlyname;
+    COLORREF currentcolor;
 }
 static ColorDescriptors[ColorIndicesCount] =
 {
-    { _T("ColorDebugText"),         RGB(0,   0,   0),   FALSE },
-    { _T("ColorDebugBackCurrent"),  RGB(255, 255, 224), FALSE },
-    { _T("ColorDebugValueChanged"), RGB(255, 0,   0),   FALSE },
-    { _T("ColorDebugPrevious"),     RGB(0,   0,   255), FALSE },
-    { _T("ColorDebugMemoryROM"),    RGB(0,   0,   255), FALSE },
-    { _T("ColorDebugMemoryIO"),     RGB(128, 192, 128), FALSE },
-    { _T("ColorDebugMemoryNA"),     RGB(128, 128, 128), FALSE },
-    { _T("ColorDebugValue"),        RGB(128, 128, 128), FALSE },
-    { _T("ColorDebugValueRom"),     RGB(128, 128, 192), FALSE },
-    { _T("ColorDebugSubtitles"),    RGB(0,   128, 0),   FALSE },
-    { _T("ColorDebugJump"),         RGB(80,  192, 224), FALSE },
-    { _T("ColorDebugJumpYes"),      RGB(80,  240, 80),  FALSE },
-    { _T("ColorDebugJumpNo"),       RGB(180, 180, 180), FALSE },
-    { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE },
-    { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE },
+    { _T("ColorDebugText"),         RGB(0,   0,   0),   FALSE, _T("Debug Text") },
+    { _T("ColorDebugBackCurrent"),  RGB(255, 255, 224), FALSE, _T("Debug Current Line Background") },
+    { _T("ColorDebugValueChanged"), RGB(255, 0,   0),   FALSE, _T("Debug Value Changed") },
+    { _T("ColorDebugPrevious"),     RGB(0,   0,   255), FALSE, _T("Debug Previous Address Marker") },
+    { _T("ColorDebugMemoryROM"),    RGB(0,   0,   255), FALSE, _T("Debug Memory ROM") },
+    { _T("ColorDebugMemoryIO"),     RGB(128, 192, 128), FALSE, _T("Debug Memory IO") },
+    { _T("ColorDebugMemoryNA"),     RGB(128, 128, 128), FALSE, _T("Debug Memory NA") },
+    { _T("ColorDebugValue"),        RGB(128, 128, 128), FALSE, _T("Debug Value") },
+    { _T("ColorDebugValueRom"),     RGB(128, 128, 192), FALSE, _T("Debug Value ROM") },
+    { _T("ColorDebugSubtitles"),    RGB(0,   128, 0),   FALSE, _T("Debug Subtitles") },
+    { _T("ColorDebugJump"),         RGB(80,  192, 224), FALSE, _T("Debug Jump") },
+    { _T("ColorDebugJumpYes"),      RGB(80,  240, 80),  FALSE, _T("Debug Jump Yes") },
+    { _T("ColorDebugJumpNo"),       RGB(180, 180, 180), FALSE, _T("Debug Jump No") },
+    { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE, _T("Debug Jump Hint") },
+    { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE, _T("Debug Hint") },
 };
 
-LPCTSTR Settings_GetColorName(ColorIndices colorIndex)
+LPCTSTR Settings_GetColorFriendlyName(ColorIndices colorIndex)
 {
     ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
 
-    return desc->settingname;
+    return desc->friendlyname;
 }
 
 COLORREF Settings_GetColor(ColorIndices colorIndex)
@@ -510,18 +512,16 @@ COLORREF Settings_GetColor(ColorIndices colorIndex)
     ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
 
     if (desc->valid)
-        return desc->color;  // Cached value valid => return the cached value
+        return desc->currentcolor;
 
     COLORREF color;
     if (Settings_LoadColorValue(desc->settingname, &color))
-    {
-        desc->color = color;
-        desc->valid = TRUE;
-        return color;  // Load successful => return value loaded
-    }
+        desc->currentcolor = color;
+    else
+        desc->currentcolor = desc->defaultcolor;
 
     desc->valid = TRUE;
-    return desc->color;  // Return default value
+    return desc->currentcolor;
 }
 
 void Settings_SetColor(ColorIndices colorIndex, COLORREF color)
@@ -531,10 +531,20 @@ void Settings_SetColor(ColorIndices colorIndex, COLORREF color)
 
     ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
 
-    desc->color = color;
+    desc->currentcolor = color;
     desc->valid = TRUE;
 
     Settings_SaveColorValue(desc->settingname, color);
+}
+
+COLORREF Settings_GetDefaultColor(ColorIndices colorIndex)
+{
+    if (colorIndex < 0 || colorIndex >= ColorIndicesCount)
+        return 0;
+
+    ColorDescriptorStruct* desc = ColorDescriptors + colorIndex;
+
+    return desc->defaultcolor;
 }
 
 

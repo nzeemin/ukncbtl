@@ -247,8 +247,9 @@ WORD Settings_GetOsdSize();
 void Settings_SetOsdLineWidth(WORD mode);
 WORD Settings_GetOsdLineWidth();
 
-LPCTSTR Settings_GetColorName(ColorIndices colorIndex);
+LPCTSTR Settings_GetColorFriendlyName(ColorIndices colorIndex);
 COLORREF Settings_GetColor(ColorIndices colorIndex);
+COLORREF Settings_GetDefaultColor(ColorIndices colorIndex);
 void Settings_SetColor(ColorIndices colorIndex, COLORREF color);
 
 
