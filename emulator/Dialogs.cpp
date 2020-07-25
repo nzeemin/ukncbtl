@@ -27,6 +27,7 @@ INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
@@ -39,6 +40,9 @@ WORD* m_pInputBoxValueOctal = NULL;
 DCB m_DialogSettings_SerialConfig;
 DCB m_DialogSettings_NetComConfig;
 DCB* m_pDcbEditorData = NULL;
+
+COLORREF m_DialogSettings_acrCustClr[16];  // array of custom colors to use in ChooseColor()
+COLORREF m_DialogSettings_OsdLineColor = RGB(120, 0, 0);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -553,8 +557,6 @@ void SettingsDialog_OnColorListDrawItem(PDRAWITEMSTRUCT lpDrawItem)
 
 void SettingsDialog_OnChooseColor(HWND hDlg)
 {
-    static COLORREF acrCustClr[16];  // array of custom colors
-
     HWND hList = GetDlgItem(hDlg, IDC_LIST1);
     int itemIndex = ::SendMessage(hList, LB_GETCURSEL, 0, 0);
     COLORREF color = ::SendMessage(hList, LB_GETITEMDATA, itemIndex, 0);
@@ -562,7 +564,7 @@ void SettingsDialog_OnChooseColor(HWND hDlg)
     CHOOSECOLOR cc;  memset(&cc, 0, sizeof(cc));
     cc.lStructSize = sizeof(cc);
     cc.hwndOwner = hDlg;
-    cc.lpCustColors = (LPDWORD)acrCustClr;
+    cc.lpCustColors = (LPDWORD)m_DialogSettings_acrCustClr;
     cc.rgbResult = color;
     cc.Flags = CC_FULLOPEN | CC_RGBINIT;
 
@@ -632,6 +634,77 @@ INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
     return (INT_PTR)FALSE;
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// Settings OSD Dialog
+
+BOOL ShowSettingsOsdDialog()
+{
+    return IDOK == DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS_OSD), g_hwnd, SettingsOsdProc);
+}
+
+void SettingsDialog_OnChooseOsdLineColor(HWND hDlg)
+{
+    CHOOSECOLOR cc;  memset(&cc, 0, sizeof(cc));
+    cc.lStructSize = sizeof(cc);
+    cc.hwndOwner = hDlg;
+    cc.lpCustColors = (LPDWORD)m_DialogSettings_acrCustClr;
+    cc.rgbResult = m_DialogSettings_OsdLineColor;
+    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+    if (::ChooseColor(&cc))
+    {
+        m_DialogSettings_OsdLineColor = cc.rgbResult;
+    }
+}
+
+INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
+{
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            SetDlgItemInt(hDlg, IDC_EDIT1, Settings_GetOsdSize(), FALSE);
+
+            SetDlgItemInt(hDlg, IDC_EDIT2, Settings_GetOsdLineWidth(), FALSE);
+
+            m_DialogSettings_OsdLineColor = Settings_GetOsdLineColor();
+
+            return (INT_PTR)FALSE;
+        }
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDC_BUTTON1:
+            SettingsDialog_OnChooseOsdLineColor(hDlg);
+            break;
+        case IDOK:
+            {
+                BOOL okValid;
+
+                int osdSize = GetDlgItemInt(hDlg, IDC_EDIT1, &okValid, FALSE);
+                if (!okValid) osdSize = 84;
+                Settings_SetOsdSize((WORD)osdSize);
+
+                int osdLineWidth = GetDlgItemInt(hDlg, IDC_EDIT2, &okValid, FALSE);
+                if (!okValid) osdLineWidth = 3;
+                Settings_SetOsdLineWidth((WORD)osdLineWidth);
+
+                Settings_SetOsdLineColor(m_DialogSettings_OsdLineColor);
+            }
+
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        default:
+            return (INT_PTR)FALSE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
 
 //////////////////////////////////////////////////////////////////////
 

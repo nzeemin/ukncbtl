@@ -240,6 +240,12 @@ void Settings_GetNetComPort(LPTSTR buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
 void Settings_GetNetComConfig(DCB * pDcb);
 void Settings_SetNetComConfig(const DCB * pDcb);
+COLORREF Settings_GetOsdLineColor();
+void Settings_SetOsdLineColor(COLORREF color);
+void Settings_SetOsdSize(WORD mode);
+WORD Settings_GetOsdSize();
+void Settings_SetOsdLineWidth(WORD mode);
+WORD Settings_GetOsdLineWidth();
 
 LPCTSTR Settings_GetColorName(ColorIndices colorIndex);
 COLORREF Settings_GetColor(ColorIndices colorIndex);

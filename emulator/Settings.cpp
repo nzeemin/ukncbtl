@@ -444,6 +444,28 @@ SETTINGS_GETSET_DWORD(SpriteWidth, _T("SpriteWidth"), WORD, 2);
 
 SETTINGS_GETSET_DWORD(SpriteMode, _T("SpriteMode"), WORD, 0);
 
+COLORREF m_Settings_OsdLineColor = RGB(120, 0, 0);
+BOOL m_Settings_OsdLineColor_Valid = FALSE;
+COLORREF Settings_GetOsdLineColor()
+{
+    if (!m_Settings_OsdLineColor_Valid)
+    {
+        COLORREF value;
+        if (Settings_LoadColorValue(_T("OnScreenDisplayLineColor"), &value))
+            m_Settings_OsdLineColor = value;
+    }
+    return m_Settings_OsdLineColor;
+}
+void Settings_SetOsdLineColor(COLORREF color)
+{
+    m_Settings_OsdLineColor = color;
+    Settings_SaveColorValue(_T("OnScreenDisplayLineColor"), color);
+    m_Settings_OsdLineColor_Valid = TRUE;
+}
+
+SETTINGS_GETSET_DWORD(OsdSize, _T("OnScreenDisplaySize"), WORD, 84);
+SETTINGS_GETSET_DWORD(OsdLineWidth, _T("OnScreenDisplayLineWidth"), WORD, 3);
+
 
 //////////////////////////////////////////////////////////////////////
 // Colors

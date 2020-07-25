@@ -414,18 +414,9 @@ void ScreenView_SetRenderMode(int newRenderMode)
     //}
 }
 
-void ScreenView_OnDraw(HDC hdc)
+void ScreenView_DrawOsd(HDC hdc)
 {
-    if (RenderDrawProc != NULL)
-    {
-        RenderDrawProc(m_bits, hdc);
-    }
-
-    if (Settings_GetDebug() || !Settings_GetOnScreenDisplay())
-        return;
-
-    // OSD
-    int osdSize = 84;
+    int osdSize = Settings_GetOsdSize();
     int osdSize12 = osdSize / 2;
     int osdSize13 = osdSize / 3;
     int osdSize14 = osdSize / 4;
@@ -434,7 +425,9 @@ void ScreenView_OnDraw(HDC hdc)
     int osdLeft = osdSize14;
     int osdTop = osdSize14;
 
-    HPEN hPenOsd = ::CreatePen(PS_SOLID, 3, RGB(120, 0, 0));
+    COLORREF osdLineColor = Settings_GetOsdLineColor();
+    int osdLineWidth = Settings_GetOsdLineWidth();
+    HPEN hPenOsd = ::CreatePen(PS_SOLID, osdLineWidth, osdLineColor);
     HGDIOBJ oldPen = ::SelectObject(hdc, hPenOsd);
     HGDIOBJ oldBrush = ::SelectObject(hdc, ::GetStockObject(NULL_BRUSH));
 
@@ -485,6 +478,17 @@ void ScreenView_OnDraw(HDC hdc)
     ::SelectObject(hdc, oldBrush);
     ::SelectObject(hdc, oldPen);
     ::DeleteObject(hPenOsd);
+}
+
+void ScreenView_OnDraw(HDC hdc)
+{
+    if (RenderDrawProc != NULL)
+    {
+        RenderDrawProc(m_bits, hdc);
+    }
+
+    if (!Settings_GetDebug() && Settings_GetOnScreenDisplay())
+        ScreenView_DrawOsd(hdc);
 }
 
 void ScreenView_RedrawScreen()

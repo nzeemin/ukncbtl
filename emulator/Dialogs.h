@@ -26,8 +26,8 @@ BOOL ShowOpenDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* 
 void ShowCreateDiskDialog();
 
 void ShowSettingsDialog();
-
 BOOL ShowSettingsColorsDialog();
+BOOL ShowSettingsOsdDialog();
 
 void ShowSerialPortSettings(DCB * pDCB);
 
