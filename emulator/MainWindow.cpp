@@ -1113,9 +1113,6 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SETTINGS_OSD:
         MainWindow_DoFileSettingsOsd();
         break;
-    case ID_EMULATOR_CONFIGURATION:
-        ShowConfigurationDialog();
-        break;
     default:
         if (commandId >= ID_VIEW_RENDERMODE && commandId < ID_VIEW_RENDERMODE + 32)
             MainWindow_DoSelectRenderMode(commandId - ID_VIEW_RENDERMODE);

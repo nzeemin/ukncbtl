@@ -29,7 +29,6 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
 INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 void Dialogs_DoCreateDisk(int tracks);
 BOOL InputBoxValidate(HWND hDlg);
@@ -821,93 +820,5 @@ INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*
     return (INT_PTR) FALSE;
 }
 
-
-//////////////////////////////////////////////////////////////////////
-
-
-void ShowConfigurationDialog()
-{
-    DialogBox(g_hInst, MAKEINTRESOURCE(IDD_CONFIGDLG), g_hwnd, ConfigDlgProc);
-}
-
-void ConfigDlg_ListBusDevices(HWND hTree, const CBusDevice** pDevices, HTREEITEM parentItem)
-{
-    TVINSERTSTRUCT tvins;
-    ::memset(&tvins, 0, sizeof(tvins));
-    tvins.item.mask = TVIF_TEXT | TVIF_PARAM;
-    tvins.hParent = parentItem;
-    TCHAR buffer[64];
-
-    while ((*pDevices) != NULL)
-    {
-        _tcscpy(buffer, (*pDevices)->GetName());
-        tvins.item.pszText = buffer;
-        tvins.item.lParam = (LPARAM)(*pDevices);
-        TreeView_InsertItem(hTree, &tvins);
-        pDevices++;
-    }
-}
-
-INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        {
-            HWND hTree = GetDlgItem(hDlg, IDC_TREE1);
-            TreeView_DeleteAllItems(hTree);
-            TVINSERTSTRUCT tvins;
-            ::memset(&tvins, 0, sizeof(tvins));
-            tvins.item.state = TVIS_EXPANDED;
-            tvins.item.mask = TVIF_TEXT | TVIF_STATE;
-
-            tvins.item.pszText = _T("CPU bus devices");
-            HTREEITEM itemCpu = TreeView_InsertItem(hTree, &tvins);
-            const CBusDevice** device1 = g_pBoard->GetCPUBusDevices();
-            ConfigDlg_ListBusDevices(hTree, device1, itemCpu);
-
-            tvins.item.pszText = _T("PPU bus devices");
-            HTREEITEM itemPpu = TreeView_InsertItem(hTree, &tvins);
-            const CBusDevice** device2 = g_pBoard->GetPPUBusDevices();
-            ConfigDlg_ListBusDevices(hTree, device2, itemPpu);
-
-            TreeView_Expand(hTree, itemCpu, TVE_EXPAND);
-            TreeView_Expand(hTree, itemPpu, TVE_EXPAND);
-        }
-        break;
-    case WM_NOTIFY:
-        if (((LPNMHDR)lParam)->code == TVN_SELCHANGED)
-        {
-            LPNMTREEVIEW pnmtv = (LPNMTREEVIEW)lParam;
-            const CBusDevice* pDevice = reinterpret_cast<const CBusDevice*>(pnmtv->itemNew.lParam);
-            HWND hList = GetDlgItem(hDlg, IDC_LIST1);
-            ::SendMessage(hList, LB_RESETCONTENT, 0, 0);
-            if (pDevice != NULL)
-            {
-                const WORD * pRanges = pDevice->GetAddressRanges();
-                TCHAR buffer[16];
-                while (*pRanges != 0)
-                {
-                    WORD start = *pRanges;  pRanges++;
-                    WORD length = *pRanges;  pRanges++;
-                    _sntprintf(buffer, 16, _T("%06o-%06o"), start, start + length - 1);
-                    ::SendMessage(hList, LB_INSERTSTRING, (WPARAM) - 1, (LPARAM)buffer);
-                }
-            }
-        }
-        break;
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDCANCEL:
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        default:
-            return (INT_PTR)FALSE;
-        }
-        break;
-    }
-    return (INT_PTR) FALSE;
-}
 
 //////////////////////////////////////////////////////////////////////

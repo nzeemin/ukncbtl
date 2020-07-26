@@ -31,7 +31,5 @@ BOOL ShowSettingsOsdDialog();
 
 void ShowSerialPortSettings(DCB * pDCB);
 
-void ShowConfigurationDialog();
-
 
 //////////////////////////////////////////////////////////////////////
