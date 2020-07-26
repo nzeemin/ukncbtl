@@ -440,6 +440,39 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
         TextOut(hdc, x + 6 * cxChar, y + 13 * cyLine, _T("STOP"), 4);
 }
 
+void DebugView_DrawAddressAndValue(HDC hdc, const CProcessor* pProc, const CMemoryController* pMemCtl, uint16_t address, int x, int y, int cxChar)
+{
+    COLORREF colorText = Settings_GetColor(ColorDebugText);
+    SetTextColor(hdc, colorText);
+    DrawOctalValue(hdc, x + 0 * cxChar, y, address);
+    x += 7 * cxChar;
+
+    int addrtype = ADDRTYPE_NONE;
+    uint16_t value = pMemCtl->GetWordView(address, pProc->IsHaltMode(), FALSE, &addrtype);
+    if (addrtype == ADDRTYPE_RAM0 || (addrtype & ADDRTYPE_MASK_RAM) != 0)
+    {
+        DrawOctalValue(hdc, x, y, value);
+    }
+    else if (addrtype == ADDRTYPE_ROM || addrtype == ADDRTYPE_ROMCART1 || addrtype == ADDRTYPE_ROMCART2)
+    {
+        SetTextColor(hdc, Settings_GetColor(ColorDebugMemoryRom));
+        DrawOctalValue(hdc, x, y, value);
+    }
+    else if (addrtype == ADDRTYPE_IO)
+    {
+        value = pMemCtl->GetPortView(address);
+        SetTextColor(hdc, Settings_GetColor(ColorDebugMemoryIO));
+        DrawOctalValue(hdc, x, y, value);
+    }
+    else //if (addrtype == ADDRTYPE_DENY || addrtype == ADDRTYPE_NONE)
+    {
+        SetTextColor(hdc, Settings_GetColor(ColorDebugMemoryNA));
+        TextOut(hdc, x, y, _T("  NA  "), 6);
+    }
+
+    SetTextColor(hdc, colorText);
+}
+
 void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y, WORD oldValue)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
@@ -448,7 +481,7 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
     COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
     COLORREF colorOld = SetTextColor(hdc, colorText);
 
-    WORD current = pProc->GetReg(reg);
+    WORD current = pProc->GetReg(reg) & ~1;
     WORD previous = oldValue;
     BOOL okExec = (reg == 7);
 
@@ -463,20 +496,11 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
     }
 
     WORD address = current - 16;
-    for (int index = 0; index < 16; index++)    // Draw strings
+    for (int index = 0; index < 16; index++)
     {
-        // Address
-        SetTextColor(hdc, colorText);
-        DrawOctalValue(hdc, x + 3 * cxChar, y, address);
+        DebugView_DrawAddressAndValue(hdc, pProc, pProc->GetMemoryController(), address, x + 3 * cxChar, y, cxChar);
 
-        // Value at the address
-        WORD value = memory[index];
-        WORD wChanged = Emulator_GetChangeRamStatus(addrtype[index], address);
-        SetTextColor(hdc, (wChanged != 0) ? colorChanged : colorText);
-        DrawOctalValue(hdc, x + 10 * cxChar, y, value);
-
-        // Current position
-        if (address == current)
+        if (address == current)  // Current position
         {
             SetTextColor(hdc, colorText);
             TextOut(hdc, x + 2 * cxChar, y, _T(">"), 1);
@@ -496,59 +520,33 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
     SetTextColor(hdc, colorOld);
 }
 
+uint16_t m_DebugViewCPUPorts[] =
+{
+    0176640, 0176642
+};
+uint16_t m_DebugViewPPUPorts[] =
+{
+    0177010, 0177012, 0177014, 0177016, 0177020, 0177022, 0177024, 0177026, 0177054, 0177700, 0177716
+};
+
 void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
     TextOut(hdc, x, y, _T("Ports:"), 6);
 
-    if (okProcessor)  // CPU
+    uint16_t* addresses = okProcessor ? m_DebugViewCPUPorts : m_DebugViewPPUPorts;
+    int addrcount = okProcessor
+        ? sizeof(m_DebugViewCPUPorts) / sizeof(m_DebugViewCPUPorts[0])
+        : sizeof(m_DebugViewPPUPorts) / sizeof(m_DebugViewPPUPorts[0]);
+    for (int i = 0; i < addrcount; i++)
     {
-        WORD value176640 = pMemCtl->GetPortView(0176640);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 1 * cyLine, 0176640);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 1 * cyLine, value176640);
-        WORD value176642 = pMemCtl->GetPortView(0176642);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 2 * cyLine, 0176642);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 2 * cyLine, value176642);
-
-        //TODO
+        uint16_t address = addresses[i];
+        DebugView_DrawAddressAndValue(hdc, pBoard->GetCPU(), pMemCtl, address, x, y + (i + 1) * cyLine, cxChar);
     }
-    else  // PPU
-    {
-        WORD value177010 = pMemCtl->GetPortView(0177010);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 1 * cyLine, 0177010);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 1 * cyLine, value177010);
-        WORD value177012 = pMemCtl->GetPortView(0177012);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 2 * cyLine, 0177012);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 2 * cyLine, value177012);
-        WORD value177014 = pMemCtl->GetPortView(0177014);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 3 * cyLine, 0177014);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 3 * cyLine, value177014);
-        WORD value177016 = pMemCtl->GetPortView(0177016);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 4 * cyLine, 0177016);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 4 * cyLine, value177016);
-        WORD value177020 = pMemCtl->GetPortView(0177020);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 5 * cyLine, 0177020);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 5 * cyLine, value177020);
-        WORD value177022 = pMemCtl->GetPortView(0177022);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 6 * cyLine, 0177022);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 6 * cyLine, value177022);
-        WORD value177024 = pMemCtl->GetPortView(0177024);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 7 * cyLine, 0177024);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 7 * cyLine, value177024);
-        WORD value177026 = pMemCtl->GetPortView(0177026);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 8 * cyLine, 0177026);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 8 * cyLine, value177026);
-        WORD value177054 = pMemCtl->GetPortView(0177054);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 9 * cyLine, 0177054);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 9 * cyLine, value177054);
-        WORD value177700 = pMemCtl->GetPortView(0177700);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 10 * cyLine, 0177700);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 10 * cyLine, value177700);
-        WORD value177716 = pMemCtl->GetPortView(0177716);
-        DrawOctalValue(hdc, x + 0 * cxChar, y + 11 * cyLine, 0177716);
-        DrawOctalValue(hdc, x + 7 * cxChar, y + 11 * cyLine, value177716);
 
+    if (!okProcessor)  // PPU timer
+    {
         WORD value177710 = pBoard->GetTimerStateView();
         DrawOctalValue(hdc, x + 0 * cxChar, y + 13 * cyLine, 0177710);
         DrawOctalValue(hdc, x + 7 * cxChar, y + 13 * cyLine, value177710);
