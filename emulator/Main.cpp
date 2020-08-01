@@ -85,14 +85,13 @@ int APIENTRY _tWinMain(
             ::Sleep(1);
         else
         {
-            if (Emulator_IsBreakpoint())
-                Emulator_Stop();
-            else
+            if (!Emulator_SystemFrame())
             {
-                Emulator_SystemFrame();
-
-                ScreenView_RedrawScreen();
+                // Breakpoint hit
+                Emulator_Stop();
             }
+
+            ScreenView_RedrawScreen();
         }
 
         // Process all queue

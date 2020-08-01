@@ -537,8 +537,8 @@ void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMe
 
     uint16_t* addresses = okProcessor ? m_DebugViewCPUPorts : m_DebugViewPPUPorts;
     int addrcount = okProcessor
-        ? sizeof(m_DebugViewCPUPorts) / sizeof(m_DebugViewCPUPorts[0])
-        : sizeof(m_DebugViewPPUPorts) / sizeof(m_DebugViewPPUPorts[0]);
+            ? sizeof(m_DebugViewCPUPorts) / sizeof(m_DebugViewCPUPorts[0])
+            : sizeof(m_DebugViewPPUPorts) / sizeof(m_DebugViewPPUPorts[0]);
     for (int i = 0; i < addrcount; i++)
     {
         uint16_t address = addresses[i];

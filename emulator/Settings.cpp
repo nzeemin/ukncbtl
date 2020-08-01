@@ -485,7 +485,7 @@ static ColorDescriptors[ColorIndicesCount] =
     { _T("ColorDebugValueChanged"), RGB(255, 0,   0),   FALSE, _T("Debug Value Changed") },
     { _T("ColorDebugPrevious"),     RGB(0,   0,   255), FALSE, _T("Debug Previous Address Marker") },
     { _T("ColorDebugMemoryROM"),    RGB(0,   0,   255), FALSE, _T("Debug Memory ROM") },
-    { _T("ColorDebugMemoryIO"),     RGB(128, 192, 128), FALSE, _T("Debug Memory IO") },
+    { _T("ColorDebugMemoryIO"),     RGB(0,   128, 0),   FALSE, _T("Debug Memory IO") },
     { _T("ColorDebugMemoryNA"),     RGB(128, 128, 128), FALSE, _T("Debug Memory NA") },
     { _T("ColorDebugValue"),        RGB(128, 128, 128), FALSE, _T("Debug Value") },
     { _T("ColorDebugValueRom"),     RGB(128, 128, 192), FALSE, _T("Debug Value ROM") },
@@ -495,6 +495,7 @@ static ColorDescriptors[ColorIndicesCount] =
     { _T("ColorDebugJumpNo"),       RGB(180, 180, 180), FALSE, _T("Debug Jump No") },
     { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE, _T("Debug Jump Hint") },
     { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE, _T("Debug Hint") },
+    { _T("ColorDebugBreakpoint"),   RGB(255, 128, 128), FALSE, _T("Debug Breakpoint") },
 };
 
 LPCTSTR Settings_GetColorFriendlyName(ColorIndices colorIndex)

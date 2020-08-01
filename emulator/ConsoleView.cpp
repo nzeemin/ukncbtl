@@ -515,6 +515,9 @@ void ConsoleView_ShowHelp()
             _T("  rN XXXXXX  Set register N to value XXXXXX; N=0..7,ps\r\n")
             _T("  s          Step Into; executes one instruction\r\n")
             _T("  so         Step Over; executes and stops after the current instruction\r\n")
+            _T("  b          List breakpoints set for the current processor\r\n")
+            _T("  bXXXXXX    Set breakpoint at address XXXXXX\r\n")
+            _T("  bcXXXXXX   Remove breakpoint at address XXXXXX\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
             _T("  udl        Save display list dump to file displaylist.txt\r\n")
 #if !defined(PRODUCT)
@@ -634,9 +637,9 @@ void DoConsoleCommand()
             WORD bpaddress = (WORD)(pProc->GetPC() + instrLength * 2);
 
             if (m_okCurrentProc)
-                Emulator_SetCPUBreakpoint(bpaddress);
+                Emulator_SetTempCPUBreakpoint(bpaddress);
             else
-                Emulator_SetPPUBreakpoint(bpaddress);
+                Emulator_SetTempPPUBreakpoint(bpaddress);
             Emulator_Start();
         }
         break;
@@ -716,14 +719,66 @@ void DoConsoleCommand()
             {
                 if (m_okCurrentProc)
                 {
-                    Emulator_SetCPUBreakpoint(value);
+                    Emulator_SetTempCPUBreakpoint(value);
                     Emulator_Start();
                 }
                 else
                 {
-                    Emulator_SetPPUBreakpoint(value);
+                    Emulator_SetTempPPUBreakpoint(value);
                     Emulator_Start();
                 }
+            }
+        }
+        break;
+    case _T('b'):
+        if (command[1] == 0)  // b - list breakpoints
+        {
+            const uint16_t* pbps = m_okCurrentProc ? Emulator_GetCPUBreakpointList() : Emulator_GetPPUBreakpointList();
+            if (pbps == nullptr || *pbps == 0177777)
+            {
+                ConsoleView_Print(_T("  No breakpoints.\r\n"));
+            }
+            else
+            {
+                while (*pbps != 0177777)
+                {
+                    ConsoleView_PrintFormat(_T("  %06ho\r\n"), *pbps);
+                    pbps++;
+                }
+            }
+        }
+        else if (command[1] == _T('c'))
+        {
+            if (command[2] == 0)  // bc
+            {
+                //TODO: bc - clear all breakpoints
+                ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+            }
+            else  // bcXXXXXX - remove breakpoint XXXXXX
+            {
+                WORD value;
+                if (!ParseOctalValue(command + 2, &value))
+                    ConsoleView_Print(MESSAGE_WRONG_VALUE);
+                else
+                {
+                    bool result = m_okCurrentProc ? Emulator_RemoveCPUBreakpoint(value) : Emulator_RemovePPUBreakpoint(value);
+                    if (!result)
+                        ConsoleView_Print(_T("  Failed to remove breakpoint.\r\n"));
+                    DisasmView_Redraw();
+                }
+            }
+        }
+        else  // bXXXXXX - add breakpoint XXXXXX
+        {
+            WORD value;
+            if (! ParseOctalValue(command + 1, &value))
+                ConsoleView_Print(MESSAGE_WRONG_VALUE);
+            else
+            {
+                bool result = m_okCurrentProc ? Emulator_AddCPUBreakpoint(value) : Emulator_AddPPUBreakpoint(value);
+                if (!result)
+                    ConsoleView_Print(_T("  Failed to add breakpoint.\r\n"));
+                DisasmView_Redraw();
             }
         }
         break;

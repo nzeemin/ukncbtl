@@ -31,8 +31,12 @@ CMotherboard* g_pBoard = nullptr;
 bool g_okEmulatorInitialized = false;
 bool g_okEmulatorRunning = false;
 
-uint16_t m_wEmulatorCPUBreakpoint = 0177777;
-uint16_t m_wEmulatorPPUBreakpoint = 0177777;
+int m_wEmulatorCPUBpsCount = 0;
+int m_wEmulatorPPUBpsCount = 0;
+uint16_t m_EmulatorCPUBps[MAX_BREAKPOINTCOUNT + 1];
+uint16_t m_EmulatorPPUBps[MAX_BREAKPOINTCOUNT + 1];
+uint16_t m_wEmulatorTempCPUBreakpoint = 0177777;
+uint16_t m_wEmulatorTempPPUBreakpoint = 0177777;
 
 bool m_okEmulatorSound = false;
 uint16_t m_wEmulatorSoundSpeed = 100;
@@ -121,6 +125,13 @@ bool Emulator_Init()
     ::memset(g_pEmulatorChangedRam, 0, sizeof(g_pEmulatorChangedRam));
     CProcessor::Init();
 
+    m_wEmulatorCPUBpsCount = m_wEmulatorPPUBpsCount = 0;
+    for (int i = 0; i <= MAX_BREAKPOINTCOUNT; i++)
+    {
+        m_EmulatorCPUBps[i] = 0177777;
+        m_EmulatorPPUBps[i] = 0177777;
+    }
+
     g_pBoard = new CMotherboard();
 
     if (! Emulator_LoadUkncRom())
@@ -199,12 +210,20 @@ void Emulator_Start()
 
     m_nFrameCount = 0;
     m_dwTickCount = GetTickCount();
+
+    // For proper breakpoint processing
+    if (m_wEmulatorCPUBpsCount != 0 || m_wEmulatorPPUBpsCount)
+    {
+        g_pBoard->GetCPU()->ClearInternalTick();
+        g_pBoard->GetPPU()->ClearInternalTick();
+    }
 }
 void Emulator_Stop()
 {
     g_okEmulatorRunning = false;
-    m_wEmulatorCPUBreakpoint = 0177777;
-    m_wEmulatorPPUBreakpoint = 0177777;
+
+    Emulator_SetTempCPUBreakpoint(0177777);
+    Emulator_SetTempPPUBreakpoint(0177777);
 
     if (m_fpEmulatorParallelOut != nullptr)
         ::fflush(m_fpEmulatorParallelOut);
@@ -230,22 +249,157 @@ void Emulator_Reset()
     MainWindow_UpdateAllViews();
 }
 
-void Emulator_SetCPUBreakpoint(uint16_t address)
+bool Emulator_AddCPUBreakpoint(uint16_t address)
 {
-    m_wEmulatorCPUBreakpoint = address;
+    if (m_wEmulatorCPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
+        return false;
+    for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)  // Check if the BP exists
+    {
+        if (m_EmulatorCPUBps[i] == address)
+            return false;  // Already in the list
+    }
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
+    {
+        if (m_EmulatorCPUBps[i] == 0177777)
+        {
+            m_EmulatorCPUBps[i] = address;
+            break;
+        }
+    }
+    m_wEmulatorCPUBpsCount++;
+    return true;
 }
-void Emulator_SetPPUBreakpoint(uint16_t address)
+bool Emulator_AddPPUBreakpoint(uint16_t address)
 {
-    m_wEmulatorPPUBreakpoint = address;
+    if (m_wEmulatorPPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
+        return false;
+    for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)  // Check if the BP exists
+    {
+        if (m_EmulatorPPUBps[i] == address)
+            return false;  // Already in the list
+    }
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
+    {
+        if (m_EmulatorPPUBps[i] == 0177777)
+        {
+            m_EmulatorPPUBps[i] = address;
+            break;
+        }
+    }
+    m_wEmulatorPPUBpsCount++;
+    return true;
 }
+bool Emulator_RemoveCPUBreakpoint(uint16_t address)
+{
+    if (m_wEmulatorCPUBpsCount == 0 || address == 0177777)
+        return false;
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
+    {
+        if (m_EmulatorCPUBps[i] == address)
+        {
+            m_EmulatorCPUBps[i] = 0177777;
+            m_wEmulatorCPUBpsCount--;
+            if (m_wEmulatorCPUBpsCount > i)  // fill the hole
+            {
+                m_EmulatorCPUBps[i] = m_EmulatorCPUBps[m_wEmulatorCPUBpsCount];
+                m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = 0177777;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+bool Emulator_RemovePPUBreakpoint(uint16_t address)
+{
+    if (m_wEmulatorPPUBpsCount == 0 || address == 0177777)
+        return false;
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
+    {
+        if (m_EmulatorPPUBps[i] == address)
+        {
+            m_EmulatorPPUBps[i] = 0177777;
+            m_wEmulatorPPUBpsCount--;
+            if (m_wEmulatorPPUBpsCount > i)  // fill the hole
+            {
+                m_EmulatorPPUBps[i] = m_EmulatorPPUBps[m_wEmulatorPPUBpsCount];
+                m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = 0177777;
+            }
+            return true;
+        }
+    }
+    return false;
+}
+void Emulator_SetTempCPUBreakpoint(uint16_t address)
+{
+    if (m_wEmulatorTempCPUBreakpoint != 0177777)
+        Emulator_RemoveCPUBreakpoint(m_wEmulatorTempCPUBreakpoint);
+    if (address == 0177777)
+    {
+        m_wEmulatorTempCPUBreakpoint = 0177777;
+        return;
+    }
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
+    {
+        if (m_EmulatorCPUBps[i] == address)
+            return;  // We have regular breakpoint with the same address
+    }
+    m_wEmulatorTempCPUBreakpoint = address;
+    m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = address;
+    m_wEmulatorCPUBpsCount++;
+}
+void Emulator_SetTempPPUBreakpoint(uint16_t address)
+{
+    if (m_wEmulatorTempPPUBreakpoint != 0177777)
+        Emulator_RemovePPUBreakpoint(m_wEmulatorTempPPUBreakpoint);
+    if (address == 0177777)
+    {
+        m_wEmulatorTempPPUBreakpoint = 0177777;
+        return;
+    }
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
+    {
+        if (m_EmulatorPPUBps[i] == address)
+            return;  // We have regular breakpoint with the same address
+    }
+    m_wEmulatorTempPPUBreakpoint = address;
+    m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = address;
+    m_wEmulatorPPUBpsCount++;
+}
+const uint16_t* Emulator_GetCPUBreakpointList() { return m_EmulatorCPUBps; }
+const uint16_t* Emulator_GetPPUBreakpointList() { return m_EmulatorPPUBps; }
 bool Emulator_IsBreakpoint()
 {
-    uint16_t wCPUAddr = g_pBoard->GetCPU()->GetPC();
-    if (wCPUAddr == m_wEmulatorCPUBreakpoint)
-        return true;
-    uint16_t wPPUAddr = g_pBoard->GetPPU()->GetPC();
-    if (wPPUAddr == m_wEmulatorPPUBreakpoint)
-        return true;
+    uint16_t address = g_pBoard->GetCPU()->GetPC();
+    if (m_wEmulatorCPUBpsCount > 0)
+    {
+        for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)
+        {
+            if (address == m_EmulatorCPUBps[i])
+                return true;
+        }
+    }
+    address = g_pBoard->GetPPU()->GetPC();
+    if (m_wEmulatorPPUBpsCount > 0)
+    {
+        for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)
+        {
+            if (address == m_EmulatorPPUBps[i])
+                return true;
+        }
+    }
+    return false;
+}
+bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address)
+{
+    int bpsCount = okCpuPpu ? m_wEmulatorCPUBpsCount : m_wEmulatorPPUBpsCount;
+    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
+    if (bpsCount == 0)
+        return false;
+    for (int i = 0; i < bpsCount; i++)
+    {
+        if (address == pbps[i])
+            return true;
+    }
     return false;
 }
 
@@ -512,13 +666,17 @@ bool Emulator_SystemFrame()
 {
     SoundGen_SetVolume(Settings_GetSoundVolume());
 
-    g_pBoard->SetCPUBreakpoint(m_wEmulatorCPUBreakpoint);
-    g_pBoard->SetPPUBreakpoint(m_wEmulatorPPUBreakpoint);
-
     ScreenView_ScanKeyboard();
 
-    if (!g_pBoard->SystemFrame())
+    g_pBoard->SetCPUBreakpoints(m_wEmulatorCPUBpsCount > 0 ? m_EmulatorCPUBps : nullptr);
+    g_pBoard->SetPPUBreakpoints(m_wEmulatorPPUBpsCount > 0 ? m_EmulatorPPUBps : nullptr);
+
+    if (!g_pBoard->SystemFrame())  // Breakpoint hit
+    {
+        Emulator_SetTempCPUBreakpoint(0177777);
+        Emulator_SetTempPPUBreakpoint(0177777);
         return false;
+    }
 
     // Calculate frames per second
     m_nFrameCount++;

@@ -92,6 +92,7 @@ extern HWND g_hwndDisasm;  // Disasm View window handle
 
 void DisasmView_RegisterClass();
 void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height);
+void DisasmView_Redraw();
 LRESULT CALLBACK DisasmViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DisasmViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DisasmView_OnUpdate();

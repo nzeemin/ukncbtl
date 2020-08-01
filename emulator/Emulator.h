@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
+const int MAX_BREAKPOINTCOUNT = 16;
 
 extern CMotherboard* g_pBoard;
 
@@ -34,9 +35,18 @@ extern uint16_t g_wEmulatorPrevPpuPC;  // Previous PC value
 
 bool Emulator_Init();
 void Emulator_Done();
-void Emulator_SetCPUBreakpoint(uint16_t address);
-void Emulator_SetPPUBreakpoint(uint16_t address);
+
+bool Emulator_AddCPUBreakpoint(uint16_t address);
+bool Emulator_AddPPUBreakpoint(uint16_t address);
+bool Emulator_RemoveCPUBreakpoint(uint16_t address);
+bool Emulator_RemovePPUBreakpoint(uint16_t address);
+void Emulator_SetTempCPUBreakpoint(uint16_t address);
+void Emulator_SetTempPPUBreakpoint(uint16_t address);
+const uint16_t* Emulator_GetCPUBreakpointList();
+const uint16_t* Emulator_GetPPUBreakpointList();
 bool Emulator_IsBreakpoint();
+bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address);
+
 void Emulator_SetSound(bool soundOnOff);
 bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort);
 void Emulator_SetParallel(bool parallelOnOff);

@@ -166,8 +166,8 @@ public:  // Memory access
     uint8_t     GetROMCartByte(int cartno, uint16_t offset) const;
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
-    void        SetCPUBreakpoint(uint16_t bp) { m_CPUbp = bp; } ///< Set current CPU breakpoint
-    void        SetPPUBreakpoint(uint16_t bp) { m_PPUbp = bp; } ///< Set current PPU breakpoint
+    void        SetCPUBreakpoints(const uint16_t* bps) { m_CPUbps = bps; } ///< Set CPU breakpoint list
+    void        SetPPUBreakpoints(const uint16_t* bps) { m_PPUbps = bps; } ///< Set PPU breakpoint list
     uint32_t    GetTrace() const { return m_dwTrace; }
     void        SetTrace(uint32_t dwTrace);
     chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
@@ -292,8 +292,8 @@ private: // Timing
     int         m_cputicks;
     unsigned int m_lineticks;
 private:
-    uint16_t    m_CPUbp;  ///< Current CPU breakpoint, 177777 if not set
-    uint16_t    m_PPUbp;  ///< Current PPU breakpoint, 177777 if not set
+    const uint16_t* m_CPUbps;  ///< CPU breakpoint list, ends with 177777 value
+    const uint16_t* m_PPUbps;  ///< PPU breakpoint list, ends with 177777 value
     uint32_t    m_dwTrace;  ///< Trace flags
 
     uint16_t    m_timer;

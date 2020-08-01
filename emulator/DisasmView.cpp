@@ -111,6 +111,11 @@ void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
             g_hwndDisasm, NULL, g_hInst, NULL);
 }
 
+void DisasmView_Redraw()
+{
+    RedrawWindow(g_hwndDisasm, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
 // Adjust position of client windows
 void DisasmView_AdjustWindowLayout()
 {
@@ -914,6 +919,18 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
     return result;
 }
 
+void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
+{
+    COLORREF colorBreakpoint = Settings_GetColor(ColorDebugBreakpoint);
+    HBRUSH hBreakBrush = CreateSolidBrush(colorBreakpoint);
+    HGDIOBJ hOldBrush = SelectObject(hdc, hBreakBrush);
+    HGDIOBJ hOldPen = SelectObject(hdc, GetStockObject(NULL_PEN));
+    Ellipse(hdc, x, y, x + size, y + size);
+    ::SelectObject(hdc, hOldPen);
+    ::SelectObject(hdc, hOldBrush);
+    ::DeleteObject(hBreakBrush);
+}
+
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
 {
     int result = -1;
@@ -939,9 +956,9 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
     // Draw current line background
     if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
     {
+        int yCurrent = (proccurrent - (current - 5)) * cyLine;
         HBRUSH hBrushCurrent = ::CreateSolidBrush(colorBackCurr);
         HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
-        int yCurrent = (proccurrent - (current - 5)) * cyLine;
         PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
         ::SelectObject(hdc, oldBrush);
         ::DeleteObject(hBrushCurrent);
@@ -981,6 +998,11 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             }
         }
 
+        if (Emulator_IsBreakpoint(m_okDisasmProcessor, address))  // Breakpoint
+        {
+            DisasmView_DrawBreakpoint(hdc, x + cxChar / 2, y, cyLine);
+        }
+
         DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
         // Value at the address
         WORD value = memory[index];
@@ -992,15 +1014,15 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
         // Current position
         if (address == current)
         {
-            TextOut(hdc, x + 1 * cxChar, y, _T("  >"), 3);
+            //TextOut(hdc, x + 2 * cxChar, y, _T(" > "), 3);
             result = y;  // Remember line for the focus rect
         }
         if (address == proccurrent)
-            TextOut(hdc, x + 1 * cxChar, y, _T("PC>>"), 4);
+            TextOut(hdc, x + 2 * cxChar, y, _T("PC>"), 3);
         else if (address == previous)
         {
             ::SetTextColor(hdc, colorPrev);
-            TextOut(hdc, x + 1 * cxChar, y, _T("  > "), 4);
+            TextOut(hdc, x + 2 * cxChar, y, _T(" > "), 3);
         }
 
         BOOL okData = FALSE;

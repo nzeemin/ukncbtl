@@ -186,9 +186,9 @@ void CFloppyController::SetCommand(uint16_t cmd)
     {
         FlushChanges();
 
-//#if !defined(PRODUCT)
-//	DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
-//#endif
+#if !defined(PRODUCT)
+	DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
+#endif
 
         m_drive = newdrive;
         m_pDrive = m_drivedata + m_drive;
@@ -258,9 +258,9 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
 uint16_t CFloppyController::GetData(void)
 {
-//#if !defined(PRODUCT)
-//    DebugLogFormat(_T("Floppy READ\t\t%04x\r\n"), m_datareg);  //DEBUG
-//#endif
+#if !defined(PRODUCT)
+    DebugLogFormat(_T("Floppy READ\t\t%04x\r\n"), m_datareg);  //DEBUG
+#endif
 
     m_status &= ~FLOPPY_STATUS_MOREDATA;
     m_writing = m_searchsync = false;

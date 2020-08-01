@@ -661,8 +661,10 @@ void CMotherboard::DebugTicks()
 */
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute();  if (m_pCPU->GetPC() == m_CPUbp) return false; }
-#define SYSTEMFRAME_EXECUTE_BP_PPU  { m_pPPU->Execute();  if (m_pPPU->GetPC() == m_PPUbp) return false; }
+#define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
+    { const uint16_t* pbps = m_CPUbps; while(*pbps != 0177777) { if (m_pCPU->GetPC() == *pbps++) return false; } } }
+#define SYSTEMFRAME_EXECUTE_BP_PPU  { m_pPPU->Execute(); if (m_PPUbps != nullptr) \
+    { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
 bool CMotherboard::SystemFrame()
 {
     int frameticks = 0;  // 20000 ticks
@@ -688,7 +690,7 @@ bool CMotherboard::SystemFrame()
             Tick50();  // 1/50 timer event
 
         // CPU - 16 times, PPU - 12.5 times
-        if (m_CPUbp == 0177777 && m_PPUbp == 0177777)  // No breakpoints, no need to check
+        if (m_CPUbps == nullptr && m_PPUbps == nullptr)  // No breakpoints, no need to check
         {
             /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
             /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
