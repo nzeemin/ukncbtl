@@ -169,6 +169,7 @@ CMotherboard::CMotherboard ()
     memset(m_chanppurx, 0, sizeof(m_chanppurx));
 
     m_dwTrace = TRACE_NONE;
+    m_CPUbps = m_PPUbps = nullptr;
     m_TapeReadCallback = nullptr;
     m_TapeWriteCallback = nullptr;
     m_nTapeSampleRate = 0;

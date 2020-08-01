@@ -46,6 +46,7 @@ const uint16_t* Emulator_GetCPUBreakpointList();
 const uint16_t* Emulator_GetPPUBreakpointList();
 bool Emulator_IsBreakpoint();
 bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address);
+void Emulator_RemoveAllBreakpoints(bool okCpuPpu);
 
 void Emulator_SetSound(bool soundOnOff);
 bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort);

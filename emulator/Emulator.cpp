@@ -402,6 +402,16 @@ bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address)
     }
     return false;
 }
+void Emulator_RemoveAllBreakpoints(bool okCpuPpu)
+{
+    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
+        pbps[i] = 0177777;
+    if (okCpuPpu)
+        m_wEmulatorCPUBpsCount = 0;
+    else
+        m_wEmulatorPPUBpsCount = 0;
+}
 
 bool Emulator_IsSound()
 {

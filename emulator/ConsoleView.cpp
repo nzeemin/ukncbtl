@@ -505,7 +505,7 @@ void ConsoleView_ShowHelp()
             _T("  c          Clear console log\r\n")
             _T("  dXXXXXX    Disassemble from address XXXXXX\r\n")
             _T("  g          Go; free run\r\n")
-            _T("  gXXXXXX    Go; run processor until breakpoint at address XXXXXX\r\n")
+            _T("  gXXXXXX    Go; run and stop at address XXXXXX\r\n")
             _T("  m          Memory dump at current address\r\n")
             _T("  mXXXXXX    Memory dump at address XXXXXX\r\n")
             _T("  mrN        Memory dump at address from register N; N=0..7\r\n")
@@ -518,6 +518,7 @@ void ConsoleView_ShowHelp()
             _T("  b          List breakpoints set for the current processor\r\n")
             _T("  bXXXXXX    Set breakpoint at address XXXXXX\r\n")
             _T("  bcXXXXXX   Remove breakpoint at address XXXXXX\r\n")
+            _T("  bc         Remove all breakpoints for the current processor\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
             _T("  udl        Save display list dump to file displaylist.txt\r\n")
 #if !defined(PRODUCT)
@@ -749,10 +750,10 @@ void DoConsoleCommand()
         }
         else if (command[1] == _T('c'))
         {
-            if (command[2] == 0)  // bc
+            if (command[2] == 0)  // bc - remove all breakpoints
             {
-                //TODO: bc - clear all breakpoints
-                ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+                Emulator_RemoveAllBreakpoints(m_okCurrentProc);
+                DisasmView_Redraw();
             }
             else  // bcXXXXXX - remove breakpoint XXXXXX
             {
