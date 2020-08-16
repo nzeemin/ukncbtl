@@ -144,6 +144,7 @@ BOOL CreateMainWindow()
         return FALSE;
 
     DebugView_Init();
+    DisasmView_Init();
     ScreenView_Init();
 
     // Create screen window as a child of the main window
@@ -415,8 +416,9 @@ void MainWindow_RestorePositionAndShow()
         MainWindow_DoViewFullscreen();
 }
 
-void MainWindow_UpdateWindowTitle(LPCTSTR emustate)
+void MainWindow_UpdateWindowTitle()
 {
+    LPCTSTR emustate = g_okEmulatorRunning ? _T("run") : _T("stop");
     TCHAR buffer[100];
     wsprintf(buffer, _T("%s [%s]"), g_szTitle, emustate);
     SetWindowText(g_hwnd, buffer);

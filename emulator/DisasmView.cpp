@@ -30,7 +30,6 @@ HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
 
 BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDisasmBaseAddr = 0;
-WORD m_wDisasmNextBaseAddr = 0;
 
 void DisasmView_DoDraw(HDC hdc);
 int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
@@ -61,6 +60,35 @@ DisasmSubtitleItem* m_pDisasmSubtitleItems = NULL;
 int m_nDisasmSubtitleMax = 0;
 int m_nDisasmSubtitleCount = 0;
 
+enum DisasmLineType
+{
+    LINETYPE_NONE     = 0,  // Empty line
+    LINETYPE_DATA     = 1,  // Line contains a data (non-instruction)
+    LINETYPE_INSTR    = 2,  // Line contains a disassembled instruction
+    LINETYPE_JUMP     = 4,  // Line has jump
+    LINETYPE_SUBTITLE = 8,  // Line has subtitle comment
+};
+
+struct DisasmLineItem
+{
+    int   type;             // Combination of DisasmLineType values
+    WORD  address;          // Line address for LINETYPE_DATA
+    int   addrtype;         // Address type for LINETYPE_DATA, see ADDRTYPE_XXX constants
+    WORD  value;            // Data on the address for LINETYPE_DATA
+    TCHAR strInstr[8];      // Disassembled instruction for LINETYPE_DISASM
+    TCHAR strArg[32];       // Disassembled instruction arguments for LINETYPE_DISASM
+    int   jumpdelta;        // Jump delta for LINETYPE_JUMP
+    DisasmSubtitleItem* pSubItem;  // Link to subtitles item for LINETYPE_SUBTITLE
+};
+
+const int MAX_DISASMLINECOUNT = 50;
+DisasmLineItem* m_pDisasmLineItems = nullptr;
+
+BOOL  m_okDisasmJumpPredict;
+TCHAR m_strDisasmHint[42] = { 0 };
+TCHAR m_strDisasmHint2[42] = { 0 };
+
+
 //////////////////////////////////////////////////////////////////////
 
 
@@ -82,6 +110,29 @@ void DisasmView_RegisterClass()
     wcex.hIconSm		= NULL;
 
     RegisterClassEx(&wcex);
+}
+
+void DisasmView_Init()
+{
+    m_pDisasmLineItems = static_cast<DisasmLineItem*>(::calloc(MAX_DISASMLINECOUNT, sizeof(DisasmLineItem)));
+}
+void DisasmView_Done()
+{
+    if (m_strDisasmSubtitles != nullptr)
+    {
+        free(m_strDisasmSubtitles);  m_strDisasmSubtitles = nullptr;
+    }
+    if (m_pDisasmSubtitleItems != nullptr)
+    {
+        free(m_pDisasmSubtitleItems);
+        m_pDisasmSubtitleItems = nullptr;
+    }
+
+    if (m_pDisasmLineItems != nullptr)
+    {
+        free(m_pDisasmLineItems);
+        m_pDisasmLineItems = nullptr;
+    }
 }
 
 void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
@@ -244,6 +295,7 @@ void DisasmView_DoSubtitles()
         m_nDisasmSubtitleMax = m_nDisasmSubtitleCount = 0;
         m_okDisasmSubtitles = FALSE;
         DisasmView_UpdateWindowText();
+        DisasmView_OnUpdate();  // We have to re-build the list of lines to show
         return;
     }
 
@@ -294,6 +346,7 @@ void DisasmView_DoSubtitles()
 
     m_okDisasmSubtitles = TRUE;
     DisasmView_UpdateWindowText();
+    DisasmView_OnUpdate();  // We have to re-build the list of lines to show
 }
 
 // Разбор текста "субтитров".
@@ -391,101 +444,6 @@ BOOL DisasmView_ParseSubtitles()
     return TRUE;
 }
 
-
-//////////////////////////////////////////////////////////////////////
-
-
-// Update after Run or Step
-void DisasmView_OnUpdate()
-{
-    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
-    ASSERT(pDisasmPU != NULL);
-    m_wDisasmBaseAddr = pDisasmPU->GetPC();
-}
-
-void DisasmView_SetCurrentProc(BOOL okCPU)
-{
-    m_okDisasmProcessor = okCPU;
-    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
-    ASSERT(pDisasmPU != NULL);
-    m_wDisasmBaseAddr = pDisasmPU->GetPC();
-    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
-    DisasmView_UpdateWindowText();
-}
-
-void DisasmView_SetBaseAddr(WORD base)
-{
-    m_wDisasmBaseAddr = base;
-    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
-}
-
-
-//////////////////////////////////////////////////////////////////////
-// Draw functions
-
-void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLORREF color)
-{
-    int dist = abs(delta);
-    if (dist < 2) dist = 2;
-    if (dist > 20) dist = 16;
-
-    int yTo = yFrom + delta * cyLine;
-    yFrom += cyLine / 2;
-
-    HPEN hPenJump = ::CreatePen(PS_SOLID, 1, color);
-    HGDIOBJ oldPen = ::SelectObject(hdc, hPenJump);
-
-    POINT points[4];
-    points[0].x = x;  points[0].y = yFrom;
-    points[1].x = x + dist * 4;  points[1].y = yFrom;
-    points[2].x = x + dist * 12;  points[2].y = yTo;
-    points[3].x = x;  points[3].y = yTo;
-    PolyBezier(hdc, points, 4);
-    MoveToEx(hdc, x - 4, points[3].y, NULL);
-    LineTo(hdc, x + 4, yTo - 1);
-    MoveToEx(hdc, x - 4, points[3].y, NULL);
-    LineTo(hdc, x + 4, yTo + 1);
-
-    ::SelectObject(hdc, oldPen);
-    ::DeleteObject(hPenJump);
-}
-
-void DisasmView_DoDraw(HDC hdc)
-{
-    ASSERT(g_pBoard != NULL);
-
-    // Create and select font
-    HFONT hFont = CreateMonospacedFont();
-    HGDIOBJ hOldFont = SelectObject(hdc, hFont);
-    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
-    COLORREF colorOld = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
-    SetBkMode(hdc, TRANSPARENT);
-    //COLORREF colorBkOld = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
-
-    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
-
-    // Draw disassembly for the current processor
-    WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
-    int yFocus = DisasmView_DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
-
-    SetTextColor(hdc, colorOld);
-    //SetBkColor(hdc, colorBkOld);
-    SelectObject(hdc, hOldFont);
-    DeleteObject(hFont);
-
-    if (::GetFocus() == m_hwndDisasmViewer)
-    {
-        RECT rcFocus;
-        GetClientRect(m_hwndDisasmViewer, &rcFocus);
-        if (yFocus >= 0)
-        {
-            rcFocus.top = yFocus - 1;
-            rcFocus.bottom = yFocus + cyLine;
-        }
-        DrawFocusRect(hdc, &rcFocus);
-    }
-}
-
 DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
 {
     DisasmSubtitleItem* pItem = m_pDisasmSubtitleItems;
@@ -496,7 +454,28 @@ DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
         pItem++;
     }
 
-    return NULL;
+    return nullptr;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+
+
+void DisasmView_SetCurrentProc(BOOL okCPU)
+{
+    m_okDisasmProcessor = okCPU;
+    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    ASSERT(pDisasmPU != NULL);
+    m_wDisasmBaseAddr = pDisasmPU->GetPC();
+    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
+    DisasmView_UpdateWindowText();
+    DisasmView_OnUpdate();  // We have to re-build the list of lines to show
+}
+
+void DisasmView_SetBaseAddr(WORD base)
+{
+    m_wDisasmBaseAddr = base;
+    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
 }
 
 BOOL DisasmView_CheckForJump(const WORD* memory, int* pDelta)
@@ -919,52 +898,24 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
     return result;
 }
 
-void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
+// Update after Run or Step
+void DisasmView_OnUpdate()
 {
-    COLORREF colorBreakpoint = Settings_GetColor(ColorDebugBreakpoint);
-    HBRUSH hBreakBrush = CreateSolidBrush(colorBreakpoint);
-    HGDIOBJ hOldBrush = SelectObject(hdc, hBreakBrush);
-    HGDIOBJ hOldPen = SelectObject(hdc, GetStockObject(NULL_PEN));
-    Ellipse(hdc, x, y, x + size, y + size);
-    ::SelectObject(hdc, hOldPen);
-    ::SelectObject(hdc, hOldBrush);
-    ::DeleteObject(hBreakBrush);
-}
+    CProcessor* pProc = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    ASSERT(pProc != nullptr);
+    m_wDisasmBaseAddr = pProc->GetPC();
 
-int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y)
-{
-    int result = -1;
-
-    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
-    COLORREF colorText = Settings_GetColor(ColorDebugText);
-    COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
-    COLORREF colorValue = Settings_GetColor(ColorDebugValue);
-    COLORREF colorValueRom = Settings_GetColor(ColorDebugValueRom);
-    COLORREF colorBackCurr = Settings_GetColor(ColorDebugBackCurrent);
-    COLORREF colorSubtitle = Settings_GetColor(ColorDebugSubtitles);
-    COLORREF colorHint = Settings_GetColor(ColorDebugHint);
-    COLORREF colorJump = Settings_GetColor(ColorDebugJump);
-    COLORREF colorJumpHint = Settings_GetColor(ColorDebugJumpHint);
-    COLORREF colorJumpYes = Settings_GetColor(ColorDebugJumpYes);
-    COLORREF colorJumpNo = Settings_GetColor(ColorDebugJumpNo);
-    ::SetTextColor(hdc, colorText);
+    ASSERT(m_pDisasmLineItems != nullptr);
+    memset(m_pDisasmLineItems, 0, sizeof(DisasmLineItem) * MAX_DISASMLINECOUNT);
+    m_strDisasmHint[0] = 0;
+    m_strDisasmHint2[0] = 0;
 
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     WORD proccurrent = pProc->GetPC();
-    WORD current = base;
+    WORD current = m_wDisasmBaseAddr;
+    WORD previous = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
 
-    // Draw current line background
-    if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
-    {
-        int yCurrent = (proccurrent - (current - 5)) * cyLine;
-        HBRUSH hBrushCurrent = ::CreateSolidBrush(colorBackCurr);
-        HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
-        PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
-        ::SelectObject(hdc, oldBrush);
-        ::DeleteObject(hBrushCurrent);
-    }
-
-    // Читаем из памяти процессора в буфер
+    // Read from the processor memory to the buffer
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
     int addrtype[nWindowSize + 2];
@@ -979,23 +930,217 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
     if (previous >= address && previous < current)
         disasmfrom = previous;
 
+    // Prepare the list of lines in m_pDisasmLineItems
+    int lineindex = 0;
     int length = 0;
-    WORD wNextBaseAddr = 0;
-    for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
+    for (int index = 0; index < nWindowSize; index++)  // Preparing lines
     {
-        if (m_okDisasmSubtitles)  // Subtitles - комментарий к блоку
+        DisasmLineItem* pLineItem = m_pDisasmLineItems + lineindex;
+        pLineItem->address = address;
+        pLineItem->value = memory[index];
+        pLineItem->addrtype = addrtype[index];
+
+        bool okData = false;
+        if (m_okDisasmSubtitles)
         {
+            // Subtitles - find a comment for a block
             DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_BLOCKCOMMENT);
-            if (pSubItem != NULL && pSubItem->comment != NULL)
+            if (pSubItem != nullptr && pSubItem->comment != nullptr)
             {
-                LPCTSTR strBlockSubtitle = pSubItem->comment;
-
-                ::SetTextColor(hdc, colorSubtitle);
-                TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) _tcslen(strBlockSubtitle));
-                ::SetTextColor(hdc, colorText);
-
-                y += cyLine;
+                pLineItem->type = LINETYPE_SUBTITLE;
+                pLineItem->pSubItem = pSubItem;
+                // Opening next line
+                lineindex++;
+                if (lineindex >= MAX_DISASMLINECOUNT)
+                    break;
+                pLineItem = m_pDisasmLineItems + lineindex;
+                pLineItem->address = address;
+                pLineItem->value = memory[index];
+                pLineItem->addrtype = addrtype[index];
             }
+
+            // Subtitles - find a comment for an instruction or data
+            pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_COMMENT | SUBTYPE_DATA);
+            if (pSubItem != nullptr && (pSubItem->type & SUBTYPE_DATA) != 0)
+            {
+                okData = true;
+                pLineItem->type |= LINETYPE_DATA;
+            }
+            if (pSubItem != nullptr && (pSubItem->type & SUBTYPE_COMMENT) != 0 && pSubItem->comment != nullptr)
+            {
+                pLineItem->type |= LINETYPE_SUBTITLE;
+                pLineItem->pSubItem = pSubItem;
+                // Строку с субтитром мы можем использовать как опорную для дизассемблера
+                if (disasmfrom > address)
+                    disasmfrom = address;
+            }
+        }
+
+        if ((pLineItem->type & LINETYPE_DATA) == 0)
+            pLineItem->type |= LINETYPE_INSTR;  // if it's not a data then an instruction
+
+        if (address >= disasmfrom && length == 0)
+        {
+            if (okData)  // We have non-instruction on the address -- no need to disassemble
+            {
+                length = 1;
+            }
+            else
+            {
+                pLineItem->type |= LINETYPE_INSTR;
+                length = DisassembleInstruction(memory + index, address, pLineItem->strInstr, pLineItem->strArg);
+
+                if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
+                {
+                    if (DisasmView_CheckForJump(memory + index, &pLineItem->jumpdelta))
+                    {
+                        pLineItem->type |= LINETYPE_JUMP;
+                    }
+
+                    if (address == proccurrent)  // For current instruction, prepare the instruction hints
+                    {
+                        m_okDisasmJumpPredict = DisasmView_GetJumpConditionHint(memory + index, pProc, pMemCtl, m_strDisasmHint);
+                        if (*m_strDisasmHint == 0)  // we don't have the jump hint
+                        {
+                            DisasmView_GetInstructionHint(memory + index, pProc, pMemCtl, m_strDisasmHint, m_strDisasmHint2);
+                        }
+                    }
+                }
+            }
+        }
+        if (length > 0) length--;
+
+        address += 2;
+        lineindex++;
+        if (lineindex >= MAX_DISASMLINECOUNT)
+            break;
+    }
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Draw functions
+
+void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLORREF color)
+{
+    int dist = abs(delta);
+    if (dist < 2) dist = 2;
+    if (dist > 20) dist = 16;
+
+    int yTo = yFrom + delta * cyLine;
+    yFrom += cyLine / 2;
+
+    HPEN hPenJump = ::CreatePen(PS_SOLID, 1, color);
+    HGDIOBJ oldPen = ::SelectObject(hdc, hPenJump);
+
+    POINT points[4];
+    points[0].x = x;  points[0].y = yFrom;
+    points[1].x = x + dist * 4;  points[1].y = yFrom;
+    points[2].x = x + dist * 12;  points[2].y = yTo;
+    points[3].x = x;  points[3].y = yTo;
+    PolyBezier(hdc, points, 4);
+    MoveToEx(hdc, x - 4, points[3].y, NULL);
+    LineTo(hdc, x + 4, yTo - 1);
+    MoveToEx(hdc, x - 4, points[3].y, NULL);
+    LineTo(hdc, x + 4, yTo + 1);
+
+    ::SelectObject(hdc, oldPen);
+    ::DeleteObject(hPenJump);
+}
+
+void DisasmView_DoDraw(HDC hdc)
+{
+    ASSERT(g_pBoard != NULL);
+
+    // Create and select font
+    HFONT hFont = CreateMonospacedFont();
+    HGDIOBJ hOldFont = SelectObject(hdc, hFont);
+    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    COLORREF colorOld = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+    SetBkMode(hdc, TRANSPARENT);
+    //COLORREF colorBkOld = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+
+    CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+
+    // Draw disassembly for the current processor
+    WORD prevPC = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
+    int yFocus = DisasmView_DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
+
+    SetTextColor(hdc, colorOld);
+    //SetBkColor(hdc, colorBkOld);
+    SelectObject(hdc, hOldFont);
+    DeleteObject(hFont);
+
+    if (::GetFocus() == m_hwndDisasmViewer)
+    {
+        RECT rcFocus;
+        GetClientRect(m_hwndDisasmViewer, &rcFocus);
+        if (yFocus >= 0)
+        {
+            rcFocus.top = yFocus - 1;
+            rcFocus.bottom = yFocus + cyLine;
+        }
+        DrawFocusRect(hdc, &rcFocus);
+    }
+}
+
+void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
+{
+    COLORREF colorBreakpoint = Settings_GetColor(ColorDebugBreakpoint);
+    HBRUSH hBreakBrush = CreateSolidBrush(colorBreakpoint);
+    HGDIOBJ hOldBrush = SelectObject(hdc, hBreakBrush);
+    HGDIOBJ hOldPen = SelectObject(hdc, GetStockObject(NULL_PEN));
+    Ellipse(hdc, x, y, x + size, y + size);
+    ::SelectObject(hdc, hOldPen);
+    ::SelectObject(hdc, hOldBrush);
+    ::DeleteObject(hBreakBrush);
+}
+
+int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD previous, int x, int y)
+{
+    int result = -1;
+
+    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    COLORREF colorText = Settings_GetColor(ColorDebugText);
+    COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
+    COLORREF colorValue = Settings_GetColor(ColorDebugValue);
+    COLORREF colorValueRom = Settings_GetColor(ColorDebugValueRom);
+    COLORREF colorSubtitle = Settings_GetColor(ColorDebugSubtitles);
+    COLORREF colorJump = Settings_GetColor(ColorDebugJump);
+    ::SetTextColor(hdc, colorText);
+
+    WORD proccurrent = pProc->GetPC();
+
+    // Draw current line background
+    if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
+    {
+        int yCurrent = (proccurrent - (current - 5)) * cyLine;
+        COLORREF colorBackCurr = Settings_GetColor(ColorDebugBackCurrent);
+        HBRUSH hBrushCurrent = ::CreateSolidBrush(colorBackCurr);
+        HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
+        PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
+        ::SelectObject(hdc, oldBrush);
+        ::DeleteObject(hBrushCurrent);
+    }
+
+    for (int lineindex = 0; lineindex < MAX_DISASMLINECOUNT; lineindex++)  // Draw the lines
+    {
+        DisasmLineItem* pLineItem = m_pDisasmLineItems + lineindex;
+        if (pLineItem->type == LINETYPE_NONE)
+            break;
+        WORD address = pLineItem->address;
+
+        if ((pLineItem->type & LINETYPE_SUBTITLE) != 0 && (pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) == 0 &&
+            pLineItem->pSubItem != nullptr)  // Subtitles - comment for a block
+        {
+            LPCTSTR strBlockSubtitle = pLineItem->pSubItem->comment;
+
+            ::SetTextColor(hdc, colorSubtitle);
+            TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, (int) _tcslen(strBlockSubtitle));
+            ::SetTextColor(hdc, colorText);
+
+            y += cyLine;
+            continue;
         }
 
         if (Emulator_IsBreakpoint(m_okDisasmProcessor, address))  // Breakpoint
@@ -1005,8 +1150,8 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
 
         DrawOctalValue(hdc, x + 5 * cxChar, y, address);  // Address
         // Value at the address
-        WORD value = memory[index];
-        int memorytype = addrtype[index];
+        WORD value = pLineItem->value;
+        int memorytype = pLineItem->addrtype;
         ::SetTextColor(hdc, (memorytype == ADDRTYPE_ROM) ? colorValueRom : colorValue);
         DrawOctalValue(hdc, x + 13 * cxChar, y, value);
         ::SetTextColor(hdc, colorText);
@@ -1025,96 +1170,58 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previ
             TextOut(hdc, x + 2 * cxChar, y, _T(" > "), 3);
         }
 
-        BOOL okData = FALSE;
-        if (m_okDisasmSubtitles)  // Show subtitle
+        int posAfterArgs = 30;
+        if ((pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0)
         {
-            DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_COMMENT | SUBTYPE_DATA);
-            if (pSubItem != NULL && (pSubItem->type & SUBTYPE_DATA) != 0)
-                okData = TRUE;
-            if (pSubItem != NULL && (pSubItem->type & SUBTYPE_COMMENT) != 0 && pSubItem->comment != NULL)
+            LPCTSTR strInstr = pLineItem->strInstr;
+            LPCTSTR strArg = pLineItem->strArg;
+            ::SetTextColor(hdc, colorText);
+            TextOut(hdc, x + 21 * cxChar, y, strInstr, (int)_tcslen(strInstr));
+            TextOut(hdc, x + 29 * cxChar, y, strArg, (int)_tcslen(strArg));
+            posAfterArgs += _tcslen(strArg);
+        }
+
+        if ((pLineItem->type & LINETYPE_SUBTITLE) != 0 && (pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0 &&
+            pLineItem->pSubItem != nullptr)  // Show subtitle comment for instruction or data
+        {
+            LPCTSTR strComment = pLineItem->pSubItem->comment;
+            if (strComment != nullptr)
             {
-                LPCTSTR strSubtitle = pSubItem->comment;
-
                 ::SetTextColor(hdc, colorSubtitle);
-                TextOut(hdc, x + 52 * cxChar, y, strSubtitle, (int) _tcslen(strSubtitle));
+                TextOut(hdc, x + 52 * cxChar, y, strComment, (int)_tcslen(strComment));
                 ::SetTextColor(hdc, colorText);
-
-                // Строку с субтитром мы можем использовать как опорную для дизассемблера
-                if (disasmfrom > address)
-                    disasmfrom = address;
             }
         }
 
-        if (address >= disasmfrom && length == 0)
+        if (!m_okDisasmSubtitles)  // We don't show jumps and hints with subtitles
         {
-            TCHAR strInstr[8];
-            TCHAR strArg[32];
-            if (okData)  // По этому адресу лежат данные -- нет смысла дизассемблировать
-            {
-                lstrcpy(strInstr, _T("data"));
-                PrintOctalValue(strArg, *(memory + index));
-                length = 1;
-            }
-            else
-            {
-                length = DisassembleInstruction(memory + index, address, strInstr, strArg);
+            bool isjump = (pLineItem->type & LINETYPE_JUMP) != 0;
 
-                if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
+            if (isjump)
+            {
+                int delta = pLineItem->jumpdelta;
+                if (abs(delta) < 40)
                 {
-                    int delta;
-                    BOOL isjump = DisasmView_CheckForJump(memory + index, &delta);
-                    if (isjump && abs(delta) < 40)
-                        DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, colorJump);
-
+                    COLORREF jumpcolor = colorJump;
                     if (address == proccurrent)
-                    {
-                        // For current instruction, draw "Instruction Hint"
-                        TCHAR strHint[42];  *strHint = 0;
-                        TCHAR strHint2[42];  *strHint2 = 0;
-                        BOOL jumppredict = DisasmView_GetJumpConditionHint(memory + index, pProc, pMemCtl, strHint);
-                        if (*strHint != 0)  // If we have the hint
-                        {
-                            ::SetTextColor(hdc, colorJumpHint);
-                            TextOut(hdc, x + 52 * cxChar, y, strHint, (int)_tcslen(strHint));
-                            ::SetTextColor(hdc, colorText);
-                        }
-                        else
-                        {
-                            int hint = DisasmView_GetInstructionHint(memory + index, pProc, pMemCtl, strHint, strHint2);
-                            if (hint > 0)
-                            {
-                                ::SetTextColor(hdc, colorHint);
-                                TextOut(hdc, x + 52 * cxChar, y, strHint, (int)_tcslen(strHint));
-                                if (*strHint2 != 0)
-                                    TextOut(hdc, x + 52 * cxChar, y + cyLine, strHint2, (int)_tcslen(strHint2));
-                                ::SetTextColor(hdc, colorText);
-                            }
-                        }
-
-                        if (isjump && abs(delta) < 40)
-                        {
-                            COLORREF jumpcolor = jumppredict ? colorJumpYes : colorJumpNo;
-                            DisasmView_DrawJump(hdc, y, delta, x + (30 + _tcslen(strArg)) * cxChar, cyLine, jumpcolor);
-                        }
-                    }
+                        jumpcolor = Settings_GetColor(m_okDisasmJumpPredict ? ColorDebugJumpYes : ColorDebugJumpNo);
+                    DisasmView_DrawJump(hdc, y, delta, x + posAfterArgs * cxChar, cyLine, jumpcolor);
                 }
             }
-            ::SetTextColor(hdc, colorText);
-            if (index + length <= nWindowSize)
-            {
-                TextOut(hdc, x + 21 * cxChar, y, strInstr, (int) _tcslen(strInstr));
-                TextOut(hdc, x + 29 * cxChar, y, strArg, (int) _tcslen(strArg));
-            }
-            if (wNextBaseAddr == 0)
-                wNextBaseAddr = (WORD)(address + length * 2);
-        }
-        if (length > 0) length--;
 
-        address += 2;
+            if (address == proccurrent && *m_strDisasmHint != 0)  // For current instruction, draw "Instruction Hints"
+            {
+                COLORREF hintcolor = Settings_GetColor(isjump ? ColorDebugJumpHint : ColorDebugHint);
+                ::SetTextColor(hdc, hintcolor);
+                TextOut(hdc, x + 52 * cxChar, y, m_strDisasmHint, (int)_tcslen(m_strDisasmHint));
+                if (*m_strDisasmHint2 != 0)
+                    TextOut(hdc, x + 52 * cxChar, y + cyLine, m_strDisasmHint2, (int)_tcslen(m_strDisasmHint2));
+                ::SetTextColor(hdc, colorText);
+            }
+        }
+
         y += cyLine;
     }
-
-    m_wDisasmNextBaseAddr = wNextBaseAddr;
 
     return result;
 }

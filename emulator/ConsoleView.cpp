@@ -850,7 +850,7 @@ void ConsoleView_DoConsoleCommand()
         }
         else
             ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
-            break;
+        break;
 #if !defined(PRODUCT)
     case _T('t'):
         if (command[1] == _T('c'))  // "tc" -- clear trace log

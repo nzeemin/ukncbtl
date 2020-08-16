@@ -205,7 +205,7 @@ void Emulator_Start()
     g_okEmulatorRunning = TRUE;
 
     // Set title bar text
-    MainWindow_UpdateWindowTitle(_T("run"));
+    MainWindow_UpdateWindowTitle();
     MainWindow_UpdateMenu();
 
     m_nFrameCount = 0;
@@ -229,8 +229,9 @@ void Emulator_Stop()
         ::fflush(m_fpEmulatorParallelOut);
 
     // Reset title bar message
-    MainWindow_UpdateWindowTitle(_T("stop"));
+    MainWindow_UpdateWindowTitle();
     MainWindow_UpdateMenu();
+
     // Reset FPS indicator
     MainWindow_SetStatusbarText(StatusbarPartFPS, nullptr);
 

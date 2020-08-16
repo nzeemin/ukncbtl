@@ -33,7 +33,7 @@ void MainWindow_RegisterClass();
 BOOL CreateMainWindow();
 void MainWindow_RestoreSettings();
 void MainWindow_UpdateMenu();
-void MainWindow_UpdateWindowTitle(LPCTSTR emustate);
+void MainWindow_UpdateWindowTitle();
 void MainWindow_UpdateRenderModeMenu();
 void MainWindow_UpdateAllViews();
 BOOL MainWindow_InitToolbar();

@@ -188,6 +188,7 @@ BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
 void DoneInstance()
 {
     ScreenView_Done();
+    DisasmView_Done();
 
     Emulator_Done();
 

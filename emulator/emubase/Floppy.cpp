@@ -187,7 +187,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
         FlushChanges();
 
 #if !defined(PRODUCT)
-	DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
+        DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
 #endif
 
         m_drive = newdrive;
