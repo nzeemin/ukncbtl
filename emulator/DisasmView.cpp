@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <commdlg.h>
+#include <windowsx.h>
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
@@ -35,6 +36,7 @@ void DisasmView_DoDraw(HDC hdc);
 int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
+void DisasmView_OnLButtonDown(WPARAM wParam, LPARAM lParam);
 void DisasmView_SetBaseAddr(WORD base);
 void DisasmView_DoSubtitles();
 BOOL DisasmView_ParseSubtitles();
@@ -87,6 +89,9 @@ DisasmLineItem* m_pDisasmLineItems = nullptr;
 BOOL  m_okDisasmJumpPredict;
 TCHAR m_strDisasmHint[42] = { 0 };
 TCHAR m_strDisasmHint2[42] = { 0 };
+
+int m_cxDisasmBreakpointZone = 16;  // Width of breakpoint zone at the left, for mouse click
+int m_cyDisasmLine = 10;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -211,7 +216,7 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         }
         break;
     case WM_LBUTTONDOWN:
-        SetFocus(hWnd);
+        DisasmView_OnLButtonDown(wParam, lParam);
         break;
     case WM_KEYDOWN:
         return (LRESULT) DisasmView_OnKeyDown(wParam, lParam);
@@ -243,6 +248,38 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         return TRUE;
     }
     return FALSE;
+}
+
+void DisasmView_OnLButtonDown(WPARAM /*wParam*/, LPARAM lParam)
+{
+    ::SetFocus(m_hwndDisasmViewer);
+
+    // For click in the breakpoint zone at the left - try to find the line/address and add/remove breakpoint
+    if (GET_X_LPARAM(lParam) < m_cxDisasmBreakpointZone)
+    {
+        int lineindex = (GET_Y_LPARAM(lParam) - 2) / m_cyDisasmLine;
+        if (lineindex >= 0 && lineindex < MAX_DISASMLINECOUNT)
+        {
+            DisasmLineItem* pLineItem = m_pDisasmLineItems + lineindex;
+            if (pLineItem->type != LINETYPE_NONE)
+            {
+                WORD address = pLineItem->address;
+                if (!Emulator_IsBreakpoint(m_okDisasmProcessor, address))
+                {
+                    bool result = m_okDisasmProcessor ? Emulator_AddCPUBreakpoint(address) : Emulator_AddPPUBreakpoint(address);
+                    if (!result)
+                        AlertWarningFormat(_T("Failed to add breakpoint at %06ho."), address);
+                }
+                else
+                {
+                    bool result = m_okDisasmProcessor ? Emulator_RemoveCPUBreakpoint(address) : Emulator_RemovePPUBreakpoint(address);
+                    if (!result)
+                        AlertWarningFormat(_T("Failed to remove breakpoint at %06ho."), address);
+                }
+                DisasmView_Redraw();
+            }
+        }
+    }
 }
 
 void DisasmView_UpdateWindowText()
@@ -1101,6 +1138,8 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD pr
     int result = -1;
 
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    m_cxDisasmBreakpointZone = x + cxChar * 2;
+    m_cyDisasmLine = cyLine;
     COLORREF colorText = Settings_GetColor(ColorDebugText);
     COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
     COLORREF colorValue = Settings_GetColor(ColorDebugValue);
