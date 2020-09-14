@@ -1,4 +1,3 @@
-image: Visual Studio 2015
 
 init:
   - git config --global core.autocrlf input
@@ -6,11 +5,12 @@ init:
 clone_folder: C:\projects\ukncbtl
 shallow_clone: true
 
+branches:
+  only:
+    - master
+
 matrix:
   fast_finish: false
-
-platform:
-  - Win32
 
 configuration:
   - Debug
@@ -20,6 +20,7 @@ configuration:
 environment:
   matrix:
     - toolchain: msvc13
+      platform: Win32
 
 build:
   project: emulator\UKNCBTL-VS2013.sln
