@@ -37,7 +37,6 @@ int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD prev
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DisasmView_OnLButtonDown(WPARAM wParam, LPARAM lParam);
-void DisasmView_SetBaseAddr(WORD base);
 void DisasmView_DoSubtitles();
 BOOL DisasmView_ParseSubtitles();
 
@@ -276,6 +275,7 @@ void DisasmView_OnLButtonDown(WPARAM /*wParam*/, LPARAM lParam)
                     if (!result)
                         AlertWarningFormat(_T("Failed to remove breakpoint at %06ho."), address);
                 }
+                DebugView_Redraw();
                 DisasmView_Redraw();
             }
         }
@@ -507,12 +507,6 @@ void DisasmView_SetCurrentProc(BOOL okCPU)
     InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
     DisasmView_UpdateWindowText();
     DisasmView_OnUpdate();  // We have to re-build the list of lines to show
-}
-
-void DisasmView_SetBaseAddr(WORD base)
-{
-    m_wDisasmBaseAddr = base;
-    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
 }
 
 BOOL DisasmView_CheckForJump(const WORD* memory, int* pDelta)

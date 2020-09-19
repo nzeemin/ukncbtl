@@ -555,7 +555,6 @@ void ConsoleView_DoStepInto()
 
     ConsoleView_PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
 
-    //pProc->Execute();
     g_pBoard->DebugTicks();
 
     MainWindow_UpdateAllViews();
@@ -604,6 +603,7 @@ void ConsoleView_ShowBreakpoints()
 void ConsoleView_RemoveAllBreakpoints()
 {
     Emulator_RemoveAllBreakpoints(m_okCurrentProc);
+    DebugView_Redraw();
     DisasmView_Redraw();
 }
 void ConsoleView_AddBreakpoint(WORD address)
@@ -611,6 +611,7 @@ void ConsoleView_AddBreakpoint(WORD address)
     bool result = m_okCurrentProc ? Emulator_AddCPUBreakpoint(address) : Emulator_AddPPUBreakpoint(address);
     if (!result)
         ConsoleView_Print(_T("  Failed to add breakpoint.\r\n"));
+    DebugView_Redraw();
     DisasmView_Redraw();
 }
 void ConsoleView_RemoveBreakpoint(WORD address)
@@ -618,6 +619,7 @@ void ConsoleView_RemoveBreakpoint(WORD address)
     bool result = m_okCurrentProc ? Emulator_RemoveCPUBreakpoint(address) : Emulator_RemovePPUBreakpoint(address);
     if (!result)
         ConsoleView_Print(_T("  Failed to remove breakpoint.\r\n"));
+    DebugView_Redraw();
     DisasmView_Redraw();
 }
 
