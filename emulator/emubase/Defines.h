@@ -29,17 +29,17 @@ inline uint8_t GetDigit(uint16_t word, int pos)
 //////////////////////////////////////////////////////////////////////
 
 // Interrupts
-#define NO_INTERRUPT	0000
-#define INTERRUPT_4		0004
-#define INTERRUPT_10	0010
-#define INTERRUPT_14	0014
-#define INTERRUPT_20	0020
-#define INTERRUPT_24	0024
-#define INTERRUPT_30	0030
-#define INTERRUPT_34	0034
-#define INTERRUPT_60	0060
-#define INTERRUPT_100	0100
-#define INTERRUPT_274	0274
+#define NO_INTERRUPT    0000
+#define INTERRUPT_4     0004
+#define INTERRUPT_10    0010
+#define INTERRUPT_14    0014
+#define INTERRUPT_20    0020
+#define INTERRUPT_24    0024
+#define INTERRUPT_30    0030
+#define INTERRUPT_34    0034
+#define INTERRUPT_60    0060
+#define INTERRUPT_100   0100
+#define INTERRUPT_274   0274
 
 // Process Status Word (PSW) bits
 #define PSW_C           1      // Carry
@@ -48,7 +48,7 @@ inline uint8_t GetDigit(uint16_t word, int pos)
 #define PSW_N           8      // Negative result
 #define PSW_T           16     // Trap/Debug
 #define PSW_P           0200   // Priority
-#define PSW_HALT		0400   // Halt
+#define PSW_HALT        0400   // Halt
 
 // Commands -- no operands
 #define PI_HALT         0000000
@@ -58,7 +58,7 @@ inline uint8_t GetDigit(uint16_t word, int pos)
 #define PI_IOT          0000004
 #define PI_RESET        0000005
 #define PI_RTT          0000006
-#define PI_MFPT			0000007
+#define PI_MFPT         0000007
 #define PI_HALT10       0000010
 #define PI_HALT11       0000011
 #define PI_HALT12       0000012
@@ -99,7 +99,7 @@ inline uint8_t GetDigit(uint16_t word, int pos)
 #define PI_SENZC        0000275
 #define PI_SENZV        0000276
 #define PI_SCC          0000277
-#define PI_MED			0076600
+#define PI_MED          0076600
 
 // Commands -- single operand
 #define PI_RTS          0000200
@@ -146,10 +146,10 @@ inline uint8_t GetDigit(uint16_t word, int pos)
 
 // Commands -- three operands
 #define PI_JSR          0004000
-#define PI_MUL			0070000
-#define PI_DIV			0071000
-#define PI_ASH			0072000
-#define PI_ASHC			0073000
+#define PI_MUL          0070000
+#define PI_DIV          0071000
+#define PI_ASH          0072000
+#define PI_ASHC         0073000
 #define PI_XOR          0074000
 #define PI_SOB          0077000
 

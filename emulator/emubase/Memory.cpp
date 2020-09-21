@@ -584,7 +584,7 @@ void CFirstMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     default:
         if (!(((m_Port176644 & 0x103) == 0x100) && m_Port176646 == address))
             m_pProcessor->MemoryError();
-//			ASSERT(0);
+//            ASSERT(0);
         break;
     }
 }

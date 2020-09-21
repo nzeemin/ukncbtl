@@ -231,7 +231,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
         PrepareTrack();
 
 //#if !defined(PRODUCT)
-//    	DebugLogFormat(_T("Floppy DRIVE %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+//        DebugLogFormat(_T("Floppy DRIVE %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
 //#endif
     }
 
@@ -272,7 +272,7 @@ uint16_t CFloppyController::GetData(void)
 void CFloppyController::WriteData(uint16_t data)
 {
 //#if !defined(PRODUCT)
-//	DebugLogFormat(_T("Floppy WRITE\t\t%04x\r\n"), data);  //DEBUG
+//        DebugLogFormat(_T("Floppy WRITE\t\t%04x\r\n"), data);  //DEBUG
 //#endif
 
     m_writing = true;  // Switch to write mode if not yet

@@ -20,7 +20,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 // Constants
 
-#define TIME_PER_SECTOR					(IDE_DISK_SECTOR_SIZE / 2)
+#define TIME_PER_SECTOR                 (IDE_DISK_SECTOR_SIZE / 2)
 
 #define IDE_PORT_DATA                   0x1f0
 #define IDE_PORT_ERROR                  0x1f1
@@ -31,12 +31,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define IDE_PORT_HEAD_NUMBER            0x1f6
 #define IDE_PORT_STATUS_COMMAND         0x1f7
 
-#define IDE_STATUS_ERROR				0x01
-#define IDE_STATUS_HIT_INDEX			0x02
-#define IDE_STATUS_BUFFER_READY			0x08
-#define IDE_STATUS_SEEK_COMPLETE		0x10
-#define IDE_STATUS_DRIVE_READY			0x40
-#define IDE_STATUS_BUSY					0x80
+#define IDE_STATUS_ERROR                0x01
+#define IDE_STATUS_HIT_INDEX            0x02
+#define IDE_STATUS_BUFFER_READY         0x08
+#define IDE_STATUS_SEEK_COMPLETE        0x10
+#define IDE_STATUS_DRIVE_READY          0x40
+#define IDE_STATUS_BUSY                 0x80
 
 #define IDE_COMMAND_READ_MULTIPLE       0x20
 #define IDE_COMMAND_READ_MULTIPLE1      0x21
@@ -45,11 +45,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #define IDE_COMMAND_WRITE_MULTIPLE1     0x31
 #define IDE_COMMAND_IDENTIFY            0xec
 
-#define IDE_ERROR_NONE					0x00
-#define IDE_ERROR_DEFAULT				0x01
-#define IDE_ERROR_UNKNOWN_COMMAND		0x04
-#define IDE_ERROR_BAD_LOCATION			0x10
-#define IDE_ERROR_BAD_SECTOR			0x80
+#define IDE_ERROR_NONE                  0x00
+#define IDE_ERROR_DEFAULT               0x01
+#define IDE_ERROR_UNKNOWN_COMMAND       0x04
+#define IDE_ERROR_BAD_LOCATION          0x10
+#define IDE_ERROR_BAD_SECTOR            0x80
 
 enum TimeoutEvent
 {

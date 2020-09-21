@@ -18,10 +18,10 @@ class CProcessor;
 class CMemoryController;
 
 // Floppy debug constants
-#define FLOPPY_FSM_WAITFORLSB	0
-#define FLOPPY_FSM_WAITFORMSB	1
-#define FLOPPY_FSM_WAITFORTERM1	2
-#define FLOPPY_FSM_WAITFORTERM2	3
+#define FLOPPY_FSM_WAITFORLSB   0
+#define FLOPPY_FSM_WAITFORMSB   1
+#define FLOPPY_FSM_WAITFORTERM1 2
+#define FLOPPY_FSM_WAITFORTERM2 3
 
 // Trace flags
 #define TRACE_NONE         0  // Turn off all tracing
@@ -36,22 +36,22 @@ class CMemoryController;
 #define UKNCIMAGE_HEADER2 0x214C5442  // "BTL!"
 #define UKNCIMAGE_VERSION 0x00010001  // 1.1
 
-#define KEYB_RUS		0x01
-#define KEYB_LAT		0x02
-#define KEYB_LOWERREG	0x10
+#define KEYB_RUS        0x01
+#define KEYB_LAT        0x02
+#define KEYB_LOWERREG   0x10
 
 typedef struct chan_tag
 {
-    uint8_t	data;
-    uint8_t	ready;
-    uint8_t	irq;
-    uint8_t	rdwr;
+    uint8_t data;
+    uint8_t ready;
+    uint8_t irq;
+    uint8_t rdwr;
 } chan_stc;
 
 typedef struct kbd_row_tag
 {
-    uint8_t	processed;
-    uint8_t	row_Y;
+    uint8_t processed;
+    uint8_t row_Y;
 } kbd_row;
 
 // Tape emulator callback used to read a tape recorded data.
@@ -170,7 +170,7 @@ public:  // Debug
     void        SetPPUBreakpoints(const uint16_t* bps) { m_PPUbps = bps; } ///< Set PPU breakpoint list
     uint32_t    GetTrace() const { return m_dwTrace; }
     void        SetTrace(uint32_t dwTrace);
-    chan_stc	GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
+    chan_stc    GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
     {
         //cpu==1 ,ppu==0; tx==1, rx==0
         if (cpu)
@@ -198,34 +198,34 @@ public:  // System control
     void        Tick8000();  ///< Tick 8.00 MHz
     void        Tick6250();  ///< Tick 6.25 MHz
     void        Tick50();    ///< Tick 50 Hz - goes to CPU/PPU EVNT line
-    void		TimerTick(); ///< Timer Tick, 2uS -- dividers are within timer routine
+    void        TimerTick(); ///< Timer Tick, 2uS -- dividers are within timer routine
     void        ResetFloppy();     ///< INIT signal for FDD
-    uint16_t	GetTimerValue();	///< Returns current timer value
-    uint16_t	GetTimerValueView() { return m_timer; }	///< Returns current timer value for debugger
-    uint16_t	GetTimerReload();	///< Returns timer reload value
-    uint16_t	GetTimerReloadView() { return m_timerreload; }	///< Returns timer reload value for debugger
-    uint16_t	GetTimerState();	///< Returns timer state
-    uint16_t	GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
+    uint16_t    GetTimerValue();    ///< Returns current timer value
+    uint16_t    GetTimerValueView() { return m_timer; } ///< Returns current timer value for debugger
+    uint16_t    GetTimerReload();   ///< Returns timer reload value
+    uint16_t    GetTimerReloadView() { return m_timerreload; }  ///< Returns timer reload value for debugger
+    uint16_t    GetTimerState();    ///< Returns timer state
+    uint16_t    GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
 
-    void		ChanWriteByCPU(uint8_t chan, uint8_t data);
-    void		ChanWriteByPPU(uint8_t chan, uint8_t data);
-    uint8_t		ChanReadByCPU(uint8_t chan);
-    uint8_t		ChanReadByPPU(uint8_t chan);
+    void        ChanWriteByCPU(uint8_t chan, uint8_t data);
+    void        ChanWriteByPPU(uint8_t chan, uint8_t data);
+    uint8_t     ChanReadByCPU(uint8_t chan);
+    uint8_t     ChanReadByPPU(uint8_t chan);
 
-    uint8_t		ChanRxStateGetCPU(uint8_t chan);
-    uint8_t		ChanTxStateGetCPU(uint8_t chan);
-    uint8_t		ChanRxStateGetPPU();
-    uint8_t		ChanTxStateGetPPU();
-    void		ChanRxStateSetCPU(uint8_t chan, uint8_t state);
-    void		ChanTxStateSetCPU(uint8_t chan, uint8_t state);
-    void		ChanRxStateSetPPU(uint8_t state);
-    void		ChanTxStateSetPPU(uint8_t state);
+    uint8_t     ChanRxStateGetCPU(uint8_t chan);
+    uint8_t     ChanTxStateGetCPU(uint8_t chan);
+    uint8_t     ChanRxStateGetPPU();
+    uint8_t     ChanTxStateGetPPU();
+    void        ChanRxStateSetCPU(uint8_t chan, uint8_t state);
+    void        ChanTxStateSetCPU(uint8_t chan, uint8_t state);
+    void        ChanRxStateSetPPU(uint8_t state);
+    void        ChanTxStateSetPPU(uint8_t state);
 
-    void		ChanResetByCPU();
-    void		ChanResetByPPU();
+    void        ChanResetByCPU();
+    void        ChanResetByPPU();
 
-    void        SetTimerReload(uint16_t val);	///< Sets timer reload value
-    void        SetTimerState(uint16_t val);	///< Sets timer state
+    void        SetTimerReload(uint16_t val);   ///< Sets timer reload value
+    void        SetTimerState(uint16_t val);    ///< Sets timer state
     void        ExecuteCPU();  ///< Execute one CPU instruction
     void        ExecutePPU();  ///< Execute one PPU instruction
     bool        SystemFrame();  ///< Do one frame -- use for normal run
@@ -315,7 +315,7 @@ private:
 private:
     TAPEREADCALLBACK    m_TapeReadCallback;
     TAPEWRITECALLBACK   m_TapeWriteCallback;
-    int	                m_nTapeSampleRate;
+    int                 m_nTapeSampleRate;
     SOUNDGENCALLBACK    m_SoundGenCallback;
     int                 m_SoundPrevValue;  ///< Previous value of the sound signal
     int                 m_SoundChanges;  ///< Sound signal 0 to 1 changes since the beginning of the frame

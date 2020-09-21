@@ -596,7 +596,7 @@ uint16_t CMotherboard::GetTimerState() // Returns timer state
     return res;
 }
 
-void CMotherboard::SetTimerReload(uint16_t val)	 // Sets timer reload value
+void CMotherboard::SetTimerReload(uint16_t val)  // Sets timer reload value
 {
     m_timerreload = val & 07777;
     if ((m_timerflags & 1) == 0)
@@ -1105,7 +1105,7 @@ uint8_t CMotherboard::ChanReadByPPU(uint8_t chan)
     ASSERT(chan < 3);
 
     //if((chan==0)&&(m_chan0disabled))
-    //	return 0;
+    //    return 0;
 
     res = m_chanppurx[chan].data;
     m_chanppurx[chan].ready = 0;

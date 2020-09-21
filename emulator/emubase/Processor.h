@@ -175,21 +175,21 @@ protected:  // Implementation - instruction execution
     void        ExecuteUNKNOWN ();  ///< There is no such instruction -- just call TRAP 10
     void        ExecuteHALT ();
     void        ExecuteWAIT ();
-    void        ExecuteRCPC	();
+    void        ExecuteRCPC();
     void        ExecuteRCPS ();
-    void        ExecuteWCPC	();
-    void        ExecuteWCPS	();
+    void        ExecuteWCPC();
+    void        ExecuteWCPS();
     void        ExecuteMFUS ();
     void        ExecuteMTUS ();
     void        ExecuteRTI ();
     void        ExecuteBPT ();
     void        ExecuteIOT ();
     void        ExecuteRESET ();
-    void        ExecuteSTEP	();
+    void        ExecuteSTEP();
     void        ExecuteRSEL ();
     void        Execute000030 ();
     void        ExecuteFIS ();
-    void        ExecuteRUN	();
+    void        ExecuteRUN();
     void        ExecuteRTT ();
     void        ExecuteCCC ();
     void        ExecuteSCC ();
@@ -287,12 +287,12 @@ inline void CProcessor::SetLPSW(uint8_t byte)
 inline void CProcessor::SetReg(int regno, uint16_t word)
 {
     m_R[regno] = word;
-    if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = word;
+    if ((regno == 7) && ((m_psw & 0600) != 0600)) m_savepc = word;
 }
 inline void CProcessor::SetLReg(int regno, uint8_t byte)
 {
     m_R[regno] = (m_R[regno] & 0xFF00) | (uint16_t)byte;
-    if ((regno == 7) && ((m_psw & 0600) != 0600))	m_savepc = m_R[7];
+    if ((regno == 7) && ((m_psw & 0600) != 0600)) m_savepc = m_R[7];
 }
 inline void CProcessor::SetPC(uint16_t word)
 {
