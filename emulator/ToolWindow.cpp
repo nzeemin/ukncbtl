@@ -17,8 +17,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-const int TOOLWINDOW_CAPTION_HEIGHT = 16;
-
 
 void ToolWindow_RegisterClass()
 {

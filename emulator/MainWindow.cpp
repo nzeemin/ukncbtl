@@ -9,7 +9,6 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // MainWindow.cpp
-//
 
 #include "stdafx.h"
 #include <commdlg.h>
@@ -21,7 +20,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Views.h"
 #include "ToolWindow.h"
 #include "util\BitmapFile.h"
-
 
 //////////////////////////////////////////////////////////////////////
 

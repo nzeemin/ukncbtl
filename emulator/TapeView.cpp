@@ -19,8 +19,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emulator.h"
 #include "Dialogs.h"
 
-
 //////////////////////////////////////////////////////////////////////
+
 
 LPCTSTR g_sOpenWav = _T("Open WAV");
 LPCTSTR g_sSaveWav = _T("Save WAV");

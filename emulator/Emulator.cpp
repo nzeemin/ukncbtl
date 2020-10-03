@@ -22,7 +22,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //NOTE: I know, we use unsafe string functions
 #pragma warning( disable: 4996 )
 
-
 //////////////////////////////////////////////////////////////////////
 
 

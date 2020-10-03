@@ -18,7 +18,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emulator.h"
 #include "emubase\Emubase.h"
 
-
 //////////////////////////////////////////////////////////////////////
 
 

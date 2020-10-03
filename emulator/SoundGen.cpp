@@ -9,15 +9,14 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // SoundGen.cpp
-//
 
 #include "StdAfx.h"
 #include "emubase\Emubase.h"
 #include "SoundGen.h"
 #include "Mmsystem.h"
 
-
 //////////////////////////////////////////////////////////////////////
+
 
 static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
 

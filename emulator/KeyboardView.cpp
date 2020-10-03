@@ -15,7 +15,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Views.h"
 #include "Emulator.h"
 
-
 //////////////////////////////////////////////////////////////////////
 
 

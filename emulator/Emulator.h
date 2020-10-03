@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
+
 const int MAX_BREAKPOINTCOUNT = 16;
 
 extern CMotherboard* g_pBoard;
