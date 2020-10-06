@@ -51,16 +51,12 @@ BOOL AlertOkCancel(LPCTSTR sMessage);
 //////////////////////////////////////////////////////////////////////
 // DebugPrint
 
-#if !defined(PRODUCT)
-
 void DebugPrint(LPCTSTR message);
 void DebugPrintFormat(LPCTSTR pszFormat, ...);
 void DebugLogClear();
 void DebugLogCloseFile();
 void DebugLog(LPCTSTR message);
 void DebugLogFormat(LPCTSTR pszFormat, ...);
-
-#endif // !defined(PRODUCT)
 
 
 //////////////////////////////////////////////////////////////////////

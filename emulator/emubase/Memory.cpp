@@ -1488,9 +1488,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
 
     case 0177704: // fdd params:
     case 0177705:
-        //#if !defined(PRODUCT)
         //            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
-        //#endif
         break;
 
     case 0177710: //timer status

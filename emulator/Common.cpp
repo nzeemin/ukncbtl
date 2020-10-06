@@ -67,7 +67,16 @@ BOOL AlertOkCancel(LPCTSTR sMessage)
 //////////////////////////////////////////////////////////////////////
 // DebugPrint and DebugLog
 
-#if !defined(PRODUCT)
+#if defined(PRODUCT)
+
+void DebugPrint(LPCTSTR) {}
+void DebugPrintFormat(LPCTSTR, ...) {}
+void DebugLogClear() {}
+void DebugLogCloseFile() {}
+void DebugLog(LPCTSTR) {}
+void DebugLogFormat(LPCTSTR, ...) {}
+
+#else
 
 void DebugPrint(LPCTSTR message)
 {
