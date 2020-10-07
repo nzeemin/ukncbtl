@@ -60,7 +60,7 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
     case WM_INITDIALOG:
         {
             TCHAR buffer[64];
-            wsprintf(buffer, _T("UKNCBTL Version %s"), _T(UKNCBTL_VERSION_STRING));
+            wsprintf(buffer, _T("UKNCBTL Version %s"), _T(APP_VERSION_STRING));
             ::SetDlgItemText(hDlg, IDC_VERSION, buffer);
             wsprintf(buffer, _T("Build date: %S %S"), __DATE__, __TIME__);
             ::SetDlgItemText(hDlg, IDC_BUILDDATE, buffer);

@@ -99,10 +99,10 @@ void MainWindow_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_UKNCBTL));
+    wcex.hIcon          = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_APPICON));
     wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = MAKEINTRESOURCE(IDC_UKNCBTL);
+    wcex.lpszMenuName   = MAKEINTRESOURCE(IDC_APPLICATION);
     wcex.lpszClassName  = g_szWindowClass;
     wcex.hIconSm        = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
 
@@ -280,7 +280,7 @@ BOOL MainWindow_InitStatusbar()
     TCHAR welcomeTemplate[100];
     LoadString(g_hInst, IDS_WELCOME, welcomeTemplate, 100);
     TCHAR buffer[100];
-    wsprintf(buffer, welcomeTemplate, _T(UKNCBTL_VERSION_STRING));
+    wsprintf(buffer, welcomeTemplate, _T(APP_VERSION_STRING));
     m_hwndStatusbar = CreateStatusWindow(
             WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
             buffer,

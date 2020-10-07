@@ -9,9 +9,9 @@
 #define IDM_ABOUT                       104
 #define IDS_WELCOME                     104
 #define IDM_EXIT                        105
-#define IDI_UKNCBTL                     107
+#define IDI_APPICON                     107
 #define IDI_SMALL                       108
-#define IDC_UKNCBTL                     109
+#define IDC_APPLICATION                 109
 #define IDR_MAINFRAME                   128
 #define IDD_INPUTBOX                    129
 #define IDI_DISKETTE                    138

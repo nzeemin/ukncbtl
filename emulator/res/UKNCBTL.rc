@@ -70,7 +70,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_UKNCBTL             ICON                    "UKNCBTL.ico"
+IDI_APPICON             ICON                    "UKNCBTL.ico"
 IDI_SMALL               ICON                    "small.ico"
 IDI_DISKETTE            ICON                    "diskette.ico"
 IDI_DISKETTEWP          ICON                    "diskettewp.ico"
@@ -80,7 +80,7 @@ IDI_DISKETTEWP          ICON                    "diskettewp.ico"
 // Menu
 //
 
-IDC_UKNCBTL MENUEX 
+IDC_APPLICATION MENUEX 
 BEGIN
     POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
     BEGIN
@@ -169,7 +169,7 @@ END
 // Accelerator
 //
 
-IDC_UKNCBTL ACCELERATORS 
+IDC_APPLICATION ACCELERATORS 
 BEGIN
     VK_MEDIA_STOP,  ID_EMULATOR_RESET,      VIRTKEY, NOINVERT
     VK_MEDIA_PLAY_PAUSE, ID_EMULATOR_RUN,   VIRTKEY, NOINVERT
@@ -388,7 +388,7 @@ STRINGTABLE
 BEGIN
     IDS_APP_TITLE           "UKNC Back to Life"
     IDS_WELCOME             "UKNC Back to Life - version %s"
-    IDC_UKNCBTL             "UKNCBTL"
+    IDC_APPLICATION         "UKNCBTL"
 END
 
 #endif    // Neutral resources
@@ -405,4 +405,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
