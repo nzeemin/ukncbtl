@@ -498,6 +498,13 @@ void ConsoleView_StepOver()
     // Execute command
     ConsoleView_DoConsoleCommand();
 }
+void ConsoleView_DeleteAllBreakpoints()
+{
+    // Put command to console prompt
+    SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T("bc"));
+    // Execute command
+    ConsoleView_DoConsoleCommand();
+}
 
 void ConsoleView_ShowHelp()
 {

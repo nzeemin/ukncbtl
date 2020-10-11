@@ -103,6 +103,7 @@ LRESULT CALLBACK DisasmViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DisasmViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DisasmView_OnUpdate();
 void DisasmView_SetCurrentProc(BOOL okCPU);
+void DisasmView_LoadUnloadSubtitles();
 
 
 //////////////////////////////////////////////////////////////////////
@@ -156,6 +157,8 @@ void ConsoleView_Activate();
 void ConsoleView_SetCurrentProc(BOOL okCPU);
 void ConsoleView_StepInto();
 void ConsoleView_StepOver();
+void ConsoleView_ClearConsole();
+void ConsoleView_DeleteAllBreakpoints();
 
 
 //////////////////////////////////////////////////////////////////////

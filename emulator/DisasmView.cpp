@@ -36,7 +36,6 @@ int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD prev
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DisasmView_OnLButtonDown(WPARAM wParam, LPARAM lParam);
-void DisasmView_DoSubtitles();
 BOOL DisasmView_ParseSubtitles();
 
 enum DisasmSubtitleType
@@ -237,7 +236,7 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         DebugView_SetCurrentProc(m_okDisasmProcessor);   // Switch DebugView to current processor
         break;
     case 0x53:  // S - Load/Unload Subtitles
-        DisasmView_DoSubtitles();
+        DisasmView_LoadUnloadSubtitles();
         break;
     case VK_ESCAPE:
         ConsoleView_Activate();
@@ -322,7 +321,7 @@ void DisasmView_AddSubtitle(WORD address, int type, LPCTSTR pCommentText)
     m_nDisasmSubtitleCount++;
 }
 
-void DisasmView_DoSubtitles()
+void DisasmView_LoadUnloadSubtitles()
 {
     if (m_okDisasmSubtitles)  // Reset subtitles
     {
