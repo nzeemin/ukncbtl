@@ -37,11 +37,11 @@ const int m_nSprite_ImageCY = 256;
 const int m_nSprite_ViewCX = m_nSprite_ImageCX * m_nSprite_scale;
 const int m_nSprite_ViewCY = m_nSprite_ImageCY * m_nSprite_scale;
 
-
 WORD m_wSprite_BaseAddress = 0;
 int m_nSprite_width = 2;
 const int m_nSprite_format_max = 1;
 int m_nSprite_format = 0;
+int m_nSprite_PageSizeBytes = m_nSprite_ImageCY * (m_nSprite_ImageCX / (8 + 2));
 
 void SpriteView_OnDraw(HDC hdc);
 BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -283,8 +283,8 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     case VK_LEFT:
     case VK_RIGHT:
         {
-            int spriteWidth = ((m_nSprite_Mode == 0) ? 1 : 2) * m_nSprite_width * (vkey == VK_LEFT ? -1 : 1);
-            SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)(m_nSprite_ImageCY * spriteWidth));
+            int spriteMult = ((m_nSprite_Mode == 0) ? 1 : 2) * (vkey == VK_LEFT ? -1 : 1);
+            SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)(m_nSprite_ImageCY * spriteMult * m_nSprite_width));
             break;
         }
     case VK_UP:
@@ -313,15 +313,28 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
         SpriteView_UpdateWindowText();
         SpriteView_PrepareBitmap();
         InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+        SpriteView_UpdateScrollPos();
 
         break;
-    case 0x47:  // G - Go To Address
+    case 0x47:  // 'G' - Go To Address
         {
             WORD value = m_wSprite_BaseAddress;
             if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), &value))
                 SpriteView_GoToAddress(value);
             break;
         }
+    case VK_HOME:
+        SpriteView_GoToAddress(0);
+        break;
+    case VK_END:
+        SpriteView_GoToAddress((WORD)(0x10000 - ((m_nSprite_Mode == 0) ? 1 : 2)));
+        break;
+    case VK_PRIOR:
+        SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)m_nSprite_PageSizeBytes);
+        break;
+    case VK_NEXT:
+        SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)m_nSprite_PageSizeBytes);
+        break;
     default:
         return TRUE;
     }
@@ -346,7 +359,6 @@ BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 {
     int spriteWidth = ((m_nSprite_Mode == 0) ? 1 : 2) * m_nSprite_width;
 
-    //WORD scrollpos = HIWORD(wParam);
     WORD scrollcmd = LOWORD(wParam);
     switch (scrollcmd)
     {
@@ -356,12 +368,19 @@ BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
     case SB_LINEUP:
         SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)spriteWidth);
         break;
-        //case SB_PAGEDOWN:
-        //    break;
-        //case SB_PAGEUP:
-        //    break;
-        //case SB_THUMBPOSITION:
-        //    break;
+    case SB_PAGEDOWN:
+        SpriteView_GoToAddress(m_wSprite_BaseAddress + (WORD)m_nSprite_PageSizeBytes);
+        break;
+    case SB_PAGEUP:
+        SpriteView_GoToAddress(m_wSprite_BaseAddress - (WORD)m_nSprite_PageSizeBytes);
+        break;
+    case SB_THUMBPOSITION:
+        {
+            WORD scrollpos = HIWORD(wParam);
+            if (m_nSprite_Mode != 0) scrollpos = scrollpos & ~1;
+            SpriteView_GoToAddress(scrollpos);
+        }
+        break;
     }
 
     return FALSE;
@@ -369,14 +388,27 @@ BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 
 void SpriteView_UpdateScrollPos()
 {
+    int columns = 0;
+    int cx = m_nSprite_ImageCX;
+    while (cx > m_nSprite_width * 8)
+    {
+        columns++;
+        cx -= m_nSprite_width * 8;
+        if (cx <= 2)
+            break;
+        cx -= 2;
+    }
+    int stepSizeBytes = ((m_nSprite_Mode == 0) ? 1 : 2);
+    m_nSprite_PageSizeBytes = m_nSprite_ImageCY * columns * m_nSprite_width * stepSizeBytes;
+
     SCROLLINFO si;
     ZeroMemory(&si, sizeof(si));
     si.cbSize = sizeof(si);
     si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
-    si.nPage = 0;  //TODO
+    si.nPage = m_nSprite_PageSizeBytes;
     si.nPos = m_wSprite_BaseAddress;
     si.nMin = 0;
-    si.nMax = 0x10000 - 1;
+    si.nMax = 0x10000 - stepSizeBytes + m_nSprite_PageSizeBytes;
     SetScrollInfo(m_hwndSpriteViewer, SB_VERT, &si, TRUE);
 }
 
