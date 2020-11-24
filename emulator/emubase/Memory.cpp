@@ -149,7 +149,7 @@ uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okEx
         return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
-        //TODO: Exception processing
+        m_pProcessor->MemoryError();
         return 0;
     }
 
@@ -186,7 +186,7 @@ uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
         return m_pBoard->GetROMCartByte(2, offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
-        //TODO: Exception processing
+        m_pProcessor->MemoryError();
         return 0;
     }
 
@@ -224,7 +224,7 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
-        //TODO: Exception processing
+        m_pProcessor->MemoryError();
         return;
     }
 
@@ -263,7 +263,7 @@ void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
-        //TODO: Exception processing
+        m_pProcessor->MemoryError();
         return;
     }
 
@@ -584,7 +584,6 @@ void CFirstMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     default:
         if (!(((m_Port176644 & 0x103) == 0x100) && m_Port176646 == address))
             m_pProcessor->MemoryError();
-//            ASSERT(0);
         break;
     }
 }
@@ -860,40 +859,6 @@ void CSecondMemoryController::UpdateMemoryMap()
 
 int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMode*/, bool okExec, uint16_t* pOffset, bool /*okView*/) const
 {
-    //uint8_t addrtype = m_pMapping[address];
-    //switch (addrtype)
-    //{
-    //case ADDRTYPE_ROM:
-    //    *pOffset = address - 0100000;
-    //    return ADDRTYPE_ROM;
-    //case ADDRTYPE_RAM0:
-    //    *pOffset = address;
-    //    return ADDRTYPE_RAM0;
-    //case ADDRTYPE_ROMCART1: case ADDRTYPE_ROMCART2:
-    //    {
-    //        int bank = (m_Port177054 & 6) >> 1;
-    //        *pOffset = address - 0100000 + (((uint16_t)bank - 1) << 13);
-    //        return addrtype;
-    //    }
-    //default:
-    //    if ((addrtype & (128+64)) == ADDRTYPE_IO)
-    //    {
-    //        if (okExec) {  // Execution on this address is denied
-    //            *pOffset = 0;
-    //            return ADDRTYPE_DENY;
-    //        }
-    //        else {
-    //            *pOffset = address;
-    //            return ADDRTYPE_IO;
-    //        }
-    //    }
-    //    else
-    //    {
-    //        *pOffset = 0;
-    //        return ADDRTYPE_NONE;
-    //    }
-    //}
-
     switch ((address >> 13) & 7)
     {
     default:  // case 0..3 - 000000-077777 - PPU RAM
@@ -1532,7 +1497,6 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
     default:
         //DebugLogFormat(_T("MemoryError SetPortWord PPU %06o\r\n"), address);
         m_pProcessor->MemoryError();
-        //ASSERT(0);
         break;
     }
 }
