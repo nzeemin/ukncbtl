@@ -174,9 +174,9 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
     bool okPrepareTrack = false;  // Нужно ли считывать дорожку в буфер
 
-    // Проверить, не сменился ли текущий привод
+    // Проверить, не сменился ли текущий привод; bit 10 (REZ) should be set
     uint16_t newdrive = (cmd & 3) ^ 3;
-    if (m_drive != newdrive)
+    if ((cmd & 02000) != 0 && m_drive != newdrive)
     {
         FlushChanges();
 

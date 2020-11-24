@@ -57,6 +57,7 @@ The UKNCBTL project consists of:
 * [ukncbtl-testbench](https://github.com/nzeemin/ukncbtl-testbench/) — test bench for regression and performance testing.
 * [ukncbtl-utils](https://github.com/nzeemin/ukncbtl-utils/) — various utilities: rt11dsk, sav2wav, ESCParser etc.
 * [ukncbtl-doc](https://github.com/nzeemin/ukncbtl-doc/) — documentation and screenshots.
+* [ukncbtl-wasm](https://github.com/nzeemin/ukncbtl-wasm/) — web version of the emulator.
 * Project wiki: https://github.com/nzeemin/ukncbtl-doc/wiki
   * Screenshots: https://github.com/nzeemin/ukncbtl-doc/wiki/Screenshots-ru
   * User's Manual (in Russian): https://github.com/nzeemin/ukncbtl-doc/wiki/Users-Manual-ru
