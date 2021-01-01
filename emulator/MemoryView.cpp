@@ -338,7 +338,7 @@ void MemoryView_OnDraw(HDC hdc)
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
-    DeleteObject(hFont);
+    VERIFY(DeleteObject(hFont));
 
     if (::GetFocus() == m_hwndMemoryViewer)
     {
@@ -355,9 +355,11 @@ void MemoryView_UpdateToolbar()
     int command = ID_DEBUG_MEMORY_RAM;
     switch (m_Mode)
     {
-    case MEMMODE_RAM0: command = ID_DEBUG_MEMORY_RAM; break;
-    case MEMMODE_RAM1: command = ID_DEBUG_MEMORY_RAM; break;
-    case MEMMODE_RAM2: command = ID_DEBUG_MEMORY_RAM; break;
+    case MEMMODE_RAM0:
+    case MEMMODE_RAM1:
+    case MEMMODE_RAM2:
+        command = ID_DEBUG_MEMORY_RAM;
+        break;
     case MEMMODE_ROM:  command = ID_DEBUG_MEMORY_ROM;  break;
     case MEMMODE_CPU:  command = ID_DEBUG_MEMORY_CPU;  break;
     case MEMMODE_PPU:  command = ID_DEBUG_MEMORY_PPU;  break;

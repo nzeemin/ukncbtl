@@ -1663,7 +1663,7 @@ void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT lpDrawItem)
         int left = lpDrawItem->rcItem.right - 16 - 2; // lpDrawItem->rcItem.left + (lpDrawItem->rcItem.right - lpDrawItem->rcItem.left - 16) / 2;
         int top = lpDrawItem->rcItem.top + (lpDrawItem->rcItem.bottom - lpDrawItem->rcItem.top - 16) / 2;
         ::DrawIconEx(hdc, left, top, hicon, 16, 16, 0, NULL, DI_NORMAL);
-        ::DeleteObject(hicon);
+        VERIFY(::DeleteObject(hicon));
     }
 }
 

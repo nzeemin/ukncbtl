@@ -81,14 +81,14 @@ LRESULT CALLBACK ToolWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
             ::SetBkMode(hdc, TRANSPARENT);
             ::DrawText(hdc, buffer, (int) _tcslen(buffer), &rc, DT_LEFT | DT_VCENTER | DT_SINGLELINE);
             ::SelectObject(hdc, hOldFont);
-            ::DeleteObject(hfont);
+            VERIFY(::DeleteObject(hfont));
 
             //RECT rcClose;
             //rcClose.right = rcWindow.right;  rcClose.top = 0;  rcClose.bottom = TOOLWINDOW_CAPTION_HEIGHT;
             //rcClose.left = rcWindow.right - 18;
             //::DrawFrameControl(hdc, &rcClose, DFC_CAPTION, DFCS_CAPTIONCLOSE | DFCS_FLAT);
 
-            ReleaseDC(hWnd, hdc);
+            VERIFY(::ReleaseDC(hWnd, hdc));
         }
         break;
     case WM_SETTEXT:

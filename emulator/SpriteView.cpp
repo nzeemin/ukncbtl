@@ -139,7 +139,7 @@ void SpriteView_Create(int x, int y)
 void SpriteView_InitBitmap()
 {
     m_hSpriteDrawDib = DrawDibOpen();
-    HDC hdc = GetDC(g_hwnd);
+    HDC hdc = ::GetDC(g_hwnd);
 
     m_bmpinfoSprite.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     m_bmpinfoSprite.bmiHeader.biWidth = m_nSprite_ImageCX;
@@ -155,14 +155,14 @@ void SpriteView_InitBitmap()
 
     m_hSpriteBitmap = CreateDIBSection(hdc, &m_bmpinfoSprite, DIB_RGB_COLORS, (void **)&m_pSprite_bits, NULL, 0);
 
-    ReleaseDC(g_hwnd, hdc);
+    VERIFY(::ReleaseDC(g_hwnd, hdc));
 }
 
 void SpriteView_DoneBitmap()
 {
     if (m_hSpriteBitmap != NULL)
     {
-        DeleteObject(m_hSpriteBitmap);  m_hSpriteBitmap = NULL;
+        VERIFY(DeleteObject(m_hSpriteBitmap));  m_hSpriteBitmap = NULL;
     }
 
     DrawDibClose(m_hSpriteDrawDib);

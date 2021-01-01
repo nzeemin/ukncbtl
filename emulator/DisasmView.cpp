@@ -1074,7 +1074,7 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLOR
     LineTo(hdc, x + 4, yTo + 1);
 
     ::SelectObject(hdc, oldPen);
-    ::DeleteObject(hPenJump);
+    VERIFY(::DeleteObject(hPenJump));
 }
 
 void DisasmView_DoDraw(HDC hdc)
@@ -1098,7 +1098,7 @@ void DisasmView_DoDraw(HDC hdc)
     SetTextColor(hdc, colorOld);
     //SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
-    DeleteObject(hFont);
+    VERIFY(DeleteObject(hFont));
 
     if (::GetFocus() == m_hwndDisasmViewer)
     {
@@ -1122,7 +1122,7 @@ void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
     Ellipse(hdc, x, y, x + size, y + size);
     ::SelectObject(hdc, hOldPen);
     ::SelectObject(hdc, hOldBrush);
-    ::DeleteObject(hBreakBrush);
+    VERIFY(::DeleteObject(hBreakBrush));
 }
 
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD previous, int x, int y)
@@ -1151,7 +1151,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD pr
         HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
         PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
         ::SelectObject(hdc, oldBrush);
-        ::DeleteObject(hBrushCurrent);
+        VERIFY(::DeleteObject(hBrushCurrent));
     }
 
     for (int lineindex = 0; lineindex < MAX_DISASMLINECOUNT; lineindex++)  // Draw the lines
