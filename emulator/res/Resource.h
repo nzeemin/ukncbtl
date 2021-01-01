@@ -53,6 +53,7 @@
 #define IDC_SCREENSHOTMODE              1031
 #define IDC_SYSLINK1                    1032
 #define IDC_VERSION                     1033
+#define IDC_COMBO1                      1034
 #define ID_FILE                         32771
 #define ID_FILE_SAVESTATE               32772
 #define ID_FILE_LOADSTATE               32773
@@ -140,7 +141,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        152
 #define _APS_NEXT_COMMAND_VALUE         32899
-#define _APS_NEXT_CONTROL_VALUE         1034
+#define _APS_NEXT_CONTROL_VALUE         1035
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

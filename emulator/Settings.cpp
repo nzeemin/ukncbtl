@@ -463,6 +463,7 @@ void Settings_SetOsdLineColor(COLORREF color)
 }
 
 SETTINGS_GETSET_DWORD(OsdSize, _T("OnScreenDisplaySize"), WORD, 84);
+SETTINGS_GETSET_DWORD(OsdPosition, _T("OnScreenDisplayPosition"), WORD, 0);
 SETTINGS_GETSET_DWORD(OsdLineWidth, _T("OnScreenDisplayLineWidth"), WORD, 3);
 
 

@@ -652,6 +652,22 @@ BOOL ShowSettingsOsdDialog()
     return IDOK == DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS_OSD), g_hwnd, SettingsOsdProc);
 }
 
+void SettingsDialog_InitOsdDialog(HWND hDlg)
+{
+    SetDlgItemInt(hDlg, IDC_EDIT1, Settings_GetOsdSize(), FALSE);
+
+    SetDlgItemInt(hDlg, IDC_EDIT2, Settings_GetOsdLineWidth(), FALSE);
+
+    m_DialogSettings_OsdLineColor = Settings_GetOsdLineColor();
+
+    HWND hPosition = GetDlgItem(hDlg, IDC_COMBO1);
+    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Top Left"));
+    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Top Right"));
+    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Bottom Left"));
+    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Bottom Right"));
+    ::SendMessage(hPosition, CB_SETCURSEL, Settings_GetOsdPosition(), 0);
+}
+
 void SettingsDialog_OnChooseOsdLineColor(HWND hDlg)
 {
     CHOOSECOLOR cc;  memset(&cc, 0, sizeof(cc));
@@ -672,15 +688,8 @@ INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
     switch (message)
     {
     case WM_INITDIALOG:
-        {
-            SetDlgItemInt(hDlg, IDC_EDIT1, Settings_GetOsdSize(), FALSE);
-
-            SetDlgItemInt(hDlg, IDC_EDIT2, Settings_GetOsdLineWidth(), FALSE);
-
-            m_DialogSettings_OsdLineColor = Settings_GetOsdLineColor();
-
-            return (INT_PTR)FALSE;
-        }
+        SettingsDialog_InitOsdDialog(hDlg);
+        return (INT_PTR)FALSE;
     case WM_COMMAND:
         switch (LOWORD(wParam))
         {
@@ -700,6 +709,10 @@ INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM 
                 Settings_SetOsdLineWidth((WORD)osdLineWidth);
 
                 Settings_SetOsdLineColor(m_DialogSettings_OsdLineColor);
+
+                HWND hPosition = GetDlgItem(hDlg, IDC_COMBO1);
+                LRESULT osdPosition = SendMessage(hPosition, CB_GETCURSEL, 0, 0);
+                Settings_SetOsdPosition(osdPosition);
             }
 
             EndDialog(hDlg, LOWORD(wParam));

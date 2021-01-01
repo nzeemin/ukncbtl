@@ -417,13 +417,18 @@ void ScreenView_SetRenderMode(int newRenderMode)
 void ScreenView_DrawOsd(HDC hdc)
 {
     int osdSize = Settings_GetOsdSize();
+    int osdPosition = Settings_GetOsdPosition();
+
+    RECT rcClient;  ::GetClientRect(g_hwndScreen, &rcClient);
+
     int osdSize12 = osdSize / 2;
     int osdSize13 = osdSize / 3;
     int osdSize14 = osdSize / 4;
     int osdSize23 = osdSize * 2 / 3;
     int osdSize34 = osdSize * 3 / 4;
-    int osdLeft = osdSize14;
-    int osdTop = osdSize14;
+    int osdLeft = (osdPosition & 1) ? rcClient.right - osdSize14 - osdSize : osdSize14;
+    int osdTop = (osdPosition & 2) ? rcClient.bottom - osdSize14 - osdSize : osdSize14;
+    int osdNext = (osdPosition & 2) ? -osdSize14 - osdSize : osdSize14 + osdSize;
 
     COLORREF osdLineColor = Settings_GetOsdLineColor();
     int osdLineWidth = Settings_GetOsdLineWidth();
@@ -444,7 +449,7 @@ void ScreenView_DrawOsd(HDC hdc)
         Rectangle(hdc, osdLeft + osdSize23, osdTop, osdLeft + osdSize, osdTop + osdSize);
     }
 
-    osdTop += osdSize + osdSize14;
+    osdTop += osdNext;
     if (g_pBoard->IsFloppyEngineOn())
     {
         Rectangle(hdc, osdLeft, osdTop, osdLeft + osdSize, osdTop + osdSize);
@@ -457,7 +462,7 @@ void ScreenView_DrawOsd(HDC hdc)
         //TODO
     }
 
-    osdTop += osdSize + osdSize14;
+    osdTop += osdNext;
     if (Emulator_IsSound())
     {
         const double sin135 = 0.707106781186548;  // sin(135 degree)
@@ -477,7 +482,7 @@ void ScreenView_DrawOsd(HDC hdc)
 
     ::SelectObject(hdc, oldBrush);
     ::SelectObject(hdc, oldPen);
-    ::DeleteObject(hPenOsd);
+    VERIFY(::DeleteObject(hPenOsd));
 }
 
 void ScreenView_OnDraw(HDC hdc)
@@ -497,7 +502,7 @@ void ScreenView_RedrawScreen()
 
     HDC hdc = GetDC(g_hwndScreen);
     ScreenView_OnDraw(hdc);
-    ::ReleaseDC(g_hwndScreen, hdc);
+    VERIFY(::ReleaseDC(g_hwndScreen, hdc));
 }
 
 // Choose color palette depending of screen mode
