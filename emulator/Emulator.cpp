@@ -729,7 +729,7 @@ bool Emulator_SystemFrame()
         m_nEmulatorSoundChanges = 0;
     }
 
-    // Auto-boot option processing: select "boot from disk" and press Enter
+    // Auto-boot option processing: select boot menu item and press Enter
     if (Option_AutoBoot > 0)
     {
         BYTE digitKeyScan = m_arrDigitKeyScans[Option_AutoBoot];

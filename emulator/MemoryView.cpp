@@ -183,13 +183,14 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            MemoryView_OnDraw(hdc);  // Draw memory dump
+            MemoryView_OnDraw(hdc);
 
             EndPaint(hWnd, &ps);
         }
         break;
     case WM_LBUTTONDOWN:
-        SetFocus(hWnd);
+    case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
         break;
     case WM_KEYDOWN:
         return (LRESULT) MemoryView_OnKeyDown(wParam, lParam);
