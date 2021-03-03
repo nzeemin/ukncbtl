@@ -30,12 +30,15 @@ HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
 
 BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDisasmBaseAddr = 0;
+int m_nDisasmCurrentLineIndex = -1;
 
 void DisasmView_DoDraw(HDC hdc);
 int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
-void DisasmView_OnLButtonDown(WPARAM wParam, LPARAM lParam);
+void DisasmView_OnLButtonDown(WPARAM wParam, int mousex, int mousey);
+void DisasmView_OnRButtonDown(WPARAM wParam, int mousex, int mousey);
+void DisasmView_CopyToClipboard(WPARAM command);
 BOOL DisasmView_ParseSubtitles();
 
 enum DisasmSubtitleType
@@ -213,10 +216,10 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         }
         break;
     case WM_LBUTTONDOWN:
-        DisasmView_OnLButtonDown(wParam, lParam);
+        DisasmView_OnLButtonDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_RBUTTONDOWN:
-        ::SetFocus(hWnd);
+        DisasmView_OnRButtonDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_KEYDOWN:
         return (LRESULT) DisasmView_OnKeyDown(wParam, lParam);
@@ -224,6 +227,11 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     case WM_KILLFOCUS:
         ::InvalidateRect(hWnd, NULL, TRUE);
         break;
+    case WM_COMMAND:
+        if (wParam == ID_DISASM_COPY_ADDRESS || wParam == ID_DISASM_COPY_VALUE)
+            DisasmView_CopyToClipboard(wParam);
+        else
+            return DefWindowProc(hWnd, message, wParam, lParam);
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -250,14 +258,14 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     return FALSE;
 }
 
-void DisasmView_OnLButtonDown(WPARAM /*wParam*/, LPARAM lParam)
+void DisasmView_OnLButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
 {
     ::SetFocus(m_hwndDisasmViewer);
 
-    if (GET_X_LPARAM(lParam) >= m_cxDisasmBreakpointZone)
+    if (mousex >= m_cxDisasmBreakpointZone)
         return;
 
-    int lineindex = (GET_Y_LPARAM(lParam) - 2) / m_cyDisasmLine;
+    int lineindex = (mousey - 2) / m_cyDisasmLine;
     if (lineindex < 0 || lineindex >= MAX_DISASMLINECOUNT)
         return;
 
@@ -265,6 +273,7 @@ void DisasmView_OnLButtonDown(WPARAM /*wParam*/, LPARAM lParam)
     if (pLineItem->type == LINETYPE_NONE)
         return;
 
+    // Try to and add/remove breakpoint for the line
     WORD address = pLineItem->address;
     if (!Emulator_IsBreakpoint(m_okDisasmProcessor, address))
     {
@@ -281,6 +290,52 @@ void DisasmView_OnLButtonDown(WPARAM /*wParam*/, LPARAM lParam)
 
     DebugView_Redraw();
     DisasmView_Redraw();
+}
+
+void DisasmView_OnRButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
+{
+    ::SetFocus(m_hwndDisasmViewer);
+
+    HMENU hMenu = ::CreatePopupMenu();
+    ::AppendMenu(hMenu, 0, ID_DISASM_COPY_ADDRESS, _T("Copy Address"));
+    ::AppendMenu(hMenu, 0, ID_DISASM_COPY_VALUE, _T("Copy Value"));
+
+    POINT pt = { mousex, mousey };
+    ::ClientToScreen(m_hwndDisasmViewer, &pt);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDisasmViewer, NULL);
+
+    VERIFY(::DestroyMenu(hMenu));
+}
+
+void DisasmView_CopyToClipboard(WPARAM command)
+{
+    if (m_nDisasmCurrentLineIndex < 0 || m_nDisasmCurrentLineIndex >= MAX_DISASMLINECOUNT)
+        return;
+
+    DisasmLineItem* pLineItem = m_pDisasmLineItems + m_nDisasmCurrentLineIndex;
+    if (pLineItem->type == LINETYPE_NONE)
+        return;
+
+    WORD value;
+    if (command == ID_DISASM_COPY_ADDRESS)
+        value = pLineItem->address;
+    else
+        value = pLineItem->value;
+
+    TCHAR buffer[7];
+    PrintOctalValue(buffer, value);
+
+    // Prepare global memory object for the text
+    HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(buffer));
+    LPTSTR lptstrCopy = (LPTSTR) ::GlobalLock(hglbCopy);
+    memcpy(lptstrCopy, buffer, sizeof(buffer));
+    ::GlobalUnlock(hglbCopy);
+
+    // Send the text to the Clipboard
+    ::OpenClipboard(g_hwnd);
+    ::EmptyClipboard();
+    ::SetClipboardData(CF_UNICODETEXT, hglbCopy);
+    ::CloseClipboard();
 }
 
 void DisasmView_UpdateWindowText()
@@ -1101,7 +1156,7 @@ void DisasmView_DoDraw(HDC hdc)
     SetTextColor(hdc, colorOld);
     //SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
-    VERIFY(DeleteObject(hFont));
+    VERIFY(::DeleteObject(hFont));
 
     if (::GetFocus() == m_hwndDisasmViewer)
     {
@@ -1131,6 +1186,7 @@ void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
 int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD previous, int x, int y)
 {
     int result = -1;
+    m_nDisasmCurrentLineIndex = -1;
 
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     m_cxDisasmBreakpointZone = x + cxChar * 2;
@@ -1195,6 +1251,7 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD current, WORD pr
         {
             //TextOut(hdc, x + 2 * cxChar, y, _T(" > "), 3);
             result = y;  // Remember line for the focus rect
+            m_nDisasmCurrentLineIndex = lineindex;
         }
         if (address == proccurrent)
             TextOut(hdc, x + 2 * cxChar, y, _T("PC>"), 3);
