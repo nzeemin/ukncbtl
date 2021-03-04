@@ -202,6 +202,8 @@ void Settings_SetDebugMemoryMode(WORD mode);
 WORD Settings_GetDebugMemoryMode();
 void Settings_SetDebugMemoryAddress(WORD address);
 WORD Settings_GetDebugMemoryAddress();
+void Settings_SetDebugMemoryBase(WORD address);
+WORD Settings_GetDebugMemoryBase();
 BOOL Settings_GetDebugMemoryByte();
 void Settings_SetDebugMemoryByte(BOOL flag);
 void Settings_SetAutostart(BOOL flag);

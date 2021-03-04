@@ -1394,7 +1394,7 @@ void MainWindow_DoFileScreenshotToClipboard()
     HGLOBAL hDIB = ScreenView_GetScreenshotAsDIB(screenshotMode);
     if (hDIB != NULL)
     {
-        ::OpenClipboard(0);
+        ::OpenClipboard(g_hwnd);
         ::EmptyClipboard();
         ::SetClipboardData(CF_DIB, hDIB);
         ::CloseClipboard();
@@ -1438,7 +1438,7 @@ void MainWindow_DoFileScreenToClipboard()
     GlobalUnlock(hMem);
 
     // Put text to Clipboard
-    OpenClipboard(0);
+    OpenClipboard(g_hwnd);
     EmptyClipboard();
     SetClipboardData(CF_UNICODETEXT, hMem);
     CloseClipboard();

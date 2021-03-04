@@ -228,7 +228,7 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         ::InvalidateRect(hWnd, NULL, TRUE);
         break;
     case WM_COMMAND:
-        if (wParam == ID_DISASM_COPY_ADDRESS || wParam == ID_DISASM_COPY_VALUE)
+        if (wParam == ID_DEBUG_COPY_ADDRESS || wParam == ID_DEBUG_COPY_VALUE)
             DisasmView_CopyToClipboard(wParam);
         else
             return DefWindowProc(hWnd, message, wParam, lParam);
@@ -297,8 +297,8 @@ void DisasmView_OnRButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
     ::SetFocus(m_hwndDisasmViewer);
 
     HMENU hMenu = ::CreatePopupMenu();
-    ::AppendMenu(hMenu, 0, ID_DISASM_COPY_ADDRESS, _T("Copy Address"));
-    ::AppendMenu(hMenu, 0, ID_DISASM_COPY_VALUE, _T("Copy Value"));
+    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
+    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(m_hwndDisasmViewer, &pt);
@@ -317,7 +317,7 @@ void DisasmView_CopyToClipboard(WPARAM command)
         return;
 
     WORD value;
-    if (command == ID_DISASM_COPY_ADDRESS)
+    if (command == ID_DEBUG_COPY_ADDRESS)
         value = pLineItem->address;
     else
         value = pLineItem->value;
