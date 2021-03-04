@@ -188,6 +188,8 @@ CMotherboard::CMotherboard ()
     m_pFirstMemCtl = new CFirstMemoryController();
     m_pSecondMemCtl = new CSecondMemoryController();
     m_pFloppyCtl = new CFloppyController();
+    m_pHardDrives[0] = nullptr;
+    m_pHardDrives[1] = nullptr;
 
     // Connect devices
     m_pCPU->AttachMemoryController(m_pFirstMemCtl);
@@ -202,8 +204,6 @@ CMotherboard::CMotherboard ()
     m_pROM    = static_cast<uint8_t*>(calloc(32768, 1));
     m_pROMCart[0] = nullptr;
     m_pROMCart[1] = nullptr;
-    m_pHardDrives[0] = nullptr;
-    m_pHardDrives[1] = nullptr;
 
     // Prepare bus devices
     m_pCpuDevices = static_cast<CBusDevice**>(calloc(6, sizeof(CBusDevice*)));

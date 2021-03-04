@@ -93,7 +93,7 @@ public:  // Register control
     uint16_t    GetCPSW() const { return m_savepsw; }
     uint8_t     GetLPSW() const { return (uint8_t)(m_psw & 0xff); }  ///< Get PSW lower byte
     void        SetPSW(uint16_t word);  ///< Set the processor status word register value
-    void        SetCPSW(uint16_t word) {m_savepsw = word; }
+    void        SetCPSW(uint16_t word) { m_savepsw = word; }
     void        SetLPSW(uint8_t byte);
     uint16_t    GetReg(int regno) const { return m_R[regno]; }  ///< Get register value, regno=0..7
     void        SetReg(int regno, uint16_t word);  ///< Set register value
@@ -104,7 +104,7 @@ public:  // Register control
     uint16_t    GetPC() const { return m_R[7]; }
     uint16_t    GetCPC() const { return m_savepc; }
     void        SetPC(uint16_t word);
-    void        SetCPC(uint16_t word) {m_savepc = word; }
+    void        SetCPC(uint16_t word) { m_savepc = word; }
 
 public:  // PSW bits control
     void        SetC(bool bFlag);

@@ -291,8 +291,8 @@ void CProcessor::Execute()
 
     m_internalTick = 0;  //ANYTHING UNKNOWN WILL CAUSE EXCEPTION (EMT)
 
-    if (!CProcessor::InterruptProcessing())
-        CProcessor::CommandExecution();
+    if (!InterruptProcessing())
+        CommandExecution();
 }
 
 bool CProcessor::InterruptProcessing ()
@@ -472,7 +472,7 @@ void CProcessor::CommandExecution()
         }
     }
     if (m_HALTrq || m_BPT_rq || m_IOT_rq || m_EMT_rq || m_TRAPrq || m_FIS_rq)
-        CProcessor::InterruptProcessing ();
+        InterruptProcessing();
 }
 
 void CProcessor::TickEVNT()
@@ -2510,6 +2510,7 @@ void CProcessor::ExecuteMARK ()  // MARK
 
     m_internalTick = MARK_TIMING;
 }
+
 
 //////////////////////////////////////////////////////////////////////
 //
