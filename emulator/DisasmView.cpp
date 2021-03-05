@@ -23,24 +23,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
-WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
-
-HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
-
-BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
-WORD m_wDisasmBaseAddr = 0;
-int m_nDisasmCurrentLineIndex = -1;
-
-void DisasmView_DoDraw(HDC hdc);
-int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
-void DisasmView_UpdateWindowText();
-BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
-void DisasmView_OnLButtonDown(WPARAM wParam, int mousex, int mousey);
-void DisasmView_OnRButtonDown(WPARAM wParam, int mousex, int mousey);
-void DisasmView_CopyToClipboard(WPARAM command);
-BOOL DisasmView_ParseSubtitles();
-
 enum DisasmSubtitleType
 {
     SUBTYPE_NONE = 0,
@@ -56,18 +38,12 @@ struct DisasmSubtitleItem
     LPCTSTR comment;
 };
 
-BOOL m_okDisasmSubtitles = FALSE;
-TCHAR* m_strDisasmSubtitles = NULL;
-DisasmSubtitleItem* m_pDisasmSubtitleItems = NULL;
-int m_nDisasmSubtitleMax = 0;
-int m_nDisasmSubtitleCount = 0;
-
 enum DisasmLineType
 {
-    LINETYPE_NONE     = 0,  // Empty line
-    LINETYPE_DATA     = 1,  // Line contains a data (non-instruction)
-    LINETYPE_INSTR    = 2,  // Line contains a disassembled instruction
-    LINETYPE_JUMP     = 4,  // Line has jump
+    LINETYPE_NONE = 0,  // Empty line
+    LINETYPE_DATA = 1,  // Line contains a data (non-instruction)
+    LINETYPE_INSTR = 2,  // Line contains a disassembled instruction
+    LINETYPE_JUMP = 4,  // Line has jump
     LINETYPE_SUBTITLE = 8,  // Line has subtitle comment
 };
 
@@ -83,6 +59,22 @@ struct DisasmLineItem
     DisasmSubtitleItem* pSubItem;  // Link to subtitles item for LINETYPE_SUBTITLE
 };
 
+
+HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
+WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
+
+HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
+
+BOOL m_okDisasmProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
+WORD m_wDisasmBaseAddr = 0;
+int m_nDisasmCurrentLineIndex = -1;
+
+BOOL m_okDisasmSubtitles = FALSE;
+TCHAR* m_strDisasmSubtitles = NULL;
+DisasmSubtitleItem* m_pDisasmSubtitleItems = NULL;
+int m_nDisasmSubtitleMax = 0;
+int m_nDisasmSubtitleCount = 0;
+
 const int MAX_DISASMLINECOUNT = 50;
 DisasmLineItem* m_pDisasmLineItems = nullptr;
 
@@ -92,6 +84,15 @@ TCHAR m_strDisasmHint2[42] = { 0 };
 
 int m_cxDisasmBreakpointZone = 16;  // Width of breakpoint zone at the left, for mouse click
 int m_cyDisasmLine = 10;
+
+void DisasmView_UpdateWindowText();
+BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
+void DisasmView_OnLButtonDown(int mousex, int mousey);
+void DisasmView_OnRButtonDown(int mousex, int mousey);
+void DisasmView_CopyToClipboard(WPARAM command);
+BOOL DisasmView_ParseSubtitles();
+void DisasmView_DoDraw(HDC hdc);
+int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, WORD base, WORD previous, int x, int y);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -121,6 +122,7 @@ void DisasmView_Init()
 {
     m_pDisasmLineItems = static_cast<DisasmLineItem*>(::calloc(MAX_DISASMLINECOUNT, sizeof(DisasmLineItem)));
 }
+
 void DisasmView_Done()
 {
     if (m_strDisasmSubtitles != nullptr)
@@ -216,10 +218,10 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         }
         break;
     case WM_LBUTTONDOWN:
-        DisasmView_OnLButtonDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        DisasmView_OnLButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_RBUTTONDOWN:
-        DisasmView_OnRButtonDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        DisasmView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_KEYDOWN:
         return (LRESULT) DisasmView_OnKeyDown(wParam, lParam);
@@ -258,7 +260,7 @@ BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     return FALSE;
 }
 
-void DisasmView_OnLButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
+void DisasmView_OnLButtonDown(int mousex, int mousey)
 {
     ::SetFocus(m_hwndDisasmViewer);
 
@@ -292,7 +294,7 @@ void DisasmView_OnLButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
     DisasmView_Redraw();
 }
 
-void DisasmView_OnRButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
+void DisasmView_OnRButtonDown(int mousex, int /*mousey*/)
 {
     ::SetFocus(m_hwndDisasmViewer);
 
@@ -300,7 +302,7 @@ void DisasmView_OnRButtonDown(WPARAM /*wParam*/, int mousex, int mousey)
     ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
     ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
 
-    POINT pt = { mousex, mousey };
+    POINT pt = { mousex, 2 + m_nDisasmCurrentLineIndex * m_cyDisasmLine + m_cyDisasmLine };
     ::ClientToScreen(m_hwndDisasmViewer, &pt);
     ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDisasmViewer, NULL);
 
