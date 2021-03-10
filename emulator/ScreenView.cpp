@@ -710,6 +710,9 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
 {
     void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    if (pBits == nullptr)
+        return NULL;
+
     const DWORD* palette = ScreenView_GetPalette();
     Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)palette);
 
@@ -718,6 +721,11 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
 
     void* pScrBits = ::calloc(scrwidth * scrheight, 4);
+    if (pScrBits == nullptr)
+    {
+        ::free(pBits);
+        return NULL;
+    }
     callback(pBits, pScrBits);
     ::free(pBits);
 

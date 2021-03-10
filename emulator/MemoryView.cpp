@@ -355,7 +355,7 @@ BOOL MemoryView_OnVScroll(WORD scrollcmd, WORD scrollpos)
 void MemoryView_UpdateWindowText()
 {
     TCHAR buffer[64];
-    _stprintf_s(buffer, 64, _T("Memory - %s - %06o"), MemoryView_GetMemoryModeName(), m_wCurrentAddress);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Memory - %s - %06o"), MemoryView_GetMemoryModeName(), m_wCurrentAddress);
     ::SetWindowText(g_hwndMemory, buffer);
 }
 

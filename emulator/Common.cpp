@@ -20,7 +20,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
 {
     TCHAR buffer[360];
-    wsprintf(buffer,
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
             _T("ASSERTION FAILED\n\nFile: %S\nLine: %d\n\n")
             _T("Press Abort to stop the program, Retry to break to the debugger, or Ignore to continue execution."),
             lpszFileName, nLine);
@@ -49,10 +49,11 @@ void AlertWarning(LPCTSTR sMessage)
 void AlertWarningFormat(LPCTSTR sFormat, ...)
 {
     TCHAR buffer[512];
+    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
 
     va_list ptr;
     va_start(ptr, sFormat);
-    _vsntprintf_s(buffer, 512, 512 - 1, sFormat, ptr);
+    _vsntprintf_s(buffer, buffersize, buffersize - 1, sFormat, ptr);
     va_end(ptr);
 
     ::MessageBox(NULL, buffer, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
@@ -89,10 +90,11 @@ void DebugPrint(LPCTSTR message)
 void DebugPrintFormat(LPCTSTR pszFormat, ...)
 {
     TCHAR buffer[512];
+    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
 
     va_list ptr;
     va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
+    _vsntprintf_s(buffer, buffersize, buffersize - 1, pszFormat, ptr);
     va_end(ptr);
 
     DebugPrint(buffer);
@@ -156,10 +158,11 @@ void DebugLog(LPCTSTR message)
 void DebugLogFormat(LPCTSTR pszFormat, ...)
 {
     TCHAR buffer[512];
+    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
 
     va_list ptr;
     va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, 512, 512 - 1, pszFormat, ptr);
+    _vsntprintf_s(buffer, buffersize, buffersize - 1, pszFormat, ptr);
     va_end(ptr);
 
     DebugLog(buffer);

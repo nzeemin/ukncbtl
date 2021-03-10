@@ -280,7 +280,7 @@ BOOL MainWindow_InitStatusbar()
     TCHAR welcomeTemplate[100];
     LoadString(g_hInst, IDS_WELCOME, welcomeTemplate, 100);
     TCHAR buffer[100];
-    wsprintf(buffer, welcomeTemplate, _T(APP_VERSION_STRING));
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, welcomeTemplate, _T(APP_VERSION_STRING));
     m_hwndStatusbar = CreateStatusWindow(
             WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
             buffer,
@@ -418,7 +418,7 @@ void MainWindow_UpdateWindowTitle()
 {
     LPCTSTR emustate = g_okEmulatorRunning ? _T("run") : _T("stop");
     TCHAR buffer[100];
-    wsprintf(buffer, _T("%s [%s]"), g_szTitle, emustate);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s [%s]"), g_szTitle, emustate);
     SetWindowText(g_hwnd, buffer);
 }
 
@@ -1377,7 +1377,8 @@ void MainWindow_DoFileScreenshot()
     TCHAR bufFileName[MAX_PATH];
     SYSTEMTIME st;
     ::GetSystemTime(&st);
-    wsprintf(bufFileName, _T("%04d%02d%02d%02d%02d%02d%03d.png"),
+    _sntprintf(bufFileName, sizeof(bufFileName) / sizeof(TCHAR) - 1,
+            _T("%04d%02d%02d%02d%02d%02d%03d.png"),
             st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 
     int screenshotMode = Settings_GetScreenshotMode();

@@ -236,7 +236,7 @@ void DebugView_UpdateWindowText()
     LPCTSTR sProcName = pDebugPU->GetName();
 
     TCHAR buffer[64];
-    _stprintf_s(buffer, 64, _T("Debug - %s"), sProcName);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Debug - %s"), sProcName);
     ::SetWindowText(g_hwndDebug, buffer);
 }
 
@@ -733,7 +733,7 @@ void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* 
         int slot = ((value177054 & 8) == 0) ? 1 : 2;
         int bank = (value177054 & 6) >> 1;
         TCHAR buffer[10];
-        wsprintf(buffer, _T("Cart %d/%d"), slot, bank);
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Cart %d/%d"), slot, bank);
         TextOut(hdc, xtype, ybase - cyLine * 9, buffer, _tcslen(buffer));
     }
 

@@ -276,7 +276,8 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
     double wavLengthSeconds = double(wavLength) / wavFreq;
 
     TCHAR buffer[64];
-    wsprintf(buffer, _T("%d:%02d.%02d, %d Hz"),
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
+            _T("%d:%02d.%02d, %d Hz"),
             int(wavLengthSeconds) / 60, int(wavLengthSeconds) % 60, int(wavLengthSeconds * 100) % 100, wavFreq);
     SetWindowText(m_hwndTapeTotal, buffer);
 
@@ -340,7 +341,8 @@ void TapeView_UpdatePosition()
     int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
     double wavPosSeconds = double(wavPos) / wavFreq;
     TCHAR buffer[64];
-    wsprintf(buffer, _T("%d:%02d.%02d"),
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
+            _T("%d:%02d.%02d"),
             int(wavPosSeconds) / 60, int(wavPosSeconds) % 60, int(wavPosSeconds * 100) % 100);
     SetWindowText(m_hwndTapeCurrent, buffer);
 

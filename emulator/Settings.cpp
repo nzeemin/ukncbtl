@@ -102,7 +102,7 @@ BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthCh
 BOOL Settings_SaveDwordValue(LPCTSTR sName, DWORD dwValue)
 {
     TCHAR buffer[12];
-    wsprintf(buffer, _T("%lu"), dwValue);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%lu"), dwValue);
 
     return Settings_SaveStringValue(sName, buffer);
 }
@@ -125,7 +125,7 @@ BOOL Settings_SaveColorValue(LPCTSTR sName, COLORREF color)
     DWORD dwValue = ((color & 0x0000ff) << 16) | (color & 0x00ff00) | ((color & 0xff0000) >> 16);
 
     TCHAR buffer[12];
-    wsprintf(buffer, _T("%06lX"), dwValue);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%06lX"), dwValue);
 
     return Settings_SaveStringValue(sName, buffer);
 }
@@ -157,7 +157,7 @@ BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
     for (int i = 0; i < size; i++)
     {
         int a = *p;
-        wsprintf(buf, _T("%02X"), a);
+        _sntprintf(buf, 3, _T("%02X"), a);
         p++;
         buf += 2;
     }

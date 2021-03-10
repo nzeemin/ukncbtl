@@ -343,21 +343,21 @@ void DisasmView_CopyToClipboard(WPARAM command)
 void DisasmView_UpdateWindowText()
 {
     CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
-    ASSERT(pDisasmPU != NULL);
+    ASSERT(pDisasmPU != nullptr);
     LPCTSTR sProcName = pDisasmPU->GetName();
 
     TCHAR buffer[64];
     if (m_okDisasmSubtitles)
-        _stprintf_s(buffer, 64, _T("Disassemble - %s - Subtitles"), sProcName);
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Disassemble - %s - Subtitles"), sProcName);
     else
-        _stprintf_s(buffer, 64, _T("Disassemble - %s"), sProcName);
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Disassemble - %s"), sProcName);
     ::SetWindowText(g_hwndDisasm, buffer);
 }
 
 void DisasmView_ResizeSubtitleArray(int newSize)
 {
     DisasmSubtitleItem* pNewMemory = (DisasmSubtitleItem*) ::calloc(newSize, sizeof(DisasmSubtitleItem));
-    if (m_pDisasmSubtitleItems != NULL)
+    if (m_pDisasmSubtitleItems != nullptr)
     {
         ::memcpy(pNewMemory, m_pDisasmSubtitleItems, sizeof(DisasmSubtitleItem) * m_nDisasmSubtitleMax);
         ::free(m_pDisasmSubtitleItems);

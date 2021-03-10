@@ -1630,7 +1630,7 @@ void TraceInstruction(CProcessor* pProc, CMotherboard* /*pBoard*/)
     TCHAR args[32];
     DisassembleInstruction(memory, address, instr, args);
     TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer), _T("%s\t%s\t%s\r\n"), bufaddr, instr, args);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\r\n"), bufaddr, instr, args);
 
     DebugLog(buffer);
 }

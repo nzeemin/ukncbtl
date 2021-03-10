@@ -270,7 +270,7 @@ void SpriteView_UpdateWindowText()
 
     const size_t buffer_size = 128;
     TCHAR buffer[buffer_size];
-    _stprintf_s(buffer, buffer_size,
+    _sntprintf(buffer, buffer_size - 1,
             _T("Sprite Viewer - address %06o, width %d, mode%d %s"),
             m_wSprite_BaseAddress, m_nSprite_width, m_nSprite_Mode, spriteModeName);
     ::SetWindowText(g_hwndSprite, buffer);
