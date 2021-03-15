@@ -60,10 +60,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
    typedef signed   __int32  int32_t;
    typedef unsigned __int32  uint32_t;
    typedef unsigned __int64  uint64_t;
-
-#  define false   0
-#  define true    1
-#  define bool int
 #else
 #include <stdint.h>
 #include <stdbool.h>

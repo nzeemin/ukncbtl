@@ -536,7 +536,7 @@ WORD MemoryView_GetWordFromMemory(WORD address, BOOL& okValid, int& addrtype, WO
     okValid = TRUE;
     addrtype = ADDRTYPE_NONE;
     wChanged = 0;
-    BOOL okHalt = FALSE;
+    bool okHalt = false;
 
     switch (m_Mode)
     {

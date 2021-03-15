@@ -425,7 +425,7 @@ void SpriteView_PrepareBitmap()
         {
             DWORD* pBits = m_pSprite_bits + (m_nSprite_ImageCY - 1 - y) * m_nSprite_ImageCX + x;
 
-            BOOL okHalt = g_pBoard->GetCPU()->IsHaltMode();
+            bool okHalt = g_pBoard->GetCPU()->IsHaltMode();
             for (int w = 0; w < m_nSprite_width; w++)
             {
                 if (m_nSprite_Mode == 0)

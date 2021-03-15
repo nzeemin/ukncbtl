@@ -65,7 +65,7 @@ void TapeView_DoSaveWav();
 void TapeView_DoPlayStop();
 void TapeView_DoRewind();
 
-BOOL CALLBACK TapeView_TapeReadCallback(UINT samples);
+bool CALLBACK TapeView_TapeReadCallback(UINT samples);
 void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples);
 
 #define TAPE_BUFFER_SIZE 624
@@ -410,7 +410,7 @@ void TapeView_DoRewind()
 //   samples    Number of samples to play.
 // Output:
 //   result     Bit to put in tape input port.
-BOOL CALLBACK TapeView_TapeReadCallback(unsigned int samples)
+bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
 {
     if (samples == 0) return 0;
 
@@ -423,7 +423,7 @@ BOOL CALLBACK TapeView_TapeReadCallback(unsigned int samples)
         value = WavPcmFile_ReadOne(m_hTapeWavPcmFile);
         *(m_TapeBuffer + TAPE_BUFFER_SIZE - samples + i) = (BYTE)((value >> 24) & 0xff);
     }
-    BOOL result = (value >= UINT_MAX / 2);
+    bool result = (value >= UINT_MAX / 2);
 
     InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
 

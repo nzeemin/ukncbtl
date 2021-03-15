@@ -458,7 +458,7 @@ void Emulator_SetSound(bool soundOnOff)
 bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 {
     DWORD dwBytesRead;
-    bool result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, nullptr);
+    BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, nullptr);
 
     if (result && (dwBytesRead == 1))
         DebugLogFormat(_T("Net IN %02x\r\n"), (int)(*pByte));
@@ -549,13 +549,13 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
 
     m_okEmulatorNetwork = networkOnOff;
 
-    return TRUE;
+    return true;
 }
 
 bool CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
 {
     DWORD dwBytesRead;
-    bool result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, nullptr);
+    BOOL result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, nullptr);
 
     return result && (dwBytesRead == 1);
 }
@@ -636,7 +636,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
 
     m_okEmulatorSerial = serialOnOff;
 
-    return TRUE;
+    return true;
 }
 
 bool CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
@@ -646,7 +646,7 @@ bool CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
         ::fwrite(&byte, 1, 1, m_fpEmulatorParallelOut);
     }
 
-    return TRUE;
+    return true;
 }
 
 void Emulator_SetParallel(bool parallelOnOff)

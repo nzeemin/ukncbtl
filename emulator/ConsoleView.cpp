@@ -30,7 +30,7 @@ HWND m_hwndConsoleEdit = (HWND) INVALID_HANDLE_VALUE;  // Console line - edit co
 HWND m_hwndConsolePrompt = (HWND) INVALID_HANDLE_VALUE;  // Console prompt - static control
 HFONT m_hfontConsole = NULL;
 WNDPROC m_wndprocConsoleEdit = NULL;  // Old window proc address of the console prompt
-BOOL m_okCurrentProc = FALSE;  // Current processor: TRUE - CPU, FALSE - PPU
+bool m_okCurrentProc = false;  // Current processor: TRUE - CPU, FALSE - PPU
 HBRUSH m_hbrConsoleFocused = NULL;
 
 CProcessor* ConsoleView_GetCurrentProcessor();
@@ -286,7 +286,7 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc)
     if (pData == nullptr)
         return FALSE;
 
-    int isHaltMode = pProc->IsHaltMode();
+    bool isHaltMode = pProc->IsHaltMode();
     int addrtype;
     for (WORD i = 0; i <= 32767; i++)
         pData[i] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
@@ -378,7 +378,7 @@ void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines = 8)
     address &= ~1;  // Line up to even address
 
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    BOOL okHaltMode = pProc->IsHaltMode();
+    bool okHaltMode = pProc->IsHaltMode();
 
     for (int line = 0; line < lines; line++)
     {
@@ -426,13 +426,13 @@ void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines = 8)
 int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInstr, BOOL okShort)
 {
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    BOOL okHaltMode = pProc->IsHaltMode();
+    bool okHaltMode = pProc->IsHaltMode();
 
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
     int addrtype;
     for (WORD i = 0; i < nWindowSize + 2; i++)
-        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, TRUE, &addrtype);
+        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, true, &addrtype);
 
     TCHAR bufaddr[7];
     TCHAR bufvalue[7];

@@ -269,7 +269,7 @@ void CMotherboard::SetTrace(uint32_t dwTrace)
 {
     m_dwTrace = dwTrace;
     if (m_pFloppyCtl != nullptr)
-        m_pFloppyCtl->SetTrace(dwTrace & TRACE_FLOPPY);
+        m_pFloppyCtl->SetTrace((dwTrace & TRACE_FLOPPY) != 0);
 }
 
 void CMotherboard::Reset ()

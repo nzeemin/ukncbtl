@@ -667,7 +667,7 @@ void ScreenView_ScanKeyboard()
     WORD keyevent;
     while ((keyevent = ScreenView_GetKeyEventFromQueue()) != 0)
     {
-        BOOL pressed = ((keyevent & 0x8000) != 0);
+        bool pressed = ((keyevent & 0x8000) != 0);
         BYTE ukncscan = LOBYTE(keyevent);
         g_pBoard->KeyboardEvent(ukncscan, pressed);
     }
