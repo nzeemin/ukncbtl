@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ScreenView.cpp
 
 #include "stdafx.h"
+#include <windowsx.h>
 #include "Main.h"
 #include "Views.h"
 #include "Emulator.h"
@@ -58,6 +59,7 @@ typedef void (CALLBACK* PREPARE_SCREENSHOT_CALLBACK)(const void * pSrcBits, void
 
 void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei);
 PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode);
+void ScreenView_OnRButtonDown(int mousex, int mousey);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -338,6 +340,9 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
+    case WM_COMMAND:
+        ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
@@ -352,7 +357,9 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     case WM_LBUTTONDOWN:
         SetFocus(hWnd);
         break;
-
+    case WM_RBUTTONDOWN:
+        ScreenView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        break;
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
         if (wParam == VK_RETURN)
@@ -384,6 +391,22 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
+}
+
+void ScreenView_OnRButtonDown(int mousex, int mousey)
+{
+    ::SetFocus(g_hwndScreen);
+
+    HMENU hMenu = ::CreatePopupMenu();
+    ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOT, _T("Screenshot"));
+    ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOTTOCLIPBOARD, _T("Screenshot to Clipboard"));
+    ::AppendMenu(hMenu, 0, ID_FILE_SCREENTOCLIPBOARD, _T("Screen Text to Clipboard"));
+
+    POINT pt = { mousex, mousey };
+    ::ClientToScreen(g_hwndScreen, &pt);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, g_hwndScreen, NULL);
+
+    VERIFY(::DestroyMenu(hMenu));
 }
 
 int ScreenView_GetRenderMode()
