@@ -58,6 +58,7 @@ protected:  // Processor state
 
 protected:  // Current instruction processing
     uint16_t    m_instruction;      ///< Curent instruction
+    uint16_t    m_instructionpc;    ///< Address of the current instruction
     uint8_t     m_regsrc;           ///< Source register number
     uint8_t     m_methsrc;          ///< Source address mode
     uint16_t    m_addrsrc;          ///< Source address
@@ -84,6 +85,7 @@ protected:  // Interrupt processing
     uint8_t     m_VIRQreset;        ///< VIRQ request reset for given device
 protected:
     CMemoryController* m_pMemoryController;
+    bool m_okTrace;                 ///< Trace mode on/off
 
 public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
@@ -136,6 +138,7 @@ public:  // Processor control
     void        CommandExecution();
     int         GetInternalTick() const { return m_internalTick; }
     void        ClearInternalTick() { m_internalTick = 0; }
+    void        SetTrace(bool okTrace) { m_okTrace = okTrace; }  ///< Set trace mode on/off
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(uint8_t* pImage) const;

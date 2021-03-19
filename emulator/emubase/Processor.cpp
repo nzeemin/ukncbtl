@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "Processor.h"
+#include "Emubase.h"
 
 
 // Timings ///////////////////////////////////////////////////////////
@@ -263,6 +264,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_okStopped = true;
     m_internalTick = 0;
     m_pMemoryController = nullptr;
+    m_okTrace = false;
     m_waitmode = false;
     m_stepmode = false;
     m_buserror = false;
@@ -272,7 +274,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_DCLOpin = m_ACLOpin = true;
     m_haltpin = false;
 
-    m_instruction = 0;
+    m_instruction = m_instructionpc = 0;
     m_regsrc = m_methsrc = 0;
     m_regdest = m_methdest = 0;
     m_addrsrc = m_addrdest = 0;
@@ -464,6 +466,7 @@ void CProcessor::CommandExecution()
 {
     if (!m_waitmode)
     {
+        m_instructionpc = m_R[7];  // Store address of the current instruction
         FetchInstruction();  // Read next instruction from memory
         if (!m_RPLYrq)
         {
@@ -535,6 +538,35 @@ void CProcessor::MemoryError()
 
 //////////////////////////////////////////////////////////////////////
 
+
+static void TraceInstruction(CProcessor* pProc, uint16_t address)
+{
+#if defined(PRODUCT)
+    UNREFERENCED_PARAMETER(pProc);
+    UNREFERENCED_PARAMETER(address);
+#else
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    bool okHaltMode = pProc->IsHaltMode();
+    uint16_t memory[4];
+    int addrtype = 0;
+    memory[0] = pMemCtl->GetWordView(address + 0 * 2, okHaltMode, true, &addrtype);
+    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
+    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
+    memory[3] = pMemCtl->GetWordView(address + 3 * 2, okHaltMode, true, &addrtype);
+
+    TCHAR bufaddr[7];
+    PrintOctalValue(bufaddr, address);
+
+    TCHAR instr[8];
+    TCHAR args[32];
+    DisassembleInstruction(memory, address, instr, args);
+    TCHAR buffer[64];
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
+
+    DebugLog(buffer);
+#endif
+}
+
 void CProcessor::FetchInstruction()
 {
     // Считываем очередную инструкцию
@@ -545,8 +577,11 @@ void CProcessor::FetchInstruction()
     SetPC(GetPC() + 2);
 }
 
-void CProcessor::TranslateInstruction ()
+void CProcessor::TranslateInstruction()
 {
+    if (m_okTrace)
+        TraceInstruction(this, m_instructionpc);
+
     // Prepare values to help decode the command
     m_regdest  = GetDigit(m_instruction, 0);
     m_methdest = GetDigit(m_instruction, 1);

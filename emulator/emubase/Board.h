@@ -26,7 +26,8 @@ class CMemoryController;
 // Trace flags
 #define TRACE_NONE         0  // Turn off all tracing
 #define TRACE_FLOPPY    0100  // Trace floppies
-#define TRACE_CPU       0400  // Trace CPU
+#define TRACE_PPU       0200  // Trace PPU instructions
+#define TRACE_CPU       0400  // Trace CPU instructions
 #define TRACE_ALL    0177777  // Trace all
 
 // Emulator image constants
@@ -305,12 +306,11 @@ private:
     chan_stc    m_chancpurx[2];
     chan_stc    m_chanpputx[2];
     chan_stc    m_chanppurx[3];
+    uint8_t     m_chan0disabled;
+    uint8_t     m_irq_cpureset;
 
-    uint8_t             m_chan0disabled;
-    uint8_t             m_irq_cpureset;
-
-    uint8_t             m_scanned_key;
-    kbd_row             m_kbd_matrix[16];
+    uint8_t     m_scanned_key;
+    kbd_row     m_kbd_matrix[16];
 
 private:
     TAPEREADCALLBACK    m_TapeReadCallback;
@@ -326,7 +326,7 @@ private:
     NETWORKOUTCALLBACK  m_NetworkOutCallback;
     TERMINALOUTCALLBACK m_TerminalOutCallback;
 
-    void DoSound(void);
+    void DoSound();
 };
 
 inline uint16_t CMotherboard::GetRAMWord(int plan, uint16_t offset) const

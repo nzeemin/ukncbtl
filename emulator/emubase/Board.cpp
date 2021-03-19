@@ -268,6 +268,10 @@ CMotherboard::~CMotherboard ()
 void CMotherboard::SetTrace(uint32_t dwTrace)
 {
     m_dwTrace = dwTrace;
+    if (m_pPPU != nullptr)
+        m_pPPU->SetTrace((dwTrace & TRACE_PPU) != 0);
+    if (m_pCPU != nullptr)
+        m_pCPU->SetTrace((dwTrace & TRACE_CPU) != 0);
     if (m_pFloppyCtl != nullptr)
         m_pFloppyCtl->SetTrace((dwTrace & TRACE_FLOPPY) != 0);
 }
@@ -1604,38 +1608,6 @@ void CMotherboard::SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTC
         //TODO: Set port value to indicate we are ready to translate
     }
 }
-
-
-//////////////////////////////////////////////////////////////////////
-
-#if !defined(PRODUCT)
-
-void TraceInstruction(CProcessor* pProc, CMotherboard* /*pBoard*/)
-{
-    uint16_t address = pProc->GetPC();
-    bool okHaltMode = pProc->IsHaltMode();
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
-
-    uint16_t memory[4];
-    int addrtype = 0;
-    memory[0] = pMemCtl->GetWordView(address + 0 * 2, okHaltMode, true, &addrtype);
-    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
-    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
-    memory[3] = pMemCtl->GetWordView(address + 3 * 2, okHaltMode, true, &addrtype);
-
-    TCHAR bufaddr[7];
-    PrintOctalValue(bufaddr, address);
-
-    TCHAR instr[8];
-    TCHAR args[32];
-    DisassembleInstruction(memory, address, instr, args);
-    TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\r\n"), bufaddr, instr, args);
-
-    DebugLog(buffer);
-}
-
-#endif
 
 
 //////////////////////////////////////////////////////////////////////
