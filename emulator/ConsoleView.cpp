@@ -77,7 +77,7 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
-    m_okCurrentProc = Settings_GetDebugCpuPpu();
+    m_okCurrentProc = Settings_GetDebugCpuPpu() != 0;
 
     g_hwndConsole = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
@@ -222,8 +222,8 @@ CProcessor* ConsoleView_GetCurrentProcessor()
 
 void ConsoleView_PrintFormat(LPCTSTR pszFormat, ...)
 {
-    TCHAR buffer[512];
-    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
+    const size_t buffersize = 512;
+    TCHAR buffer[buffersize];
 
     va_list ptr;
     va_start(ptr, pszFormat);
@@ -481,7 +481,7 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
 
 void ConsoleView_SetCurrentProc(BOOL okCPU)
 {
-    m_okCurrentProc = okCPU;
+    m_okCurrentProc = okCPU != 0;
     ConsoleView_PrintConsolePrompt();
 }
 

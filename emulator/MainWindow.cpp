@@ -414,6 +414,11 @@ void MainWindow_RestorePositionAndShow()
         MainWindow_DoViewFullscreen();
 }
 
+BOOL MainWindow_IsFullscreen()
+{
+    return m_MainWindow_Fullscreen;
+}
+
 void MainWindow_UpdateWindowTitle()
 {
     LPCTSTR emustate = g_okEmulatorRunning ? _T("run") : _T("stop");
@@ -1279,7 +1284,7 @@ void MainWindow_DoEmulatorSound()
 {
     Settings_SetSound(!Settings_GetSound());
 
-    Emulator_SetSound(Settings_GetSound());
+    Emulator_SetSound(Settings_GetSound() != 0);
 
     MainWindow_UpdateMenu();
 }

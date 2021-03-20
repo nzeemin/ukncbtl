@@ -143,7 +143,7 @@ void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
     ASSERT(hwndParent != NULL);
 
-    m_okDisasmProcessor = Settings_GetDebugCpuPpu();
+    m_okDisasmProcessor = Settings_GetDebugCpuPpu() != 0;
 
     g_hwndDisasm = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
@@ -535,7 +535,7 @@ const DisasmSubtitleItem* DisasmView_FindSubtitle(WORD address, int typemask)
 
 void DisasmView_SetCurrentProc(BOOL okCPU)
 {
-    m_okDisasmProcessor = okCPU;
+    m_okDisasmProcessor = okCPU != 0;
     CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
     ASSERT(pDisasmPU != nullptr);
     m_wDisasmBaseAddr = pDisasmPU->GetPC();

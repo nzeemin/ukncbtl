@@ -48,8 +48,8 @@ void AlertWarning(LPCTSTR sMessage)
 }
 void AlertWarningFormat(LPCTSTR sFormat, ...)
 {
-    TCHAR buffer[512];
-    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
+    const size_t buffersize = 512;
+    TCHAR buffer[buffersize];
 
     va_list ptr;
     va_start(ptr, sFormat);
@@ -89,8 +89,8 @@ void DebugPrint(LPCTSTR message)
 
 void DebugPrintFormat(LPCTSTR pszFormat, ...)
 {
-    TCHAR buffer[512];
-    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
+    const size_t buffersize = 512;
+    TCHAR buffer[buffersize];
 
     va_list ptr;
     va_start(ptr, pszFormat);
@@ -157,8 +157,8 @@ void DebugLog(LPCTSTR message)
 
 void DebugLogFormat(LPCTSTR pszFormat, ...)
 {
-    TCHAR buffer[512];
-    const size_t buffersize = sizeof(buffer) / sizeof(TCHAR);
+    const size_t buffersize = 512;
+    TCHAR buffer[buffersize];
 
     va_list ptr;
     va_start(ptr, pszFormat);

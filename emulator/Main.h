@@ -31,6 +31,7 @@ extern HWND g_hwnd;  // Main window handle
 void MainWindow_RegisterClass();
 BOOL CreateMainWindow();
 void MainWindow_RestoreSettings();
+BOOL MainWindow_IsFullscreen();
 void MainWindow_UpdateMenu();
 void MainWindow_UpdateWindowTitle();
 void MainWindow_UpdateRenderModeMenu();

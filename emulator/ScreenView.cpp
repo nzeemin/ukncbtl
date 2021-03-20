@@ -401,6 +401,11 @@ void ScreenView_OnRButtonDown(int mousex, int mousey)
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOT, _T("Screenshot"));
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOTTOCLIPBOARD, _T("Screenshot to Clipboard"));
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENTOCLIPBOARD, _T("Screen Text to Clipboard"));
+    if (MainWindow_IsFullscreen())
+    {
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        ::AppendMenu(hMenu, 0, ID_VIEW_FULLSCREEN, _T("Exit Fullscreen"));
+    }
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(g_hwndScreen, &pt);
