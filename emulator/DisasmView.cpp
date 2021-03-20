@@ -67,9 +67,10 @@ WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the Too
 
 HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
 
-bool m_okDisasmProcessor = false;  // TRUE - CPU, FALSE - PPU
+bool m_okDisasmProcessor = false;  // true - CPU, false - PPU
 WORD m_wDisasmBaseAddr = 0;
-int m_nDisasmCurrentLineIndex = -1;
+int m_nDisasmCurrentLineIndex   = -1;  // Line index for PC address
+int m_nDisasmSelectedLineIndex  = -1;  // Line selected by user
 
 bool m_okDisasmSubtitles = false;
 TCHAR* m_strDisasmSubtitles = nullptr;
@@ -230,7 +231,9 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         if (wParam == ID_DEBUG_COPY_ADDRESS || wParam == ID_DEBUG_COPY_VALUE)
             DisasmView_CopyToClipboard(wParam);
         else
-            return DefWindowProc(hWnd, message, wParam, lParam);
+            // Forward commands to the main window
+            ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
+        break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
@@ -291,15 +294,33 @@ void DisasmView_OnLButtonDown(int mousex, int mousey)
     DisasmView_Redraw();
 }
 
-void DisasmView_OnRButtonDown(int mousex, int /*mousey*/)
+void DisasmView_OnRButtonDown(int mousex, int mousey)
 {
+    // Find out if we have a valid line under the mouse cursor
+    int lineindex = (mousey - 2) / m_cyDisasmLine;
+    DisasmLineItem* pLineItem = nullptr;
+    if (lineindex >= 0 && lineindex < MAX_DISASMLINECOUNT)
+        pLineItem = m_pDisasmLineItems + lineindex;
+    if (pLineItem->type == LINETYPE_NONE)
+        pLineItem = nullptr;
+
+    m_nDisasmSelectedLineIndex = (pLineItem == nullptr) ? m_nDisasmCurrentLineIndex : lineindex;
+
     ::SetFocus(m_hwndDisasmViewer);
 
     HMENU hMenu = ::CreatePopupMenu();
-    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
-    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
+    if (pLineItem != nullptr)
+    {
+        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
+        if ((pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0)  // if the item has a valid value
+            ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    }
+    ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDisasmProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
+    ::AppendMenu(hMenu, 0, ID_DEBUG_SUBTITLES, m_okDisasmSubtitles ? _T("Unload Subtitles\tS") : _T("Load Subtitles...\tS"));
 
-    POINT pt = { mousex, 2 + m_nDisasmCurrentLineIndex * m_cyDisasmLine + m_cyDisasmLine };
+    int linebottom = 2 + m_cyDisasmLine * (m_nDisasmSelectedLineIndex + 1);
+    POINT pt = { mousex, linebottom };
     ::ClientToScreen(m_hwndDisasmViewer, &pt);
     ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDisasmViewer, NULL);
 
@@ -308,10 +329,10 @@ void DisasmView_OnRButtonDown(int mousex, int /*mousey*/)
 
 void DisasmView_CopyToClipboard(WPARAM command)
 {
-    if (m_nDisasmCurrentLineIndex < 0 || m_nDisasmCurrentLineIndex >= MAX_DISASMLINECOUNT)
+    if (m_nDisasmSelectedLineIndex < 0 || m_nDisasmSelectedLineIndex >= MAX_DISASMLINECOUNT)
         return;
 
-    DisasmLineItem* pLineItem = m_pDisasmLineItems + m_nDisasmCurrentLineIndex;
+    DisasmLineItem* pLineItem = m_pDisasmLineItems + m_nDisasmSelectedLineIndex;
     if (pLineItem->type == LINETYPE_NONE)
         return;
 

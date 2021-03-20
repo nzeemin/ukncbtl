@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // DebugView.cpp
 
 #include "stdafx.h"
+#include <windowsx.h>
 #include <commctrl.h>
 #include "Main.h"
 #include "Views.h"
@@ -37,6 +38,7 @@ WORD m_wDebugPpuPswOld;  // PSW value on previous step
 WORD m_wDebugCpuR6Old;  // SP value on previous step
 WORD m_wDebugPpuR6Old;  // SP value on previous step
 
+void DebugView_OnRButtonDown(int mousex, int mousey);
 void DebugView_DoDraw(HDC hdc);
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged, WORD oldPsw);
@@ -185,6 +187,7 @@ LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, 
     switch (message)
     {
     case WM_COMMAND:
+        // Forward commands to the main window
         ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
         break;
     case WM_PAINT:
@@ -198,8 +201,10 @@ LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, 
         }
         break;
     case WM_LBUTTONDOWN:
-    case WM_RBUTTONDOWN:
         ::SetFocus(hWnd);
+        break;
+    case WM_RBUTTONDOWN:
+        DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_KEYDOWN:
         return (LRESULT) DebugView_OnKeyDown(wParam, lParam);
@@ -211,6 +216,20 @@ LRESULT CALLBACK DebugViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, 
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
+}
+
+void DebugView_OnRButtonDown(int mousex, int mousey)
+{
+    ::SetFocus(m_hwndDebugViewer);
+
+    HMENU hMenu = ::CreatePopupMenu();
+    ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
+
+    POINT pt = { mousex, mousey };
+    ::ClientToScreen(m_hwndDebugViewer, &pt);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugViewer, NULL);
+
+    VERIFY(::DestroyMenu(hMenu));
 }
 
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)

@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // SpriteView.cpp
 
 #include "stdafx.h"
+#include <windowsx.h>
 #include <vfw.h>
 #include "Main.h"
 #include "Views.h"
@@ -43,17 +44,6 @@ const int m_nSprite_format_max = 1;
 int m_nSprite_format = 0;
 int m_nSprite_PageSizeBytes = m_nSprite_ImageCY * (m_nSprite_ImageCX / (8 + 2));
 
-void SpriteView_OnDraw(HDC hdc);
-BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM lParam);
-BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM lParam);
-BOOL SpriteView_OnHScroll(WPARAM wParam, LPARAM lParam);
-BOOL SpriteView_OnMouseWheel(WPARAM wParam, LPARAM lParam);
-void SpriteView_InitBitmap();
-void SpriteView_DoneBitmap();
-void SpriteView_UpdateWindowText();
-void SpriteView_PrepareBitmap();
-void SpriteView_UpdateScrollPos();
-
 int m_nSprite_Mode = 0;
 const int m_nSprite_ModeMax = 4;
 static LPCTSTR SpriteModeNames[] =
@@ -73,24 +63,39 @@ static DWORD SpriteModePalettes[][3] =
     { 0x0000FF, 0xFF00FF, 0x00FFFF },
 };
 
+void SpriteView_OnRButtonDown(int mousex, int mousey);
+BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM lParam);
+BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM lParam);
+BOOL SpriteView_OnHScroll(WPARAM wParam, LPARAM lParam);
+BOOL SpriteView_OnMouseWheel(WPARAM wParam, LPARAM lParam);
+void SpriteView_InitBitmap();
+void SpriteView_DoneBitmap();
+void SpriteView_UpdateWindowText();
+void SpriteView_UpdateScrollPos();
+void SpriteView_SelectAddress();
+void SpriteView_OnDraw(HDC hdc);
+void SpriteView_PrepareBitmap();
+
+
 //////////////////////////////////////////////////////////////////////
+
 
 void SpriteView_RegisterClass()
 {
     WNDCLASSEX wcex;
     wcex.cbSize = sizeof(WNDCLASSEX);
 
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = SpriteViewViewerWndProc;
-    wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 0;
-    wcex.hInstance = g_hInst;
-    wcex.hIcon = NULL;
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = NULL;
-    wcex.lpszClassName = CLASSNAME_SPRITEVIEW;
-    wcex.hIconSm = NULL;
+    wcex.style          = CS_HREDRAW | CS_VREDRAW;
+    wcex.lpfnWndProc    = SpriteViewViewerWndProc;
+    wcex.cbClsExtra     = 0;
+    wcex.cbWndExtra     = 0;
+    wcex.hInstance      = g_hInst;
+    wcex.hIcon          = NULL;
+    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
+    wcex.lpszMenuName   = NULL;
+    wcex.lpszClassName  = CLASSNAME_SPRITEVIEW;
+    wcex.hIconSm        = NULL;
 
     RegisterClassEx(&wcex);
 }
@@ -190,12 +195,18 @@ LRESULT CALLBACK SpriteViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
+    case WM_COMMAND:
+        if (wParam == ID_DEBUG_GOTO_ADDRESS)  // "Go to Address" from context menu
+            SpriteView_SelectAddress();
+        else
+            return DefWindowProc(hWnd, message, wParam, lParam);
+        break;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
 
-            SpriteView_OnDraw(hdc);  // Draw memory dump
+            SpriteView_OnDraw(hdc);
 
             EndPaint(hWnd, &ps);
         }
@@ -206,6 +217,9 @@ LRESULT CALLBACK SpriteViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         return DefWindowProc(hWnd, message, wParam, lParam);
     case WM_LBUTTONDOWN:
         SetFocus(hWnd);
+        break;
+    case WM_RBUTTONDOWN:
+        SpriteView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_KEYDOWN:
         return (LRESULT)SpriteView_OnKeyDown(wParam, lParam);
@@ -219,18 +233,18 @@ LRESULT CALLBACK SpriteViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
     return (LRESULT)FALSE;
 }
 
-void SpriteView_OnDraw(HDC hdc)
+void SpriteView_OnRButtonDown(int mousex, int mousey)
 {
-    ASSERT(g_pBoard != NULL);
+    ::SetFocus(m_hwndSpriteViewer);
 
-    SpriteView_PrepareBitmap();
+    HMENU hMenu = ::CreatePopupMenu();
+    ::AppendMenu(hMenu, 0, ID_DEBUG_GOTO_ADDRESS, _T("Go to Address...\tG"));
 
-    DrawDibDraw(m_hSpriteDrawDib, hdc,
-            0, 0,
-            m_nSprite_ImageCX * m_nSprite_scale, m_nSprite_ImageCY * m_nSprite_scale,
-            &m_bmpinfoSprite.bmiHeader, m_pSprite_bits, 0, 0,
-            m_nSprite_ImageCX, m_nSprite_ImageCY,
-            0);
+    POINT pt = { mousex, mousey };
+    ::ClientToScreen(m_hwndSpriteViewer, &pt);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndSpriteViewer, NULL);
+
+    VERIFY(::DestroyMenu(hMenu));
 }
 
 void SpriteView_GoToAddress(WORD address)
@@ -246,6 +260,7 @@ void SpriteView_GoToAddress(WORD address)
     InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
     SpriteView_UpdateScrollPos();
 }
+
 void SpriteView_SetSpriteWidth(int width)
 {
     if (width < 1) width = 1;
@@ -317,12 +332,8 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 
         break;
     case 0x47:  // 'G' - Go To Address
-        {
-            WORD value = m_wSprite_BaseAddress;
-            if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), &value))
-                SpriteView_GoToAddress(value);
-            break;
-        }
+        SpriteView_SelectAddress();
+        break;
     case VK_HOME:
         SpriteView_GoToAddress(0);
         break;
@@ -410,6 +421,27 @@ void SpriteView_UpdateScrollPos()
     si.nMin = 0;
     si.nMax = 0x10000 - stepSizeBytes + m_nSprite_PageSizeBytes;
     SetScrollInfo(m_hwndSpriteViewer, SB_VERT, &si, TRUE);
+}
+
+void SpriteView_SelectAddress()
+{
+    WORD value = m_wSprite_BaseAddress;
+    if (InputBoxOctal(m_hwndSpriteViewer, _T("Go To Address"), &value))
+        SpriteView_GoToAddress(value);
+}
+
+void SpriteView_OnDraw(HDC hdc)
+{
+    ASSERT(g_pBoard != NULL);
+
+    SpriteView_PrepareBitmap();
+
+    DrawDibDraw(m_hSpriteDrawDib, hdc,
+            0, 0,
+            m_nSprite_ImageCX * m_nSprite_scale, m_nSprite_ImageCY * m_nSprite_scale,
+            &m_bmpinfoSprite.bmiHeader, m_pSprite_bits, 0, 0,
+            m_nSprite_ImageCX, m_nSprite_ImageCY,
+            0);
 }
 
 void SpriteView_PrepareBitmap()

@@ -306,7 +306,7 @@ void MemoryView_OnRButtonDown(int mousex, int mousey)
     ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
     ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
     ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
-    ::AppendMenu(hMenu, 0, ID_DEBUG_GOTO_ADDRESS, _T("Go to Address..."));
+    ::AppendMenu(hMenu, 0, ID_DEBUG_GOTO_ADDRESS, _T("Go to Address...\tG"));
 
     POINT pt = { rcValue.left, rcValue.bottom };
     ::ClientToScreen(m_hwndMemoryViewer, &pt);
