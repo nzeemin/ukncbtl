@@ -599,13 +599,14 @@ BOOL DisasmView_CheckForJump(const WORD* memory, int* pDelta)
 // Returns: jump prediction flag: TRUE = will jump, FALSE = will not jump
 BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer)
 {
+    const size_t buffersize = 32;
     *buffer = 0;
     WORD instr = *memory;
     WORD psw = pProc->GetPSW();
 
     if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
     {
-        _sntprintf(buffer, 32, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
         // BNE: IF (Z == 0)
         // BEQ: IF (Z == 1)
         BOOL value = ((psw & PSW_Z) != 0);
@@ -613,7 +614,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
     {
-        _sntprintf(buffer, 32, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
         // BGE: IF ((N xor V) == 0)
         // BLT: IF ((N xor V) == 1)
         BOOL value = (((psw & PSW_N) != 0) != ((psw & PSW_V) != 0));
@@ -621,7 +622,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
     {
-        _sntprintf(buffer, 32, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
         // BGT: IF (((N xor V) or Z) == 0)
         // BLE: IF (((N xor V) or Z) == 1)
         BOOL value = ((((psw & PSW_N) != 0) != ((psw & PSW_V) != 0)) || ((psw & PSW_Z) != 0));
@@ -629,7 +630,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
     {
-        _sntprintf(buffer, 32, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
         // BPL: IF (N == 0)
         // BMI: IF (N == 1)
         BOOL value = ((psw & PSW_N) != 0);
@@ -637,7 +638,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
     {
-        _sntprintf(buffer, 32, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
         // BHI:  IF ((С or Z) == 0)
         // BLOS: IF ((С or Z) == 1)
         BOOL value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
@@ -645,7 +646,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
     {
-        _sntprintf(buffer, 32, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
         // BVC: IF (V == 0)
         // BVS: IF (V == 1)
         BOOL value = ((psw & PSW_V) != 0);
@@ -653,7 +654,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     }
     if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
     {
-        _sntprintf(buffer, 32, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
+        _sntprintf(buffer, buffersize - 1, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
         // BCC/BHIS: IF (C == 0)
         // BCS/BLO:  IF (C == 1)
         BOOL value = ((psw & PSW_C) != 0);
@@ -663,7 +664,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     {
         int reg = (instr >> 6) & 7;
         WORD regvalue = pProc->GetReg(reg);
-        _sntprintf(buffer, 32, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
         return (regvalue != 1);
     }
 
@@ -671,7 +672,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
     {
         int reg = (instr >> 6) & 7;
         WORD regvalue = pProc->GetReg(reg);
-        _sntprintf(buffer, 32, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("R%d=%06o"), reg, regvalue);  // "RN=XXXXXX"
         return TRUE;
     }
     if (instr >= 000200 && instr <= 000207)  // RTS / RETURN
@@ -680,12 +681,12 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
         int addrtype;
         WORD value = pMemCtl->GetWordView(spvalue, pProc->IsHaltMode(), FALSE, &addrtype);
         if (instr == 000207)  // RETURN
-            _sntprintf(buffer, 32, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
+            _sntprintf(buffer, buffersize - 1, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
         else  // RTS
         {
             int reg = instr & 7;
             WORD regvalue = pProc->GetReg(reg);
-            _sntprintf(buffer, 32, _T("R%d=%06o, (SP)=%06o"), reg, regvalue, value);  // "RN=XXXXXX, (SP)=XXXXXX"
+            _sntprintf(buffer, buffersize - 1, _T("R%d=%06o, (SP)=%06o"), reg, regvalue, value);  // "RN=XXXXXX, (SP)=XXXXXX"
         }
         return TRUE;
     }
@@ -695,7 +696,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
         WORD spvalue = pProc->GetSP();
         int addrtype;
         WORD value = pMemCtl->GetWordView(spvalue, pProc->IsHaltMode(), FALSE, &addrtype);
-        _sntprintf(buffer, 32, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("(SP)=%06o"), value);  // "(SP)=XXXXXX"
         return TRUE;
     }
     if (instr == 000003 || instr == 000004 ||  // IOT, BPT
@@ -709,7 +710,7 @@ BOOL DisasmView_GetJumpConditionHint(const WORD* memory, const CProcessor * pPro
 
         int addrtype;
         WORD value = pMemCtl->GetWordView(intvec, pProc->IsHaltMode(), FALSE, &addrtype);
-        _sntprintf(buffer, 32, _T("(%06o)=%06o"), intvec, value);  // "(VVVVVV)=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("(%06o)=%06o"), intvec, value);  // "(VVVVVV)=XXXXXX"
         return TRUE;
     }
 
@@ -720,11 +721,12 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
         LPTSTR hint1, LPTSTR hint2,
         int regnum, int regmod, bool byteword, WORD indexval)
 {
+    const size_t hintsize = 20;
     int addrtype = 0;
     WORD regval = pProc->GetReg(regnum);
     WORD srcval2 = 0;
 
-    _sntprintf(hint1, 20, _T("%s=%06o"), REGISTER_NAME[regnum], regval);  // "RN=XXXXXX"
+    _sntprintf(hint1, hintsize - 1, _T("%s=%06o"), REGISTER_NAME[regnum], regval);  // "RN=XXXXXX"
     switch (regmod)
     {
     case 1:
@@ -733,16 +735,16 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
         if (byteword)
         {
             srcval2 = (regval & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
-            _sntprintf(hint2, 20, _T("(%s)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXX"
+            _sntprintf(hint2, hintsize - 1, _T("(%s)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXX"
         }
         else
         {
-            _sntprintf(hint2, 20, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
+            _sntprintf(hint2, hintsize - 1, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
         }
         break;
     case 3:
         srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
-        _sntprintf(hint2, 20, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
+        _sntprintf(hint2, hintsize - 1, _T("(%s)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN)=XXXXXX"
         //TODO: Show the real value in hint line 3
         break;
     case 4:
@@ -751,17 +753,17 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
             srcval2 = (regval & 1) ?
                     ((pMemCtl->GetWordView(regval - 1, pProc->IsHaltMode(), false, &addrtype)) & 0xff) :
                     ((pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype)) >> 8);
-            _sntprintf(hint2, 20, _T("(%s-1)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN-1)=XXX"
+            _sntprintf(hint2, hintsize - 1, _T("(%s-1)=%03o"), REGISTER_NAME[regnum], srcval2);  // "(RN-1)=XXX"
         }
         else
         {
             srcval2 = pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype);
-            _sntprintf(hint2, 20, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN-2)=XXXXXX"
+            _sntprintf(hint2, hintsize - 1, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN-2)=XXXXXX"
         }
         break;
     case 5:
         srcval2 = pMemCtl->GetWordView(regval - 2, pProc->IsHaltMode(), false, &addrtype);
-        _sntprintf(hint2, 20, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN+2)=XXXXXX"
+        _sntprintf(hint2, hintsize - 1, _T("(%s-2)=%06o"), REGISTER_NAME[regnum], srcval2);  // "(RN+2)=XXXXXX"
         //TODO: Show the real value in hint line 3
         break;
     case 6:
@@ -771,17 +773,17 @@ void DisasmView_RegisterHint(const CProcessor * pProc, const CMemoryController *
             if (byteword)
             {
                 srcval2 = (addr2 & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
-                _sntprintf(hint2, 20, _T("(%s+%06o)=%03o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXX"
+                _sntprintf(hint2, hintsize - 1, _T("(%s+%06o)=%03o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXX"
             }
             else
             {
-                _sntprintf(hint2, 20, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
+                _sntprintf(hint2, hintsize - 1, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
             }
             break;
         }
     case 7:
         srcval2 = pMemCtl->GetWordView(regval + indexval, pProc->IsHaltMode(), false, &addrtype);
-        _sntprintf(hint2, 20, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
+        _sntprintf(hint2, hintsize - 1, _T("(%s+%06o)=%06o"), REGISTER_NAME[regnum], indexval, srcval2);  // "(RN+NNNNNN)=XXXXXX"
         //TODO: Show the real value in hint line 3
         break;
     }
@@ -791,6 +793,7 @@ void DisasmView_RegisterHintPC(const CProcessor * pProc, const CMemoryController
         LPTSTR hint1, LPTSTR /*hint2*/,
         int regmod, bool byteword, WORD curaddr, WORD value)
 {
+    const size_t hintsize = 20;
     int addrtype = 0;
     WORD srcval2 = 0;
 
@@ -801,11 +804,11 @@ void DisasmView_RegisterHintPC(const CProcessor * pProc, const CMemoryController
         if (byteword)
         {
             srcval2 = (value & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
-            _sntprintf(hint1, 20, _T("(%06o)=%03o"), value, srcval2);  // "(NNNNNN)=XXX"
+            _sntprintf(hint1, hintsize - 1, _T("(%06o)=%03o"), value, srcval2);  // "(NNNNNN)=XXX"
         }
         else
         {
-            _sntprintf(hint1, 20, _T("(%06o)=%06o"), value, srcval2);  // "(NNNNNN)=XXXXXX"
+            _sntprintf(hint1, hintsize - 1, _T("(%06o)=%06o"), value, srcval2);  // "(NNNNNN)=XXXXXX"
         }
     }
     else if (regmod == 6)
@@ -815,11 +818,11 @@ void DisasmView_RegisterHintPC(const CProcessor * pProc, const CMemoryController
         if (byteword)
         {
             srcval2 = (addr2 & 1) ? (srcval2 >> 8) : (srcval2 & 0xff);
-            _sntprintf(hint1, 20, _T("(%06o)=%03o"), addr2, srcval2);  // "(NNNNNN)=XXX"
+            _sntprintf(hint1, hintsize - 1, _T("(%06o)=%03o"), addr2, srcval2);  // "(NNNNNN)=XXX"
         }
         else
         {
-            _sntprintf(hint1, 20, _T("(%06o)=%06o"), addr2, srcval2);  // "(NNNNNN)=XXXXXX"
+            _sntprintf(hint1, hintsize - 1, _T("(%06o)=%06o"), addr2, srcval2);  // "(NNNNNN)=XXXXXX"
         }
     }
     //TODO: else if (regmod == 7)
@@ -829,8 +832,10 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
         LPTSTR buffer, LPTSTR buffer2,
         int srcreg, int srcmod, int dstreg, int dstmod)
 {
-    TCHAR srchint1[20] = { 0 }, dsthint1[20] = { 0 };
-    TCHAR srchint2[20] = { 0 }, dsthint2[20] = { 0 };
+    const size_t buffersize = 42;
+    const size_t hintsize = 20;
+    TCHAR srchint1[hintsize] = { 0 }, dsthint1[hintsize] = { 0 };
+    TCHAR srchint2[hintsize] = { 0 }, dsthint2[hintsize] = { 0 };
     bool byteword = ((*memory) & 0100000) != 0;  // Byte mode (true) or Word mode (false)
     const WORD* curmemory = memory + 1;
     WORD curaddr = pProc->GetPC() + 2;
@@ -866,26 +871,26 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
     if (*srchint1 != 0 && *dsthint1 != 0)
     {
         if (_tcscmp(srchint1, dsthint1) == 0)
-            _tcscpy_s(buffer, 42, srchint1);
+            _tcscpy_s(buffer, buffersize, srchint1);
         else
-            _sntprintf(buffer, 42, _T("%s, %s"), srchint1, dsthint1);
+            _sntprintf(buffer, buffersize - 1, _T("%s, %s"), srchint1, dsthint1);
     }
     else if (*srchint1 != 0)
-        _tcscpy_s(buffer, 42, srchint1);
+        _tcscpy_s(buffer, buffersize, srchint1);
     else if (*dsthint1 != 0)
-        _tcscpy_s(buffer, 42, dsthint1);
+        _tcscpy_s(buffer, buffersize, dsthint1);
 
     if (*srchint2 != 0 && *dsthint2 != 0)
     {
         if (_tcscmp(srchint2, dsthint2) == 0)
-            _tcscpy_s(buffer2, 42, srchint2);
+            _tcscpy_s(buffer2, buffersize, srchint2);
         else
-            _sntprintf(buffer2, 42, _T("%s, %s"), srchint2, dsthint2);
+            _sntprintf(buffer2, buffersize - 1, _T("%s, %s"), srchint2, dsthint2);
     }
     else if (*srchint2 != 0)
-        _tcscpy_s(buffer2, 42, srchint2);
+        _tcscpy_s(buffer2, buffersize, srchint2);
     else if (*dsthint2 != 0)
-        _tcscpy_s(buffer2, 42, dsthint2);
+        _tcscpy_s(buffer2, buffersize, dsthint2);
 }
 
 // Prepare "Instruction Hint" for a regular instruction (not a branch/jump one)
@@ -893,6 +898,7 @@ void DisasmView_InstructionHint(const WORD* memory, const CProcessor * pProc, co
 int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, const CMemoryController * pMemCtl,
         LPTSTR buffer, LPTSTR buffer2)
 {
+    const size_t buffersize = 42;
     *buffer = 0;  *buffer2 = 0;
     WORD instr = *memory;
 
@@ -940,10 +946,10 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
         int dstmod = (instr >> 3) & 7;
         if (dstreg != 7)
         {
-            TCHAR tempbuf[42];
+            TCHAR tempbuf[buffersize];
             DisasmView_InstructionHint(memory, pProc, pMemCtl, tempbuf, buffer2, -1, -1, dstreg, dstmod);
             WORD psw = pProc->GetPSW();
-            _sntprintf(buffer, 42, _T("%s, C=%c"), tempbuf, (psw & PSW_C) ? '1' : '0');  // "..., C=X"
+            _sntprintf(buffer, buffersize - 1, _T("%s, C=%c"), tempbuf, (psw & PSW_C) ? '1' : '0');  // "..., C=X"
         }
     }
 
@@ -951,7 +957,7 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
     if (instr >= 0000241 && instr <= 0000257 || instr >= 0000261 && instr <= 0000277)
     {
         WORD psw = pProc->GetPSW();
-        _sntprintf(buffer, 32, _T("C=%c, V=%c, Z=%c, N=%c"),
+        _sntprintf(buffer, buffersize - 1, _T("C=%c, V=%c, Z=%c, N=%c"),
                 (psw & PSW_C) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0', (psw & PSW_N) ? '1' : '0');
     }
 
@@ -967,11 +973,11 @@ int DisasmView_GetInstructionHint(const WORD* memory, const CProcessor * pProc, 
     // HALT mode commands
     if (instr == PI_MFUS)
     {
-        _sntprintf(buffer, 32, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
     }
     if (instr == PI_MTUS)
     {
-        _sntprintf(buffer, 32, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
+        _sntprintf(buffer, buffersize - 1, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
     }
     //TODO: MFPC, MTPC
 

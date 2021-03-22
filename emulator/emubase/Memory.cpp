@@ -1086,15 +1086,12 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
     case 0177130:  // FDD status
     case 0177131:
         value = m_pBoard->GetFloppyState();
-        //PrintOctalValue(oct2, value);
-        //wsprintf(str, _T("FDD STATE R %s, %s\r\n"), oct1, oct2);
-        //DebugLog(str);
+        //DebugLogFormat(_T("FDD STATE R %06o, %06o\r\n"), address, value);
         return value;
     case 0177132: //fdd data
     case 0177133:
         value = m_pBoard->GetFloppyData();
-        //wsprintf(str,_T("FDD DATA  R %s, %04x\r\n"), oct1, value);
-        //DebugLog(str);
+        //DebugLogFormat(_T("FDD DATA  R %06o, %04x\r\n"), address, value);
         return value;
 
         // HDD ports
@@ -1375,8 +1372,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         break;
     case 0177054:  // Address space control
     case 0177055:
-        //wsprintf(str,_T("W %s, %s\r\n"),oct1,oct);
-        //DebugPrint(str);
+        //DebugPrintFormat(_T("W %s, %s\r\n"), oct1, oct);
         {
             uint16_t oldvalue = m_Port177054;
             m_Port177054 = word & 01777;
@@ -1427,16 +1423,14 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
     case 0177130:  // FDD status
     case 0177131:
         //ASSERT(word==0);
-        //wsprintf(str,_T("FDD CMD   W %s, %s\r\n"), oct1,oct);
-        //DebugLog(str);
+        //DebugLogFormat(_T("FDD CMD   W %s, %s\r\n"), oct1, oct);
         m_pBoard->SetFloppyState(word);
         break;
     case 0177132:  // FDD data
     case 0177133:
         //ASSERT(word==0);
-        //wsprintf(str,_T("%s: FDD DATA W %s, %s\r\n"),oct2,oct1,oct);
-        //wsprintf(str,_T("FDD DATA  W %04x\r\n"), word);
-        //DebugLog(str);
+        //DebugLogFormat(_T("%s: FDD DATA W %s, %s\r\n"), oct2, oct1, oct);
+        //DebugLogFormat(_T("FDD DATA  W %04x\r\n"), word);
         m_pBoard->SetFloppyData(word);
         break;
 
@@ -1453,7 +1447,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
 
     case 0177704: // fdd params:
     case 0177705:
-        //            DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
+        //DebugLogFormat(_T("FDD 177704 W %s, %s, %s\r\n"), oct2, oct1, oct);
         break;
 
     case 0177710: //timer status

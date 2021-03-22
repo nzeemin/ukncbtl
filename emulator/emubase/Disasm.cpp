@@ -30,6 +30,8 @@ const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
 //   strSrc - at least 24 characters
 uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t code)
 {
+    const size_t strSrcSize = 24;
+
     uint8_t reg = GetDigit(instr, 2);
     uint8_t param = GetDigit(instr, 3);
 
@@ -42,11 +44,11 @@ uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16
         if (param == 6 || param == 7)
         {
             uint16_t word = code;  //TODO: pMemory
-            _sntprintf(strSrc, 24, format, word, pszReg);
+            _sntprintf(strSrc, strSrcSize - 1, format, word, pszReg);
             return 1;
         }
         else
-            _sntprintf(strSrc, 24, format, pszReg);
+            _sntprintf(strSrc, strSrcSize - 1, format, pszReg);
     }
     else
     {
@@ -55,17 +57,17 @@ uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16
         if (param == 2 || param == 3)
         {
             uint16_t word = code;  //TODO: pMemory
-            _sntprintf(strSrc, 24, format, word);
+            _sntprintf(strSrc, strSrcSize - 1, format, word);
             return 1;
         }
         else if (param == 6 || param == 7)
         {
             uint16_t word = code;  //TODO: pMemory
-            _sntprintf(strSrc, 24, format, (uint16_t)(addr + word + 2));
+            _sntprintf(strSrc, strSrcSize - 1, format, (uint16_t)(addr + word + 2));
             return 1;
         }
         else
-            _sntprintf(strSrc, 24, format, pszReg);
+            _sntprintf(strSrc, strSrcSize - 1, format, pszReg);
     }
 
     return 0;
@@ -74,6 +76,8 @@ uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16
 //   strDst - at least 24 characters
 uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t code)
 {
+    const size_t strDstSize = 24;
+
     uint8_t reg = GetDigit(instr, 0);
     uint8_t param = GetDigit(instr, 1);
 
@@ -85,11 +89,11 @@ uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint1
 
         if (param == 6 || param == 7)
         {
-            _sntprintf(strDst, 24, format, code, pszReg);
+            _sntprintf(strDst, strDstSize - 1, format, code, pszReg);
             return 1;
         }
         else
-            _sntprintf(strDst, 24, format, pszReg);
+            _sntprintf(strDst, strDstSize - 1, format, pszReg);
     }
     else
     {
@@ -97,16 +101,16 @@ uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint1
 
         if (param == 2 || param == 3)
         {
-            _sntprintf(strDst, 24, format, code);
+            _sntprintf(strDst, strDstSize - 1, format, code);
             return 1;
         }
         else if (param == 6 || param == 7)
         {
-            _sntprintf(strDst, 24, format, (uint16_t)(addr + code + 2));
+            _sntprintf(strDst, strDstSize - 1, format, (uint16_t)(addr + code + 2));
             return 1;
         }
         else
-            _sntprintf(strDst, 24, format, pszReg);
+            _sntprintf(strDst, strDstSize - 1, format, pszReg);
     }
 
     return 0;
@@ -114,20 +118,26 @@ uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint1
 
 // Disassemble one instruction
 //   pMemory - memory image (we read only words of the instruction)
-//   sInstr  - instruction mnemonics buffer - at least 8 characters
-//   sArg    - instruction arguments buffer - at least 32 characters
+//   strInstr - instruction mnemonics buffer, at least 8 characters
+//   strArg   - instruction arguments buffer, at least 32 characters
 //   Return value: number of words in the instruction
 uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TCHAR* strArg)
 {
+    //const size_t strInstrSize = 8;
+    const size_t strArgSize = 32;
+
     *strInstr = 0;
     *strArg = 0;
 
     uint16_t instr = *pMemory;
-
     uint16_t length = 1;
     LPCTSTR strReg = nullptr;
-    TCHAR strSrc[24];
-    TCHAR strDst[24];
+
+    const size_t strSrcSize = 24;
+    TCHAR strSrc[strSrcSize];
+    const size_t strDstSize = 24;
+    TCHAR strDst[strDstSize];
+
     bool okByte;
 
     // No fields
@@ -232,7 +242,7 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     }
 
     length = 1;
-    _sntprintf(strDst, 24, _T("%06o"), addr + ((short)(char)(uint8_t)(instr & 0xff) * 2) + 2);
+    _sntprintf(strDst, strDstSize - 1, _T("%06o"), addr + ((short)(char)(uint8_t)(instr & 0xff) * 2) + 2);
 
     // Branchs & interrupts
     switch (instr & ~(uint16_t)0377)
@@ -254,7 +264,7 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     case PI_BLO:  _tcscpy(strInstr, _T("BLO"));  _tcscpy(strArg, strDst);  return 1;
     }
 
-    _sntprintf(strDst, 24, _T("%06o"), (uint8_t)(instr & 0xff));
+    _sntprintf(strDst, strDstSize - 1, _T("%06o"), (uint8_t)(instr & 0xff));
 
     switch (instr & ~(uint16_t)0377)
     {
@@ -270,51 +280,51 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
         {
             _tcscpy(strInstr, _T("CALL"));
             length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf(strArg, 32, _T("%s"), strDst);  // strArg = strDst;
+            _sntprintf(strArg, strArgSize - 1, _T("%s"), strDst);  // strArg = strDst;
         }
         else
         {
             _tcscpy(strInstr, _T("JSR"));
             strReg = REGISTER_NAME[GetDigit(instr, 2)];
             length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+            _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         }
         return length;
     case PI_MUL:
         _tcscpy(strInstr, _T("MUL"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_DIV:
         _tcscpy(strInstr, _T("DIV"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASH:
         _tcscpy(strInstr, _T("ASH"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASHC:
         _tcscpy(strInstr, _T("ASHC"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_XOR:
         _tcscpy(strInstr, _T("XOR"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         return length;
     case PI_SOB:
         _tcscpy(strInstr, _T("SOB"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        _sntprintf(strDst, 24, _T("%06o"), addr - (GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) * 2 + 2);
-        _sntprintf(strArg, 32, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf(strDst, strDstSize - 1, _T("%06o"), addr - (GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) * 2 + 2);
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         return 1;
     }
 
@@ -329,23 +339,23 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     {
     case PI_MOV:
         _tcscpy(strInstr, okByte ? _T("MOVB") : _T("MOV"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_CMP:
         _tcscpy(strInstr, okByte ? _T("CMPB") : _T("CMP"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIT:
         _tcscpy(strInstr, okByte ? _T("BITB") : _T("BIT"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIC:
         _tcscpy(strInstr, okByte ? _T("BICB") : _T("BIC"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIS:
         _tcscpy(strInstr, okByte ? _T("BISB") : _T("BIS"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     }
 
@@ -353,15 +363,15 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     {
     case PI_ADD:
         _tcscpy(strInstr, _T("ADD"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_SUB:
         _tcscpy(strInstr, _T("SUB"));
-        _sntprintf(strArg, 32, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     }
 
     _tcscpy(strInstr, _T("unknown"));
-    _sntprintf(strArg, 32, _T("%06o"), instr);
+    _sntprintf(strArg, strArgSize - 1, _T("%06o"), instr);
     return 1;
 }

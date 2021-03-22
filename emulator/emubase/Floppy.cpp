@@ -392,8 +392,7 @@ void CFloppyController::PrepareTrack()
     // Track has 10 sectors, 512 bytes each; offset of the file is === ((Track<<1)+SIDE)*5120
     long foffset = ((m_track * 2) + (m_side)) * 5120;
     if (m_pDrive->okNetRT11Image) foffset += 256;  // Skip .RTD image header
-    //wsprintf(buffer,_T("floppy file offset %d  for trk %d side %d\r\n"),foffset,m_track,m_side);
-    //DebugPrint(buffer);
+    //DebugPrintFormat(_T("floppy file offset %d  for trk %d side %d\r\n"), foffset, m_track, m_side);
 
     uint8_t data[5120];
     memset(data, 0, 5120);

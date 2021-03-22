@@ -591,61 +591,57 @@ void DebugView_DrawChannels(HDC hdc, int x, int y)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
-    //CProcessor* pCPU = g_pBoard->GetCPU();
-    //CProcessor* pPPU = g_pBoard->GetPPU();
-    //CMemoryController* pCPUMemCtl = pCPU->GetMemoryController();
-    //CMemoryController* pPPUMemCtl = pPPU->GetMemoryController();
-
     TextOut(hdc, x, y, _T("Channels:"), 9);
 
     TCHAR bufData[7];
-    TCHAR buffer[32];
+    const size_t buffersize = 32;
+    TCHAR buffer[buffersize];
     chan_stc tmpstc;
 
     tmpstc = g_pBoard->GetChannelStruct(0, 0, 0);
 
     PrintOctalValue(bufData, tmpstc.data);
-    wsprintf(buffer, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 1 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    wsprintf(buffer, _T("PPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("PPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 2 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 2, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    wsprintf(buffer, _T("PPU CH:2 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("PPU CH:2 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 3 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 0, 1);
-    wsprintf(buffer, _T("PPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("PPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 4 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 1, 1);
-    wsprintf(buffer, _T("PPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("PPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 5 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 0, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    wsprintf(buffer, _T("CPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("CPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 6 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    wsprintf(buffer, _T("CPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("CPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 7 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 0, 1);
-    wsprintf(buffer, _T("CPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("CPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 8 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 1, 1);
-    wsprintf(buffer, _T("CPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("CPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 9 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 2, 1);
-    wsprintf(buffer, _T("CPU CH:2 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    _sntprintf(buffer, buffersize - 1, _T("CPU CH:2 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 10 * cyLine, buffer, lstrlen(buffer));
 }
 
