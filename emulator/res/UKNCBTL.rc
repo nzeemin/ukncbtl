@@ -193,7 +193,7 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0xCC
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,211,10,57,15,WS_GROUP
-    LTEXT           "UKNCBTL Version 1.0.???",IDC_VERSION,10,10,139,8,SS_NOPREFIX
+    LTEXT           "UKNCBTL version 1.0.???",IDC_VERSION,10,10,139,8,SS_NOPREFIX
     LTEXT           "Build date: ????",IDC_BUILDDATE,10,20,139,8
     CONTROL         "<a>https://github.com/nzeemin/ukncbtl</a>",IDC_SYSLINK1,"SysLink",WS_TABSTOP,10,32,193,19
     LTEXT           "Copyright (C) 2007-2021",IDC_STATIC,10,44,139,8
@@ -393,7 +393,7 @@ IDR_UKNC_ROM            BIN                     "uknc_rom.bin"
 STRINGTABLE 
 BEGIN
     IDS_APP_TITLE           "UKNC Back to Life"
-    IDS_WELCOME             "UKNC Back to Life - version %s"
+    IDS_WELCOME             "UKNC Back to Life version %s"
     IDC_APPLICATION         "UKNCBTL"
 END
 

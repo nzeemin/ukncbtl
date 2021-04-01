@@ -62,10 +62,11 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
     {
     case WM_INITDIALOG:
         {
-            TCHAR buffer[64];
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("UKNCBTL Version %s"), _T(APP_VERSION_STRING));
+            const size_t buffersize = 64;
+            TCHAR buffer[buffersize];
+            _sntprintf(buffer, buffersize - 1, _T("UKNCBTL version %s revision %d"), _T(APP_VERSION_STRING), APP_REVISION);
             ::SetDlgItemText(hDlg, IDC_VERSION, buffer);
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Build date: %S %S"), __DATE__, __TIME__);
+            _sntprintf(buffer, buffersize - 1, _T("Build date: %S %S"), __DATE__, __TIME__);
             ::SetDlgItemText(hDlg, IDC_BUILDDATE, buffer);
             return (INT_PTR)TRUE;
         }
