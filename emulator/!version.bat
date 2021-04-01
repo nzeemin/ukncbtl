@@ -18,6 +18,7 @@ REM echo %VERMINOR%
 echo Version: %YYYY%.%VERMINOR%
 
 for /f %%i in ('git rev-list HEAD --count') do set REVISION=%%i
+set /A REVISION=%REVISION%+0
 echo Revision: %REVISION%
 
 echo. > Version.h
