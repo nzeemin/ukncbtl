@@ -201,13 +201,21 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
         if (GetDigit(instr, 0) == 7)
         {
             _tcscpy(strInstr, _T("RETURN"));
+            return 1;
         }
-        else
-        {
-            _tcscpy(strInstr, _T("RTS"));
-            _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);
-        }
+
+        _tcscpy(strInstr, _T("RTS"));
+        _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);
         return 1;
+    }
+
+    // FIS
+    switch (instr & ~(uint16_t)7)
+    {
+    case PI_FADD:  _tcscpy(strInstr, _T("FADD"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FSUB:  _tcscpy(strInstr, _T("FSUB"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FMUL:  _tcscpy(strInstr, _T("FMUL"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FDIV:  _tcscpy(strInstr, _T("FDIV"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
     }
 
     // Two fields
@@ -268,8 +276,8 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
 
     switch (instr & ~(uint16_t)0377)
     {
-    case PI_EMT:   _tcscpy(strInstr, _T("EMT"));   _tcscpy(strArg, strDst);  return 1;
-    case PI_TRAP:  _tcscpy(strInstr, _T("TRAP"));  _tcscpy(strArg, strDst);  return 1;
+    case PI_EMT:   _tcscpy(strInstr, _T("EMT"));   _tcscpy(strArg, strDst + 3);  return 1;
+    case PI_TRAP:  _tcscpy(strInstr, _T("TRAP"));  _tcscpy(strArg, strDst + 3);  return 1;
     }
 
     // Three fields
