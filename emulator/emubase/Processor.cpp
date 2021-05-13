@@ -538,13 +538,11 @@ void CProcessor::MemoryError()
 
 //////////////////////////////////////////////////////////////////////
 
-
+#if defined(PRODUCT)
+static void TraceInstruction(CProcessor* /*pProc*/, uint16_t /*address*/) {}
+#else
 static void TraceInstruction(CProcessor* pProc, uint16_t address)
 {
-#if defined(PRODUCT)
-    UNREFERENCED_PARAMETER(pProc);
-    UNREFERENCED_PARAMETER(address);
-#else
     CMemoryController* pMemCtl = pProc->GetMemoryController();
     bool okHaltMode = pProc->IsHaltMode();
     uint16_t memory[4];
@@ -564,8 +562,8 @@ static void TraceInstruction(CProcessor* pProc, uint16_t address)
     _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
 
     DebugLog(buffer);
-#endif
 }
+#endif
 
 void CProcessor::FetchInstruction()
 {

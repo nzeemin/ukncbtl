@@ -530,6 +530,7 @@ void ConsoleView_ShowHelp()
             _T("  bc         Remove all breakpoints for the current processor\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
             _T("  udl        Save display list dump to file displaylist.txt\r\n")
+            _T("  fcXXXXXX XXXXXX  Calculate floating number for the two octal words\r\n")
 #if !defined(PRODUCT)
             _T("  t          Tracing on/off to trace.log file\r\n")
             _T("  tXXXXXX    Set tracing flags\r\n")
@@ -860,6 +861,43 @@ void ConsoleView_DoConsoleCommand()
         }
         else
             ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+        break;
+    case _T('f'):
+        if (command[1] == 0)
+            ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+        else if (command[1] == _T('c'))
+        {
+            unsigned short O1, O2;
+            if (2 != _stscanf(command + 2, _T("%ho %ho"), &O1, &O2))
+                ConsoleView_Print(MESSAGE_WRONG_VALUE);
+            else
+            {
+                unsigned long mant = ((((unsigned long)O1 << 16) | O2) & 0x7FFFFFL) | 0x800000L;
+                short exp = (O1 >> 7) & 0xFF; exp -= 128;
+                ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
+                unsigned long scmant = 0x800000L;
+                long double sres = 0.5;
+                long double res = 0.0;
+                while (scmant != 0)
+                {
+                    if ((scmant & mant) != 0) res += sres;
+                    scmant >>= 1; sres /= 2;
+                }
+                while (exp != 0)
+                {
+                    if (exp < 0)
+                    {
+                        res /= 2; exp++;
+                    }
+                    else
+                    {
+                        res *= 2; exp--;
+                    }
+                }
+                if ((O1 & 0x8000) != 0) res = -res;
+                ConsoleView_PrintFormat(_T("%Lg\r\n"), res);
+            }
+        }
         break;
 #if !defined(PRODUCT)
     case _T('t'):
