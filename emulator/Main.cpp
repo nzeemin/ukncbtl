@@ -242,10 +242,34 @@ void ParseCommandLine()
         {
             Settings_SetWindowFullscreen(FALSE);
         }
-        //TODO: "/mz0:filepath"
-        //TODO: "/cart1:filepath"
-        //TODO: "/hdd1:filepath"
-        //TODO: "/state:filepath"
+        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/disk"), 5) == 0)  // "/diskN:filePath", N=0..3
+        {
+            if (arg[5] >= _T('0') && arg[5] <= _T('3') && arg[6] == ':')
+            {
+                int slot = arg[5] - _T('0');
+                LPCTSTR filePath = arg + 7;
+                Settings_SetFloppyFilePath(slot, filePath);
+            }
+        }
+        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/cart"), 5) == 0)  // "/cartN:filePath", N=1..2
+        {
+            if (arg[5] >= _T('1') && arg[5] <= _T('2') && arg[6] == ':')
+            {
+                int slot = arg[5] - _T('0');
+                LPCTSTR filePath = arg + 7;
+                Settings_SetCartridgeFilePath(slot, filePath);
+            }
+        }
+        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/hard"), 5) == 0)  // "/hardN:filePath", N=1..2
+        {
+            if (arg[5] >= _T('1') && arg[5] <= _T('2') && arg[6] == ':')
+            {
+                int slot = arg[5] - _T('0');
+                LPCTSTR filePath = arg + 7;
+                Settings_SetHardFilePath(slot, filePath);
+            }
+        }
+        //TODO: "/state:filepath" or "filepath.uknc"
     }
 
     ::LocalFree(args);
