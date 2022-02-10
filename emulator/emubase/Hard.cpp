@@ -100,7 +100,7 @@ CHardDrive::~CHardDrive()
 
 void CHardDrive::Reset()
 {
-//    DebugPrint(_T("HDD Reset\r\n"));
+    //DebugLog(_T("HDD Reset\r\n"));
 
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
@@ -136,23 +136,48 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
     if (dwBytesRead != 512)
         return false;
 
-    // Autodetect inverted image
-    uint8_t test = 0xff;
-    for (int i = 0x1f0; i <= 0x1fb; i++)
-        test &= m_buffer[i];
-    m_okInverted = (test == 0xff);
-    // Invert the buffer if needed
-    if (m_okInverted)
-        InvertBuffer(m_buffer);
+    // Detect hard disk type
+    const uint16_t * pwHardBuffer = (const uint16_t*)m_buffer;
+    if (pwHardBuffer[0] == 0x54A9 && pwHardBuffer[1] == 0xFFEF && pwHardBuffer[2] == 0xFEFF ||
+        pwHardBuffer[0] == 0xAB56 && pwHardBuffer[1] == 0x0010 && pwHardBuffer[2] == 0x0100)  // HD type
+    {
+        // Autodetect inverted image
+        m_okInverted = (pwHardBuffer[0] == 0xAB56);
+        // Invert the buffer if needed
+        if (m_okInverted)
+            InvertBuffer(m_buffer);
 
-    // Calculate geometry
-    m_numsectors = *(m_buffer + 0);
-    m_numheads   = *(m_buffer + 1);
-    if (m_numsectors == 0 || m_numheads == 0)
-        return false;  // Geometry params are not defined
-    m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
-    if (m_numcylinders == 0 || m_numcylinders > 1024)
-        return false;
+        // Calculate geometry
+        m_numsectors = pwHardBuffer[4];
+        if (m_numsectors == 0)
+            return false;  // Geometry params are not defined
+        m_numheads = (uint8_t)(pwHardBuffer[5] / m_numsectors);
+        if (m_numheads == 0)
+            return false;  // Geometry params are not defined
+        m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
+        if (m_numcylinders == 0)
+            return false;
+    }
+    else  // ID or WD type
+    {
+        // Autodetect inverted image
+        uint8_t test = 0xff;
+        for (int i = 0x1f0; i <= 0x1fb; i++)
+            test &= m_buffer[i];
+        m_okInverted = (test == 0xff);
+        // Invert the buffer if needed
+        if (m_okInverted)
+            InvertBuffer(m_buffer);
+
+        // Calculate geometry
+        m_numsectors = *(m_buffer + 0);
+        m_numheads = *(m_buffer + 1);
+        if (m_numsectors == 0 || m_numheads == 0)
+            return false;  // Geometry params are not defined
+        m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
+        if (m_numcylinders == 0 || m_numcylinders > 1024)
+            return false;
+    }
 
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
 
@@ -187,9 +212,12 @@ uint16_t CHardDrive::ReadPort(uint16_t port)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             m_bufferoffset += 2;
 
+            //if (m_bufferoffset == 2)
+            //    DebugLogFormat(_T("HDD Read sector start %04x\r\n"), data);
+
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
-//                DebugPrint(_T("HDD Read sector complete\r\n"));
+                //DebugLog(_T("HDD Read sector complete\r\n"));
 
                 ContinueRead();
             }
@@ -237,6 +265,9 @@ void CHardDrive::WritePort(uint16_t port, uint16_t data)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             *((uint16_t*)(m_buffer + m_bufferoffset)) = data;
             m_bufferoffset += 2;
+
+            //if (m_bufferoffset == 2)
+            //    DebugLogFormat(_T("HDD Write sector start %04x\r\n"), data);
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
@@ -311,18 +342,19 @@ void CHardDrive::HandleCommand(uint8_t command)
     {
     case IDE_COMMAND_READ_MULTIPLE:
     case IDE_COMMAND_READ_MULTIPLE1:
-//            DebugPrintFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+        //DebugLogFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
         m_status |= IDE_STATUS_BUSY;
+        m_status &= ~IDE_STATUS_BUFFER_READY;
 
         m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
         m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
         break;
 
     case IDE_COMMAND_SET_CONFIG:
-//            DebugPrintFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
-//                    command, m_curhead, m_sectorcount);
+        //DebugLogFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
+        //        command, m_curhead, m_sectorcount);
 
         m_numsectors = m_sectorcount;
         m_numheads = m_curhead + 1;
@@ -330,15 +362,15 @@ void CHardDrive::HandleCommand(uint8_t command)
 
     case IDE_COMMAND_WRITE_MULTIPLE:
     case IDE_COMMAND_WRITE_MULTIPLE1:
-//            DebugPrintFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
+        //DebugLogFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
         m_bufferoffset = 0;
         m_status |= IDE_STATUS_BUFFER_READY;
         break;
 
     case IDE_COMMAND_IDENTIFY:
-//            DebugPrintFormat(_T("HDD COMMAND %02x (IDENTIFY)\r\n"), command);
+        //DebugLogFormat(_T("HDD COMMAND %02x (IDENTIFY)\r\n"), command);
 
         IdentifyDrive();  // Prepare the buffer
         m_bufferoffset = 0;
@@ -349,10 +381,8 @@ void CHardDrive::HandleCommand(uint8_t command)
         break;
 
     default:
-//            DebugPrintFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
-//                    command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
-//            //DebugBreak();  // Implement this IDE command!
-
+        //DebugLogFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
         break;
     }
 }
@@ -449,7 +479,7 @@ void CHardDrive::WriteSectorDone()
     // Write buffer to the HDD image
     uint32_t fileOffset = CalculateOffset();
 
-//    DebugPrintFormat(_T("WriteSector %lx\r\n"), fileOffset);
+    //DebugLogFormat(_T("WriteSector %lx\r\n"), fileOffset);
 
     if (m_okReadOnly)
     {

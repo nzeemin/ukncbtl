@@ -1095,7 +1095,7 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
         return value;
 
         // HDD ports
-    case 0110016:
+    case 0110016: case 0111016:
     case 0110014:
     case 0110012:
     case 0110010:
@@ -1103,9 +1103,15 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
     case 0110004:
     case 0110002:
     case 0110000:
+        //DebugLogFormat(_T("GetPortWord HDD %06o\r\n"), address);
         return m_pBoard->GetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address);
 
+    case 0114002:
+        //DebugLogFormat(_T("GetPortWord PPU %06o\r\n"), address);
+        return 0;
+
     default:
+        //DebugLogFormat(_T("MemoryError GetPortWord PPU %06o\r\n"), address);
         m_pProcessor->MemoryError();
         break;
     }
@@ -1250,7 +1256,7 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
         break;
 
         // HDD ports
-    case 0110016:
+    case 0110016: case 0111016:
     case 0110014:
     case 0110012:
     case 0110010:
@@ -1258,10 +1264,16 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     case 0110004:
     case 0110002:
     case 0110000:
+        //DebugLogFormat(_T("SetPortByte HDD %06o\r\n"), address);
         m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address, word);
         break;
 
+    case 0114002://STUB
+        //DebugLogFormat(_T("SetPortByte PPU %06o\r\n"), address);
+        break;
+
     default:
+        //DebugLogFormat(_T("MemoryError SetPortByte PPU %06o\r\n"), address);
         m_pProcessor->MemoryError();
         //ASSERT(0);
         break;
@@ -1477,7 +1489,7 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         }
 
         // HDD ports
-    case 0110016:
+    case 0110016: case 0111016:
     case 0110014:
     case 0110012:
     case 0110010:
@@ -1485,7 +1497,12 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
     case 0110004:
     case 0110002:
     case 0110000:
+        //DebugLogFormat(_T("SetPortWord HDD %06o\r\n"), address);
         m_pBoard->SetHardPortWord(((m_Port177054 & 8) == 0) ? 1 : 2, address, word);
+        break;
+
+    case 0114002://STUB
+        //DebugLogFormat(_T("SetPortWord PPU %06o\r\n"), address);
         break;
 
     default:
