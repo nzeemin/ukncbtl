@@ -113,6 +113,7 @@
 #define ID_VIEW_RENDERMODE13            32860
 #define ID_VIEW_RENDERMODE14            32861
 #define ID_VIEW_RENDERMODE15            32862
+#define ID_VIEW_RENDERMODELAST          32878
 #define ID_RENDER                       32880
 #define ID_DEBUG                        32881
 #define ID_VIEW_DEBUG                   32882

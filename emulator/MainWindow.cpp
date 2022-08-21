@@ -862,6 +862,8 @@ void MainWindow_UpdateMenu()
     // Render Mode
     UINT rendermodecmd = ID_VIEW_RENDERMODE + ScreenView_GetRenderMode();
     CheckMenuRadioItem(hMenu, ID_VIEW_RENDERMODE, ID_VIEW_RENDERMODE + 32 - 1, rendermodecmd, MF_BYCOMMAND);
+    for (UINT item = ID_VIEW_RENDERMODE; item <= ID_VIEW_RENDERMODELAST; item++)
+        EnableMenuItem(hMenu, item, Settings_GetDebug());
 
     CheckMenuItem(hMenu, ID_VIEW_ONSCREENDISPLAY, (Settings_GetOnScreenDisplay() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_FULLSCREEN, (m_MainWindow_Fullscreen ? MF_CHECKED : MF_UNCHECKED));

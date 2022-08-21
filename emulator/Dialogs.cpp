@@ -104,7 +104,6 @@ BOOL InputBoxOctal(HWND hwndOwner, LPCTSTR strTitle, WORD* pValue)
     return TRUE;
 }
 
-
 INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
 {
     switch (message)
@@ -127,15 +126,16 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
         {
         case IDC_EDIT1:
             {
-                TCHAR buffer[8];
-                GetDlgItemText(hDlg, IDC_EDIT1, buffer, 8);
-                if (_sntscanf_s(buffer, sizeof(buffer) / sizeof(TCHAR), _T("%ho"), m_pInputBoxValueOctal) > 0)
+                const size_t buffersize = 8;
+                TCHAR buffer[buffersize];
+                GetDlgItemText(hDlg, IDC_EDIT1, buffer, buffersize);
+                if (_sntscanf_s(buffer, buffersize, _T("%ho"), m_pInputBoxValueOctal) > 0)
                 {
-                    GetDlgItemText(hDlg, IDC_EDIT2, buffer, 8);
+                    GetDlgItemText(hDlg, IDC_EDIT2, buffer, buffersize);
                     WORD otherValue;
-                    if (_sntscanf_s(buffer, sizeof(buffer) / sizeof(TCHAR), _T("%hx"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
+                    if (_sntscanf_s(buffer, buffersize, _T("%hx"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
                     {
-                        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%04hx"), *m_pInputBoxValueOctal);
+                        _sntprintf(buffer, buffersize - 1, _T("%04hx"), *m_pInputBoxValueOctal);
                         SetDlgItemText(hDlg, IDC_EDIT2, buffer);
                     }
                 }
@@ -143,15 +143,16 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
             return (INT_PTR)TRUE;
         case IDC_EDIT2:
             {
-                TCHAR buffer[8];
-                GetDlgItemText(hDlg, IDC_EDIT2, buffer, 8);
-                if (_sntscanf_s(buffer, sizeof(buffer) / sizeof(TCHAR), _T("%hx"), m_pInputBoxValueOctal) > 0)
+                const size_t buffersize = 8;
+                TCHAR buffer[buffersize];
+                GetDlgItemText(hDlg, IDC_EDIT2, buffer, buffersize);
+                if (_sntscanf_s(buffer, buffersize, _T("%hx"), m_pInputBoxValueOctal) > 0)
                 {
-                    GetDlgItemText(hDlg, IDC_EDIT1, buffer, 8);
+                    GetDlgItemText(hDlg, IDC_EDIT1, buffer, buffersize);
                     WORD otherValue;
-                    if (_sntscanf_s(buffer, sizeof(buffer) / sizeof(TCHAR), _T("%ho"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
+                    if (_sntscanf_s(buffer, buffersize, _T("%ho"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
                     {
-                        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%06ho"), *m_pInputBoxValueOctal);
+                        _sntprintf(buffer, buffersize - 1, _T("%06ho"), *m_pInputBoxValueOctal);
                         SetDlgItemText(hDlg, IDC_EDIT1, buffer);
                     }
                 }
@@ -159,18 +160,18 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
             return (INT_PTR)TRUE;
         case IDOK:
             if (! InputBoxValidate(hDlg))
-                return (INT_PTR) FALSE;
+                return (INT_PTR)FALSE;
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         case IDCANCEL:
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         default:
-            return (INT_PTR) FALSE;
+            return (INT_PTR)FALSE;
         }
         break;
     }
-    return (INT_PTR) FALSE;
+    return (INT_PTR)FALSE;
 }
 
 BOOL InputBoxValidate(HWND hDlg)
@@ -524,7 +525,7 @@ void SettingsDialog_FillDebugFontCombo(HWND hCombo)
     logfont.lfWeight = FW_NORMAL;
     logfont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
 
-    HDC hdc = GetDC(NULL);
+    HDC hdc = ::GetDC(NULL);
     EnumFontFamiliesEx(hdc, &logfont, (FONTENUMPROC)SettingsDialog_EnumFontProc, (LPARAM)hCombo, 0);
     VERIFY(::ReleaseDC(NULL, hdc));
 

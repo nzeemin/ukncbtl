@@ -678,7 +678,7 @@ void ScreenView_ScanKeyboard()
                 else
                 {
                     pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-                    m_ScreenKeyState[scan] = (newstate & 128) | ukncRegister;
+                    m_ScreenKeyState[scan] = (BYTE)((newstate & 128) | ukncRegister);
                 }
                 ukncscan = pTable[pcscan];
                 if (ukncscan != 0)

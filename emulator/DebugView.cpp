@@ -224,6 +224,8 @@ void DebugView_OnRButtonDown(int mousex, int mousey)
 
     HMENU hMenu = ::CreatePopupMenu();
     ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
+    ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    ::AppendMenu(hMenu, 0, ID_DEBUG_DELETEALLBREAKPTS, _T("Delete All Breakpoints"));
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(m_hwndDebugViewer, &pt);
@@ -377,7 +379,7 @@ void DebugView_DoDraw(HDC hdc)
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
-    VERIFY(DeleteObject(hFont));
+    VERIFY(::DeleteObject(hFont));
 
     if (::GetFocus() == m_hwndDebugViewer)
     {
@@ -649,7 +651,7 @@ void DebugView_DrawChannels(HDC hdc, int x, int y)
 
 BOOL DebugView_DrawBreakpoints(HDC hdc, int x, int y)
 {
-    const WORD* pbps = m_okDebugProcessor ? Emulator_GetCPUBreakpointList() : Emulator_GetPPUBreakpointList();
+    const uint16_t* pbps = m_okDebugProcessor ? Emulator_GetCPUBreakpointList() : Emulator_GetPPUBreakpointList();
     if (*pbps == 0177777)
         return FALSE;
 

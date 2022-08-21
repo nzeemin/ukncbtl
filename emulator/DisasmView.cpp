@@ -84,7 +84,7 @@ TCHAR m_strDisasmHint[42] = { 0 };
 TCHAR m_strDisasmHint2[42] = { 0 };
 
 int m_cxDisasmBreakpointZone = 16;  // Width of breakpoint zone at the left, for mouse click
-int m_cyDisasmLine = 10;
+int m_cyDisasmLine = 10;  // cyLine for the current font
 
 void DisasmView_UpdateWindowText();
 BOOL DisasmView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -316,7 +316,6 @@ void DisasmView_OnRButtonDown(int mousex, int mousey)
             ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
         ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
     }
-    ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDisasmProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
     ::AppendMenu(hMenu, 0, ID_DEBUG_SUBTITLES, m_okDisasmSubtitles ? _T("Unload Subtitles\tS") : _T("Load Subtitles...\tS"));
 
     int linebottom = 2 + m_cyDisasmLine * (m_nDisasmSelectedLineIndex + 1);
@@ -911,7 +910,8 @@ void DisasmView_InstructionHint(const uint16_t* memory, const CProcessor * pProc
 // Prepare "Instruction Hint" for a regular instruction (not a branch/jump one)
 // buffer, buffer2 - buffers for 1st and 2nd lines of the instruction hint, min size 42
 // Returns: number of hint lines; 0 = no hints
-int DisasmView_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl,
+int DisasmView_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
+        const CMemoryController * pMemCtl,
         LPTSTR buffer, LPTSTR buffer2)
 {
     const size_t buffersize = 42;
@@ -1167,7 +1167,6 @@ void DisasmView_DoDraw(HDC hdc)
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorOld = SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
     SetBkMode(hdc, TRANSPARENT);
-    //COLORREF colorBkOld = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 
     CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
 
@@ -1176,7 +1175,6 @@ void DisasmView_DoDraw(HDC hdc)
     int yFocus = DisasmView_DrawDisassemble(hdc, pDisasmPU, m_wDisasmBaseAddr, prevPC, 0, 2 + 0 * cyLine);
 
     SetTextColor(hdc, colorOld);
-    //SetBkColor(hdc, colorBkOld);
     SelectObject(hdc, hOldFont);
     VERIFY(::DeleteObject(hFont));
 

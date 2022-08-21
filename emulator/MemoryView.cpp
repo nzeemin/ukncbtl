@@ -248,6 +248,9 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     case VK_HOME:
         MemoryView_GotoAddress(0);
         break;
+    case VK_END:
+        MemoryView_GotoAddress(0177777);
+        break;
     case VK_LEFT:
         MemoryView_GotoAddress((WORD)(m_wCurrentAddress - 2));
         break;
