@@ -117,8 +117,8 @@ void SpriteView_Create(int x, int y)
             NULL, NULL, g_hInst, NULL);
 
     // ToolWindow subclassing
-    m_wndprocSpriteToolWindow = (WNDPROC)LongToPtr(SetWindowLongPtr(
-            g_hwndSprite, GWLP_WNDPROC, PtrToLong(SpriteViewWndProc)));
+    m_wndprocSpriteToolWindow = (WNDPROC)SetWindowLongPtr(
+            g_hwndSprite, GWLP_WNDPROC, (LONG_PTR)SpriteViewWndProc);
 
     RECT rcClient;  GetClientRect(g_hwndSprite, &rcClient);
 

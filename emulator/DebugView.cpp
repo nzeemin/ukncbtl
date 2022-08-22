@@ -98,8 +98,8 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
     DebugView_UpdateWindowText();
 
     // ToolWindow subclassing
-    m_wndprocDebugToolWindow = (WNDPROC)LongToPtr( SetWindowLongPtr(
-            g_hwndDebug, GWLP_WNDPROC, PtrToLong(DebugViewWndProc)) );
+    m_wndprocDebugToolWindow = (WNDPROC)SetWindowLongPtr(
+      g_hwndDebug, GWLP_WNDPROC, (LONG_PTR)DebugViewWndProc);
 
     RECT rcClient;  GetClientRect(g_hwndDebug, &rcClient);
 
