@@ -45,6 +45,8 @@ void ConsoleView_PrintRegister(LPCTSTR strName, WORD value);
 void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines);
 BOOL ConsoleView_SaveMemoryDump(CProcessor* pProc);
 
+void ConsoleView_ShowFloatingNumber(unsigned short O1, unsigned short O2);
+
 const LPCTSTR MESSAGE_UNKNOWN_COMMAND = _T("  Unknown command.\r\n");
 const LPCTSTR MESSAGE_WRONG_VALUE = _T("  Wrong value.\r\n");
 
@@ -372,6 +374,61 @@ void ConsoleView_SaveDisplayListDump()
     ::fclose(fpFile);
 }
 
+void ConsoleView_PrintMemoryAsString(CProcessor* pProc, WORD address)
+{
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    bool okHaltMode = pProc->IsHaltMode();
+
+    WORD dump[64];
+    int addrtype;
+    for (WORD i = 0; i < 64; i++)
+        dump[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, false, &addrtype);
+    const BYTE* pdumpb = (const BYTE*)dump;
+    TCHAR buffer[16 + 128 * 5 + 2 + 1];  memset(buffer, 0, sizeof(buffer));
+    _sntprintf(buffer, 16, _T("%06ho:\t.ASCIZ\t"), address);
+    TCHAR* pbuffer = buffer + 15;
+    bool charmode = false;
+    int i;
+    for (i = 0; i < 128; i++)
+    {
+        BYTE b = pdumpb[i];
+        if (b == 0)
+        {
+            if (i % 2 == 1) // HACK for double zero at the end
+                break;
+        }
+        if (b < 32)
+        {
+            if (charmode)
+            {
+                *pbuffer++ = _T('/');  charmode = false;
+            }
+            TCHAR bufval[8];
+            _sntprintf(bufval, 7, _T("<%03ho>"), b);
+            _tcscpy_s(pbuffer, 6, bufval);
+            pbuffer += 5;
+        }
+        else
+        {
+            if (!charmode)
+            {
+                *pbuffer++ = _T('/');  charmode = true;
+            }
+            TCHAR ch = Translate_KOI8R(b);
+            *pbuffer++ = ch;
+        }
+    }
+    if (charmode)
+        *pbuffer++ = _T('/');
+    *pbuffer++ = _T('\r');
+    *pbuffer++ = _T('\n');
+
+    ConsoleView_Print(buffer);
+
+    _sntprintf(buffer, 16, _T("ms%06ho"), address + i + 1);
+    SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)buffer);
+}
+
 // Print memory dump
 void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines = 8)
 {
@@ -632,6 +689,34 @@ void ConsoleView_RemoveBreakpoint(WORD address)
     DisasmView_Redraw();
 }
 
+void ConsoleView_ShowFloatingNumber(unsigned short O1, unsigned short O2)
+{
+    unsigned long mant = ((((unsigned long)O1 << 16) | O2) & 0x7FFFFFL) | 0x800000L;
+    short exp = (O1 >> 7) & 0xFF; exp -= 128;
+    ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
+    unsigned long scmant = 0x800000L;
+    long double sres = 0.5;
+    long double res = 0.0;
+    while (scmant != 0)
+    {
+        if ((scmant & mant) != 0) res += sres;
+        scmant >>= 1; sres /= 2;
+    }
+    while (exp != 0)
+    {
+        if (exp < 0)
+        {
+            res /= 2; exp++;
+        }
+        else
+        {
+            res *= 2; exp--;
+        }
+    }
+    if ((O1 & 0x8000) != 0) res = -res;
+    ConsoleView_PrintFormat(_T("%Lg\r\n"), res);
+}
+
 #if !defined(PRODUCT)
 void ConsoleView_ClearTraceLog()
 {
@@ -871,32 +956,7 @@ void ConsoleView_DoConsoleCommand()
             if (2 != _stscanf(command + 2, _T("%ho %ho"), &O1, &O2))
                 ConsoleView_Print(MESSAGE_WRONG_VALUE);
             else
-            {
-                unsigned long mant = ((((unsigned long)O1 << 16) | O2) & 0x7FFFFFL) | 0x800000L;
-                short exp = (O1 >> 7) & 0xFF; exp -= 128;
-                ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
-                unsigned long scmant = 0x800000L;
-                long double sres = 0.5;
-                long double res = 0.0;
-                while (scmant != 0)
-                {
-                    if ((scmant & mant) != 0) res += sres;
-                    scmant >>= 1; sres /= 2;
-                }
-                while (exp != 0)
-                {
-                    if (exp < 0)
-                    {
-                        res /= 2; exp++;
-                    }
-                    else
-                    {
-                        res *= 2; exp--;
-                    }
-                }
-                if ((O1 & 0x8000) != 0) res = -res;
-                ConsoleView_PrintFormat(_T("%Lg\r\n"), res);
-            }
+                ConsoleView_ShowFloatingNumber(O1, O2);
         }
         break;
 #if !defined(PRODUCT)

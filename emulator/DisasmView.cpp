@@ -20,7 +20,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "ToolWindow.h"
 #include "Dialogs.h"
 #include "Emulator.h"
-#include "emubase\Emubase.h"
+#include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -311,9 +311,14 @@ void DisasmView_OnRButtonDown(int mousex, int mousey)
     HMENU hMenu = ::CreatePopupMenu();
     if (pLineItem != nullptr)
     {
-        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
+        TCHAR buffer[24];
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Address: %06o"), pLineItem->address);
+        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, buffer);
         if ((pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0)  // if the item has a valid value
-            ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
+        {
+            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06o"), pLineItem->value);
+            ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
+        }
         ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
     }
     ::AppendMenu(hMenu, 0, ID_DEBUG_SUBTITLES, m_okDisasmSubtitles ? _T("Unload Subtitles\tS") : _T("Load Subtitles...\tS"));
