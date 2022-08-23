@@ -290,7 +290,7 @@ void CMotherboard::Reset ()
 
     m_cputicks = 0;
     m_pputicks = 0;
-    m_lineticks = 0;
+    m_frameticks = 0;
     m_timer = 0;
     m_timerreload = 0;
     m_timerflags = 0;
@@ -667,12 +667,12 @@ void CMotherboard::DebugTicks()
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
-    { const uint16_t* pbps = m_CPUbps; while(*pbps != 0177777) { if (m_pCPU->GetPC() == *pbps++) return false; } } }
+    { const uint16_t* pbps = m_CPUbps; while(*pbps != 0177777) { if (m_pCPU->GetPC() == *pbps++) { m_frameticks = frameticks; return false; } } } }
 #define SYSTEMFRAME_EXECUTE_BP_PPU  { m_pPPU->Execute(); if (m_PPUbps != nullptr) \
-    { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
+    { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) { m_frameticks = frameticks; return false; } } } }
 bool CMotherboard::SystemFrame()
 {
-    int frameticks = 0;  // 20000 ticks
+    unsigned int frameticks = m_frameticks;  // 20000 ticks
     const int audioticks = 20286 / (SAMPLERATE / 25);
     m_SoundChanges = 0;
     const int serialOutTicks = 20000 / (9600 / 25);
@@ -905,6 +905,8 @@ bool CMotherboard::SystemFrame()
         frameticks++;
     }
     while (frameticks < 20000);
+
+    m_frameticks = frameticks % 20000;
 
     return true;
 }
