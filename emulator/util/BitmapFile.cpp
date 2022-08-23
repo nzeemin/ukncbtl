@@ -12,7 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "BitmapFile.h"
-#include <Share.h>
+#include <share.h>
 
 
 //////////////////////////////////////////////////////////////////////

@@ -11,23 +11,23 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // MemoryView.cpp
 
 #include "stdafx.h"
-#include <commctrl.h>
+#include <CommCtrl.h>
 #include <windowsx.h>
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
 #include "Dialogs.h"
 #include "Emulator.h"
-#include "emubase\Emubase.h"
+#include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
-HWND g_hwndMemory = (HWND) INVALID_HANDLE_VALUE;  // Memory view window handler
+HWND g_hwndMemory = (HWND)INVALID_HANDLE_VALUE;  // Memory view window handler
 WNDPROC m_wndprocMemoryToolWindow = NULL;  // Old window proc address of the ToolWindow
 
-HWND m_hwndMemoryViewer = (HWND) INVALID_HANDLE_VALUE;
-HWND m_hwndMemoryToolbar = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndMemoryViewer = (HWND)INVALID_HANDLE_VALUE;
+HWND m_hwndMemoryToolbar = (HWND)INVALID_HANDLE_VALUE;
 
 int m_cxChar = 0;
 int m_cyLineMemory = 0;  // Line height in pixels

@@ -12,21 +12,21 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <windowsx.h>
-#include <commctrl.h>
+#include <CommCtrl.h>
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
 #include "Emulator.h"
-#include "emubase\Emubase.h"
+#include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
-HWND g_hwndDebug = (HWND) INVALID_HANDLE_VALUE;  // Debug View window handle
+HWND g_hwndDebug = (HWND)INVALID_HANDLE_VALUE;  // Debug View window handle
 WNDPROC m_wndprocDebugToolWindow = NULL;  // Old window proc address of the ToolWindow
 
-HWND m_hwndDebugViewer = (HWND) INVALID_HANDLE_VALUE;
-HWND m_hwndDebugToolbar = (HWND) INVALID_HANDLE_VALUE;
+HWND m_hwndDebugViewer = (HWND)INVALID_HANDLE_VALUE;
+HWND m_hwndDebugToolbar = (HWND)INVALID_HANDLE_VALUE;
 
 BOOL m_okDebugProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
 WORD m_wDebugCpuR[11];  // Saved register values - R0..R7, PSW, CPC, CPSW

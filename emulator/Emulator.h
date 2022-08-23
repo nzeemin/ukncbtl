@@ -12,7 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
-#include "emubase\Board.h"
+#include "emubase/Board.h"
 
 //////////////////////////////////////////////////////////////////////
 

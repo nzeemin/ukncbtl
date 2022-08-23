@@ -15,7 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
-#include "util\\WavPcmFile.h"
+#include "util/WavPcmFile.h"
 #include "Emulator.h"
 #include "Dialogs.h"
 

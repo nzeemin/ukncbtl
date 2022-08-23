@@ -234,7 +234,7 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
         m_Settings_##PARAMNAME##_Valid = TRUE; \
         Settings_SaveDwordValue(PARAMNAMESTR, (DWORD) newvalue); \
     } \
-    OUTTYPE Settings_Get##PARAMNAME##() { \
+    OUTTYPE Settings_Get##PARAMNAME() { \
         if (!m_Settings_##PARAMNAME##_Valid) { \
             DWORD dwValue = (DWORD) DEFVALUE; \
             Settings_LoadDwordValue(PARAMNAMESTR, &dwValue); \

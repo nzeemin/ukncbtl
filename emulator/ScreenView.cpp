@@ -15,8 +15,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Main.h"
 #include "Views.h"
 #include "Emulator.h"
-#include "util\BitmapFile.h"
-#include "emubase\Emubase.h"
+#include "util/BitmapFile.h"
+#include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
 

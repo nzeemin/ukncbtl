@@ -42,11 +42,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #define WIN32_LEAN_AND_MEAN     // Exclude rarely-used stuff from Windows headers
 // Windows Header Files:
-#include <windows.h>
+#include <Windows.h>
 
 // C RunTime Header Files
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>

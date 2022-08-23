@@ -13,7 +13,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Main.h"
 #include "ToolWindow.h"
-#include <Windowsx.h>
+#include <windowsx.h>
 
 //////////////////////////////////////////////////////////////////////
 

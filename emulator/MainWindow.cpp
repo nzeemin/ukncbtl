@@ -12,14 +12,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <commdlg.h>
-#include <commctrl.h>
+#include <CommCtrl.h>
 
 #include "Main.h"
 #include "Emulator.h"
 #include "Dialogs.h"
 #include "Views.h"
 #include "ToolWindow.h"
-#include "util\BitmapFile.h"
 
 //////////////////////////////////////////////////////////////////////
 

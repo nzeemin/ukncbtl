@@ -13,12 +13,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Main.h"
 #include "Views.h"
-#include "Emulator.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
-HWND g_hwndKeyboard = (HWND) INVALID_HANDLE_VALUE;  // Keyboard View window handle
+HWND g_hwndKeyboard = (HWND)INVALID_HANDLE_VALUE;  // Keyboard View window handle
 
 int m_nKeyboardBitmapLeft = 0;
 int m_nKeyboardBitmapTop = 0;

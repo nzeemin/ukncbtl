@@ -12,12 +12,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <crtdbg.h>
-#include <commctrl.h>
+#include <CommCtrl.h>
 #include <shellapi.h>
 
 #include "Main.h"
 #include "Emulator.h"
-#include "Dialogs.h"
 #include "Views.h"
 
 //////////////////////////////////////////////////////////////////////

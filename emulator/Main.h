@@ -10,7 +10,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
-#include "res\\resource.h"
+#include "res/Resource.h"
 
 //////////////////////////////////////////////////////////////////////
 

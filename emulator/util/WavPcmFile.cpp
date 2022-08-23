@@ -12,8 +12,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "WavPcmFile.h"
-#include <stdio.h>
-#include <Share.h>
+#include <cstdio>
+#include <share.h>
 
 
 //////////////////////////////////////////////////////////////////////
