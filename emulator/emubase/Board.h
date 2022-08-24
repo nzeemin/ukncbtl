@@ -17,6 +17,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 class CProcessor;
 class CMemoryController;
 
+#define FRAMERATE               50
+
 // Floppy debug constants
 #define FLOPPY_FSM_WAITFORLSB   0
 #define FLOPPY_FSM_WAITFORMSB   1

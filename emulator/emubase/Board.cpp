@@ -651,6 +651,11 @@ void CMotherboard::DebugTicks()
 }
 
 /*
++++ WARNING +++
+This is description of SystemFrame() principles related to 25 Hz frame rate.
+See comments below about 50 Hz frame rate.
+--- WARNING ---
+
 Каждый фрейм равен 1/25 секунды = 40 мс = 20000 тиков, 1 тик = 2 мкс.
 
 * 20000 тиков системного таймера - на каждый 1-й тик
@@ -664,6 +669,29 @@ void CMotherboard::DebugTicks()
 * 48 тиков обмена с COM-портом - каждый 416 тик
 * 8?? тиков обмена с NET-портом - каждый 64 тик ???
 */
+
+/*
+Real ms0511 (uknc) have weird frame rate, which calculated from video gen hardware
+clock 12.5MHz (pixel rate) and 800x312 pixels of full frame size (this include HSYNC
+and VSYNC fields, visible area is 640x288 pixels)
+
+So, frame rate is FPS = 12.5e6 / (800 * 312) ~ 50.080128205 Hz or 0.019968 ms
+This value is very close to 50 Hz (error is less than 0.2%)
+
+For 50 Hz frame rate we have:
+
+Every frame is 1/50 s = 20 ms = 10000 ticks, 1 tick = 2 us
+10000 ticks of system timer (every tick)
+160000 CPU ticks (16 times in every tick)
+125000 PPU ticks (12.5 times in every tick)
+Drawing 640x288 visible pixels, done at end of each frame
+312.5 FDD ticks (every 32 tick)
+
+Implementations details:
+m_frameticks variable counting up to 20000 to maintain compatibility with
+many hardcoded constants, but every 10000 ticks screen image is updated.
+Some constants replaced to reflect frame rate change.
+*/
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
@@ -673,7 +701,7 @@ void CMotherboard::DebugTicks()
 bool CMotherboard::SystemFrame()
 {
     unsigned int frameticks = m_frameticks;  // 20000 ticks
-    const int audioticks = 20286 / (SAMPLERATE / 25);
+    const int audioticks = 20286 / (SAMPLERATE / 25); // TODO: What is it?
     m_SoundChanges = 0;
     const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
@@ -683,7 +711,7 @@ bool CMotherboard::SystemFrame()
     int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
     {
-        tapeSamplesPerFrame = m_nTapeSampleRate / 25;
+        tapeSamplesPerFrame = m_nTapeSampleRate / FRAMERATE;
         tapeBrasErr = 0;
     }
 
@@ -903,11 +931,16 @@ bool CMotherboard::SystemFrame()
         }
 
         frameticks++;
-    }
+    } 
+#if   FRAMERATE == 50
+    while (frameticks % 10000);
+#elif FRAMERATE == 25
     while (frameticks < 20000);
+#else
+    #error "FRAMERATE have to be 25 or 50"
+#endif
 
     m_frameticks = frameticks % 20000;
-
     return true;
 }
 

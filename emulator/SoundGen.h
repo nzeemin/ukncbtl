@@ -14,8 +14,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-
-#define BUFSIZE     ((SAMPLERATE / 25) * 4)
+// BUFSIZE need to reflect FRAMERATE (25 or 50 Hz)
+#define BUFSIZE     ((SAMPLERATE / FRAMERATE) * 4)
 #define BLOCK_COUNT 8
 #define BLOCK_SIZE  BUFSIZE
 
