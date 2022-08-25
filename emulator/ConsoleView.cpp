@@ -45,6 +45,7 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor* pProc);
 
 const LPCTSTR MESSAGE_UNKNOWN_COMMAND = _T("  Unknown command.\r\n");
 const LPCTSTR MESSAGE_WRONG_VALUE = _T("  Wrong value.\r\n");
+const LPCTSTR MESSAGE_INVALID_REGNUM = _T("  Invalid register number, 0..7 expected.\r\n");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -85,7 +86,7 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
     SetWindowText(g_hwndConsole, _T("Debug Console"));
 
     // ToolWindow subclassing
-    m_wndprocConsoleToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
+    m_wndprocConsoleToolWindow = (WNDPROC)LongToPtr( SetWindowLongPtr(
             g_hwndConsole, GWLP_WNDPROC, PtrToLong(ConsoleViewWndProc)) );
 
     RECT rcConsole;  GetClientRect(g_hwndConsole, &rcConsole);
@@ -113,12 +114,12 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
             g_hwndConsole, NULL, g_hInst, NULL);
 
     m_hfontConsole = CreateMonospacedFont();
-    SendMessage(m_hwndConsolePrompt, WM_SETFONT, (WPARAM) m_hfontConsole, 0);
-    SendMessage(m_hwndConsoleEdit, WM_SETFONT, (WPARAM) m_hfontConsole, 0);
-    SendMessage(m_hwndConsoleLog, WM_SETFONT, (WPARAM) m_hfontConsole, 0);
+    SendMessage(m_hwndConsolePrompt, WM_SETFONT, (WPARAM)m_hfontConsole, 0);
+    SendMessage(m_hwndConsoleEdit, WM_SETFONT, (WPARAM)m_hfontConsole, 0);
+    SendMessage(m_hwndConsoleLog, WM_SETFONT, (WPARAM)m_hfontConsole, 0);
 
     // Edit box subclassing
-    m_wndprocConsoleEdit = (WNDPROC) LongToPtr( SetWindowLongPtr(
+    m_wndprocConsoleEdit = (WNDPROC)LongToPtr( SetWindowLongPtr(
             m_hwndConsoleEdit, GWLP_WNDPROC, PtrToLong(ConsoleEditWndProc)) );
 
     ShowWindow(g_hwndConsole, SW_SHOW);
@@ -135,11 +136,11 @@ void ConsoleView_AdjustWindowLayout()
     RECT rc;  GetClientRect(g_hwndConsole, &rc);
     int promptWidth = 90;
 
-    if (m_hwndConsolePrompt != (HWND) INVALID_HANDLE_VALUE)
+    if (m_hwndConsolePrompt != (HWND)INVALID_HANDLE_VALUE)
         SetWindowPos(m_hwndConsolePrompt, NULL, 0, rc.bottom - 20, promptWidth, 20, SWP_NOZORDER);
-    if (m_hwndConsoleEdit != (HWND) INVALID_HANDLE_VALUE)
+    if (m_hwndConsoleEdit != (HWND)INVALID_HANDLE_VALUE)
         SetWindowPos(m_hwndConsoleEdit, NULL, promptWidth, rc.bottom - 20, rc.right - promptWidth, 20, SWP_NOZORDER);
-    if (m_hwndConsoleLog != (HWND) INVALID_HANDLE_VALUE)
+    if (m_hwndConsoleLog != (HWND)INVALID_HANDLE_VALUE)
         SetWindowPos(m_hwndConsoleLog, NULL, 0, 0, rc.right, rc.bottom - 24, SWP_NOZORDER);
 }
 
@@ -150,13 +151,13 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     switch (message)
     {
     case WM_DESTROY:
-        g_hwndConsole = (HWND) INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
+        g_hwndConsole = (HWND)INVALID_HANDLE_VALUE;  // We are closed! Bye-bye!..
         break;
     case WM_CTLCOLORSTATIC:
         if (((HWND)lParam) == m_hwndConsoleLog)
         {
             SetBkColor((HDC)wParam, ::GetSysColor(COLOR_WINDOW));
-            return (LRESULT) ::GetSysColorBrush(COLOR_WINDOW);
+            return (LRESULT)::GetSysColorBrush(COLOR_WINDOW);
         }
         break;
     case WM_CTLCOLOREDIT:
@@ -237,7 +238,7 @@ void ConsoleView_Print(LPCTSTR message)
     // Put selection to the end of text
     SendMessage(m_hwndConsoleLog, EM_SETSEL, 0x100000, 0x100000);
     // Insert the message
-    SendMessage(m_hwndConsoleLog, EM_REPLACESEL, (WPARAM) FALSE, (LPARAM) message);
+    SendMessage(m_hwndConsoleLog, EM_REPLACESEL, (WPARAM)FALSE, (LPARAM)message);
     // Scroll to caret
     SendMessage(m_hwndConsoleLog, EM_SCROLLCARET, 0, 0);
 }
@@ -396,61 +397,6 @@ void ConsoleView_SaveDisplayListDump()
     }
 
     ::fclose(fpFile);
-}
-
-void ConsoleView_PrintMemoryAsString(CProcessor* pProc, WORD address)
-{
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
-    bool okHaltMode = pProc->IsHaltMode();
-
-    WORD dump[64];
-    int addrtype;
-    for (WORD i = 0; i < 64; i++)
-        dump[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, false, &addrtype);
-    const BYTE* pdumpb = (const BYTE*)dump;
-    TCHAR buffer[16 + 128 * 5 + 2 + 1];  memset(buffer, 0, sizeof(buffer));
-    _sntprintf(buffer, 16, _T("%06ho:\t.ASCIZ\t"), address);
-    TCHAR* pbuffer = buffer + 15;
-    bool charmode = false;
-    int i;
-    for (i = 0; i < 128; i++)
-    {
-        BYTE b = pdumpb[i];
-        if (b == 0)
-        {
-            if (i % 2 == 1) // HACK for double zero at the end
-                break;
-        }
-        if (b < 32)
-        {
-            if (charmode)
-            {
-                *pbuffer++ = _T('/');  charmode = false;
-            }
-            TCHAR bufval[8];
-            _sntprintf(bufval, 7, _T("<%03ho>"), b);
-            _tcscpy_s(pbuffer, 6, bufval);
-            pbuffer += 5;
-        }
-        else
-        {
-            if (!charmode)
-            {
-                *pbuffer++ = _T('/');  charmode = true;
-            }
-            TCHAR ch = Translate_KOI8R(b);
-            *pbuffer++ = ch;
-        }
-    }
-    if (charmode)
-        *pbuffer++ = _T('/');
-    *pbuffer++ = _T('\r');
-    *pbuffer++ = _T('\n');
-
-    ConsoleView_Print(buffer);
-
-    _sntprintf(buffer, 16, _T("ms%06ho"), address + i + 1);
-    SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)buffer);
 }
 
 // Print memory dump
@@ -623,13 +569,7 @@ void ConsoleView_CmdClearConsoleLog(const ConsoleCommandParams& /*params*/)
     ConsoleView_ClearConsole();
 }
 
-void ConsoleView_CmdPrintRegister(const ConsoleCommandParams& /*params*/)
-{
-    const CProcessor* pProc = ConsoleView_GetCurrentProcessor();
-    WORD value = pProc->GetPSW();
-    ConsoleView_PrintRegister(_T("PS"), value);
-}
-void ConsoleView_CmdPrintRegisterPSW(const ConsoleCommandParams& params)
+void ConsoleView_CmdPrintRegister(const ConsoleCommandParams& params)
 {
     int r = params.paramReg1;
 
@@ -637,6 +577,12 @@ void ConsoleView_CmdPrintRegisterPSW(const ConsoleCommandParams& params)
     const CProcessor* pProc = ConsoleView_GetCurrentProcessor();
     uint16_t value = pProc->GetReg(r);
     ConsoleView_PrintRegister(name, value);
+}
+void ConsoleView_CmdPrintRegisterPSW(const ConsoleCommandParams& /*params*/)
+{
+    const CProcessor* pProc = ConsoleView_GetCurrentProcessor();
+    WORD value = pProc->GetPSW();
+    ConsoleView_PrintRegister(_T("PS"), value);
 }
 
 void ConsoleView_CmdSetRegisterValue(const ConsoleCommandParams& params)
@@ -737,7 +683,7 @@ void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
     CProcessor* pProc = ConsoleView_GetCurrentProcessor();
 
     int instrLength = ConsoleView_PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
-    WORD bpaddress = (WORD)(pProc->GetPC() + instrLength * 2);
+    uint16_t bpaddress = (uint16_t)(pProc->GetPC() + instrLength * 2);
 
     if (m_okCurrentProc)
         Emulator_SetTempCPUBreakpoint(bpaddress);
@@ -753,7 +699,7 @@ void ConsoleView_CmdRun(const ConsoleCommandParams& /*params*/)
 }
 void ConsoleView_CmdRunToAddress(const ConsoleCommandParams& params)
 {
-    WORD address = params.paramOct1;
+    uint16_t address = params.paramOct1;
 
     if (m_okCurrentProc)
         Emulator_SetTempCPUBreakpoint(address);
@@ -787,7 +733,7 @@ void ConsoleView_CmdRemoveAllBreakpoints(const ConsoleCommandParams& /*params*/)
 }
 void ConsoleView_CmdSetBreakpointAtAddress(const ConsoleCommandParams& params)
 {
-    WORD address = params.paramOct1;
+    uint16_t address = params.paramOct1;
 
     bool result = m_okCurrentProc ? Emulator_AddCPUBreakpoint(address) : Emulator_AddPPUBreakpoint(address);
     if (!result)
@@ -798,7 +744,7 @@ void ConsoleView_CmdSetBreakpointAtAddress(const ConsoleCommandParams& params)
 }
 void ConsoleView_CmdRemoveBreakpointAtAddress(const ConsoleCommandParams& params)
 {
-    WORD address = params.paramOct1;
+    uint16_t address = params.paramOct1;
 
     bool result = m_okCurrentProc ? Emulator_RemoveCPUBreakpoint(address) : Emulator_RemovePPUBreakpoint(address);
     if (!result)
@@ -882,34 +828,35 @@ struct ConsoleCommandStruct
 }
 static ConsoleCommands[] =
 {
+    // IMPORTANT! First list more complex forms with more arguments, then less complex forms
     { _T("h"), ARGINFO_NONE, ConsoleView_CmdShowHelp },
     { _T("c"), ARGINFO_NONE, ConsoleView_CmdClearConsoleLog },
     { _T("p"), ARGINFO_NONE, ConsoleView_CmdSwitchCpuPpu },
-    { _T("r"), ARGINFO_NONE, ConsoleView_CmdPrintAllRegisters },
-    { _T("r%d"), ARGINFO_REG, ConsoleView_CmdPrintRegister },
     { _T("r%d=%ho"), ARGINFO_REG_OCT, ConsoleView_CmdSetRegisterValue },
     { _T("r%d %ho"), ARGINFO_REG_OCT, ConsoleView_CmdSetRegisterValue },
-    { _T("rps"), ARGINFO_NONE, ConsoleView_CmdPrintRegisterPSW },
+    { _T("r%d"), ARGINFO_REG, ConsoleView_CmdPrintRegister },
+    { _T("r"), ARGINFO_NONE, ConsoleView_CmdPrintAllRegisters },
     { _T("rps=%ho"), ARGINFO_OCT, ConsoleView_CmdSetRegisterPSW },
     { _T("rps %ho"), ARGINFO_OCT, ConsoleView_CmdSetRegisterPSW },
+    { _T("rps"), ARGINFO_NONE, ConsoleView_CmdPrintRegisterPSW },
     { _T("s"), ARGINFO_NONE, ConsoleView_CmdStepInto },
     { _T("so"), ARGINFO_NONE, ConsoleView_CmdStepOver },
-    { _T("d"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
-    { _T("D"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
     { _T("d%ho"), ARGINFO_OCT, ConsoleView_CmdPrintDisassembleAtAddress },
     { _T("D%ho"), ARGINFO_OCT, ConsoleView_CmdPrintDisassembleAtAddress },
+    { _T("d"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
+    { _T("D"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
     { _T("u"), ARGINFO_NONE, ConsoleView_CmdSaveMemoryDump },
     { _T("udl"), ARGINFO_NONE, ConsoleView_CmdSaveDisplayListDump },
-    { _T("m"), ARGINFO_NONE, ConsoleView_CmdPrintMemoryDumpAtPC },
     { _T("m%ho"), ARGINFO_OCT, ConsoleView_CmdPrintMemoryDumpAtAddress },
     { _T("mr%d"), ARGINFO_REG, ConsoleView_CmdPrintMemoryDumpAtRegister },
-    { _T("g"), ARGINFO_NONE, ConsoleView_CmdRun },
+    { _T("m"), ARGINFO_NONE, ConsoleView_CmdPrintMemoryDumpAtPC },
     { _T("g%ho"), ARGINFO_OCT, ConsoleView_CmdRunToAddress },
-    { _T("b"), ARGINFO_NONE, ConsoleView_CmdPrintAllBreakpoints },
+    { _T("g"), ARGINFO_NONE, ConsoleView_CmdRun },
     { _T("b%ho"), ARGINFO_OCT, ConsoleView_CmdSetBreakpointAtAddress },
-    { _T("bc"), ARGINFO_NONE, ConsoleView_CmdRemoveAllBreakpoints },
+    { _T("b"), ARGINFO_NONE, ConsoleView_CmdPrintAllBreakpoints },
     { _T("bc%ho"), ARGINFO_OCT, ConsoleView_CmdRemoveBreakpointAtAddress },
-    { _T("fc"), ARGINFO_OCT_OCT, ConsoleView_CmdCalculateFloatNumber },
+    { _T("bc"), ARGINFO_NONE, ConsoleView_CmdRemoveAllBreakpoints },
+    { _T("fc%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdCalculateFloatNumber },
 #if !defined(PRODUCT)
     { _T("t"), ARGINFO_NONE, ConsoleView_CmdTraceLogOnOff },
     { _T("t%ho"), ARGINFO_OCT, ConsoleView_CmdTraceLogWithMask },
@@ -941,7 +888,7 @@ void ConsoleView_DoConsoleCommand()
     params.paramOct2 = 0;
 
     // Find matching console command from the list, parse and execute the command
-    bool parsedOkay = false;
+    bool parsedOkay = false, parseError = false;
     for (size_t i = 0; i < ConsoleCommandsCount; i++)
     {
         ConsoleCommandStruct& cmd = ConsoleCommands[i];
@@ -955,6 +902,11 @@ void ConsoleView_DoConsoleCommand()
         case ARGINFO_REG:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1);
             parsedOkay = (paramsParsed == 1);
+            if (parsedOkay && params.paramReg1 < 0 || params.paramReg1 > 7)
+            {
+                ConsoleView_Print(MESSAGE_INVALID_REGNUM);
+                parseError = true;
+            }
             break;
         case ARGINFO_OCT:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramOct1);
@@ -963,12 +915,20 @@ void ConsoleView_DoConsoleCommand()
         case ARGINFO_REG_OCT:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1, &params.paramOct1);
             parsedOkay = (paramsParsed == 2);
+            if (parsedOkay && params.paramReg1 < 0 || params.paramReg1 > 7)
+            {
+                ConsoleView_Print(MESSAGE_INVALID_REGNUM);
+                parseError = true;
+            }
             break;
         case ARGINFO_OCT_OCT:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramOct1, &params.paramOct2);
             parsedOkay = (paramsParsed == 2);
             break;
         }
+
+        if (parseError)
+            break;  // Validation detected error and printed the message already
 
         if (parsedOkay)
         {
@@ -977,7 +937,7 @@ void ConsoleView_DoConsoleCommand()
         }
     }
 
-    if (!parsedOkay)
+    if (!parsedOkay && !parseError)
         ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
 
     ConsoleView_PrintConsolePrompt();
