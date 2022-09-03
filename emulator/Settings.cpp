@@ -25,6 +25,7 @@ DCB  m_Settings_NetComConfig;
 //////////////////////////////////////////////////////////////////////
 // Options
 
+bool Option_ShowHelp = false;
 int Option_AutoBoot = 0;
 
 

@@ -34,6 +34,22 @@ BOOL InitInstance(HINSTANCE, int);
 void DoneInstance();
 void ParseCommandLine();
 
+LPCTSTR m_CommandLineHelp = _T("Command line options:\r\n\r\n")
+        _T("/h /help\tShow command line options\r\n")
+        _T("/boot\tAuto-start the emulation, select boot from disk\r\n")
+        _T("/bootN\tAuto-start the emulation, select boot menu item N=1..7\r\n")
+        _T("/autostart /autostarton\tStart emulation on window open\r\n")
+        _T("/noautostart /autostartoff\tDo not start emulation on window open\r\n")
+        _T("/debug /debugon\tSwitch to debug mode\r\n")
+        _T("/nodebug /debugoff\tSwitch off the debug mode\r\n")
+        _T("/sound /soundon\tTurn sound on\r\n")
+        _T("/nosound /soundoff\tTurn sound off\r\n")
+        _T("/fullscreen /fullscreenon\tSwitch to fullscreen mode\r\n")
+        _T("/windowed /fullscreenoff\tSwitch to windowed mode\r\n")
+        _T("/diskN:filePath\tAttach disk image, N=0..3\r\n")
+        _T("/cartN:filePath\tAttach cartridge image, N=1..2\r\n")
+        _T("/hardN:filePath\tAttach hard disk image, N=1..2\r\n");
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -68,6 +84,11 @@ int APIENTRY _tWinMain(
         return FALSE;
 
     HACCEL hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPLICATION));
+
+    if (Option_ShowHelp)
+    {
+        AlertInfo(m_CommandLineHelp);
+    }
 
     LARGE_INTEGER nPerformanceFrequency;
     ::QueryPerformanceFrequency(&nPerformanceFrequency);
@@ -205,7 +226,11 @@ void ParseCommandLine()
     {
         LPTSTR arg = args[curargn];
 
-        if (_tcslen(arg) >= 5 && _tcsncmp(arg, _T("/boot"), 5) == 0)
+        if (_tcscmp(arg, _T("/help")) == 0 || _tcscmp(arg, _T("/h")) == 0)
+        {
+            Option_ShowHelp = true;
+        }
+        else if (_tcslen(arg) >= 5 && _tcsncmp(arg, _T("/boot"), 5) == 0)
         {
             Option_AutoBoot = 1;
             if (_tcslen(arg) >= 6 && arg[5] >= _T('1') && arg[5] <= _T('7'))
