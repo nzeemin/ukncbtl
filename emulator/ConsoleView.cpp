@@ -543,6 +543,7 @@ void ConsoleView_CmdShowHelp(const ConsoleCommandParams& /*params*/)
             _T("  m          Memory dump at current address\r\n")
             _T("  mXXXXXX    Memory dump at address XXXXXX\r\n")
             _T("  mrN        Memory dump at address from register N; N=0..7\r\n")
+            _T("  mXXXXXX YYYYYY  Set memory value at address XXXXXX\r\n")
             _T("  p          Switch to other processor\r\n")
             _T("  r          Show register values\r\n")
             _T("  rN         Show value of register N; N=0..7,ps\r\n")
@@ -555,7 +556,7 @@ void ConsoleView_CmdShowHelp(const ConsoleCommandParams& /*params*/)
             _T("  bc         Remove all breakpoints for the current processor\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
             _T("  udl        Save display list dump to file displaylist.txt\r\n")
-            _T("  fcXXXXXX XXXXXX  Calculate floating number for the two octal words\r\n")
+            _T("  fcXXXXXX YYYYYY  Calculate floating number for the two octal words\r\n")
 #if !defined(PRODUCT)
             _T("  t          Tracing on/off to trace.log file\r\n")
             _T("  tXXXXXX    Set tracing flags\r\n")
@@ -690,8 +691,6 @@ void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
     else
         Emulator_SetTempPPUBreakpoint(bpaddress);
     Emulator_Start();
-
-    MainWindow_UpdateAllViews();
 }
 void ConsoleView_CmdRun(const ConsoleCommandParams& /*params*/)
 {
@@ -756,6 +755,28 @@ void ConsoleView_CmdRemoveBreakpointAtAddress(const ConsoleCommandParams& params
 void ConsoleView_CmdSaveDisplayListDump(const ConsoleCommandParams& /*params*/)
 {
     ConsoleView_SaveDisplayListDump();
+}
+
+void ConsoleView_CmdSetMemoryAtAddress(const ConsoleCommandParams& params)
+{
+    uint16_t address = params.paramOct1;
+    uint16_t value = params.paramOct2;
+
+    CProcessor* pProc = ConsoleView_GetCurrentProcessor();
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
+    bool okHaltMode = pProc->IsHaltMode();
+
+    int addrtype;
+    pMemCtl->GetWordView(address, okHaltMode, false, &addrtype);
+    if (addrtype != ADDRTYPE_RAM12 && addrtype != ADDRTYPE_RAM0 && addrtype != ADDRTYPE_RAM1 && addrtype != ADDRTYPE_RAM2)
+    {
+        ConsoleView_Print(_T("  Can't change memory value for this memory type.\r\n"));
+        return;
+    }
+
+    pMemCtl->SetWord(address, okHaltMode, value);
+
+    MainWindow_UpdateAllViews();
 }
 
 void ConsoleView_CmdCalculateFloatNumber(const ConsoleCommandParams& params)
@@ -847,6 +868,8 @@ static ConsoleCommands[] =
     { _T("D"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
     { _T("u"), ARGINFO_NONE, ConsoleView_CmdSaveMemoryDump },
     { _T("udl"), ARGINFO_NONE, ConsoleView_CmdSaveDisplayListDump },
+    { _T("m%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSetMemoryAtAddress },
+    { _T("m%ho=%ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSetMemoryAtAddress },
     { _T("m%ho"), ARGINFO_OCT, ConsoleView_CmdPrintMemoryDumpAtAddress },
     { _T("mr%d"), ARGINFO_REG, ConsoleView_CmdPrintMemoryDumpAtRegister },
     { _T("m"), ARGINFO_NONE, ConsoleView_CmdPrintMemoryDumpAtPC },
@@ -858,8 +881,8 @@ static ConsoleCommands[] =
     { _T("bc"), ARGINFO_NONE, ConsoleView_CmdRemoveAllBreakpoints },
     { _T("fc%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdCalculateFloatNumber },
 #if !defined(PRODUCT)
-    { _T("t"), ARGINFO_NONE, ConsoleView_CmdTraceLogOnOff },
     { _T("t%ho"), ARGINFO_OCT, ConsoleView_CmdTraceLogWithMask },
+    { _T("t"), ARGINFO_NONE, ConsoleView_CmdTraceLogOnOff },
     { _T("tc"), ARGINFO_NONE, ConsoleView_CmdClearTraceLog },
 #endif
 };

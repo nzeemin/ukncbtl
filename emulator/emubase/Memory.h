@@ -76,7 +76,7 @@ public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(uint8_t* pImage) = 0;
     virtual void LoadFromImage(const uint8_t* pImage) = 0;
 protected:
-    /// \brief Determite memory type for given address - see ADDRTYPE_Xxx constants
+    /// \brief Determine memory type for given address - see ADDRTYPE_Xxx constants
     /// \param okHaltMode  processor mode (USER/HALT)
     /// \param okExec  true: read instruction for execution; false: read memory
     /// \param pOffset  result -- offset in memory plane
