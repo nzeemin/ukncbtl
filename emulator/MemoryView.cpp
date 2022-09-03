@@ -460,7 +460,6 @@ void MemoryView_CopyValueToClipboard(WPARAM command)
     }
     else
     {
-        //TODO: Get word from memory
         // Get word from memory
         int addrtype;
         BOOL okValid;
@@ -479,7 +478,7 @@ void MemoryView_CopyValueToClipboard(WPARAM command)
 
     // Prepare global memory object for the text
     HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(buffer));
-    LPTSTR lptstrCopy = (LPTSTR) ::GlobalLock(hglbCopy);
+    LPTSTR lptstrCopy = (LPTSTR)::GlobalLock(hglbCopy);
     memcpy(lptstrCopy, buffer, sizeof(buffer));
     ::GlobalUnlock(hglbCopy);
 
@@ -588,8 +587,10 @@ void MemoryView_OnDraw(HDC hdc)
     COLORREF colorMemoryRom = Settings_GetColor(ColorDebugMemoryRom);
     COLORREF colorMemoryIO = Settings_GetColor(ColorDebugMemoryIO);
     COLORREF colorMemoryNA = Settings_GetColor(ColorDebugMemoryNA);
-    COLORREF colorOld = SetTextColor(hdc, colorText);
-    COLORREF colorBkOld = SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
+    COLORREF colorOld = ::SetTextColor(hdc, colorText);
+    COLORREF colorHighlight = Settings_GetColor(ColorDebugHighlight);
+    COLORREF colorBack = ::GetSysColor(COLOR_WINDOW);
+    COLORREF colorBkOld = SetBkColor(hdc, colorBack);
 
     m_cxChar = cxChar;
     m_cyLineMemory = cyLine;
@@ -620,6 +621,8 @@ void MemoryView_OnDraw(HDC hdc)
             WORD wChanged;
             WORD word = MemoryView_GetWordFromMemory(address, okValid, addrtype, wChanged);
 
+            ::SetBkColor(hdc, (address == m_wCurrentAddress) ? colorHighlight : colorBack);
+
             if (okValid)
             {
                 if (addrtype == ADDRTYPE_ROM)
@@ -641,12 +644,12 @@ void MemoryView_OnDraw(HDC hdc)
                 if (addrtype == ADDRTYPE_IO)
                 {
                     ::SetTextColor(hdc, colorMemoryIO);
-                    TextOut(hdc, x, y, _T("  IO"), 4);
+                    TextOut(hdc, x, y, _T("  IO  "), 6);
                 }
                 else
                 {
                     ::SetTextColor(hdc, colorMemoryNA);
-                    TextOut(hdc, x, y, _T("  NA"), 4);
+                    TextOut(hdc, x, y, _T("  NA  "), 6);
                 }
             }
 
@@ -664,6 +667,7 @@ void MemoryView_OnDraw(HDC hdc)
             x += 7 * cxChar;
         }
         ::SetTextColor(hdc, colorText);
+        ::SetBkColor(hdc, colorBack);
 
         // Draw characters at right
         int xch = x + cxChar;

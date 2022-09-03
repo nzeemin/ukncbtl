@@ -498,6 +498,7 @@ static ColorDescriptors[ColorIndicesCount] =
     { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE, _T("Debug Jump Hint") },
     { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE, _T("Debug Hint") },
     { _T("ColorDebugBreakpoint"),   RGB(255, 128, 128), FALSE, _T("Debug Breakpoint") },
+    { _T("ColorDebugHighlight"),    RGB(200, 230, 255), FALSE, _T("Debug Highlight") },
 };
 
 LPCTSTR Settings_GetColorFriendlyName(ColorIndices colorIndex)
