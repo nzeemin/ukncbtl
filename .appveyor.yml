@@ -25,7 +25,7 @@ environment:
       PROJECTFILE: UKNCBTL-VS2013.sln
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
       toolchain: msvc15
-      platform: Win32
+      platform: x86
       PROJECTFILE: UKNCBTL-VS2015.sln
 
 build:
