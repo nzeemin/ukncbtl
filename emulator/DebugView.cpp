@@ -45,7 +45,7 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
 void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y, WORD oldValue);
 void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
 void DebugView_DrawChannels(HDC hdc, int x, int y);
-BOOL DebugView_DrawBreakpoints(HDC hdc, int x, int y);
+void DebugView_DrawBreakpoints(HDC hdc, int x, int y);
 void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, BOOL okHalt);
 void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* pMemCtl);
 void DebugView_UpdateWindowText();
@@ -368,9 +368,9 @@ void DebugView_DoDraw(HDC hdc)
 
     //DebugView_DrawChannels(hdc, 75 * cxChar, 2 + 0 * cyLine);
 
-    BOOL okBreakpoints = DebugView_DrawBreakpoints(hdc, 30 + 70 * cxChar, 0 * cyLine);
+    DebugView_DrawBreakpoints(hdc, 30 + 70 * cxChar, 0 * cyLine);
 
-    int xMemoryMap = 30 + (70 + (okBreakpoints ? 10 : 0)) * cxChar;
+    int xMemoryMap = 30 + 81 * cxChar;
     if (m_okDebugProcessor)
         DebugView_DrawCPUMemoryMap(hdc, xMemoryMap, 0 * cyLine, pDebugPU->IsHaltMode());
     else
@@ -565,7 +565,7 @@ void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMe
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
-    TextOut(hdc, x, y, _T("Ports:"), 6);
+    TextOut(hdc, x, y, _T("Ports"), 5);
 
     uint16_t* addresses = okProcessor ? m_DebugViewCPUPorts : m_DebugViewPPUPorts;
     int addrcount = okProcessor
@@ -649,15 +649,16 @@ void DebugView_DrawChannels(HDC hdc, int x, int y)
     TextOut(hdc, x, y + 10 * cyLine, buffer, lstrlen(buffer));
 }
 
-BOOL DebugView_DrawBreakpoints(HDC hdc, int x, int y)
+void DebugView_DrawBreakpoints(HDC hdc, int x, int y)
 {
+    TextOut(hdc, x, y, _T("Breakpts"), 8);
+
     const uint16_t* pbps = m_okDebugProcessor ? Emulator_GetCPUBreakpointList() : Emulator_GetPPUBreakpointList();
     if (*pbps == 0177777)
-        return FALSE;
+        return;
 
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
-    TextOut(hdc, x, y, _T("Breakpts"), 8);
     y += cyLine;
     while (*pbps != 0177777)
     {
@@ -665,7 +666,6 @@ BOOL DebugView_DrawBreakpoints(HDC hdc, int x, int y)
         y += cyLine;
         pbps++;
     }
-    return TRUE;
 }
 
 void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, BOOL okHalt)

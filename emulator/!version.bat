@@ -9,7 +9,7 @@ REM git log --tags --simplify-by-decoration --pretty="format:%%cI %%d" | find /c
 
 set VERMINOR=
 for /f "tokens=* USEBACKQ" %%a in (
-  `git log --tags --simplify-by-decoration --pretty^=^"format^:%%cI^" ^| find ^/c ^"%YYYY%^"`
+  `git log --tags --simplify-by-decoration --pretty^=^"format^:%%cI %%d^" ^| find ^/c ^"release-%YYYY%^"`
 ) do set VERMINOR=%%a
 REM echo Version minor: %VERMINOR%
 set /A VERMINOR=%VERMINOR%+1

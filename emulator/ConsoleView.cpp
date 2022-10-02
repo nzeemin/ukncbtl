@@ -925,7 +925,7 @@ void ConsoleView_DoConsoleCommand()
         case ARGINFO_REG:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1);
             parsedOkay = (paramsParsed == 1);
-            if (parsedOkay && params.paramReg1 < 0 || params.paramReg1 > 7)
+            if (parsedOkay && (params.paramReg1 < 0 || params.paramReg1 > 7))
             {
                 ConsoleView_Print(MESSAGE_INVALID_REGNUM);
                 parseError = true;
@@ -938,7 +938,7 @@ void ConsoleView_DoConsoleCommand()
         case ARGINFO_REG_OCT:
             paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1, &params.paramOct1);
             parsedOkay = (paramsParsed == 2);
-            if (parsedOkay && params.paramReg1 < 0 || params.paramReg1 > 7)
+            if (parsedOkay && (params.paramReg1 < 0 || params.paramReg1 > 7))
             {
                 ConsoleView_Print(MESSAGE_INVALID_REGNUM);
                 parseError = true;
