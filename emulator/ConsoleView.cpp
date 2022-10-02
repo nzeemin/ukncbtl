@@ -682,8 +682,23 @@ void ConsoleView_CmdStepInto(const ConsoleCommandParams& /*params*/)
 void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
 {
     CProcessor* pProc = ConsoleView_GetCurrentProcessor();
+    CMemoryController* pMemCtl = pProc->GetMemoryController();
 
     int instrLength = ConsoleView_PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
+
+    int addrtype;
+    uint16_t instr = pMemCtl->GetWordView(pProc->GetPC(), pProc->IsHaltMode(), true, &addrtype);
+
+    // For JMP and BR use Step Into logic, not Step Over
+    if ((instr & ~(uint16_t)077) == PI_JMP || (instr & ~(uint16_t)0377) == PI_BR)
+    {
+        g_pBoard->DebugTicks();
+
+        MainWindow_UpdateAllViews();
+
+        return;
+    }
+
     uint16_t bpaddress = (uint16_t)(pProc->GetPC() + instrLength * 2);
 
     if (m_okCurrentProc)
