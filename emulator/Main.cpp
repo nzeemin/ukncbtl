@@ -34,21 +34,23 @@ BOOL InitInstance(HINSTANCE, int);
 void DoneInstance();
 void ParseCommandLine();
 
-LPCTSTR m_CommandLineHelp = _T("Command line options:\r\n\r\n")
-        _T("/h /help\tShow command line options\r\n")
-        _T("/boot\tAuto-start the emulation, select boot from disk\r\n")
-        _T("/bootN\tAuto-start the emulation, select boot menu item N=1..7\r\n")
-        _T("/autostart /autostarton\tStart emulation on window open\r\n")
-        _T("/noautostart /autostartoff\tDo not start emulation on window open\r\n")
-        _T("/debug /debugon\tSwitch to debug mode\r\n")
-        _T("/nodebug /debugoff\tSwitch off the debug mode\r\n")
-        _T("/sound /soundon\tTurn sound on\r\n")
-        _T("/nosound /soundoff\tTurn sound off\r\n")
-        _T("/fullscreen /fullscreenon\tSwitch to fullscreen mode\r\n")
-        _T("/windowed /fullscreenoff\tSwitch to windowed mode\r\n")
-        _T("/diskN:filePath\tAttach disk image, N=0..3\r\n")
-        _T("/cartN:filePath\tAttach cartridge image, N=1..2\r\n")
-        _T("/hardN:filePath\tAttach hard disk image, N=1..2\r\n");
+LPCTSTR g_CommandLineHelp =
+    _T("Usage: UKNCBTL [options]\r\n\r\n")
+    _T("Command line options:\r\n\r\n")
+    _T("/h /help\r\n\tShow command line options (this box)\r\n")
+    _T("/boot\r\n\tAuto-start the emulation, select boot from disk\r\n")
+    _T("/bootN\r\n\tAuto-start the emulation, select boot menu item N=1..7\r\n")
+    _T("/autostart /autostarton\r\n\tStart emulation on window open\r\n")
+    _T("/noautostart /autostartoff\r\n\tDo not start emulation on window open\r\n")
+    _T("/debug /debugon /debugger\r\n\tSwitch to debug mode\r\n")
+    _T("/nodebug /debugoff\r\n\tSwitch off the debug mode\r\n")
+    _T("/sound /soundon\r\n\tTurn sound on\r\n")
+    _T("/nosound /soundoff\r\n\tTurn sound off\r\n")
+    _T("/fullscreen /fullscreenon\r\n\tSwitch to fullscreen mode\r\n")
+    _T("/windowed /fullscreenoff\r\n\tSwitch to windowed mode\r\n")
+    _T("/diskN:filePath\r\n\tAttach disk image, N=0..3\r\n")
+    _T("/cartN:filePath\r\n\tAttach cartridge image, N=1..2\r\n")
+    _T("/hardN:filePath\r\n\tAttach hard disk image, N=1..2\r\n");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -86,9 +88,7 @@ int APIENTRY _tWinMain(
     HACCEL hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPLICATION));
 
     if (Option_ShowHelp)
-    {
-        AlertInfo(m_CommandLineHelp);
-    }
+        ::PostMessage(g_hwnd, WM_COMMAND, ID_HELP_COMMAND_LINE_HELP, NULL);
 
     LARGE_INTEGER nPerformanceFrequency;
     ::QueryPerformanceFrequency(&nPerformanceFrequency);

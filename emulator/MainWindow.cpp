@@ -79,7 +79,6 @@ void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
 void MainWindow_DoFileSettingsColors();
 void MainWindow_DoFileSettingsOsd();
-void MainWindow_DoEmulatorConfiguration();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
@@ -1136,6 +1135,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case IDM_ABOUT:
         ShowAboutBox();
+        break;
+    case ID_HELP_COMMAND_LINE_HELP:
+        ShowCommandLineHelpBox();
         break;
     case ID_VIEW_FULLSCREEN:
         MainWindow_DoViewFullscreen();

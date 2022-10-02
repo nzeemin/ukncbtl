@@ -22,6 +22,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+INT_PTR CALLBACK CommandLineHelpBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
@@ -82,6 +83,40 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         {
             ::ShellExecute(NULL, _T("open"), _T("https://github.com/nzeemin/ukncbtl"), NULL, NULL, SW_SHOW);
             break;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Command Line Help Box
+
+void ShowCommandLineHelpBox()
+{
+    DialogBox(g_hInst, MAKEINTRESOURCE(IDD_COMMANDLINEHELP), g_hwnd, CommandLineHelpBoxProc);
+}
+
+
+INT_PTR CALLBACK CommandLineHelpBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND hwndText = ::GetDlgItem(hDlg, IDC_EDIT1);
+            HFONT hfont = CreateMonospacedFont();
+            SendMessage(hwndText, WM_SETFONT, (WPARAM)hfont, 0);
+            ::SetDlgItemText(hDlg, IDC_EDIT1, g_CommandLineHelp);
+            return (INT_PTR)TRUE;
+        }
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
+        {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
         }
         break;
     }

@@ -28,6 +28,8 @@ extern HINSTANCE g_hInst; // current instance
 
 extern HWND g_hwnd;  // Main window handle
 
+extern LPCTSTR g_CommandLineHelp;
+
 void MainWindow_RegisterClass();
 BOOL CreateMainWindow();
 void MainWindow_RestoreSettings();
