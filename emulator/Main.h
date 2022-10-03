@@ -138,8 +138,9 @@ enum ColorIndices
     ColorDebugHint          = 14,
     ColorDebugBreakpoint    = 15,
     ColorDebugHighlight     = 16,
+    ColorDebugBreakptZone   = 17,
 
-    ColorIndicesCount       = 17,
+    ColorIndicesCount       = 18,
 };
 
 

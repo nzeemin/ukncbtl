@@ -61,7 +61,6 @@ struct DisasmLineItem
     const DisasmSubtitleItem* pSubItem;  // Link to subtitles item for LINETYPE_SUBTITLE
 };
 
-
 HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
 WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
 
@@ -93,7 +92,7 @@ void DisasmView_OnRButtonDown(int mousex, int mousey);
 void DisasmView_CopyToClipboard(WPARAM command);
 BOOL DisasmView_ParseSubtitles();
 void DisasmView_DoDraw(HDC hdc);
-int  DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, uint16_t base, uint16_t previous, int x, int y);
+int  DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t current, uint16_t previous, int x, int y);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -1208,13 +1207,13 @@ void DisasmView_DrawBreakpoint(HDC hdc, int x, int y, int size)
     VERIFY(::DeleteObject(hBreakBrush));
 }
 
-int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, uint16_t current, uint16_t previous, int x, int y)
+int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t current, uint16_t previous, int x, int y)
 {
     int result = -1;
     m_nDisasmCurrentLineIndex = -1;
 
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
-    m_cxDisasmBreakpointZone = x + cxChar * 2;
+    m_cxDisasmBreakpointZone = x + cxChar * 5 / 2;
     m_cyDisasmLine = cyLine;
     COLORREF colorText = Settings_GetColor(ColorDebugText);
     COLORREF colorPrev = Settings_GetColor(ColorDebugPrevious);
@@ -1225,6 +1224,14 @@ int DisasmView_DrawDisassemble(HDC hdc, CProcessor* pProc, uint16_t current, uin
     ::SetTextColor(hdc, colorText);
 
     uint16_t proccurrent = pProc->GetPC();
+
+    // Draw breakpoint zone
+    COLORREF colorBreakptZone = Settings_GetColor(ColorDebugBreakptZone);
+    HBRUSH hBrushBreakptZone = ::CreateSolidBrush(colorBreakptZone);
+    HGDIOBJ hBrushOld = ::SelectObject(hdc, hBrushBreakptZone);
+    ::PatBlt(hdc, 0, 0, m_cxDisasmBreakpointZone, cyLine * MAX_DISASMLINECOUNT, PATCOPY);
+    ::SelectObject(hdc, hBrushOld);
+    VERIFY(::DeleteObject(hBrushBreakptZone));
 
     // Draw current line background
     if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
