@@ -263,13 +263,21 @@ void ConsoleView_PrintConsolePrompt()
 // Print register name, octal value and binary value
 void ConsoleView_PrintRegister(LPCTSTR strName, WORD value)
 {
-    TCHAR buffer[31];
+    TCHAR buffer[36];
     TCHAR* p = buffer;
     *p++ = _T(' ');
     *p++ = _T(' ');
-    lstrcpy(p, strName);  p += 2;
-    *p++ = _T(' ');
+    lstrcpy(p, strName);
+    if (lstrlen(strName) > 2)
+        p += 3;
+    else
+    {
+        p += 2;
+        *p++ = _T(' ');
+    }
     PrintOctalValue(p, value);  p += 6;
+    *p++ = _T(' ');
+    PrintHexValue(p, value);  p += 4;
     *p++ = _T(' ');
     PrintBinaryValue(p, value);  p += 16;
     *p++ = _T('\r');
@@ -331,12 +339,14 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc)
     if (dwBytesWritten != 65536)
         return FALSE;
 
+    ConsoleView_PrintFormat(_T("  %s memory saved to %s\r\n"), pProc->GetName(), fname);
     return TRUE;
 }
 
 void ConsoleView_SaveDisplayListDump()
 {
-    FILE* fpFile = ::_tfopen(_T("displaylist.txt"), _T("wt"));
+    LPCTSTR fname = _T("displaylist.txt");
+    FILE* fpFile = ::_tfopen(fname, _T("wt"));
     _ftprintf(fpFile, _T("line address  tag 1  tag 2  bits   next   \n"));
 
     WORD address = 0000270;  // Tag sequence start address
@@ -397,6 +407,8 @@ void ConsoleView_SaveDisplayListDump()
     }
 
     ::fclose(fpFile);
+
+    ConsoleView_PrintFormat(_T("  Display list saved to %s\r\n"), fname);
 }
 
 // Print memory dump
@@ -666,7 +678,9 @@ void ConsoleView_CmdPrintAllRegisters(const ConsoleCommandParams& /*params*/)
         WORD value = pProc->GetReg(r);
         ConsoleView_PrintRegister(name, value);
     }
+    ConsoleView_PrintRegister(_T("PC'"), pProc->GetCPC());
     ConsoleView_PrintRegister(_T("PS"), pProc->GetPSW());
+    ConsoleView_PrintRegister(_T("PS'"), pProc->GetCPSW());
 }
 
 void ConsoleView_CmdStepInto(const ConsoleCommandParams& /*params*/)
