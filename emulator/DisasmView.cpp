@@ -995,13 +995,31 @@ int DisasmView_GetInstructionHint(const uint16_t* memory, const CProcessor * pPr
     {
         _sntprintf(buffer, buffersize - 1, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
     }
-    if (instr == PI_MTUS)
+    else if (instr == PI_MTUS)
     {
         _sntprintf(buffer, buffersize - 1, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
     }
-    //TODO: MFPC, MTPC
+    else if (instr == 0000022 || instr == 0000023)  // RCPC / MFPC
+    {
+        _sntprintf(buffer, buffersize - 1, _T("PC'=%06o, R0=%06o"), pProc->GetCPC(), pProc->GetReg(0));  // "PC'=XXXXXX, R0=XXXXXX"
+    }
+    else if (instr >= 0000024 && instr <= 0000027)  // RCPS / MFPS
+    {
+        _sntprintf(buffer, buffersize - 1, _T("PS'=%06o, R0=%06o"), pProc->GetCPSW(), pProc->GetReg(0));  // "PS'=XXXXXX, R0=XXXXXX"
+    }
+    else if (instr == PI_RSEL)
+    {
+        _sntprintf(buffer, buffersize - 1, _T("SEL=%06o, R0=%06o"), pMemCtl->GetSelRegister(), pProc->GetReg(0));  // "SEL=XXXXXX, R0=XXXXXX"
+    }
 
-    //TODO: MARK
+    if ((instr & ~(uint16_t)077) == PI_MARK)
+    {
+        uint16_t regval = pProc->GetReg(6);
+        _sntprintf(buffer, buffersize - 1, _T("SP=%06o, R5=%06o"), regval, pProc->GetReg(5));  // "SP=XXXXXX, R5=XXXXXX"
+        int addrtype = 0;
+        uint16_t srcval2 = pMemCtl->GetWordView(regval, pProc->IsHaltMode(), false, &addrtype);
+        _sntprintf(buffer2, buffersize - 1, _T("(SP)=%06o"), srcval2);  // "(SP)=XXXXXX"
+    }
 
     int result = 0;
     if (*buffer != 0)

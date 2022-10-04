@@ -71,7 +71,7 @@ public:  // Access to memory
     /// \brief Read word from port for debugger
     virtual uint16_t GetPortView(uint16_t address) const = 0;
     /// \brief Read SEL register
-    virtual uint16_t GetSelRegister() = 0;
+    virtual uint16_t GetSelRegister() const = 0;
 public:  // Saving/loading emulator status (64 bytes)
     virtual void SaveToImage(uint8_t* pImage) = 0;
     virtual void LoadFromImage(const uint8_t* pImage) = 0;
@@ -98,7 +98,7 @@ public:
     virtual void ResetDevices();  ///< INIT signal
 public:
     virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
-    virtual uint16_t GetSelRegister() { return 0160000; }
+    virtual uint16_t GetSelRegister() const { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
     virtual uint16_t GetPortWord(uint16_t address);
@@ -140,7 +140,7 @@ public:
     virtual void Init_177716();
 public:
     virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
-    virtual uint16_t GetSelRegister() { return 0160000; }
+    virtual uint16_t GetSelRegister() const { return 0160000; }
     virtual uint16_t GetPortView(uint16_t address) const;
 protected:  // Access to I/O ports
     virtual uint16_t GetPortWord(uint16_t address);
