@@ -124,6 +124,7 @@ BEGIN
         MENUITEM "Autostart",                   ID_EMULATOR_AUTOSTART,MFT_STRING,MFS_ENABLED
         MENUITEM MFT_SEPARATOR
         MENUITEM "Sound",                       ID_EMULATOR_SOUND,MFT_STRING,MFS_ENABLED
+        MENUITEM "AY Device on PPU",            ID_EMULATOR_SOUNDAY
         MENUITEM MFT_SEPARATOR
         MENUITEM "Speed 25%",                   ID_EMULATOR_SPEED25
         MENUITEM "Speed 50%",                   ID_EMULATOR_SPEED50,MFT_STRING,MFS_ENABLED

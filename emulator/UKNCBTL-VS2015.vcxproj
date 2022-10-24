@@ -158,6 +158,7 @@
     <ClCompile Include="emubase\Hard.cpp" />
     <ClCompile Include="emubase\Memory.cpp" />
     <ClCompile Include="emubase\Processor.cpp" />
+    <ClCompile Include="emubase\SoundAY.cpp" />
     <ClCompile Include="Emulator.cpp" />
     <ClCompile Include="KeyboardView.cpp" />
     <ClCompile Include="Main.cpp" />

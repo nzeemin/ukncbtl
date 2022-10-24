@@ -181,6 +181,7 @@ CMotherboard::CMotherboard ()
     m_NetworkInCallback = nullptr;
     m_NetworkOutCallback = nullptr;
     m_TerminalOutCallback = nullptr;
+    m_okSoundAY = false;
 
     // Create devices
     m_pCPU = new CProcessor(_T("CPU"));
@@ -190,6 +191,9 @@ CMotherboard::CMotherboard ()
     m_pFloppyCtl = new CFloppyController();
     m_pHardDrives[0] = nullptr;
     m_pHardDrives[1] = nullptr;
+    m_pSoundAY[0] = new CSoundAY();
+    m_pSoundAY[1] = new CSoundAY();
+    m_pSoundAY[2] = new CSoundAY();
 
     // Connect devices
     m_pCPU->AttachMemoryController(m_pFirstMemCtl);
@@ -253,6 +257,9 @@ CMotherboard::~CMotherboard ()
     delete m_pFirstMemCtl;
     delete m_pSecondMemCtl;
     delete m_pFloppyCtl;
+    delete m_pSoundAY[0];
+    delete m_pSoundAY[1];
+    delete m_pSoundAY[2];
 
     // Free memory
     free(m_pRAM[0]);
@@ -301,6 +308,11 @@ void CMotherboard::Reset ()
     m_scanned_key = 0;
     memset(m_kbd_matrix, 0, sizeof(m_kbd_matrix));
     m_kbd_matrix[3].row_Y = 0xFF;
+
+    memset(m_nSoundAYReg, 0, sizeof(m_nSoundAYReg));
+    m_pSoundAY[0]->Reset();
+    m_pSoundAY[1]->Reset();
+    m_pSoundAY[2]->Reset();
 
     //ChanResetByCPU();
     //ChanResetByPPU();
@@ -630,6 +642,20 @@ void CMotherboard::SetTimerState(uint16_t val) // Sets timer state
     case 3:
         m_multiply = 1;
         break;
+    }
+}
+
+void CMotherboard::SetSoundAYReg(int chip, uint8_t reg)
+{
+    if (chip >= 0 && chip < 3)
+        m_nSoundAYReg[chip] = reg;
+}
+
+void CMotherboard::SetSoundAYVal(int chip, uint8_t val)
+{
+    if (m_okSoundAY && chip >= 0 && chip < 3)
+    {
+        m_pSoundAY[chip]->SetReg(m_nSoundAYReg[chip], val);
     }
 }
 
@@ -1478,12 +1504,22 @@ void CMotherboard::DoSound(void)
     if (m_SoundPrevValue == 0 && global != 0)
         m_SoundChanges++;
 
-    if (m_SoundGenCallback == nullptr)
-        return;
+    uint16_t value = global ? 0x7fff : 0;
+    if (m_okSoundAY)
+    {
+        uint8_t bufferay[2];
+        uint8_t valueay = 0;
+        m_pSoundAY[0]->Callback(bufferay, sizeof(bufferay));
+        valueay |= bufferay[1];
+        m_pSoundAY[1]->Callback(bufferay, sizeof(bufferay));
+        valueay |= bufferay[1];
+        m_pSoundAY[2]->Callback(bufferay, sizeof(bufferay));
+        valueay |= bufferay[1];
+        value |= valueay << 7;
+    }
 
-    uint8_t value = global ? 0xff : 0;
-    uint16_t value16 = value << 7;
-    (*m_SoundGenCallback)(value16, value16);
+    if (m_SoundGenCallback != nullptr)
+        (*m_SoundGenCallback)(value, value);
 }
 
 void CMotherboard::SetSound(uint16_t val)

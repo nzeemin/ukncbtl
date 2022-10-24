@@ -455,6 +455,11 @@ void Emulator_SetSound(bool soundOnOff)
     m_okEmulatorSound = soundOnOff;
 }
 
+void Emulator_SetSoundAY(bool soundAYOnOff)
+{
+    g_pBoard->SetSoundAY(soundAYOnOff);
+}
+
 bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 {
     DWORD dwBytesRead;

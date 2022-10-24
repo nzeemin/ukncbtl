@@ -1230,6 +1230,12 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
         m_pBoard->SetFloppyData(word);
         break;
 
+    case 0177360:  // Sound AY
+    case 0177362:
+    case 0177364:
+        m_pBoard->SetSoundAYVal((address >> 1) & 3, byte);
+        break;
+
     case 0177700:  // Keyboard status
     case 0177701:
         SetPortWord(address, word);
@@ -1444,6 +1450,12 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         //DebugLogFormat(_T("%s: FDD DATA W %s, %s\r\n"), oct2, oct1, oct);
         //DebugLogFormat(_T("FDD DATA  W %04x\r\n"), word);
         m_pBoard->SetFloppyData(word);
+        break;
+
+    case 0177360:  // Sound AY
+    case 0177362:
+    case 0177364:
+        m_pBoard->SetSoundAYReg((address >> 1) & 3, word & 0xFF);
         break;
 
     case 0177700:  // Keyboard status

@@ -2,6 +2,7 @@ Debug
 Product
 Release
 *.ncb
+*.VC.db
 *.suo
 *.user
 *.suppress
@@ -11,6 +12,7 @@ Release
 ipch
 *.bin
 trace.log
+printer.log
 /emulator/Version.h
 UKNCBTL.APS
 *.dsk

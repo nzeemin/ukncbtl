@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 class CProcessor;
 class CMemoryController;
+class CSoundAY;
 
 // Floppy debug constants
 #define FLOPPY_FSM_WAITFORLSB   0
@@ -138,6 +139,7 @@ protected:  // Devices
     CMemoryController*  m_pSecondMemCtl;  ///< PPU memory control
     CFloppyController*  m_pFloppyCtl;  ///< FDD control
     CHardDrive* m_pHardDrives[2];  ///< HDD control
+    CSoundAY*   m_pSoundAY[3];
 
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU; }  ///< Getter for m_pCPU
@@ -232,7 +234,7 @@ public:  // System control
     bool        SystemFrame();  ///< Do one frame -- use for normal run
     void        KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Key pressed or released
     uint16_t    GetKeyboardRegister();
-    uint16_t    GetScannedKey() { return m_scanned_key; }
+    uint16_t    GetScannedKey() const { return m_scanned_key; }
     int         GetSoundChanges() const { return m_SoundChanges; }  ///< Sound signal 0 to 1 changes since the beginning of the frame
 
     /// \brief Attach floppy image to the slot -- insert the disk.
@@ -247,6 +249,8 @@ public:  // System control
     bool        IsFloppyEngineOn() const;
     uint16_t    GetFloppyState();
     uint16_t    GetFloppyData();
+    void        SetSoundAYReg(int chip, uint8_t reg);
+    void        SetSoundAYVal(int chip, uint8_t val);
     void        SetFloppyState(uint16_t val);
     void        SetFloppyData(uint16_t val);
 
@@ -284,6 +288,7 @@ public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);
     void        SetSound(uint16_t val);
+    void        SetSoundAY(bool onoff) { m_okSoundAY = onoff; }
 private: // Timing
     uint16_t    m_multiply;
     uint16_t    freq_per[6];
@@ -311,6 +316,9 @@ private:
 
     uint8_t     m_scanned_key;
     kbd_row     m_kbd_matrix[16];
+
+    bool        m_okSoundAY;
+    uint8_t     m_nSoundAYReg[3];  ///< AY current register
 
 private:
     TAPEREADCALLBACK    m_TapeReadCallback;

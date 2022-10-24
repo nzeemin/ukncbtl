@@ -50,6 +50,7 @@ bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address);
 void Emulator_RemoveAllBreakpoints(bool okCpuPpu);
 
 void Emulator_SetSound(bool soundOnOff);
+void Emulator_SetSoundAY(bool soundAYOnOff);
 bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort);
 void Emulator_SetParallel(bool parallelOnOff);
 bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort);

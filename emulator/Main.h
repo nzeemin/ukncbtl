@@ -218,6 +218,8 @@ WORD Settings_GetRealSpeed();
 void Settings_SetSound(BOOL flag);
 BOOL Settings_GetSound();
 void Settings_SetSoundVolume(WORD value);
+BOOL Settings_GetSoundAY();
+void Settings_SetSoundAY(BOOL flag);
 WORD Settings_GetSoundVolume();
 void Settings_SetToolbar(BOOL flag);
 BOOL Settings_GetToolbar();
