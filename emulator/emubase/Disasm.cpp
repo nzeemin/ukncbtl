@@ -696,35 +696,35 @@ void Disasm_InstructionHint(const uint16_t* memory, const CProcessor * pProc, co
             _sntprintf(buffer, buffersize - 1, _T("%s, %s"), srchint1, dsthint1);
         else
         {
-            _tcscpy_s(buffer, buffersize, srchint1);
+            _tcscpy(buffer, srchint1);
             *dsthint1 = 0;
         }
     }
     else if (*srchint1 != 0)
-        _tcscpy_s(buffer, buffersize, srchint1);
+        _tcscpy(buffer, srchint1);
     else if (*dsthint1 != 0)
-        _tcscpy_s(buffer, buffersize, dsthint1);
+        _tcscpy(buffer, dsthint1);
 
     // Prepare 2nd line of the instruction hint
     if (*srchint2 != 0 && *dsthint2 != 0)
     {
         if (_tcscmp(srchint2, dsthint2) == 0)
-            _tcscpy_s(buffer2, buffersize, srchint2);
+            _tcscpy(buffer2, srchint2);
         else
             _sntprintf(buffer2, buffersize - 1, _T("%s, %s"), srchint2, dsthint2);
     }
     else if (*srchint2 != 0)
-        _tcscpy_s(buffer2, buffersize, srchint2);
+        _tcscpy(buffer2, srchint2);
     else if (*dsthint2 != 0)
     {
         if (*srchint1 == 0 || *dsthint1 == 0)
-            _tcscpy_s(buffer2, buffersize, dsthint2);
+            _tcscpy(buffer2, dsthint2);
         else
         {
             // Special case: we have srchint1, dsthint1 and dsthint2, but not srchint2 - let's align dsthint2 to dsthint1
             size_t hintpos = _tcslen(srchint1) + 2;
             for (size_t i = 0; i < hintpos; i++) buffer2[i] = _T(' ');
-            _tcscpy_s(buffer2 + hintpos, buffersize - hintpos, dsthint2);
+            _tcscpy(buffer2 + hintpos, dsthint2);
         }
     }
 }
