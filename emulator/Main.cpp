@@ -196,6 +196,7 @@ BOOL InitInstance(HINSTANCE /*hInstance*/, int /*nCmdShow*/)
     if (!Emulator_Init())
         return FALSE;
     Emulator_SetSound(Settings_GetSound() != 0);
+    Emulator_SetSoundAY(Settings_GetSoundAY() != 0);
     Emulator_SetSpeed(Settings_GetRealSpeed());
 
     if (!CreateMainWindow())

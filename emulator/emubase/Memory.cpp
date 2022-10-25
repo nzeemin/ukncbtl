@@ -1055,6 +1055,11 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
     case 0177103:  // i8255 control
         return 0;
 
+    case 0177360:  // Sound AY
+    case 0177362:
+    case 0177364:
+        return 0; //m_pBoard->GetSoundAYVal((address >> 1) & 3);
+
     case 0177700:
     case 0177701:
         return m_Port177700;  // Keyboard status
