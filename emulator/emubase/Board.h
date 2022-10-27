@@ -18,6 +18,8 @@ class CProcessor;
 class CMemoryController;
 class CSoundAY;
 
+#define FRAMERATE               50
+
 // Floppy debug constants
 #define FLOPPY_FSM_WAITFORLSB   0
 #define FLOPPY_FSM_WAITFORMSB   1
@@ -296,7 +298,7 @@ private: // Timing
     uint16_t    freq_enable[6];
     int         m_pputicks;
     int         m_cputicks;
-    unsigned int m_lineticks;
+    unsigned int m_frameticks;
 private:
     const uint16_t* m_CPUbps;  ///< CPU breakpoint list, ends with 177777 value
     const uint16_t* m_PPUbps;  ///< PPU breakpoint list, ends with 177777 value

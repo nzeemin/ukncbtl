@@ -697,7 +697,7 @@ bool Emulator_SystemFrame()
     if (nTicksElapsed >= 1000)
     {
         double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
-        double dSpeed = dFramesPerSecond / 25.0 * 100;
+        double dSpeed = dFramesPerSecond / FRAMERATE * 100;
         TCHAR buffer[16];
         _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%03.f%%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
@@ -711,7 +711,7 @@ bool Emulator_SystemFrame()
 
     // Calculate emulator uptime (25 frames per second)
     m_nUptimeFrameCount++;
-    if (m_nUptimeFrameCount >= 25)
+    if (m_nUptimeFrameCount >= FRAMERATE)
     {
         m_dwEmulatorUptime++;
         m_nUptimeFrameCount = 0;
