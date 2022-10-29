@@ -420,13 +420,14 @@ bool Emulator_IsSound()
 
 void Emulator_SetSpeed(uint16_t realspeed)
 {
-    uint16_t speedpercent = 100;
+    uint16_t speedpercent;
     switch (realspeed)
     {
     case 0: speedpercent = 200; break;
     case 1: speedpercent = 100; break;
     case 2: speedpercent = 200; break;
     case 0x7fff: speedpercent = 50; break;
+    case 0x7ffe: speedpercent = 25; break;
     default: speedpercent = 100; break;
     }
     m_wEmulatorSoundSpeed = speedpercent;
@@ -1161,6 +1162,7 @@ bool Emulator_LoadImage(LPCTSTR sFilePath)
     }
 
     // Restore emulator state from the image
+    g_pBoard->Reset();
     g_pBoard->LoadFromImage(pImage);
 
     m_dwEmulatorUptime = *(uint32_t*)(pImage + 16);

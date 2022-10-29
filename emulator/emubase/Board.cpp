@@ -698,9 +698,11 @@ void CMotherboard::DebugTicks()
     { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
 bool CMotherboard::SystemFrame()
 {
-    int frameticks = 0;  // 20000 ticks
-    const int audioticks = 20286 / (SAMPLERATE / 25);
+    int frameticks = 0;  // count 20000 ticks
+
     m_SoundChanges = 0;
+    int soundSamplesPerFrame = SAMPLERATE / 25, soundBrasErr = 0;
+
     const int serialOutTicks = 20000 / (9600 / 25);
     int serialTxCount = 0;
     const int networkOutTicks = 7; //20000 / (57600 / 25);
@@ -708,10 +710,7 @@ bool CMotherboard::SystemFrame()
 
     int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
-    {
         tapeSamplesPerFrame = m_nTapeSampleRate / 25;
-        tapeBrasErr = 0;
-    }
 
     do
     {
@@ -798,8 +797,12 @@ bool CMotherboard::SystemFrame()
         if (m_pHardDrives[1] != nullptr)
             m_pHardDrives[1]->Periodic();
 
-        if (frameticks % audioticks == 0) //AUDIO tick
+        soundBrasErr += soundSamplesPerFrame;
+        if (2 * soundBrasErr >= 20000)
+        {
+            soundBrasErr -= 20000;
             DoSound();
+        }
 
         if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
         {
