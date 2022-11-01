@@ -276,9 +276,8 @@ void CFloppyController::WriteData(uint16_t data)
     else if (m_writeflag && !m_shiftflag)  // Shift register is empty
     {
         m_shiftreg = m_writereg;
-        m_shiftflag = m_writeflag;
+        m_shiftflag = true;
         m_writereg = data;
-        m_writeflag = true;
         m_status &= ~FLOPPY_STATUS_MOREDATA;
     }
     else  // Both registers are not empty
@@ -318,7 +317,7 @@ void CFloppyController::Periodic()
         {
             if (m_searchsync)  // Search for marker
             {
-                if (m_pDrive->marker[m_pDrive->dataptr / 2])  // Marker found
+                if (m_pDrive->marker[m_pDrive->dataptr / 2] != 0)  // Marker found
                 {
                     m_status |= FLOPPY_STATUS_MOREDATA;
                     m_searchsync = false;
@@ -341,7 +340,7 @@ void CFloppyController::Periodic()
             {
 //            DebugLogFormat(_T("Floppy WRITING %04x MARKER at %04hx SC %hu\r\n"), m_shiftreg, m_pDrive->dataptr, (m_pDrive->dataptr - 0x5e) / 614 + 1);
 
-                m_pDrive->marker[m_pDrive->dataptr / 2] = true;
+                m_pDrive->marker[m_pDrive->dataptr / 2] = 1;
                 m_shiftmarker = false;
                 m_crccalculus = true;  // Start CRC calculation
             }
@@ -349,14 +348,16 @@ void CFloppyController::Periodic()
             {
 //            DebugLogFormat(_T("Floppy WRITING %04x\r\n"), m_shiftreg);
 
-                m_pDrive->marker[m_pDrive->dataptr / 2] = false;
+                m_pDrive->marker[m_pDrive->dataptr / 2] = 0;
             }
 
             if (m_writeflag)
             {
                 m_shiftreg = m_writereg;
-                m_shiftflag = m_writeflag;  m_writeflag = false;
-                m_shiftmarker = m_writemarker;  m_writemarker = false;
+                m_shiftflag = true;
+                m_writeflag = false;
+                m_shiftmarker = m_writemarker;
+                m_writemarker = false;
                 m_status |= FLOPPY_STATUS_MOREDATA;
             }
             else
@@ -488,7 +489,7 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
         // sector header
         for (count = 0; count < 12; count++) data[ptr++] = 0x00;
         // marker
-        marker[ptr / 2] = true;  // ID marker; start CRC calculus
+        marker[ptr / 2] = 1;  // ID marker; start CRC calculus
         data[ptr++] = 0xa1;  data[ptr++] = 0xa1;  data[ptr++] = 0xa1;
         data[ptr++] = 0xfe;
 
@@ -503,7 +504,7 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
         // data header
         for (count = 0; count < 12; count++) data[ptr++] = 0x00;
         // marker
-        marker[ptr / 2] = true;  // Data marker; start CRC calculus
+        marker[ptr / 2] = 1;  // Data marker; start CRC calculus
         data[ptr++] = 0xa1;  data[ptr++] = 0xa1;  data[ptr++] = 0xa1;
         data[ptr++] = 0xfb;
         // data
@@ -534,7 +535,7 @@ static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
 
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
+        if (pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
@@ -554,7 +555,7 @@ static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
         else if (sectno == 3) sectorsize = 1024;
         else return false;  // Something wrong: unknown sector size
         // crc
-        if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
+        dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
 
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x4e) dataptr++;  // Skip GAP2
@@ -562,7 +563,7 @@ static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
         while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
 
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
+        if (pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
         if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
@@ -579,7 +580,7 @@ static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
         if (dataptr >= FLOPPY_RAWTRACKSIZE)
             return false;  // Something wrong
         // crc
-        if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
+        dataptr++;
         if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
     }
 
