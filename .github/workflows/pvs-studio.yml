@@ -1,0 +1,36 @@
+name: PVS-Studio analysis
+on: workflow_dispatch
+jobs:
+  build-analyze:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download PVS Studio
+        uses: suisei-cn/actions-download-file@v1.3.0
+        with:
+          url: https://files.pvs-studio.com/PVS-Studio_setup.exe
+          target: .\Distrib
+      - name: Install PVS Studio
+        shell: cmd
+        run: |
+          .\Distrib\PVS-Studio_setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /COMPONENTS=Core
+      - name: Register PVS Studio
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" credentials -u ${{ secrets.PVS_STUDIO_USERNAME }} -n ${{ secrets.PVS_STUDIO_KEY }}
+      - name: Run PVS Studio
+        shell: cmd
+        run: |
+          mkdir Results
+          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t .\emulator\UKNCBTL-VS2015.sln -o .\Results\UKNCBTL.plog
+        continue-on-error: true
+      - name: Convert the report
+        shell: cmd
+        run: |
+          "C:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html,Totals -o .\Results\ -r D:\Work\ukncbtl .\Results\UKNCBTL.plog
+      - name: Upload the report
+        uses: actions/upload-artifact@v3
+        with:
+          name: Results
+          path: .\Results\
