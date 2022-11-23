@@ -20,9 +20,10 @@ jobs:
       - name: Install PVS Studio
         run: |
           .\Distrib\PVS-Studio_setup.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /COMPONENTS=Core
-      - name: Register PVS Studio
+      - name: Configure PVS Studio
         run: |
           "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" credentials -u ${{ secrets.PVS_STUDIO_USERNAME }} -n ${{ secrets.PVS_STUDIO_KEY }}
+          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" suppress -v536 -v1042
       - name: Run PVS Studio
         run: |
           mkdir Results
