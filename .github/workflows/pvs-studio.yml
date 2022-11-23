@@ -5,7 +5,6 @@ on: workflow_dispatch
 defaults:
   run:
     shell: cmd
-    working-directory: D:\Work
 
 jobs:
   build-analyze:
@@ -27,11 +26,11 @@ jobs:
       - name: Run PVS Studio
         run: |
           mkdir Results
-          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t .\emulator\UKNCBTL-VS2015.sln -o .\Results\UKNCBTL.plog
+          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t .\emulator\UKNCBTL-VS2015.sln -e %GITHUB_WORKSPACE% -o .\Results\UKNCBTL.plog
         continue-on-error: true
       - name: Convert the report
         run: |
-          "C:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html,Totals -o .\Results\ .\Results\UKNCBTL.plog
+          "C:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html,Totals -o .\Results\ -r D:\Work\MyProjects\ukncbtl .\Results\UKNCBTL.plog
       - name: Upload the report
         uses: actions/upload-artifact@v3
         with:
