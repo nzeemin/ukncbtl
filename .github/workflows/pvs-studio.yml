@@ -23,7 +23,6 @@ jobs:
       - name: Configure PVS Studio
         run: |
           "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" credentials -u ${{ secrets.PVS_STUDIO_USERNAME }} -n ${{ secrets.PVS_STUDIO_KEY }}
-          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" suppress -v536 -v1042
       - name: Run PVS Studio
         run: |
           mkdir Results
@@ -31,7 +30,7 @@ jobs:
         continue-on-error: true
       - name: Convert the report
         run: |
-          "C:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html,Totals -o .\Results\ -r D:\Work\MyProjects\ukncbtl .\Results\UKNCBTL.plog
+          "C:\Program Files (x86)\PVS-Studio\PlogConverter.exe" -t Html,Totals -o .\Results\ -r D:\Work\MyProjects\ukncbtl -d V536,V1042 .\Results\UKNCBTL.plog
       - name: Upload the report
         uses: actions/upload-artifact@v3
         with:
