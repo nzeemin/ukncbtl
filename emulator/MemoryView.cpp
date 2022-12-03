@@ -298,20 +298,36 @@ void MemoryView_OnRButtonDown(int mousex, int mousey)
 {
     ::SetFocus(m_hwndMemoryViewer);
 
+    POINT pt = { mousex, mousey };
+    HMENU hMenu = ::CreatePopupMenu();
+
     int addr = MemoryView_GetAddressByPoint(mousex, mousey);
     if (addr >= 0)
+    {
         MemoryView_GotoAddress((WORD)addr);
 
-    RECT rcValue;
-    MemoryView_GetCurrentValueRect(&rcValue, m_cxChar, m_cyLineMemory);
+        RECT rcValue;
+        MemoryView_GetCurrentValueRect(&rcValue, m_cxChar, m_cyLineMemory);
+        pt.x = rcValue.left;  pt.y = rcValue.bottom;
 
-    HMENU hMenu = ::CreatePopupMenu();
-    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, _T("Copy Value"));
-    ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, _T("Copy Address"));
-    ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        int addrtype;
+        BOOL okValid;
+        WORD wChanged;
+        uint16_t value = MemoryView_GetWordFromMemory((uint16_t)addr, okValid, addrtype, wChanged);
+
+        TCHAR buffer[24];
+        if (okValid)
+        {
+            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06o"), value);
+            ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
+        }
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Address: %06o"), addr);
+        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, buffer);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    }
+
     ::AppendMenu(hMenu, 0, ID_DEBUG_GOTO_ADDRESS, _T("Go to Address...\tG"));
 
-    POINT pt = { rcValue.left, rcValue.bottom };
     ::ClientToScreen(m_hwndMemoryViewer, &pt);
     ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndMemoryViewer, NULL);
 
@@ -435,7 +451,7 @@ void MemoryView_GotoAddress(WORD wAddress)
     MemoryView_UpdateWindowText();
 }
 
-// Scroll window to given base address
+// Scroll window to the given base address
 void MemoryView_ScrollTo(WORD wBaseAddress)
 {
     if (wBaseAddress == m_wBaseAddress)
@@ -587,10 +603,9 @@ void MemoryView_OnDraw(HDC hdc)
     COLORREF colorMemoryRom = Settings_GetColor(ColorDebugMemoryRom);
     COLORREF colorMemoryIO = Settings_GetColor(ColorDebugMemoryIO);
     COLORREF colorMemoryNA = Settings_GetColor(ColorDebugMemoryNA);
-    COLORREF colorOld = ::SetTextColor(hdc, colorText);
     COLORREF colorHighlight = Settings_GetColor(ColorDebugHighlight);
-    COLORREF colorBack = ::GetSysColor(COLOR_WINDOW);
-    COLORREF colorBkOld = SetBkColor(hdc, colorBack);
+    HBRUSH hbrHighlight = ::CreateSolidBrush(colorHighlight);
+    HGDIOBJ hOldBrush = ::SelectObject(hdc, hbrHighlight);
 
     m_cxChar = cxChar;
     m_cyLineMemory = cyLine;
@@ -609,6 +624,8 @@ void MemoryView_OnDraw(HDC hdc)
     int y = 1 * cyLine;
     for (;;)    // Draw lines
     {
+        uint16_t lineAddress = address;
+
         DrawOctalValue(hdc, 5 * cxChar, y, address);
 
         int x = 13 * cxChar;
@@ -621,7 +638,8 @@ void MemoryView_OnDraw(HDC hdc)
             WORD wChanged;
             WORD word = MemoryView_GetWordFromMemory(address, okValid, addrtype, wChanged);
 
-            ::SetBkColor(hdc, (address == m_wCurrentAddress) ? colorHighlight : colorBack);
+            if (address == m_wCurrentAddress)
+                ::PatBlt(hdc, x - cxChar / 2, y, cxChar * 7, cyLine, PATCOPY);
 
             if (okValid)
             {
@@ -666,10 +684,17 @@ void MemoryView_OnDraw(HDC hdc)
             address += 2;
             x += 7 * cxChar;
         }
-        ::SetTextColor(hdc, colorText);
-        ::SetBkColor(hdc, colorBack);
+
+        // Highlight characters at right
+        if (lineAddress <= m_wCurrentAddress && m_wCurrentAddress < lineAddress + 16)
+        {
+            int xHighlight = x + cxChar + (m_wCurrentAddress - lineAddress) * cxChar;
+            ::PatBlt(hdc, xHighlight, y, cxChar * 2, cyLine, PATCOPY);
+        }
 
         // Draw characters at right
+        ::SetTextColor(hdc, colorText);
+        ::SetBkMode(hdc, TRANSPARENT);
         int xch = x + cxChar;
         TextOut(hdc, xch, y, wchars, 16);
 
@@ -677,8 +702,8 @@ void MemoryView_OnDraw(HDC hdc)
         if (y > rcClip.bottom) break;
     }
 
-    SetTextColor(hdc, colorOld);
-    SetBkColor(hdc, colorBkOld);
+    ::SelectObject(hdc, hOldBrush);
+    VERIFY(::DeleteObject(hbrHighlight));
     SelectObject(hdc, hOldFont);
     VERIFY(::DeleteObject(hFont));
 
