@@ -492,17 +492,7 @@ void MemoryView_CopyValueToClipboard(WPARAM command)
     TCHAR buffer[7];
     PrintOctalValue(buffer, value);
 
-    // Prepare global memory object for the text
-    HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(buffer));
-    LPTSTR lptstrCopy = (LPTSTR)::GlobalLock(hglbCopy);
-    memcpy(lptstrCopy, buffer, sizeof(buffer));
-    ::GlobalUnlock(hglbCopy);
-
-    // Send the text to the Clipboard
-    ::OpenClipboard(g_hwnd);
-    ::EmptyClipboard();
-    ::SetClipboardData(CF_UNICODETEXT, hglbCopy);
-    ::CloseClipboard();
+    CopyTextToClipboard(buffer);
 }
 
 void MemoryView_SwitchWordByte()

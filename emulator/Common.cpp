@@ -304,6 +304,24 @@ void DrawBinaryValue(HDC hdc, int x, int y, WORD value)
     TextOut(hdc, x, y, buffer, 16);
 }
 
+void CopyTextToClipboard(LPCTSTR text)
+{
+    ASSERT(text != nullptr);
+    size_t bufferLength = (_tcslen(text) + 1) * sizeof(TCHAR);
+
+    // Prepare global memory object for the text
+    HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, bufferLength);
+    LPTSTR lptstrCopy = (LPTSTR)::GlobalLock(hglbCopy);
+    memcpy(lptstrCopy, text, bufferLength);
+    ::GlobalUnlock(hglbCopy);
+
+    // Send the text to the Clipboard
+    ::OpenClipboard(g_hwnd);
+    ::EmptyClipboard();
+    ::SetClipboardData(CF_UNICODETEXT, hglbCopy);
+    ::CloseClipboard();
+}
+
 #ifdef _UNICODE
 // UKNC KOI8-R (Russian) to Unicode conversion table
 const TCHAR KOI8R_CODES[] =
