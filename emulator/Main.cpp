@@ -106,9 +106,11 @@ int APIENTRY _tWinMain(
             if (!Emulator_SystemFrame())  // Breakpoint hit
             {
                 Emulator_Stop();
-                // Turn on degugger if not yet
+                // Turn on debugger if not yet
                 if (!Settings_GetDebug())
                     ::PostMessage(g_hwnd, WM_COMMAND, ID_VIEW_DEBUG, 0);
+                else
+                    ::FlashWindow(g_hwnd, TRUE);
             }
 
             ScreenView_RedrawScreen();

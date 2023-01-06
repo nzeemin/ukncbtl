@@ -251,9 +251,9 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     }
 
     length = 1;
-    _sntprintf(strDst, strDstSize - 1, _T("%06o"), addr + ((short)(char)(uint8_t)(instr & 0xff) * 2) + 2);
+    _sntprintf(strDst, strDstSize - 1, _T("%06ho"), (uint16_t)(addr + ((short)(char)(uint8_t)(instr & 0xff) * 2) + 2));
 
-    // Branchs & interrupts
+    // Branches & interrupts
     switch (instr & ~(uint16_t)0377)
     {
     case PI_BR:   _tcscpy(strInstr, _T("BR"));   _tcscpy(strArg, strDst);  return 1;
@@ -347,6 +347,18 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     switch (instr & ~(uint16_t)0107777)
     {
     case PI_MOV:
+        if (!okByte && GetDigit(instr, 0) == 6 && GetDigit(instr, 1) == 4)
+        {
+            _tcscpy(strInstr, _T("PUSH"));
+            _sntprintf(strArg, strArgSize - 1, _T("%s"), strSrc);  // strArg = strSrc;
+            return length;
+        }
+        if (!okByte && GetDigit(instr, 2) == 6 && GetDigit(instr, 3) == 2)
+        {
+            _tcscpy(strInstr, _T("POP"));
+            _sntprintf(strArg, strArgSize - 1, _T("%s"), strDst);  // strArg = strDst;
+            return length;
+        }
         _tcscpy(strInstr, okByte ? _T("MOVB") : _T("MOV"));
         _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;

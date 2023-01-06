@@ -532,7 +532,7 @@ void MemoryView_GetCurrentValueRect(LPRECT pRect, int cxChar, int cyLine)
     int line = addroffset / 16;
     int pos = addroffset & 15;
 
-    pRect->left = cxChar * (13 + 7 * (pos / 2)) - cxChar / 2;
+    pRect->left = 32 + 4 + cxChar * (9 + 7 * (pos / 2)) - cxChar / 2;
     pRect->right = pRect->left + cxChar * 7;
     pRect->top = (line + 1) * cyLine - 1;
     pRect->bottom = pRect->top + cyLine + 1;
@@ -594,20 +594,28 @@ void MemoryView_OnDraw(HDC hdc)
     COLORREF colorMemoryIO = Settings_GetColor(ColorDebugMemoryIO);
     COLORREF colorMemoryNA = Settings_GetColor(ColorDebugMemoryNA);
     COLORREF colorHighlight = Settings_GetColor(ColorDebugHighlight);
-    HBRUSH hbrHighlight = ::CreateSolidBrush(colorHighlight);
-    HGDIOBJ hOldBrush = ::SelectObject(hdc, hbrHighlight);
-
-    m_cxChar = cxChar;
-    m_cyLineMemory = cyLine;
-
-    TCHAR buffer[7];
-    const TCHAR* ADDRESS_LINE = _T(" addr   0      2      4      6      10     12     14     16");
-    TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE, (int)_tcslen(ADDRESS_LINE));
 
     RECT rcClip;
     GetClipBox(hdc, &rcClip);
     RECT rcClient;
     GetClientRect(m_hwndMemoryViewer, &rcClient);
+
+    int xRight = 32 + 4 + cxChar * 82 + cxChar / 2;
+    HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetSysColorBrush(COLOR_BTNFACE));
+    ::PatBlt(hdc, 32, 0, 4, rcClient.bottom, PATCOPY);
+    ::PatBlt(hdc, xRight, 0, 4, rcClient.bottom, PATCOPY);
+
+    HBRUSH hbrHighlight = ::CreateSolidBrush(colorHighlight);
+    ::SelectObject(hdc, hbrHighlight);
+    ::SetBkMode(hdc, TRANSPARENT);
+
+    m_cxChar = cxChar;
+    m_cyLineMemory = cyLine;
+
+    TCHAR buffer[7];
+    const TCHAR* ADDRESS_LINE = _T("  addr   0      2      4      6      10     12     14     16");
+    TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE, (int)_tcslen(ADDRESS_LINE));
+
     m_nPageSize = rcClient.bottom / cyLine - 1;
 
     WORD address = m_wBaseAddress;
@@ -616,9 +624,9 @@ void MemoryView_OnDraw(HDC hdc)
     {
         uint16_t lineAddress = address;
 
-        DrawOctalValue(hdc, 5 * cxChar, y, address);
+        DrawOctalValue(hdc, 6 * cxChar, y, address);
 
-        int x = 13 * cxChar;
+        int x = 14 * cxChar;
         TCHAR wchars[16];
         for (int j = 0; j < 8; j++)    // Draw words as octal value
         {
