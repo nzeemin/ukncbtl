@@ -101,6 +101,7 @@ enum ToolbarButtonImages
     ToolbarImageWordByte = 25,
     ToolbarImageGotoAddress = 26,
     ToolbarImageSpriteViewer = 27,
+    ToolbarImageHexMode = 28,
 };
 
 enum StatusbarParts

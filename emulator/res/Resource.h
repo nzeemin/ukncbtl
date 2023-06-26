@@ -131,13 +131,14 @@
 #define ID_DEBUG_MEMORY_RAM2            32892
 #define ID_DEBUG_MEMORY_RAM             32893
 #define ID_DEBUG_MEMORY_WORDBYTE        32894
-#define ID_DEBUG_MEMORY_GOTO            32895
-#define ID_DEBUG_CLEARCONSOLE           32896
-#define ID_DEBUG_DELETEALLBREAKPTS      32897
-#define ID_DEBUG_SUBTITLES              32898
-#define ID_DEBUG_COPY_ADDRESS           32899
-#define ID_DEBUG_COPY_VALUE             32900
-#define ID_DEBUG_GOTO_ADDRESS           32901
+#define ID_DEBUG_MEMORY_HEXMODE         32895
+#define ID_DEBUG_MEMORY_GOTO            32896
+#define ID_DEBUG_CLEARCONSOLE           32897
+#define ID_DEBUG_DELETEALLBREAKPTS      32898
+#define ID_DEBUG_SUBTITLES              32899
+#define ID_DEBUG_COPY_ADDRESS           32900
+#define ID_DEBUG_COPY_VALUE             32901
+#define ID_DEBUG_GOTO_ADDRESS           32902
 #define ID_HELP_COMMAND_LINE_HELP       32921
 #define IDC_STATIC                      -1
 
