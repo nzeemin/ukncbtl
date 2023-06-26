@@ -353,6 +353,7 @@ SETTINGS_GETSET_DWORD(DebugMemoryMode, _T("DebugMemoryMode"), WORD, 3);
 SETTINGS_GETSET_DWORD(DebugMemoryAddress, _T("DebugMemoryAddress"), WORD, 0);
 SETTINGS_GETSET_DWORD(DebugMemoryBase, _T("DebugMemoryBase"), WORD, 0);
 SETTINGS_GETSET_DWORD(DebugMemoryByte, _T("DebugMemoryByte"), BOOL, FALSE);
+SETTINGS_GETSET_DWORD(DebugMemoryNumeral, _T("DebugMemoryNumeral"), WORD, 0);
 
 SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
 
@@ -485,20 +486,20 @@ static ColorDescriptors[ColorIndicesCount] =
 {
     { _T("ColorDebugText"),         RGB(0,   0,   0),   FALSE, _T("Debug Text") },
     { _T("ColorDebugBackCurrent"),  RGB(255, 255, 224), FALSE, _T("Debug Current Line Background") },
-    { _T("ColorDebugValueChanged"), RGB(255, 0,   0),   FALSE, _T("Debug Value Changed") },
-    { _T("ColorDebugPrevious"),     RGB(0,   0,   255), FALSE, _T("Debug Previous Address Marker") },
-    { _T("ColorDebugMemoryROM"),    RGB(0,   0,   255), FALSE, _T("Debug Memory ROM") },
+    { _T("ColorDebugValueChanged"), RGB(128, 0,   0),   FALSE, _T("Debug Value Changed") },
+    { _T("ColorDebugPrevious"),     RGB(0,   0,   212), FALSE, _T("Debug Previous Address Marker") },
+    { _T("ColorDebugMemoryROM"),    RGB(0,   0,   128), FALSE, _T("Debug Memory ROM") },
     { _T("ColorDebugMemoryIO"),     RGB(0,   128, 0),   FALSE, _T("Debug Memory IO") },
     { _T("ColorDebugMemoryNA"),     RGB(128, 128, 128), FALSE, _T("Debug Memory NA") },
     { _T("ColorDebugValue"),        RGB(128, 128, 128), FALSE, _T("Debug Value") },
     { _T("ColorDebugValueRom"),     RGB(128, 128, 192), FALSE, _T("Debug Value ROM") },
-    { _T("ColorDebugSubtitles"),    RGB(0,   128, 0),   FALSE, _T("Debug Subtitles") },
+    { _T("ColorDebugSubtitles"),    RGB(0,   64,  0),   FALSE, _T("Debug Subtitles") },
     { _T("ColorDebugJump"),         RGB(80,  192, 224), FALSE, _T("Debug Jump") },
     { _T("ColorDebugJumpYes"),      RGB(80,  240, 80),  FALSE, _T("Debug Jump Yes") },
     { _T("ColorDebugJumpNo"),       RGB(180, 180, 180), FALSE, _T("Debug Jump No") },
     { _T("ColorDebugJumpHint"),     RGB(40,  128, 160), FALSE, _T("Debug Jump Hint") },
     { _T("ColorDebugHint"),         RGB(40,  40,  160), FALSE, _T("Debug Hint") },
-    { _T("ColorDebugBreakpoint"),   RGB(255, 128, 128), FALSE, _T("Debug Breakpoint") },
+    { _T("ColorDebugBreakpoint"),   RGB(255, 64,  64),  FALSE, _T("Debug Breakpoint") },
     { _T("ColorDebugHighlight"),    RGB(200, 230, 255), FALSE, _T("Debug Highlight") },
     { _T("ColorDebugBreakptZone"),  RGB(242, 242, 242), FALSE, _T("Debug Breakpoint Zone") },
 };

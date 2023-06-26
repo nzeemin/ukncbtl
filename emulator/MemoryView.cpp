@@ -34,6 +34,7 @@ int m_cyLineMemory = 0;  // Line height in pixels
 int m_nPageSize = 100;  // Page size in lines
 
 int     m_Mode = MEMMODE_ROM;  // See MemoryViewMode enum
+int     m_NumeralMode = MEMMODENUM_OCT;
 WORD    m_wBaseAddress = 0xFFFF;
 WORD    m_wCurrentAddress = 0xFFFF;
 BOOL    m_okMemoryByteMode = FALSE;
@@ -86,6 +87,7 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     m_Mode = Settings_GetDebugMemoryMode();
     if (m_Mode > MEMMODE_LAST) m_Mode = MEMMODE_LAST;
     m_okMemoryByteMode = Settings_GetDebugMemoryByte();
+    m_NumeralMode = Settings_GetDebugMemoryNumeral();
 
     g_hwndMemory = CreateWindow(
             CLASSNAME_TOOLWINDOW, NULL,
@@ -279,6 +281,12 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     case 0x57:  // W
         MemoryView_SwitchWordByte();
         break;
+    case 0x48:  // H
+        MemoryView_SwitchNumeralMode(MEMMODENUM_HEX);
+        break;
+    case 0x4F:  // O
+        MemoryView_SwitchNumeralMode(MEMMODENUM_OCT);
+        break;
     default:
         return TRUE;
     }
@@ -397,7 +405,6 @@ void MemoryView_UpdateToolbar()
 
 void MemoryView_SetViewMode(MemoryViewMode mode)
 {
-    if (mode < 0) mode = MEMMODE_RAM0;
     if (mode > MEMMODE_LAST) mode = MEMMODE_LAST;
     m_Mode = mode;
     Settings_SetDebugMemoryMode((WORD)m_Mode);
@@ -499,8 +506,16 @@ void MemoryView_SwitchWordByte()
 {
     m_okMemoryByteMode = !m_okMemoryByteMode;
     Settings_SetDebugMemoryByte(m_okMemoryByteMode);
-
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+}
+
+void MemoryView_SwitchNumeralMode(int newMode)
+{
+    if (m_NumeralMode == newMode)
+        return;
+    m_NumeralMode = newMode;
+    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    Settings_SetDebugMemoryNumeral((WORD)newMode);
 }
 
 void MemoryView_SelectAddress()
@@ -613,8 +628,15 @@ void MemoryView_OnDraw(HDC hdc)
     m_cyLineMemory = cyLine;
 
     TCHAR buffer[7];
-    const TCHAR* ADDRESS_LINE = _T("  addr   0      2      4      6      10     12     14     16");
-    TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE, (int)_tcslen(ADDRESS_LINE));
+    const TCHAR* ADDRESS_LINE_OCT       = _T("  addr   0      2      4      6      10     12     14     16");
+    const TCHAR* ADDRESS_LINE_HEX_WORDS = _T("  addr     0      2      4      6      8      a      c      e");
+    const TCHAR* ADDRESS_LINE_HEX_BYTES = _T("  addr   0  1   2  3   4  5   6  7   8  9   a  b   c  d   e  f");
+    if (m_NumeralMode == MEMMODENUM_OCT)
+        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_OCT, (int)_tcslen(ADDRESS_LINE_OCT));
+    else if (m_okMemoryByteMode)
+        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_HEX_BYTES, (int)_tcslen(ADDRESS_LINE_HEX_BYTES));
+    else
+        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_HEX_WORDS, (int)_tcslen(ADDRESS_LINE_HEX_WORDS));
 
     m_nPageSize = rcClient.bottom / cyLine - 1;
 
@@ -624,7 +646,10 @@ void MemoryView_OnDraw(HDC hdc)
     {
         uint16_t lineAddress = address;
 
-        DrawOctalValue(hdc, 6 * cxChar, y, address);
+        if (m_NumeralMode == MEMMODENUM_OCT)
+            DrawOctalValue(hdc, 6 * cxChar, y, address);
+        else
+            DrawHexValue(hdc, 7 * cxChar, y, address);
 
         int x = 14 * cxChar;
         TCHAR wchars[16];
@@ -645,15 +670,24 @@ void MemoryView_OnDraw(HDC hdc)
                     ::SetTextColor(hdc, colorMemoryRom);
                 else
                     ::SetTextColor(hdc, (wChanged != 0) ? colorChanged : colorText);
-                if (m_okMemoryByteMode)
+
+                if (m_NumeralMode == MEMMODENUM_OCT && !m_okMemoryByteMode)
+                    DrawOctalValue(hdc, x, y, word);
+                else if (m_NumeralMode == MEMMODENUM_OCT && m_okMemoryByteMode)
                 {
                     PrintOctalValue(buffer, (word & 0xff));
                     TextOut(hdc, x, y, buffer + 3, 3);
                     PrintOctalValue(buffer, (word >> 8));
                     TextOut(hdc, x + 3 * cxChar + 3, y, buffer + 3, 3);
                 }
-                else
-                    DrawOctalValue(hdc, x, y, word);
+                else if (m_NumeralMode == MEMMODENUM_HEX && !m_okMemoryByteMode)
+                    DrawHexValue(hdc, x + cxChar / 2, y, word);
+                else if (m_NumeralMode == MEMMODENUM_HEX && m_okMemoryByteMode)
+                {
+                    PrintHexValue(buffer, word);
+                    TextOut(hdc, x, y, buffer + 2, 2);
+                    TextOut(hdc, x + 3 * cxChar, y, buffer, 2);
+                }
             }
             else  // !okValid
             {

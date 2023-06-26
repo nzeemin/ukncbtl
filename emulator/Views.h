@@ -122,6 +122,12 @@ enum MemoryViewMode
     MEMMODE_LAST = 5,  // Last mode number
 };
 
+enum MemoryViewNumeralMode
+{
+    MEMMODENUM_OCT = 0,
+    MEMMODENUM_HEX = 1,
+};
+
 void MemoryView_RegisterClass();
 void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK MemoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
@@ -129,6 +135,7 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
 void MemoryView_SetViewMode(MemoryViewMode);
 void MemoryView_SwitchRamMode();
 void MemoryView_SwitchWordByte();
+void MemoryView_SwitchNumeralMode(int newMode);
 void MemoryView_SelectAddress();
 
 

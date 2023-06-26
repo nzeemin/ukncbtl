@@ -89,6 +89,7 @@ protected:
 
 public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
+    const CMemoryController* GetMemoryControllerConst() const { return m_pMemoryController; }
 
 public:  // Register control
     uint16_t    GetPSW() const { return m_psw; }  ///< Get the processor status word register value
