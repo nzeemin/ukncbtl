@@ -135,7 +135,7 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
 void MemoryView_SetViewMode(MemoryViewMode);
 void MemoryView_SwitchRamMode();
 void MemoryView_SwitchWordByte();
-void MemoryView_SwitchNumeralMode(int newMode);
+void MemoryView_SwitchNumeralMode();
 void MemoryView_SelectAddress();
 
 

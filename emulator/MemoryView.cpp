@@ -38,6 +38,7 @@ int     m_NumeralMode = MEMMODENUM_OCT;
 WORD    m_wBaseAddress = 0xFFFF;
 WORD    m_wCurrentAddress = 0xFFFF;
 BOOL    m_okMemoryByteMode = FALSE;
+int     m_PostionIncrement = 100;  // Increment by X to the next word
 
 void MemoryView_AdjustWindowLayout();
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -233,7 +234,7 @@ int MemoryView_GetAddressByPoint(int mousex, int mousey)
     int line = mousey / m_cyLineMemory - 1;
     if (line < 0) return -1;
     else if (line >= m_nPageSize) return -1;
-    int pos = (mousex - 12 * m_cxChar - m_cxChar / 2) / (m_cxChar * 7);
+    int pos = (mousex - 12 * m_cxChar - m_cxChar / 2) / m_PostionIncrement;
     if (pos < 0) return -1;
     else if (pos > 7) return -1;
 
@@ -281,11 +282,9 @@ BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
     case 0x57:  // W
         MemoryView_SwitchWordByte();
         break;
-    case 0x48:  // H
-        MemoryView_SwitchNumeralMode(MEMMODENUM_HEX);
-        break;
-    case 0x4F:  // O
-        MemoryView_SwitchNumeralMode(MEMMODENUM_OCT);
+    case 0x48:  // H - Hex
+    case 0x4F:  // O - Octal
+        MemoryView_SwitchNumeralMode();
         break;
     default:
         return TRUE;
@@ -509,10 +508,9 @@ void MemoryView_SwitchWordByte()
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
 }
 
-void MemoryView_SwitchNumeralMode(int newMode)
+void MemoryView_SwitchNumeralMode()
 {
-    if (m_NumeralMode == newMode)
-        return;
+    int newMode = m_NumeralMode ^ 1;
     m_NumeralMode = newMode;
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
     Settings_SetDebugMemoryNumeral((WORD)newMode);
@@ -547,8 +545,9 @@ void MemoryView_GetCurrentValueRect(LPRECT pRect, int cxChar, int cyLine)
     int line = addroffset / 16;
     int pos = addroffset & 15;
 
-    pRect->left = 32 + 4 + cxChar * (9 + 7 * (pos / 2)) - cxChar / 2;
-    pRect->right = pRect->left + cxChar * 7;
+    pRect->left = 32 + 4 + cxChar * 9 + m_PostionIncrement * (pos / 2) - cxChar / 2;
+    pRect->right = pRect->left + m_PostionIncrement - 1;
+    if (!m_okMemoryByteMode) pRect->right -= cxChar;
     pRect->top = (line + 1) * cyLine - 1;
     pRect->bottom = pRect->top + cyLine + 1;
 }
@@ -615,7 +614,12 @@ void MemoryView_OnDraw(HDC hdc)
     RECT rcClient;
     GetClientRect(m_hwndMemoryViewer, &rcClient);
 
-    int xRight = 32 + 4 + cxChar * 82 + cxChar / 2;
+    if (m_NumeralMode == MEMMODENUM_OCT)
+        m_PostionIncrement = cxChar * 8;
+    else
+        m_PostionIncrement = cxChar * 6;
+
+    int xRight = 32 + 4 + cxChar * 27 + m_PostionIncrement * 8 + cxChar / 2;
     HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetSysColorBrush(COLOR_BTNFACE));
     ::PatBlt(hdc, 32, 0, 4, rcClient.bottom, PATCOPY);
     ::PatBlt(hdc, xRight, 0, 4, rcClient.bottom, PATCOPY);
@@ -628,11 +632,14 @@ void MemoryView_OnDraw(HDC hdc)
     m_cyLineMemory = cyLine;
 
     TCHAR buffer[7];
-    const TCHAR* ADDRESS_LINE_OCT       = _T("  addr   0      2      4      6      10     12     14     16");
-    const TCHAR* ADDRESS_LINE_HEX_WORDS = _T("  addr     0      2      4      6      8      a      c      e");
-    const TCHAR* ADDRESS_LINE_HEX_BYTES = _T("  addr   0  1   2  3   4  5   6  7   8  9   a  b   c  d   e  f");
-    if (m_NumeralMode == MEMMODENUM_OCT)
-        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_OCT, (int)_tcslen(ADDRESS_LINE_OCT));
+    const TCHAR* ADDRESS_LINE_OCT_WORDS = _T("  addr   0       2       4       6       10      12      14      16");
+    const TCHAR* ADDRESS_LINE_OCT_BYTES = _T("  addr   0   1   2   3   4   5   6   7   10  11  12  13  14  15  16  17");
+    const TCHAR* ADDRESS_LINE_HEX_WORDS = _T("  addr   0     2     4     6     8     a     c     e");
+    const TCHAR* ADDRESS_LINE_HEX_BYTES = _T("  addr   0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f");
+    if (m_NumeralMode == MEMMODENUM_OCT && !m_okMemoryByteMode)
+        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_OCT_WORDS, (int)_tcslen(ADDRESS_LINE_OCT_WORDS));
+    else if (m_NumeralMode == MEMMODENUM_OCT && m_okMemoryByteMode)
+        TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_OCT_BYTES, (int)_tcslen(ADDRESS_LINE_OCT_BYTES));
     else if (m_okMemoryByteMode)
         TextOut(hdc, cxChar * 5, 0, ADDRESS_LINE_HEX_BYTES, (int)_tcslen(ADDRESS_LINE_HEX_BYTES));
     else
@@ -662,7 +669,7 @@ void MemoryView_OnDraw(HDC hdc)
             WORD word = MemoryView_GetWordFromMemory(address, okValid, addrtype, wChanged);
 
             if (address == m_wCurrentAddress)
-                ::PatBlt(hdc, x - cxChar / 2, y, cxChar * 7, cyLine, PATCOPY);
+                ::PatBlt(hdc, x - cxChar / 2, y, m_PostionIncrement - (m_okMemoryByteMode ? 0 : cxChar), cyLine, PATCOPY);
 
             if (okValid)
             {
@@ -678,10 +685,10 @@ void MemoryView_OnDraw(HDC hdc)
                     PrintOctalValue(buffer, (word & 0xff));
                     TextOut(hdc, x, y, buffer + 3, 3);
                     PrintOctalValue(buffer, (word >> 8));
-                    TextOut(hdc, x + 3 * cxChar + 3, y, buffer + 3, 3);
+                    TextOut(hdc, x + 4 * cxChar, y, buffer + 3, 3);
                 }
                 else if (m_NumeralMode == MEMMODENUM_HEX && !m_okMemoryByteMode)
-                    DrawHexValue(hdc, x + cxChar / 2, y, word);
+                    DrawHexValue(hdc, x, y, word);
                 else if (m_NumeralMode == MEMMODENUM_HEX && m_okMemoryByteMode)
                 {
                     PrintHexValue(buffer, word);
@@ -714,7 +721,7 @@ void MemoryView_OnDraw(HDC hdc)
             wchars[j * 2 + 1] = wch2;
 
             address += 2;
-            x += 7 * cxChar;
+            x += m_PostionIncrement;
         }
 
         // Highlight characters at right
