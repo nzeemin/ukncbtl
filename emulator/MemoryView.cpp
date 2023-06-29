@@ -329,10 +329,12 @@ void MemoryView_OnRButtonDown(int mousex, int mousey)
         TCHAR buffer[24];
         if (okValid)
         {
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06o"), value);
+            LPCTSTR vformat = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Copy Value: %06o") : _T("Copy Value: %04x");
+            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, vformat, value);
             ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
         }
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Address: %06o"), addr);
+        LPCTSTR aformat = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Copy Address: %06o") : _T("Copy Address: %04x");
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, aformat, addr);
         ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, buffer);
         ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
     }
@@ -385,7 +387,8 @@ BOOL MemoryView_OnVScroll(WORD scrollcmd, WORD scrollpos)
 void MemoryView_UpdateWindowText()
 {
     TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Memory - %s - %06o"), MemoryView_GetMemoryModeName(), m_wCurrentAddress);
+    LPCTSTR format = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Memory - %s - %06o") : _T("Memory - %s - %04x");
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, format, MemoryView_GetMemoryModeName(), m_wCurrentAddress);
     ::SetWindowText(g_hwndMemory, buffer);
 }
 
@@ -502,7 +505,10 @@ void MemoryView_CopyValueToClipboard(WPARAM command)
     }
 
     TCHAR buffer[7];
-    PrintOctalValue(buffer, value);
+    if (m_NumeralMode == MEMMODENUM_OCT)
+        PrintOctalValue(buffer, value);
+    else
+        PrintHexValue(buffer, value);
 
     CopyTextToClipboard(buffer);
 }
@@ -520,6 +526,8 @@ void MemoryView_SwitchNumeralMode()
     m_NumeralMode = newMode;
     InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
     Settings_SetDebugMemoryNumeral((WORD)newMode);
+
+    MemoryView_UpdateWindowText();
     MemoryView_UpdateToolbar();
 }
 
