@@ -46,8 +46,8 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
 void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
 void DebugView_DrawChannels(HDC hdc, int x, int y);
 void DebugView_DrawBreakpoints(HDC hdc, int x, int y);
-void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, BOOL okHalt);
-void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* pMemCtl);
+void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugPU);
+void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugPU, const CMemoryController* pMemCtl);
 void DebugView_UpdateWindowText();
 
 
@@ -393,9 +393,9 @@ void DebugView_DoDraw(HDC hdc)
 
     int xMemoryMap = xMemmap + cxChar;
     if (m_okDebugProcessor)
-        DebugView_DrawCPUMemoryMap(hdc, xMemoryMap, 0 * cyLine, pDebugPU->IsHaltMode());
+        DebugView_DrawCPUMemoryMap(hdc, xMemoryMap, 0 * cyLine, pDebugPU);
     else
-        DebugView_DrawPPUMemoryMap(hdc, xMemoryMap, 0 * cyLine, pDebugMemCtl);
+        DebugView_DrawPPUMemoryMap(hdc, xMemoryMap, 0 * cyLine, pDebugPU, pDebugMemCtl);
 
     SetTextColor(hdc, colorOld);
     SetBkColor(hdc, colorBkOld);
@@ -680,7 +680,7 @@ void DebugView_DrawBreakpoints(HDC hdc, int x, int y)
     }
 }
 
-void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, BOOL okHalt)
+void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugPU)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
 
@@ -708,16 +708,27 @@ void DebugView_DrawCPUMemoryMap(HDC hdc, int x, int y, BOOL okHalt)
         WORD addr = (WORD)i * 020000;
         DrawOctalValue(hdc, x, y2 - cyLine * i * 2 - 4, addr);
     }
-    ::SelectObject(hdc, hOldBrush);
 
     TextOut(hdc, xtype, ybase - cyLine * 7, _T("RAM12"), 5);
 
-    if (okHalt)
+    if (pDebugPU->IsHaltMode())
         TextOut(hdc, xtype, ybase - cyLine * 15, _T("RAM12"), 5);
     else
         TextOut(hdc, xtype, ybase - cyLine * 15, _T("I/O"), 3);
+
+    uint16_t sp = pDebugPU->GetSP();
+    int ysp = y2 - ((y2 - y1) * sp / 65536);
+    PatBlt(hdc, x2, ysp, cxChar, 1, PATCOPY);
+    TextOut(hdc, x2 + cxChar, ysp - cyLine / 2, _T("SP"), 2);
+
+    uint16_t pc = pDebugPU->GetPC();
+    int ypc = y2 - ((y2 - y1) * pc / 65536);
+    PatBlt(hdc, x2, ypc, cxChar, 1, PATCOPY);
+    TextOut(hdc, x2 + cxChar, ypc - cyLine / 2, _T("PC"), 2);
+
+    ::SelectObject(hdc, hOldBrush);
 }
-void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* pMemCtl)
+void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugPU, const CMemoryController* pMemCtl)
 {
     WORD value177054 = pMemCtl->GetPortView(0177054);
 
@@ -749,7 +760,6 @@ void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* 
     }
 
     PatBlt(hdc, x1, y1 + cyLine / 4, x2 - x1, 1, PATCOPY);
-    ::SelectObject(hdc, hOldBrush);
 
     TextOut(hdc, x, ybase - cyLine * 16 + cyLine / 4, _T("177000"), 6);
     TextOut(hdc, xtype, ybase - cyLine * 4, _T("RAM0"), 4);
@@ -785,6 +795,18 @@ void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CMemoryController* 
         TextOut(hdc, xtype, ybase - cyLine * 15, _T("RAM0"), 4);
     else
         TextOut(hdc, xtype, ybase - cyLine * 15, _T("ROM"), 3);
+
+    uint16_t sp = pDebugPU->GetSP();
+    int ysp = y2 - ((y2 - y1) * sp / 65536);
+    PatBlt(hdc, x2, ysp, cxChar, 1, PATCOPY);
+    TextOut(hdc, x2 + cxChar, ysp - cyLine / 2, _T("SP"), 2);
+
+    uint16_t pc = pDebugPU->GetPC();
+    int ypc = y2 - ((y2 - y1) * pc / 65536);
+    PatBlt(hdc, x2, ypc, cxChar, 1, PATCOPY);
+    TextOut(hdc, x2 + cxChar, ypc - cyLine / 2, _T("PC"), 2);
+
+    ::SelectObject(hdc, hOldBrush);
 }
 
 
