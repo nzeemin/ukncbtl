@@ -25,6 +25,7 @@ class CProcessor;
 #define ADDRTYPE_RAM1  1    ///< RAM plane 1
 #define ADDRTYPE_RAM2  2    ///< RAM plane 2
 #define ADDRTYPE_RAM12 4    ///< RAM plane 1 & 2 - a special case for CPU memory
+#define ADDRTYPE_EXTRAM 8   ///< Extended RAM
 #define ADDRTYPE_ROM   32   ///< ROM
 #define ADDRTYPE_ROMCART1 40  ///< ADDRTYPE_ROM + 8  -- ROM cartridge #1
 #define ADDRTYPE_ROMCART2 48  ///< ADDRTYPE_ROM + 16 -- ROM cartridge #2
@@ -174,6 +175,8 @@ protected:  // Implementation
     uint8_t     m_Port177100;  ///< i8255 port A -- Parallel port output data
     uint8_t     m_Port177101;  ///< i8255 port B
     uint8_t     m_Port177102;  ///< i8255 port C
+
+    uint16_t    m_Port177200;  ///< Extended memory port
 };
 
 

@@ -110,6 +110,8 @@ uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool 
         return m_pBoard->GetROMCartWord(2, offset);
     case ADDRTYPE_ROM:
         return m_pBoard->GetROMWord(offset);
+    case ADDRTYPE_EXTRAM:
+        return m_pBoard->GetExtRAMWord(offset);
     case ADDRTYPE_IO:  // I/O port, not memory
         return 0;
     case ADDRTYPE_DENY:  // This memory is inaccessible for reading
@@ -147,6 +149,8 @@ uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okEx
         return m_pBoard->GetROMCartWord(1, offset);
     case ADDRTYPE_ROMCART2:
         return m_pBoard->GetROMCartWord(2, offset);
+    case ADDRTYPE_EXTRAM:
+        return m_pBoard->GetExtRAMWord(offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
         m_pProcessor->MemoryError();
@@ -184,6 +188,8 @@ uint8_t CMemoryController::GetByte(uint16_t address, bool okHaltMode)
         return m_pBoard->GetROMCartByte(1, offset);
     case ADDRTYPE_ROMCART2:
         return m_pBoard->GetROMCartByte(2, offset);
+    case ADDRTYPE_EXTRAM:
+        return m_pBoard->GetExtRAMByte(offset);
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
         m_pProcessor->MemoryError();
@@ -221,6 +227,9 @@ void CMemoryController::SetWord(uint16_t address, bool okHaltMode, uint16_t word
     case ADDRTYPE_ROMCART2:
     case ADDRTYPE_ROM:
         // Nothing to do: writing to ROM
+        return;
+    case ADDRTYPE_EXTRAM:
+        m_pBoard->SetExtRAMWord(offset, word);
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
@@ -260,6 +269,9 @@ void CMemoryController::SetByte(uint16_t address, bool okHaltMode, uint8_t byte)
     case ADDRTYPE_ROMCART2:
     case ADDRTYPE_ROM:
         // Nothing to do: writing to ROM
+        return;
+    case ADDRTYPE_EXTRAM:
+        m_pBoard->SetExtRAMByte(offset, byte);
         return;
     case ADDRTYPE_DENY:
     case ADDRTYPE_NONE:
@@ -710,7 +722,7 @@ void CFirstMemoryController::SetPortWord(uint16_t address, uint16_t word)
     default:
         if (!(((m_Port176644 & 0x103) == 0x100) && m_Port176646 == address))
         {
-            //DebugLogFormat(_T("MemoryError SetPortWord CPU %06o\r\n"), address);
+            //DebugLogFormat(_T("MemoryError SetPortWord CPU %06ho %06ho\r\n"), address, word);
             m_pProcessor->MemoryError();
         }
         break;
@@ -788,6 +800,9 @@ void CFirstMemoryController::LoadFromImage(const uint8_t* pImage)
 // 177000-177777 I/O - only read/write
 // 100000-176777 ROM - full access - read/write/execute
 // 000000-077777 RAM - full access - read/write/execute
+//
+// With extended RAM controller:
+// 100000-117777 - extended RAM window
 
 CSecondMemoryController::CSecondMemoryController() : CMemoryController()
 {
@@ -803,6 +818,8 @@ CSecondMemoryController::CSecondMemoryController() : CMemoryController()
     m_Port177054 = 01401;
 
     m_Port177100 = m_Port177101 = m_Port177102 = 0377;
+
+    m_Port177200 = 0;
 }
 
 void CSecondMemoryController::DCLO_Signal()
@@ -881,6 +898,11 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
             else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
             {
                 int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
+                if (m_Port177200 != 0)  // Extended memory
+                {
+                    *pOffset = (uint32_t)(address - 0100000) + (uint32_t)((m_Port177200 ^ 0xffff) & 0x003f) * 8192;
+                    return ADDRTYPE_EXTRAM;
+                }
                 if (m_pBoard->IsHardImageAttached(slot) && address >= 0110000)
                 {
                     *pOffset = address;
@@ -1284,7 +1306,7 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
         break;
 
     default:
-        //DebugLogFormat(_T("MemoryError SetPortByte PPU %06o\r\n"), address);
+        //DebugLogFormat(_T("MemoryError SetPortByte PPU %06o %03ho\r\n"), address, (uint16_t)byte);
         m_pProcessor->MemoryError();
         //ASSERT(0);
         break;
@@ -1522,8 +1544,13 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         //DebugLogFormat(_T("SetPortWord PPU %06o\r\n"), address);
         break;
 
+    case 0177200:  // Управляющий регистр электронного диска ME; записывает инвертированный номер блока
+        DebugLogFormat(_T("SetPortWord CPU ME %06ho %06ho PC %06ho\r\n"), address, word, m_pProcessor->GetPC());
+        m_Port177200 = word;
+        break;
+
     default:
-        //DebugLogFormat(_T("MemoryError SetPortWord PPU %06o\r\n"), address);
+        //DebugLogFormat(_T("MemoryError SetPortWord PPU %06o %06ho\r\n"), address, word);
         m_pProcessor->MemoryError();
         break;
     }

@@ -208,6 +208,7 @@ CMotherboard::CMotherboard ()
     m_pROM    = static_cast<uint8_t*>(calloc(32768, 1));
     m_pROMCart[0] = nullptr;
     m_pROMCart[1] = nullptr;
+    m_pExtRAM = static_cast<uint8_t*>(calloc(512, 1024));
 
     // Prepare bus devices
     m_pCpuDevices = static_cast<CBusDevice**>(calloc(6, sizeof(CBusDevice*)));
@@ -270,6 +271,7 @@ CMotherboard::~CMotherboard ()
     if (m_pROMCart[1] != nullptr) free(m_pROMCart[1]);
     if (m_pHardDrives[0] != nullptr) delete m_pHardDrives[0];
     if (m_pHardDrives[1] != nullptr) delete m_pHardDrives[1];
+    free(m_pExtRAM);
 }
 
 void CMotherboard::SetTrace(uint32_t dwTrace)
@@ -283,7 +285,7 @@ void CMotherboard::SetTrace(uint32_t dwTrace)
         m_pFloppyCtl->SetTrace((dwTrace & TRACE_FLOPPY) != 0);
 }
 
-void CMotherboard::Reset ()
+void CMotherboard::Reset()
 {
     m_pPPU->SetDCLOPin(true);
     m_pPPU->SetACLOPin(true);

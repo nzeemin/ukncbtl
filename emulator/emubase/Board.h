@@ -158,6 +158,7 @@ protected:  // Memory
     uint8_t*    m_pRAM[3];  ///< RAM, three planes, 64 KB each
     uint8_t*    m_pROM;     ///< System ROM, 32 KB
     uint8_t*    m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
+    uint8_t*    m_pExtRAM;  ///< Extended RAM
 public:  // Memory access
     uint16_t    GetRAMWord(int plan, uint16_t offset) const;
     uint8_t     GetRAMByte(int plan, uint16_t offset) const;
@@ -167,6 +168,10 @@ public:  // Memory access
     uint8_t     GetROMByte(uint16_t offset) const;
     uint16_t    GetROMCartWord(int cartno, uint16_t offset) const;
     uint8_t     GetROMCartByte(int cartno, uint16_t offset) const;
+    uint16_t    GetExtRAMWord(uint32_t offset);
+    void        SetExtRAMWord(uint32_t offset, uint16_t word);
+    uint8_t     GetExtRAMByte(uint32_t offset);
+    void        SetExtRAMByte(uint32_t offset, uint8_t byte);
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
     void        SetCPUBreakpoints(const uint16_t* bps) { m_CPUbps = bps; } ///< Set CPU breakpoint list
@@ -204,11 +209,11 @@ public:  // System control
     void        TimerTick(); ///< Timer Tick, 2uS -- dividers are within timer routine
     void        ResetFloppy();     ///< INIT signal for FDD
     uint16_t    GetTimerValue();    ///< Returns current timer value
-    uint16_t    GetTimerValueView() { return m_timer; } ///< Returns current timer value for debugger
+    uint16_t    GetTimerValueView() const { return m_timer; } ///< Returns current timer value for debugger
     uint16_t    GetTimerReload();   ///< Returns timer reload value
-    uint16_t    GetTimerReloadView() { return m_timerreload; }  ///< Returns timer reload value for debugger
+    uint16_t    GetTimerReloadView() const { return m_timerreload; }  ///< Returns timer reload value for debugger
     uint16_t    GetTimerState();    ///< Returns timer state
-    uint16_t    GetTimerStateView() { return m_timerflags; } ///< Returns timer state for debugger
+    uint16_t    GetTimerStateView() const { return m_timerflags; } ///< Returns timer state for debugger
 
     void        ChanWriteByCPU(uint8_t chan, uint8_t data);
     void        ChanWriteByPPU(uint8_t chan, uint8_t data);
@@ -356,6 +361,22 @@ inline void CMotherboard::SetRAMByte(int plan, uint16_t offset, uint8_t byte)
 {
     ASSERT(plan >= 0 && plan <= 2);
     m_pRAM[plan][offset] = byte;
+}
+inline uint16_t CMotherboard::GetExtRAMWord(uint32_t offset)
+{
+    return *((uint16_t*)(m_pExtRAM + (offset & 0x07FFFF)));
+}
+inline void CMotherboard::SetExtRAMWord(uint32_t offset, uint16_t word)
+{
+    *((uint16_t*)(m_pExtRAM + (offset & 0x07FFFF))) = word;
+}
+inline uint8_t CMotherboard::GetExtRAMByte(uint32_t offset)
+{
+    return m_pExtRAM[offset & 0x07FFFF];
+}
+inline void CMotherboard::SetExtRAMByte(uint32_t offset, uint8_t byte)
+{
+    m_pExtRAM[offset & 0x07FFFF] = byte;
 }
 
 
