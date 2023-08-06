@@ -1651,10 +1651,10 @@ void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bo
     m_mousedx += dx;
     if (m_mousedx > 256) m_mousedx = 256;
     if (m_mousedx < -256) m_mousedx = -256;
-    m_mousedy += dy;
+    m_mousedy -= dy;
     if (m_mousedy > 256) m_mousedy = 256;
     if (m_mousedy < -256) m_mousedy = -256;
-    m_mouseflags = (btnLeft ? 0x8000 : 0) | (btnRight ? 0x4000 : 0) | (btnMiddle ? 0x0080 : 0);
+    m_mouseflags = (btnLeft ? 0x8000 : 0) | (btnRight ? 0x4000 : 0) | (btnMiddle ? 0x00C0 : 0);
 }
 
 //////////////////////////////////////////////////////////////////////
