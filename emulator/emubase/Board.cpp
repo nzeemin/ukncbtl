@@ -659,6 +659,17 @@ void CMotherboard::SetSoundAYVal(int chip, uint8_t val)
     }
 }
 
+void CMotherboard::SetMouse(bool onoff)
+{
+    ((CSecondMemoryController*)m_pSecondMemCtl)->SetMouse(onoff);
+}
+
+void CMotherboard::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle)
+{
+    ((CSecondMemoryController*)m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight, btnMiddle);
+}
+
+
 void CMotherboard::DebugTicks()
 {
     if (!m_pPPU->IsStopped())

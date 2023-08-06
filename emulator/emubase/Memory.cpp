@@ -803,6 +803,10 @@ CSecondMemoryController::CSecondMemoryController() : CMemoryController()
     m_Port177054 = 01401;
 
     m_Port177100 = m_Port177101 = m_Port177102 = 0377;
+
+    m_okMouse = false;
+    m_mousedx = m_mousedy = 0;
+    m_mouseflags = 0;
 }
 
 void CSecondMemoryController::DCLO_Signal()
@@ -1060,6 +1064,26 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
     case 0177364:
         return 0; //m_pBoard->GetSoundAYVal((address >> 1) & 3);
 
+    case 0177400:  // Mouse
+        if (!m_okMouse)
+        {
+            m_pProcessor->MemoryError();
+            break;
+        }
+        else
+        {
+            int16_t dx = m_mousedx;
+            if (dx < -31) dx = -31;
+            if (dx > 31) dx = 31;
+            m_mousedx -= dx;
+            int16_t dy = m_mousedy;
+            if (dy < -31) dy = -31;
+            if (dy > 31) dy = 31;
+            m_mousedy -= dy;
+            uint16_t word = (uint16_t)( ((((uint16_t)dy) & 63) << 8) | (((uint16_t)dx) & 63) ) | (m_mouseflags & 0xC0C0);
+            return word;
+        }
+
     case 0177700:
     case 0177701:
         return m_Port177700;  // Keyboard status
@@ -1239,6 +1263,12 @@ void CSecondMemoryController::SetPortByte(uint16_t address, uint8_t byte)
     case 0177362:
     case 0177364:
         m_pBoard->SetSoundAYVal((address >> 1) & 3, byte);
+        break;
+
+    case 0177400:
+    case 0177401:
+        if (!m_okMouse)
+            m_pProcessor->MemoryError();
         break;
 
     case 0177700:  // Keyboard status
@@ -1463,6 +1493,11 @@ void CSecondMemoryController::SetPortWord(uint16_t address, uint16_t word)
         m_pBoard->SetSoundAYReg((address >> 1) & 3, word & 0xFF);
         break;
 
+    case 0177400:  // Mouse
+        if (!m_okMouse)
+            m_pProcessor->MemoryError();
+        break;
+
     case 0177700:  // Keyboard status
     case 0177701:
         if (((m_Port177700 & 0100) == 0) && (word & 0100) && (m_Port177700 & 0200))
@@ -1611,6 +1646,16 @@ void CSecondMemoryController::Init_177716()
     m_Port177716 &= 0117461;
 }
 
+void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle)
+{
+    m_mousedx += dx;
+    if (m_mousedx > 256) m_mousedx = 256;
+    if (m_mousedx < -256) m_mousedx = -256;
+    m_mousedy += dy;
+    if (m_mousedy > 256) m_mousedy = 256;
+    if (m_mousedy < -256) m_mousedy = -256;
+    m_mouseflags = (btnLeft ? 0x8000 : 0) | (btnRight ? 0x4000 : 0) | (btnMiddle ? 0x0080 : 0);
+}
 
 //////////////////////////////////////////////////////////////////////
 //

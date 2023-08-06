@@ -24,8 +24,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 HWND g_hwndScreen = NULL;  // Screen View window handle
 
 DWORD * m_bits = NULL;
-int m_cxScreenWidth;
-int m_cyScreenHeight;
+int m_cxScreenWidth = UKNC_SCREEN_WIDTH;
+int m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
 int m_xScreenOffset = 0;
 int m_yScreenOffset = 0;
 ScreenViewMode m_ScreenMode = RGBScreen;
@@ -48,6 +48,8 @@ int m_ScreenKeyQueueBottom = 0;
 int m_ScreenKeyQueueCount = 0;
 void ScreenView_PutKeyEventToQueue(WORD keyevent);
 WORD ScreenView_GetKeyEventFromQueue();
+
+POINT m_LastMousePos;
 
 BOOL bEnter = FALSE;
 BOOL bNumpadEnter = FALSE;
@@ -196,6 +198,8 @@ void ScreenView_RegisterClass()
 void ScreenView_Init()
 {
     m_bits = static_cast<DWORD*>(::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4, 1));
+
+    ::GetCursorPos(&m_LastMousePos);
 }
 
 void ScreenView_Done()
@@ -397,6 +401,9 @@ void ScreenView_OnRButtonDown(int mousex, int mousey)
 {
     ::SetFocus(g_hwndScreen);
 
+    if (Settings_GetMouse())
+        return;
+
     HMENU hMenu = ::CreatePopupMenu();
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOT, _T("Screenshot"));
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENSHOTTOCLIPBOARD, _T("Screenshot to Clipboard"));
@@ -427,7 +434,8 @@ void ScreenView_SetRenderMode(int newRenderMode)
 
     ScreenModeStruct* pmode = ScreenModeReference + newRenderMode;
     RenderSelectModeProc(pmode->modeNum);
-
+    m_cxScreenWidth = pmode->width;
+    m_cyScreenHeight = pmode->height;
     m_ScreenHeightMode = newRenderMode;
 
     ScreenView_RedrawScreen();
@@ -519,6 +527,14 @@ void ScreenView_OnDraw(HDC hdc)
     {
         RenderDrawProc(m_bits, hdc);
     }
+
+    // Calculate m_xScreenOffset and m_yScreenOffset for mouse calculations
+    RECT rc;  ::GetClientRect(g_hwndScreen, &rc);
+    m_xScreenOffset = m_yScreenOffset = 0;
+    if (rc.right > m_cxScreenWidth)
+        m_xScreenOffset = (rc.right - m_cxScreenWidth) / 2;
+    if (rc.bottom > m_cyScreenHeight)
+        m_yScreenOffset = (rc.bottom - m_cyScreenHeight) / 2;
 
     if (!Settings_GetDebug() && Settings_GetOnScreenDisplay())
         ScreenView_DrawOsd(hdc);
@@ -705,6 +721,52 @@ void ScreenView_ScanKeyboard()
 void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed)
 {
     ScreenView_PutKeyEventToQueue(MAKEWORD(keyscan, pressed ? 128 : 0));
+}
+
+void ScreenView_UpdateMouse()
+{
+    POINT mousepos;
+    ::GetCursorPos(&mousepos);
+
+    int dx = (short)(mousepos.x - m_LastMousePos.x);
+    int dy = (short)(mousepos.y - m_LastMousePos.y);
+
+    RECT rcScreen = { m_xScreenOffset, m_yScreenOffset, m_xScreenOffset + m_cxScreenWidth, m_yScreenOffset + m_cyScreenHeight };
+    ::MapWindowPoints(g_hwndScreen, NULL, (LPPOINT)&rcScreen, 2);
+    if (mousepos.x < rcScreen.left)
+        dx -= rcScreen.left - mousepos.x;
+    if (mousepos.x > rcScreen.right)
+        dx += mousepos.x - rcScreen.right;
+    if (mousepos.y < rcScreen.top)
+        dy -= rcScreen.top - mousepos.y;
+    if (mousepos.y > rcScreen.bottom)
+        dy += mousepos.y - rcScreen.bottom;
+
+    if (m_cxScreenWidth != UKNC_SCREEN_WIDTH)
+        dx = dx * UKNC_SCREEN_WIDTH / m_cxScreenWidth;
+    if (m_cyScreenHeight != UKNC_SCREEN_HEIGHT)
+        dy = dy * UKNC_SCREEN_HEIGHT / m_cyScreenHeight;
+
+    if (dx < -127)
+        dx = -127;
+    else if (dx > 127)
+        dx = 127;
+    if (dy < -127)
+        dy = -127;
+    else if (dy > 127)
+        dy = 127;
+
+    bool btnLeft = false, btnRight = false, btnMiddle = false;
+    if (::GetFocus() == g_hwndScreen)
+    {
+        btnLeft = ::GetAsyncKeyState(VK_LBUTTON) != 0;
+        btnRight = ::GetAsyncKeyState(VK_RBUTTON) != 0;
+        btnMiddle = ::GetAsyncKeyState(VK_MBUTTON) != 0;
+    }
+
+    g_pBoard->MouseMove((int16_t)dx, (int16_t)dy, btnLeft, btnRight, btnMiddle);
+
+    m_LastMousePos = mousepos;
 }
 
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)

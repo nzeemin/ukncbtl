@@ -289,13 +289,13 @@ void DrawOctalValue(HDC hdc, int x, int y, WORD value)
 {
     TCHAR buffer[7];
     PrintOctalValue(buffer, value);
-    TextOut(hdc, x, y, buffer, (int) _tcslen(buffer));
+    TextOut(hdc, x, y, buffer, (int)_tcsnlen(buffer, 6));
 }
 void DrawHexValue(HDC hdc, int x, int y, WORD value)
 {
     TCHAR buffer[7];
     PrintHexValue(buffer, value);
-    TextOut(hdc, x, y, buffer, (int) _tcslen(buffer));
+    TextOut(hdc, x, y, buffer, (int)_tcsnlen(buffer, 6));
 }
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value)
 {

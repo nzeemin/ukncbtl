@@ -423,7 +423,7 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
         ::SetTextColor(hdc, arrRChanged[r] ? colorChanged : colorText);
 
         LPCTSTR strRegName = REGISTER_NAME[r];
-        TextOut(hdc, x, y + r * cyLine, strRegName, (int) _tcslen(strRegName));
+        TextOut(hdc, x, y + r * cyLine, strRegName, (int)_tcsnlen(strRegName, 2));
 
         WORD value = arrR[r]; //pProc->GetReg(r);
         DrawOctalValue(hdc, x + cxChar * 3, y + r * cyLine, value);
@@ -614,7 +614,6 @@ void DebugView_DrawChannels(HDC hdc, int x, int y)
     chan_stc tmpstc;
 
     tmpstc = g_pBoard->GetChannelStruct(0, 0, 0);
-
     PrintOctalValue(bufData, tmpstc.data);
     _sntprintf(buffer, buffersize - 1, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 1 * cyLine, buffer, lstrlen(buffer));
@@ -773,9 +772,10 @@ void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugP
     {
         int slot = ((value177054 & 8) == 0) ? 1 : 2;
         int bank = (value177054 & 6) >> 1;
+        const size_t buffersize = 10;
         TCHAR buffer[10];
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Cart %d/%d"), slot, bank);
-        TextOut(hdc, xtype, ybase - cyLine * 9, buffer, _tcslen(buffer));
+        _sntprintf(buffer, buffersize - 1, _T("Cart %d/%d"), slot, bank);
+        TextOut(hdc, xtype, ybase - cyLine * 9, buffer, _tcsnlen(buffer, buffersize));
     }
 
     // 120000-137777 - Window block 1

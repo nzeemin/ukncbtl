@@ -236,6 +236,7 @@ public:  // System control
     uint16_t    GetKeyboardRegister();
     uint16_t    GetScannedKey() const { return m_scanned_key; }
     int         GetSoundChanges() const { return m_SoundChanges; }  ///< Sound signal 0 to 1 changes since the beginning of the frame
+    void        MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle);
 
     /// \brief Attach floppy image to the slot -- insert the disk.
     bool        AttachFloppyImage(int slot, LPCTSTR sFileName);
@@ -287,8 +288,10 @@ public:  // System control
 public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);
+
     void        SetSound(uint16_t val);
     void        SetSoundAY(bool onoff) { m_okSoundAY = onoff; }
+    void        SetMouse(bool onoff);
 private: // Timing
     uint16_t    m_multiply;
     uint16_t    freq_per[6];

@@ -154,6 +154,8 @@ public:  // PPU specifics
     void KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Keyboard key pressed or released
     bool TapeInput(bool inputBit);
     bool TapeOutput();
+    void SetMouse(bool onoff) { m_okMouse = onoff; }
+    void MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle);
 protected:  // Implementation
     uint16_t    m_Port177010;  ///< Plane address register
     uint16_t    m_Port177012;  ///< Plane 0 data register
@@ -174,6 +176,10 @@ protected:  // Implementation
     uint8_t     m_Port177100;  ///< i8255 port A -- Parallel port output data
     uint8_t     m_Port177101;  ///< i8255 port B
     uint8_t     m_Port177102;  ///< i8255 port C
+
+    int16_t     m_mousedx, m_mousedy; // Mouse delta X, Y
+    uint16_t    m_mouseflags;
+    bool        m_okMouse;
 };
 
 

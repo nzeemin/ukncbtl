@@ -224,6 +224,8 @@ void Settings_SetSoundVolume(WORD value);
 BOOL Settings_GetSoundAY();
 void Settings_SetSoundAY(BOOL flag);
 WORD Settings_GetSoundVolume();
+BOOL Settings_GetMouse();
+void Settings_SetMouse(BOOL flag);
 void Settings_SetToolbar(BOOL flag);
 BOOL Settings_GetToolbar();
 void Settings_SetKeyboard(BOOL flag);

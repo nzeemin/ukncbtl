@@ -53,6 +53,7 @@ void ScreenView_SetRenderMode(int renderMode);
 LPCTSTR ScreenView_GetRenderModeDescription(int renderMode);
 void ScreenView_PrepareScreen();
 void ScreenView_ScanKeyboard();
+void ScreenView_UpdateMouse();
 void ScreenView_RedrawScreen();  // Force to call PrepareScreen and to draw the image
 void ScreenView_Create(HWND hwndParent, int x, int y);
 LRESULT CALLBACK ScreenViewWndProc(HWND, UINT, WPARAM, LPARAM);

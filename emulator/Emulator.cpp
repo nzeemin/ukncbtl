@@ -461,6 +461,11 @@ void Emulator_SetSoundAY(bool soundAYOnOff)
     g_pBoard->SetSoundAY(soundAYOnOff);
 }
 
+void Emulator_SetMouse(bool mouseOnOff)
+{
+    g_pBoard->SetMouse(mouseOnOff);
+}
+
 bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 {
     DWORD dwBytesRead;
@@ -680,6 +685,8 @@ bool Emulator_SystemFrame()
     SoundGen_SetVolume(Settings_GetSoundVolume());
 
     ScreenView_ScanKeyboard();
+    if (Settings_GetMouse())
+        ScreenView_UpdateMouse();
 
     g_pBoard->SetCPUBreakpoints(m_wEmulatorCPUBpsCount > 0 ? m_EmulatorCPUBps : nullptr);
     g_pBoard->SetPPUBreakpoints(m_wEmulatorPPUBpsCount > 0 ? m_EmulatorPPUBps : nullptr);
