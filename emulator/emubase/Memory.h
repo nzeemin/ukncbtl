@@ -155,7 +155,7 @@ public:  // PPU specifics
     bool TapeInput(bool inputBit);
     bool TapeOutput();
     void SetMouse(bool onoff) { m_okMouse = onoff; }
-    void MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle);
+    void MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight);
 protected:  // Implementation
     uint16_t    m_Port177010;  ///< Plane address register
     uint16_t    m_Port177012;  ///< Plane 0 data register

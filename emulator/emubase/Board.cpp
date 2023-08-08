@@ -664,9 +664,9 @@ void CMotherboard::SetMouse(bool onoff)
     ((CSecondMemoryController*)m_pSecondMemCtl)->SetMouse(onoff);
 }
 
-void CMotherboard::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle)
+void CMotherboard::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight)
 {
-    ((CSecondMemoryController*)m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight, btnMiddle);
+    ((CSecondMemoryController*)m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight);
 }
 
 

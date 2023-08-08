@@ -236,7 +236,7 @@ public:  // System control
     uint16_t    GetKeyboardRegister();
     uint16_t    GetScannedKey() const { return m_scanned_key; }
     int         GetSoundChanges() const { return m_SoundChanges; }  ///< Sound signal 0 to 1 changes since the beginning of the frame
-    void        MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle);
+    void        MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight);
 
     /// \brief Attach floppy image to the slot -- insert the disk.
     bool        AttachFloppyImage(int slot, LPCTSTR sFileName);

@@ -1073,14 +1073,14 @@ uint16_t CSecondMemoryController::GetPortWord(uint16_t address)
         else
         {
             int16_t dx = m_mousedx;
-            if (dx < -31) dx = -31;
-            if (dx > 31) dx = 31;
+            if (dx < -63) dx = -63;
+            if (dx > 63) dx = 63;
             m_mousedx -= dx;
             int16_t dy = m_mousedy;
-            if (dy < -31) dy = -31;
-            if (dy > 31) dy = 31;
+            if (dy < -63) dy = -63;
+            if (dy > 63) dy = 63;
             m_mousedy -= dy;
-            uint16_t word = (uint16_t)( ((((uint16_t)dy) & 63) << 8) | (((uint16_t)dx) & 63) ) | (m_mouseflags & 0xC0C0);
+            uint16_t word = (uint16_t)( ((((uint16_t)dy) & 127) << 9) | ((((uint16_t)dx) & 127) << 1) | (m_mouseflags & 0x0101) );
             return word;
         }
 
@@ -1646,7 +1646,7 @@ void CSecondMemoryController::Init_177716()
     m_Port177716 &= 0117461;
 }
 
-void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight, bool btnMiddle)
+void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight)
 {
     m_mousedx += dx;
     if (m_mousedx > 256) m_mousedx = 256;
@@ -1654,7 +1654,7 @@ void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bo
     m_mousedy -= dy;
     if (m_mousedy > 256) m_mousedy = 256;
     if (m_mousedy < -256) m_mousedy = -256;
-    m_mouseflags = (btnLeft ? 0x8000 : 0) | (btnRight ? 0x4000 : 0) | (btnMiddle ? 0x00C0 : 0);
+    m_mouseflags = (btnLeft ? 0x0100 : 0) | (btnRight ? 0x0001 : 0);
 }
 
 //////////////////////////////////////////////////////////////////////

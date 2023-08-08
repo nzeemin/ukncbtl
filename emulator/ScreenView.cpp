@@ -756,15 +756,14 @@ void ScreenView_UpdateMouse()
     else if (dy > 127)
         dy = 127;
 
-    bool btnLeft = false, btnRight = false, btnMiddle = false;
+    bool btnLeft = false, btnRight = false;
     if (::GetFocus() == g_hwndScreen)
     {
         btnLeft = ::GetAsyncKeyState(VK_LBUTTON) != 0;
         btnRight = ::GetAsyncKeyState(VK_RBUTTON) != 0;
-        btnMiddle = ::GetAsyncKeyState(VK_MBUTTON) != 0;
     }
 
-    g_pBoard->MouseMove((int16_t)dx, (int16_t)dy, btnLeft, btnRight, btnMiddle);
+    g_pBoard->MouseMove((int16_t)dx, (int16_t)dy, btnLeft, btnRight);
 
     m_LastMousePos = mousepos;
 }
