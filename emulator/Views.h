@@ -72,6 +72,7 @@ extern HWND g_hwndKeyboard;  // Keyboard View window handle
 void KeyboardView_RegisterClass();
 void KeyboardView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK KeyboardViewWndProc(HWND, UINT, WPARAM, LPARAM);
+void KeyboardView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 
 //////////////////////////////////////////////////////////////////////

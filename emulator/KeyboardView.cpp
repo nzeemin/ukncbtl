@@ -296,13 +296,20 @@ void Keyboard_DrawKey(HDC hdc, BYTE keyscan)
     for (int i = 0; i < m_nKeyboardKeysCount; i++)
         if (keyscan == m_arrKeyboardKeys[i * 5 + 4])
         {
-            RECT rcKey;
-            rcKey.left = m_nKeyboardBitmapLeft + m_arrKeyboardKeys[i * 5];
-            rcKey.top = m_nKeyboardBitmapTop + m_arrKeyboardKeys[i * 5 + 1];
-            rcKey.right = rcKey.left + m_arrKeyboardKeys[i * 5 + 2];
-            rcKey.bottom = rcKey.top + m_arrKeyboardKeys[i * 5 + 3];
-            ::DrawFocusRect(hdc, &rcKey);
+            int x = m_nKeyboardBitmapLeft + m_arrKeyboardKeys[i * 5];
+            int y = m_nKeyboardBitmapTop + m_arrKeyboardKeys[i * 5 + 1];
+            int w = m_arrKeyboardKeys[i * 5 + 2];
+            int h = m_arrKeyboardKeys[i * 5 + 3];
+            ::PatBlt(hdc, x, y, w, h, PATINVERT);
         }
+}
+
+// Key press/release event occurred outside the KeyboardView, e.g. in ScreenView
+void KeyboardView_KeyEvent(BYTE keyscan, BOOL /*pressed*/)
+{
+    HDC hdc = ::GetDC(g_hwndKeyboard);
+    Keyboard_DrawKey(hdc, keyscan);
+    ::ReleaseDC(g_hwndKeyboard, hdc);
 }
 
 

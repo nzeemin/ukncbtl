@@ -200,7 +200,7 @@ BEGIN
     LTEXT           "UKNCBTL version 1.0.???",IDC_VERSION,10,10,139,8,SS_NOPREFIX
     LTEXT           "Build date: ????",IDC_BUILDDATE,10,20,139,8
     CONTROL         "<a>https://github.com/nzeemin/ukncbtl</a>",IDC_SYSLINK1,"SysLink",WS_TABSTOP,10,32,193,19
-    LTEXT           "Copyright (C) 2007-2023",IDC_STATIC,10,44,139,8
+    LTEXT           "Copyright (C) 2007-2024",IDC_STATIC,10,44,139,8
     LTEXT           "Authors:\r\nNikita Zimin\r\nFelix Lazarev\r\nAlexey Kisly",IDC_STATIC,10,60,174,36
     LTEXT           "Special thanks to:\r\nArseny Gordin",IDC_STATIC,10,98,174,22
     CONTROL         140,IDC_STATIC,"Static",SS_BITMAP,10,130,199,105
