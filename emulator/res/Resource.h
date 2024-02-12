@@ -99,7 +99,8 @@
 #define ID_EMULATOR_SOUND               32831
 #define ID_EMULATOR_SOUNDAY             32832
 #define ID_EMULATOR_MOUSE               32833
-#define ID_VIEW_ONSCREENDISPLAY         32834
+#define ID_EMULATOR_SOUNDCOVOX          32834
+#define ID_VIEW_ONSCREENDISPLAY         32836
 #define ID_VIEW_RENDERMODE              32847
 #define ID_VIEW_RENDERMODE1             32848
 #define ID_VIEW_RENDERMODE2             32849

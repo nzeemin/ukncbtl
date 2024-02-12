@@ -223,6 +223,8 @@ BOOL Settings_GetSound();
 void Settings_SetSoundVolume(WORD value);
 BOOL Settings_GetSoundAY();
 void Settings_SetSoundAY(BOOL flag);
+BOOL Settings_GetSoundCovox();
+void Settings_SetSoundCovox(BOOL flag);
 WORD Settings_GetSoundVolume();
 BOOL Settings_GetMouse();
 void Settings_SetMouse(BOOL flag);

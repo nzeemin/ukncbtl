@@ -64,6 +64,7 @@ void MainWindow_DoEmulatorReset();
 void MainWindow_DoEmulatorSpeed(WORD speed);
 void MainWindow_DoEmulatorSound();
 void MainWindow_DoEmulatorSoundAY();
+void MainWindow_DoEmulatorSoundCovox();
 void MainWindow_DoEmulatorMouse();
 void MainWindow_DoEmulatorSerial();
 void MainWindow_DoEmulatorParallel();
@@ -873,6 +874,7 @@ void MainWindow_UpdateMenu()
     CheckMenuItem(hMenu, ID_EMULATOR_SOUND, (Settings_GetSound() ? MF_CHECKED : MF_UNCHECKED));
     MainWindow_SetToolbarImage(ID_EMULATOR_SOUND, (Settings_GetSound() ? ToolbarImageSoundOn : ToolbarImageSoundOff));
     CheckMenuItem(hMenu, ID_EMULATOR_SOUNDAY, (Settings_GetSoundAY() ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hMenu, ID_EMULATOR_SOUNDCOVOX, (Settings_GetSoundCovox() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_MOUSE, (Settings_GetMouse() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? MF_CHECKED : MF_UNCHECKED));
     SendMessage(m_hwndToolbar, TB_CHECKBUTTON, ID_EMULATOR_SERIAL, (Settings_GetSerial() ? 1 : 0));
@@ -1044,6 +1046,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_EMULATOR_SOUNDAY:
         MainWindow_DoEmulatorSoundAY();
+        break;
+    case ID_EMULATOR_SOUNDCOVOX:
+        MainWindow_DoEmulatorSoundCovox();
         break;
     case ID_EMULATOR_MOUSE:
         MainWindow_DoEmulatorMouse();
@@ -1307,6 +1312,15 @@ void MainWindow_DoEmulatorSoundAY()
     Settings_SetSoundAY(!Settings_GetSoundAY());
 
     Emulator_SetSoundAY(Settings_GetSoundAY() != 0);
+
+    MainWindow_UpdateMenu();
+}
+
+void MainWindow_DoEmulatorSoundCovox()
+{
+    Settings_SetSoundCovox(!Settings_GetSoundCovox());
+
+    Emulator_SetSoundCovox(Settings_GetSoundCovox() != 0);
 
     MainWindow_UpdateMenu();
 }

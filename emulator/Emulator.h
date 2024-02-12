@@ -51,6 +51,7 @@ void Emulator_RemoveAllBreakpoints(bool okCpuPpu);
 
 void Emulator_SetSound(bool soundOnOff);
 void Emulator_SetSoundAY(bool soundAYOnOff);
+void Emulator_SetSoundCovox(bool soundCovoxOnOff);
 void Emulator_SetMouse(bool mouseOnOff);
 bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort);
 void Emulator_SetParallel(bool parallelOnOff);

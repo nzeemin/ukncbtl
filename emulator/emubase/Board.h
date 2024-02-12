@@ -291,6 +291,7 @@ public:  // Saving/loading emulator status
 
     void        SetSound(uint16_t val);
     void        SetSoundAY(bool onoff) { m_okSoundAY = onoff; }
+    void        SetSoundCovox(bool onoff) { m_okSoundCovox = onoff; }
     void        SetMouse(bool onoff);
 private: // Timing
     uint16_t    m_multiply;
@@ -322,6 +323,7 @@ private:
 
     bool        m_okSoundAY;
     uint8_t     m_nSoundAYReg[3];  ///< AY current register
+    bool        m_okSoundCovox;
 
 private:
     TAPEREADCALLBACK    m_TapeReadCallback;

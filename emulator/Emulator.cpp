@@ -461,6 +461,11 @@ void Emulator_SetSoundAY(bool soundAYOnOff)
     g_pBoard->SetSoundAY(soundAYOnOff);
 }
 
+void Emulator_SetSoundCovox(bool soundCovoxOnOff)
+{
+    g_pBoard->SetSoundCovox(soundCovoxOnOff);
+}
+
 void Emulator_SetMouse(bool mouseOnOff)
 {
     g_pBoard->SetMouse(mouseOnOff);

@@ -825,7 +825,7 @@ bool CMotherboard::SystemFrame()
                 if (m_TapeReadCallback != nullptr)  // Tape reading
                 {
                     bool tapeBit = (*m_TapeReadCallback)(1);
-                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     if (pMemCtl->TapeInput(tapeBit))
                     {
                         m_timerflags |= 040;  // Set bit 5 of timer state: external event ready to read
@@ -833,7 +833,7 @@ bool CMotherboard::SystemFrame()
                 }
                 else if (m_TapeWriteCallback != nullptr)  // Tape writing
                 {
-                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                     (*m_TapeWriteCallback)(value, 1);
                 }
@@ -842,7 +842,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_SerialInCallback != nullptr && frameticks % 416 == 0)
         {
-            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -855,7 +855,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_SerialOutCallback != nullptr && frameticks % serialOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (serialTxCount > 0)
             {
                 serialTxCount--;
@@ -881,7 +881,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_NetworkInCallback != nullptr && frameticks % 64 == 0)
         {
-            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -897,7 +897,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_NetworkOutCallback != nullptr && frameticks % networkOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (networkTxCount > 0)
             {
                 networkTxCount--;
@@ -924,9 +924,9 @@ bool CMotherboard::SystemFrame()
             }
         }
 
-        if (m_ParallelOutCallback != nullptr)
+        if (m_ParallelOutCallback != nullptr && !m_okSoundCovox)
         {
-            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+            CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
             if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
             {
                 // Strobe set, Printer Ack set => reset Printer Ack
@@ -1495,8 +1495,6 @@ uint16_t CMotherboard::GetKeyboardRegister(void)
 
 void CMotherboard::DoSound(void)
 {
-    int global;
-
     freq_out[0] = (m_timer >> 3) & 1; //8000
     if (m_multiply >= 4)
         freq_out[0] = 0;
@@ -1506,7 +1504,7 @@ void CMotherboard::DoSound(void)
     freq_out[3] = (m_timer >> 8) & 1; //250
     freq_out[4] = (m_timer >> 10) & 1; //60
 
-    global = !(freq_out[0] & freq_enable[0]) & ! (freq_out[1] & freq_enable[1]) & !(freq_out[2] & freq_enable[2]) & !(freq_out[3] & freq_enable[3]) & !(freq_out[4] & freq_enable[4]);
+    int global = !(freq_out[0] & freq_enable[0]) & ! (freq_out[1] & freq_enable[1]) & !(freq_out[2] & freq_enable[2]) & !(freq_out[3] & freq_enable[3]) & !(freq_out[4] & freq_enable[4]);
     if (freq_enable[5] == 0)
         global = 0;
     else
@@ -1530,6 +1528,14 @@ void CMotherboard::DoSound(void)
         m_pSoundAY[2]->Callback(bufferay, sizeof(bufferay));
         valueay |= bufferay[1];
         value |= valueay << 7;
+    }
+
+    if (m_okSoundCovox)
+    {
+        // Get byte from printer port output register, inverted, and merge it with the channel data
+        CSecondMemoryController* pSecondMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+        uint8_t valuecovox = pSecondMemCtl->m_Port177100 ^ 0xff;
+        value |= valuecovox << 7;
     }
 
     if (m_SoundGenCallback != nullptr)
