@@ -1534,8 +1534,8 @@ void CMotherboard::DoSound(void)
     {
         // Get byte from printer port output register, inverted, and merge it with the channel data
         CSecondMemoryController* pSecondMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
-        uint8_t valuecovox = pSecondMemCtl->m_Port177100 ^ 0xff;
-        value |= valuecovox << 7;
+        uint16_t valuecovox = (pSecondMemCtl->m_Port177100 ^ 0xff) << 7;
+        value ^= valuecovox;
     }
 
     if (m_SoundGenCallback != nullptr)
