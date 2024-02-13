@@ -181,7 +181,7 @@ CMotherboard::CMotherboard ()
     m_NetworkInCallback = nullptr;
     m_NetworkOutCallback = nullptr;
     m_TerminalOutCallback = nullptr;
-    m_okSoundAY = false;
+    m_okSoundAY = m_okSoundCovox = false;
 
     // Create devices
     m_pCPU = new CProcessor(_T("CPU"));
@@ -1527,15 +1527,15 @@ void CMotherboard::DoSound(void)
         valueay |= bufferay[1];
         m_pSoundAY[2]->Callback(bufferay, sizeof(bufferay));
         valueay |= bufferay[1];
-        value |= valueay << 7;
+        value ^= valueay << 7;
     }
 
     if (m_okSoundCovox)
     {
         // Get byte from printer port output register, inverted, and merge it with the channel data
         CSecondMemoryController* pSecondMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
-        uint16_t valuecovox = (pSecondMemCtl->m_Port177100 ^ 0xff) << 7;
-        value ^= valuecovox;
+        uint8_t valuecovox = pSecondMemCtl->m_Port177100 ^ 0xff;
+        value ^= valuecovox << 7;
     }
 
     if (m_SoundGenCallback != nullptr)
