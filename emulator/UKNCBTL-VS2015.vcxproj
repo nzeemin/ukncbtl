@@ -152,6 +152,7 @@
     <ClCompile Include="DebugView.cpp" />
     <ClCompile Include="Dialogs.cpp" />
     <ClCompile Include="DisasmView.cpp" />
+    <ClCompile Include="DisplayListView.cpp" />
     <ClCompile Include="emubase\Board.cpp" />
     <ClCompile Include="emubase\Disasm.cpp" />
     <ClCompile Include="emubase\Floppy.cpp" />

@@ -58,6 +58,7 @@ void MainWindow_DoViewFullscreen();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
 void MainWindow_DoSelectRenderMode(int newMode);
 void MainWindow_DoViewSpriteViewer();
+void MainWindow_DoDebugDisplayList();
 void MainWindow_DoEmulatorRun();
 void MainWindow_DoEmulatorAutostart();
 void MainWindow_DoEmulatorReset();
@@ -831,6 +832,21 @@ void MainWindow_ShowHideSpriteViewer()
     }
 }
 
+void MainWindow_ShowHideDisplayListViewer()
+{
+    if (g_hwndDisplayList == INVALID_HANDLE_VALUE)
+    {
+        RECT rcScreen;  ::GetWindowRect(g_hwndScreen, &rcScreen);
+        int x = 600;
+        int y = rcScreen.top - 4 - ::GetSystemMetrics(SM_CYSMCAPTION);
+        DisplayListView_Create(x, y);
+    }
+    else
+    {
+        ::SetFocus(g_hwndDisplayList);
+    }
+}
+
 void MainWindow_UpdateMenu()
 {
     // Get main menu
@@ -1111,6 +1127,9 @@ bool MainWindow_DoCommand(int commandId)
     case ID_DEBUG_SPRITES:
         MainWindow_DoViewSpriteViewer();
         break;
+    case ID_VIEW_DISPLAY_LIST:
+        MainWindow_DoDebugDisplayList();
+        break;
     case ID_DEBUG_STEPINTO:
         if (!g_okEmulatorRunning && Settings_GetDebug())
             ConsoleView_StepInto();
@@ -1190,6 +1209,10 @@ void MainWindow_DoViewTape()
 void MainWindow_DoViewSpriteViewer()
 {
     MainWindow_ShowHideSpriteViewer();
+}
+void MainWindow_DoDebugDisplayList()
+{
+    MainWindow_ShowHideDisplayListViewer();
 }
 
 void MainWindow_DoViewScreenMode(ScreenViewMode newMode)

@@ -27,6 +27,7 @@ const LPCTSTR CLASSNAME_MEMORYMAPVIEW   = CLASSNAMEPREFIX _T("MEMORYMAP");
 const LPCTSTR CLASSNAME_SPRITEVIEW      = CLASSNAMEPREFIX _T("SPRITE");
 const LPCTSTR CLASSNAME_CONSOLEVIEW     = CLASSNAMEPREFIX _T("CONSOLE");
 const LPCTSTR CLASSNAME_TAPEVIEW        = CLASSNAMEPREFIX _T("TAPE");
+const LPCTSTR CLASSNAME_DISPLAYLISTVIEW = CLASSNAMEPREFIX _T("DISPLAYLIST");
 
 
 //////////////////////////////////////////////////////////////////////
@@ -178,6 +179,17 @@ extern HWND g_hwndTape;  // Tape View window handle
 void TapeView_RegisterClass();
 void TapeView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK TapeViewWndProc(HWND, UINT, WPARAM, LPARAM);
+
+
+//////////////////////////////////////////////////////////////////////
+// DisplayListView
+
+extern HWND g_hwndDisplayList;  // DisplayList view window handler
+
+void DisplayListView_RegisterClass();
+void DisplayListView_Create(int x, int y);
+LRESULT CALLBACK DisplayListViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DisplayListViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
 
 
 //////////////////////////////////////////////////////////////////////

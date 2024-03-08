@@ -348,7 +348,7 @@ void ConsoleView_SaveDisplayListDump()
     LPCTSTR fname = _T("displaylist.txt");
     FILE* fpFile = ::_tfopen(fname, _T("wt"));
     //TODO: check if fpFile == nullptr
-    _ftprintf(fpFile, _T("line address  tag 1  tag 2  bits   next   \n"));
+    _ftprintf(fpFile, _T("line address  tag 1  tag 2  addr   next   \n"));
 
     WORD address = 0000270;  // Tag sequence start address
     bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
