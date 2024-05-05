@@ -118,7 +118,7 @@ void MainWindow_RegisterClass()
     ScreenView_RegisterClass();
     KeyboardView_RegisterClass();
     MemoryView_RegisterClass();
-    DebugView_RegisterClass();
+    DebugView_RegisterClasses();
     //MemoryMapView_RegisterClass();
     SpriteView_RegisterClass();
     DisasmView_RegisterClass();

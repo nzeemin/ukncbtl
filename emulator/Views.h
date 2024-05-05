@@ -20,7 +20,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 const LPCTSTR CLASSNAME_SCREENVIEW      = CLASSNAMEPREFIX _T("SCREEN");
 const LPCTSTR CLASSNAME_KEYBOARDVIEW    = CLASSNAMEPREFIX _T("KEYBOARD");
-const LPCTSTR CLASSNAME_DEBUGVIEW       = CLASSNAMEPREFIX _T("DEBUG");
+const LPCTSTR CLASSNAME_DEBUGPROCVIEW   = CLASSNAMEPREFIX _T("DEBUGPROC");
+const LPCTSTR CLASSNAME_DEBUGSTACKVIEW  = CLASSNAMEPREFIX _T("DEBUGSTACK");
+const LPCTSTR CLASSNAME_DEBUGPORTSVIEW  = CLASSNAMEPREFIX _T("DEBUGPOTRS");
+const LPCTSTR CLASSNAME_DEBUGBREAKSVIEW = CLASSNAMEPREFIX _T("DEBUGBREAKS");
+const LPCTSTR CLASSNAME_DEBUGMEMORYVIEW = CLASSNAMEPREFIX _T("DEBUGMEMORY");
 const LPCTSTR CLASSNAME_DISASMVIEW      = CLASSNAMEPREFIX _T("DISASM");
 const LPCTSTR CLASSNAME_MEMORYVIEW      = CLASSNAMEPREFIX _T("MEMORY");
 const LPCTSTR CLASSNAME_MEMORYMAPVIEW   = CLASSNAMEPREFIX _T("MEMORYMAP");
@@ -81,15 +85,19 @@ void KeyboardView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 extern HWND g_hwndDebug;  // Debug View window handle
 
-void DebugView_RegisterClass();
+void DebugView_RegisterClasses();
 void DebugView_Init();
 void DebugView_Create(HWND hwndParent, int x, int y, int width, int height);
 void DebugView_Redraw();
-LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
-LRESULT CALLBACK DebugViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DebugView_OnUpdate();
 void DebugView_SetCurrentProc(BOOL okCPU);
 void DebugView_SwitchCpuPpu();
+LRESULT CALLBACK DebugViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugProcViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugStackViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugPortsViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugBreaksViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK DebugMemoryViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 
 
 //////////////////////////////////////////////////////////////////////
