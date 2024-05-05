@@ -42,17 +42,25 @@ WORD m_wDebugPpuPswOld;  // PSW value on previous step
 WORD m_wDebugCpuR6Old;  // SP value on previous step
 WORD m_wDebugPpuR6Old;  // SP value on previous step
 
+int m_cyDebugLine = 10;  // cyLine for the current font
+DebugCtrlHitTest m_DebugLastHitTest;  // For context menu
+
 
 //////////////////////////////////////////////////////////////////////
 
 void DebugView_UpdateWindowText();
 BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
+DebugCtrlHitTest DebugView_BaseHitTest(int x, int y);
 
 void DebugProcView_DoDraw(HDC hdc);
 void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged, WORD oldPsw);
+DebugCtrlHitTest DebugProcView_HitTest(int x, int y);
+void DebugProcView_OnRButtonDown(int mousex, int mousey);
 
 void DebugStackView_DoDraw(HDC hdc);
 void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x, int y, WORD oldValue);
+//DebugCtrlHitTest DebugStackView_HitTest(int x, int y);
+//void DebugStackView_OnRButtonDown(int mousex, int mousey);
 
 void DebugPortsView_DoDraw(HDC hdc);
 void DebugView_DrawPorts(HDC hdc, BOOL okProcessor, const CMemoryController* pMemCtl, CMotherboard* pBoard, int x, int y);
@@ -225,6 +233,7 @@ void DebugView_AdjustWindowLayout()
     SelectObject(hdc, hOldFont);
     VERIFY(::DeleteObject(hFont));
     ::ReleaseDC(g_hwndDebug, hdc);
+    m_cyDebugLine = cyLine;
 
     int cxDebug = 32 + 4 + cxChar * 33;
     int cxStack = cxChar * 17 + cxChar / 2;
@@ -399,6 +408,17 @@ void DebugView_DrawAddressAndValue(HDC hdc, const CProcessor* pProc, const CMemo
     SetTextColor(hdc, colorText);
 }
 
+DebugCtrlHitTest DebugView_BaseHitTest(int /*x*/, int y)
+{
+    DebugCtrlHitTest hit;
+    hit.isValid = false;
+    hit.address = hit.value = 0;
+    hit.line = (y - m_cyDebugLine / 2) / m_cyDebugLine;
+
+    m_DebugLastHitTest = hit;
+    return hit;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -408,8 +428,12 @@ LRESULT CALLBACK DebugProcViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPar
     switch (message)
     {
     case WM_COMMAND:
-        // Forward commands to the main window
-        ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
+        if (wParam == ID_DEBUG_COPY_VALUE)  // Copy command from context menu
+            CopyOctalValueToClipboard(m_DebugLastHitTest.value);
+        else if (wParam == ID_DEBUG_COPY_VALUE_HEX)  // Copy command from context menu
+            CopyHexValueToClipboard(m_DebugLastHitTest.value);
+        else
+            ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);  // Forward commands to the main window
         break;
     case WM_PAINT:
         {
@@ -424,9 +448,10 @@ LRESULT CALLBACK DebugProcViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPar
     case WM_LBUTTONDOWN:
         ::SetFocus(hWnd);
         break;
-        //case WM_RBUTTONDOWN:
-        //    DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        //    break;
+    case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
+        DebugProcView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        break;
     case WM_KEYDOWN:
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
@@ -437,6 +462,31 @@ LRESULT CALLBACK DebugProcViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPar
         return DefWindowProc(hWnd, message, wParam, lParam);
     }
     return (LRESULT)FALSE;
+}
+
+void DebugProcView_OnRButtonDown(int mousex, int mousey)
+{
+    DebugCtrlHitTest hit = DebugProcView_HitTest(mousex, mousey);
+    m_DebugLastHitTest = hit;
+
+    POINT pt = { mousex, mousey };
+    HMENU hMenu = ::CreatePopupMenu();
+    if (hit.isValid)
+    {
+        TCHAR buffer[20];
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06ho"), hit.value);
+        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
+        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %04hx"), hit.value);
+        ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE_HEX, buffer);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        pt.y = m_cyDebugLine / 2 + (hit.line + 1) * m_cyDebugLine;
+    }
+    ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
+
+    ::ClientToScreen(m_hwndDebugProcViewer, &pt);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugProcViewer, NULL);
+
+    VERIFY(::DestroyMenu(hMenu));
 }
 
 void DebugProcView_DoDraw(HDC hdc)
@@ -549,6 +599,26 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
         TextOut(hdc, x + 6 * cxChar, y + 13 * cyLine, _T("STOP"), 4);
 }
 
+DebugCtrlHitTest DebugProcView_HitTest(int x, int y)
+{
+    DebugCtrlHitTest hit = DebugView_BaseHitTest(x, y);
+    if (hit.line < 0 || hit.line == 9 || hit.line > 11)
+        return hit;  // Invalid line number
+    hit.isValid = true;
+
+    const CProcessor* pDebugPU = (m_okDebugProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
+    if (hit.line >= 0 && hit.line < 8)
+        hit.value = pDebugPU->GetReg(hit.line);
+    else if (hit.line == 8)
+        hit.value = pDebugPU->GetCPC();
+    else if (hit.line == 10)
+        hit.value = pDebugPU->GetPSW();
+    else if (hit.line == 11)
+        hit.value = pDebugPU->GetCPSW();
+
+    return hit;
+}
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -573,9 +643,10 @@ LRESULT CALLBACK DebugStackViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPa
     case WM_LBUTTONDOWN:
         ::SetFocus(hWnd);
         break;
-        //case WM_RBUTTONDOWN:
-        //    DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        //    break;
+    case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
+        //DebugStackView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        break;
     case WM_KEYDOWN:
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
@@ -686,9 +757,10 @@ LRESULT CALLBACK DebugPortsViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPa
     case WM_LBUTTONDOWN:
         ::SetFocus(hWnd);
         break;
-        //case WM_RBUTTONDOWN:
-        //    DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        //    break;
+    case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
+        //DebugPortsView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        break;
     case WM_KEYDOWN:
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
@@ -850,6 +922,7 @@ LRESULT CALLBACK DebugBreaksViewViewerWndProc(HWND hWnd, UINT message, WPARAM wP
         ::SetFocus(hWnd);
         break;
     case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
         DebugBreaksView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         break;
     case WM_KEYDOWN:
@@ -902,8 +975,6 @@ void DebugBreaksView_DoDraw(HDC hdc)
 
 void DebugBreaksView_OnRButtonDown(int mousex, int mousey)
 {
-    ::SetFocus(m_hwndDebugBreaksViewer);
-
     HMENU hMenu = ::CreatePopupMenu();
     //::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
     //::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
@@ -940,9 +1011,10 @@ LRESULT CALLBACK DebugMemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wP
     case WM_LBUTTONDOWN:
         ::SetFocus(hWnd);
         break;
-        //case WM_RBUTTONDOWN:
-        //    DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        //    break;
+    case WM_RBUTTONDOWN:
+        ::SetFocus(hWnd);
+        //DebugView_OnRButtonDown(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+        break;
     case WM_KEYDOWN:
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:

@@ -85,6 +85,14 @@ void KeyboardView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 extern HWND g_hwndDebug;  // Debug View window handle
 
+struct DebugCtrlHitTest
+{
+    bool        isValid;
+    int         line;       // Line number
+    uint16_t    address;
+    uint16_t    value;
+};
+
 void DebugView_RegisterClasses();
 void DebugView_Init();
 void DebugView_Create(HWND hwndParent, int x, int y, int width, int height);

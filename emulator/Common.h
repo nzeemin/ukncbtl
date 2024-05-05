@@ -83,9 +83,11 @@ void DrawHexValue(HDC hdc, int x, int y, WORD value);
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value);
 
 void CopyTextToClipboard(LPCTSTR text);
+void CopyOctalValueToClipboard(WORD value);
+void CopyHexValueToClipboard(WORD value);
 
-TCHAR Translate_KOI8R(BYTE ch);
-void DrawCharKOI8R(HDC hdc, int x, int y, BYTE ch);
+TCHAR Translate_KOI8R(uint8_t ch);
+void DrawCharKOI8R(HDC hdc, int x, int y, uint8_t ch);
 
 LPCTSTR GetFileNameFromFilePath(LPCTSTR lpfilepath);
 

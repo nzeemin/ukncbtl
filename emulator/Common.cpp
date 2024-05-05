@@ -321,6 +321,18 @@ void CopyTextToClipboard(LPCTSTR text)
     ::SetClipboardData(CF_UNICODETEXT, hglbCopy);
     ::CloseClipboard();
 }
+void CopyOctalValueToClipboard(WORD value)
+{
+    TCHAR buffer[7];
+    PrintOctalValue(buffer, value);
+    CopyTextToClipboard(buffer);
+}
+void CopyHexValueToClipboard(WORD value)
+{
+    TCHAR buffer[5];
+    PrintHexValue(buffer, value);
+    CopyTextToClipboard(buffer);
+}
 
 #ifdef _UNICODE
 // UKNC KOI8-R (Russian) to Unicode conversion table
