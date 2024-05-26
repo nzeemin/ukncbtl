@@ -14,18 +14,23 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-// Save screenshot as .BMP file
-bool BmpFile_SaveScreenshot(
-    const uint32_t* bits,
-    const uint32_t* colors,
-    LPCTSTR sFileName,
-    int screenWidth, int screenHeight);
 
-// Save screenshot as .PNG file
-bool PngFile_SaveScreenshot(
-    const uint32_t* bits,
-    const uint32_t* colors,
-    LPCTSTR sFileName,
+void BitmapFile_Init();
+void BitmapFile_Done();
+
+enum BitmapFileFormat
+{
+    BitmapFileFormatBmp = 1,
+    BitmapFileFormatPng = 2,
+    BitmapFileFormatTiff = 3,
+};
+
+HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName);
+
+// Save the image as .PNG file
+bool BitmapFile_SaveImageFile(
+    const uint32_t* pBits,
+    LPCTSTR sFileName, BitmapFileFormat format,
     int screenWidth, int screenHeight);
 
 

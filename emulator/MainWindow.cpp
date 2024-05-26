@@ -1457,7 +1457,7 @@ void MainWindow_DoFileScreenshot()
     int screenshotMode = Settings_GetScreenshotMode();
     if (!ScreenView_SaveScreenshot(bufFileName, screenshotMode))
     {
-        AlertWarning(_T("Failed to save screenshot bitmap."));
+        AlertWarning(_T("Failed to save screenshot image."));
     }
 }
 
@@ -1488,7 +1488,7 @@ void MainWindow_DoFileScreenshotSaveAs()
     int screenshotMode = Settings_GetScreenshotMode();
     if (!ScreenView_SaveScreenshot(bufFileName, screenshotMode))
     {
-        AlertWarning(_T("Failed to save screenshot bitmap."));
+        AlertWarning(_T("Failed to save screenshot image."));
     }
 }
 

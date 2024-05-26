@@ -786,11 +786,11 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ::free(pBits);
 
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
-    BOOL result = FALSE;
-    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".png")) == 0)
-        result = PngFile_SaveScreenshot((const uint32_t *)pScrBits, (const uint32_t *)palette, sFileName, scrwidth, scrheight);
-    else
-        result = BmpFile_SaveScreenshot((const uint32_t *)pScrBits, (const uint32_t *)palette, sFileName, scrwidth, scrheight);
+    BitmapFileFormat imageFormat = BitmapFileFormatPng;
+    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".bmp")) == 0)
+        imageFormat = BitmapFileFormatBmp;
+    BOOL result = BitmapFile_SaveImageFile(
+            (const uint32_t *)pScrBits, sFileName, imageFormat, scrwidth, scrheight);
 
     ::free(pScrBits);
 
@@ -1021,11 +1021,10 @@ void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits)
 {
     for (int line = 0; line < UKNC_SCREEN_HEIGHT; line++)
     {
-        DWORD * pSrc = ((DWORD*)pSrcBits) + UKNC_SCREEN_WIDTH * line;
+        const DWORD * pSrc = ((const DWORD*)pSrcBits) + UKNC_SCREEN_WIDTH * (UKNC_SCREEN_HEIGHT - 1 - line);
         DWORD * pDest = ((DWORD*)pDestBits) + UKNC_SCREEN_WIDTH * line;
         ::memcpy(pDest, pSrc, UKNC_SCREEN_WIDTH * 4);
     }
-    //::memcpy(pDestBits, pSrcBits, UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4);
 }
 
 // Upscale screen from height 288 to 432
@@ -1037,8 +1036,8 @@ void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits)
         DWORD* pdest = ((DWORD*)pDestBits) + line * UKNC_SCREEN_WIDTH;
         if (line % 3 == 1)
         {
-            DWORD* psrc1 = ((DWORD*)pSrcBits) + (ukncline - 1) * UKNC_SCREEN_WIDTH;
-            DWORD* psrc2 = ((DWORD*)pSrcBits) + (ukncline + 0) * UKNC_SCREEN_WIDTH;
+            const DWORD* psrc1 = ((DWORD*)pSrcBits) + ((UKNC_SCREEN_HEIGHT - 1 - ukncline) + 1) * UKNC_SCREEN_WIDTH;
+            const DWORD* psrc2 = ((DWORD*)pSrcBits) + ((UKNC_SCREEN_HEIGHT - 1 - ukncline) + 0) * UKNC_SCREEN_WIDTH;
             DWORD* pdst1 = (DWORD*)pdest;
             for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
             {
@@ -1048,7 +1047,7 @@ void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits)
         }
         else
         {
-            DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+            const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
             memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
             ukncline++;
         }
@@ -1060,7 +1059,7 @@ void CALLBACK PrepareScreenUpscale2(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
     {
-        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
         memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
 
@@ -1074,7 +1073,7 @@ void CALLBACK PrepareScreenUpscale2d(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
     {
-        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
         memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
 
@@ -1088,8 +1087,8 @@ void CALLBACK PrepareScreenUpscale4(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline += 2)
     {
-        DWORD* psrc1 = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
-        DWORD* psrc2 = psrc1 + UKNC_SCREEN_WIDTH;
+        const DWORD* psrc1 = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
+        const DWORD* psrc2 = psrc1 - UKNC_SCREEN_WIDTH;
         DWORD* pdest0 = ((DWORD*)pDestBits) + ukncline / 2 * 5 * 960;
         DWORD* pdest1 = pdest0 + 960;
         DWORD* pdest2 = pdest1 + 960;
@@ -1118,8 +1117,8 @@ void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = UKNC_SCREEN_HEIGHT - 1; ukncline >= 0; ukncline--)
     {
-        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
-        psrc += UKNC_SCREEN_WIDTH - 1;
+        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
+        psrc += UKNC_SCREEN_WIDTH - 1;  // end of line
         DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * 960;
         pdest += 960 - 1;
         for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
@@ -1142,10 +1141,9 @@ void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
     {
-        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         DWORD* pdest1 = ((DWORD*)pDestBits) + ukncline * 3 * 1120;
         DWORD* pdest2 = pdest1 + 1120;
-        //DWORD* pdest3 = pdest2 + 1120;
         for (int i = 0; i < UKNC_SCREEN_WIDTH / 4; i++)
         {
             DWORD c1 = *(psrc++);
@@ -1169,9 +1167,9 @@ void CALLBACK PrepareScreenUpscale5(const void * pSrcBits, void * pDestBits)
 {
     for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
     {
-        DWORD* psrc = ((DWORD*)pSrcBits) + ukncline * UKNC_SCREEN_WIDTH;
+        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         DWORD* pdest = ((DWORD*)pDestBits) + ukncline * 3 * 1280;
-        psrc += UKNC_SCREEN_WIDTH - 1;
+        psrc += UKNC_SCREEN_WIDTH - 1;  // end of line
         pdest += 1280 - 1;
         DWORD* pdest2 = pdest + 1280;
         DWORD* pdest3 = pdest2 + 1280;
