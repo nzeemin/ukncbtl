@@ -65,7 +65,6 @@
 #define ID_FILE_CREATEDISK              32778
 #define ID_FILE_SETTINGS                32779
 #define ID_FILE_SETTINGS_COLORS         32780
-#define ID_FILE_SETTINGS_OSD            32781
 #define ID_VIEW                         32784
 #define ID_VIEW_MEMORY                  32785
 #define ID_VIEW_KEYBOARD                32786

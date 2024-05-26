@@ -450,77 +450,6 @@ void ScreenView_SetRenderMode(int newRenderMode)
     //}
 }
 
-void ScreenView_DrawOsd(HDC hdc)
-{
-    int osdSize = Settings_GetOsdSize();
-    int osdPosition = Settings_GetOsdPosition();
-
-    RECT rcClient;  ::GetClientRect(g_hwndScreen, &rcClient);
-
-    int osdSize12 = osdSize / 2;
-    int osdSize13 = osdSize / 3;
-    int osdSize14 = osdSize / 4;
-    int osdSize23 = osdSize * 2 / 3;
-    int osdSize34 = osdSize * 3 / 4;
-    int osdLeft = (osdPosition & 1) ? rcClient.right - osdSize14 - osdSize : osdSize14;
-    int osdTop = (osdPosition & 2) ? rcClient.bottom - osdSize14 - osdSize : osdSize14;
-    int osdNext = (osdPosition & 2) ? -osdSize14 - osdSize : osdSize14 + osdSize;
-
-    COLORREF osdLineColor = Settings_GetOsdLineColor();
-    int osdLineWidth = Settings_GetOsdLineWidth();
-    HPEN hPenOsd = ::CreatePen(PS_SOLID, osdLineWidth, osdLineColor);
-    HGDIOBJ oldPen = ::SelectObject(hdc, hPenOsd);
-    HGDIOBJ oldBrush = ::SelectObject(hdc, ::GetStockObject(NULL_BRUSH));
-
-    if (g_okEmulatorRunning)
-    {
-        MoveToEx(hdc, osdLeft, osdTop, NULL);
-        LineTo(hdc, osdLeft + osdSize, osdTop + osdSize12);
-        LineTo(hdc, osdLeft, osdTop + osdSize);
-        LineTo(hdc, osdLeft, osdTop);
-    }
-    else
-    {
-        Rectangle(hdc, osdLeft, osdTop, osdLeft + osdSize13, osdTop + osdSize);
-        Rectangle(hdc, osdLeft + osdSize23, osdTop, osdLeft + osdSize, osdTop + osdSize);
-    }
-
-    osdTop += osdNext;
-    if (g_pBoard->IsFloppyEngineOn())
-    {
-        Rectangle(hdc, osdLeft, osdTop, osdLeft + osdSize, osdTop + osdSize);
-        Arc(hdc, osdLeft + osdSize14, osdTop + osdSize14, osdLeft + osdSize34, osdTop + osdSize34,
-            osdLeft + osdSize14, osdTop + osdSize12, osdLeft + osdSize12, osdTop + osdSize14);
-        //MoveToEx(hdc, osdLeft + osdSize12, osdTop + osdSize14, NULL);
-        //LineTo(hdc, osdLeft + osdSize34, osdTop + osdSize14);
-        //MoveToEx(hdc, osdLeft + osdSize12, osdTop + osdSize14, NULL);
-        //LineTo(hdc, osdLeft + osdSize23, osdTop + osdSize12);
-        //TODO
-    }
-
-    osdTop += osdNext;
-    if (Emulator_IsSound())
-    {
-        const double sin135 = 0.707106781186548;  // sin(135 degree)
-        int osdSize12sin135 = (int)(osdSize12 * sin135);
-        MoveToEx(hdc, osdLeft + osdSize13, osdTop + osdSize13, NULL);
-        LineTo(hdc, osdLeft, osdTop + osdSize13);
-        LineTo(hdc, osdLeft, osdTop + osdSize23);
-        LineTo(hdc, osdLeft + osdSize13, osdTop + osdSize23);
-        MoveToEx(hdc, osdLeft + osdSize13, osdTop + osdSize13, NULL);
-        LineTo(hdc, osdLeft + osdSize23, osdTop);
-        LineTo(hdc, osdLeft + osdSize23, osdTop + osdSize);
-        LineTo(hdc, osdLeft + osdSize13, osdTop + osdSize23);
-        Arc(hdc, osdLeft, osdTop, osdLeft + osdSize, osdTop + osdSize,
-            osdLeft + osdSize12 + osdSize12sin135, osdTop + osdSize12 + osdSize12sin135,
-            osdLeft + osdSize12 + osdSize12sin135, osdTop + osdSize12 - osdSize12sin135);
-    }
-
-    ::SelectObject(hdc, oldBrush);
-    ::SelectObject(hdc, oldPen);
-    VERIFY(::DeleteObject(hPenOsd));
-}
-
 void ScreenView_OnDraw(HDC hdc)
 {
     if (RenderDrawProc != NULL)
@@ -535,9 +464,6 @@ void ScreenView_OnDraw(HDC hdc)
         m_xScreenOffset = (rc.right - m_cxScreenWidth) / 2;
     if (rc.bottom > m_cyScreenHeight)
         m_yScreenOffset = (rc.bottom - m_cyScreenHeight) / 2;
-
-    if (!Settings_GetDebug() && Settings_GetOnScreenDisplay())
-        ScreenView_DrawOsd(hdc);
 }
 
 void ScreenView_RedrawScreen()

@@ -53,7 +53,6 @@ void MainWindow_DoViewDebug();
 void MainWindow_DoViewToolbar();
 void MainWindow_DoViewKeyboard();
 void MainWindow_DoViewTape();
-void MainWindow_DoViewOnScreenDisplay();
 void MainWindow_DoViewFullscreen();
 void MainWindow_DoViewScreenMode(ScreenViewMode);
 void MainWindow_DoSelectRenderMode(int newMode);
@@ -82,7 +81,6 @@ void MainWindow_DoFileScreenToClipboard();
 void MainWindow_DoFileCreateDisk();
 void MainWindow_DoFileSettings();
 void MainWindow_DoFileSettingsColors();
-void MainWindow_DoFileSettingsOsd();
 void MainWindow_OnStatusbarClick(LPNMMOUSE lpnm);
 void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT);
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP);
@@ -882,7 +880,6 @@ void MainWindow_UpdateMenu()
     for (UINT item = ID_VIEW_RENDERMODE; item <= ID_VIEW_RENDERMODELAST; item++)
         EnableMenuItem(hMenu, item, Settings_GetDebug());
 
-    CheckMenuItem(hMenu, ID_VIEW_ONSCREENDISPLAY, (Settings_GetOnScreenDisplay() ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_VIEW_FULLSCREEN, (m_MainWindow_Fullscreen ? MF_CHECKED : MF_UNCHECKED));
 
     // Emulator menu options
@@ -1021,9 +1018,6 @@ bool MainWindow_DoCommand(int commandId)
     case ID_FILE_SETTINGS_COLORS:
         MainWindow_DoFileSettingsColors();
         break;
-    case ID_FILE_SETTINGS_OSD:
-        MainWindow_DoFileSettingsOsd();
-        break;
     case IDM_EXIT:
         DestroyWindow(g_hwnd);
         break;
@@ -1044,9 +1038,6 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_VIEW_GRAYSCREEN:
         MainWindow_DoViewScreenMode(GrayScreen);
-        break;
-    case ID_VIEW_ONSCREENDISPLAY:
-        MainWindow_DoViewOnScreenDisplay();
         break;
     case ID_EMULATOR_RUN:
         MainWindow_DoEmulatorRun();
@@ -1237,17 +1228,6 @@ void MainWindow_DoSelectRenderMode(int newMode)
     MainWindow_UpdateMenu();
 
     Settings_SetScreenHeightMode(newMode);
-}
-
-void MainWindow_DoViewOnScreenDisplay()
-{
-    BOOL onoff = !Settings_GetOnScreenDisplay();
-    Settings_SetOnScreenDisplay(onoff);
-
-    if (!g_okEmulatorRunning)
-        ScreenView_RedrawScreen();
-
-    MainWindow_UpdateMenu();
 }
 
 void MainWindow_DoViewFullscreen()
@@ -1531,14 +1511,6 @@ void MainWindow_DoFileSettings()
 void MainWindow_DoFileSettingsColors()
 {
     if (ShowSettingsColorsDialog())
-    {
-        RedrawWindow(g_hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
-    }
-}
-
-void MainWindow_DoFileSettingsOsd()
-{
-    if (ShowSettingsOsdDialog())
     {
         RedrawWindow(g_hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
     }

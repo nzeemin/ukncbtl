@@ -27,7 +27,6 @@ INT_PTR CALLBACK InputBoxProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
-INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
 
 void Dialogs_DoCreateDisk(int tracks);
@@ -40,7 +39,6 @@ WORD* m_pInputBoxValueOctal = NULL;
 BOOL ShowColorDialog(COLORREF& color);
 
 COLORREF m_DialogSettings_acrCustClr[16];  // array of custom colors to use in ChooseColor()
-COLORREF m_DialogSettings_OsdLineColor = RGB(120, 0, 0);
 
 DCB m_DialogSettings_SerialConfig;
 DCB m_DialogSettings_NetComConfig;
@@ -694,75 +692,6 @@ INT_PTR CALLBACK SettingsColorsProc(HWND hDlg, UINT message, WPARAM wParam, LPAR
     return (INT_PTR)FALSE;
 }
 
-
-//////////////////////////////////////////////////////////////////////
-// Settings OSD Dialog
-
-BOOL ShowSettingsOsdDialog()
-{
-    return IDOK == DialogBox(g_hInst, MAKEINTRESOURCE(IDD_SETTINGS_OSD), g_hwnd, SettingsOsdProc);
-}
-
-void SettingsDialog_InitOsdDialog(HWND hDlg)
-{
-    SetDlgItemInt(hDlg, IDC_EDIT1, Settings_GetOsdSize(), FALSE);
-
-    SetDlgItemInt(hDlg, IDC_EDIT2, Settings_GetOsdLineWidth(), FALSE);
-
-    m_DialogSettings_OsdLineColor = Settings_GetOsdLineColor();
-
-    HWND hPosition = GetDlgItem(hDlg, IDC_COMBO1);
-    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Top Left"));
-    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Top Right"));
-    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Bottom Left"));
-    ::SendMessage(hPosition, CB_ADDSTRING, 0, (LPARAM)_T("Bottom Right"));
-    ::SendMessage(hPosition, CB_SETCURSEL, Settings_GetOsdPosition(), 0);
-}
-
-INT_PTR CALLBACK SettingsOsdProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*lParam*/)
-{
-    switch (message)
-    {
-    case WM_INITDIALOG:
-        SettingsDialog_InitOsdDialog(hDlg);
-        return (INT_PTR)FALSE;
-    case WM_COMMAND:
-        switch (LOWORD(wParam))
-        {
-        case IDC_BUTTON1:
-            ShowColorDialog(m_DialogSettings_OsdLineColor, hDlg);
-            break;
-        case IDOK:
-            {
-                BOOL okValid;
-
-                int osdSize = GetDlgItemInt(hDlg, IDC_EDIT1, &okValid, FALSE);
-                if (!okValid) osdSize = 84;
-                Settings_SetOsdSize((WORD)osdSize);
-
-                int osdLineWidth = GetDlgItemInt(hDlg, IDC_EDIT2, &okValid, FALSE);
-                if (!okValid) osdLineWidth = 3;
-                Settings_SetOsdLineWidth((WORD)osdLineWidth);
-
-                Settings_SetOsdLineColor(m_DialogSettings_OsdLineColor);
-
-                HWND hPosition = GetDlgItem(hDlg, IDC_COMBO1);
-                LRESULT osdPosition = SendMessage(hPosition, CB_GETCURSEL, 0, 0);
-                Settings_SetOsdPosition((WORD)osdPosition);
-            }
-
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        case IDCANCEL:
-            EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
-        default:
-            return (INT_PTR)FALSE;
-        }
-        break;
-    }
-    return (INT_PTR)FALSE;
-}
 
 //////////////////////////////////////////////////////////////////////
 

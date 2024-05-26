@@ -30,7 +30,6 @@ void ShowCreateDiskDialog();
 
 void ShowSettingsDialog();
 BOOL ShowSettingsColorsDialog();
-BOOL ShowSettingsOsdDialog();
 
 void ShowSerialPortSettings(DCB * pDCB);
 
