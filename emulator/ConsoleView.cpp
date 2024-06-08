@@ -41,7 +41,7 @@ void ConsoleView_DoConsoleCommand();
 void ConsoleView_PrintConsolePrompt();
 void ConsoleView_PrintRegister(LPCTSTR strName, WORD value);
 void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines);
-BOOL ConsoleView_SaveMemoryDump(CProcessor* pProc);
+BOOL ConsoleView_SaveMemoryDump(CProcessor* pProc, uint16_t addr1, uint16_t addr2);
 
 const LPCTSTR MESSAGE_UNKNOWN_COMMAND = _T("  Unknown command.\r\n");
 const LPCTSTR MESSAGE_WRONG_VALUE = _T("  Wrong value.\r\n");
@@ -314,16 +314,26 @@ void ConsoleView_DeleteAllBreakpoints()
     ConsoleView_DoConsoleCommand();
 }
 
-BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc)
+BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc, uint16_t addr1, uint16_t addr2)
 {
+    if (addr2 <= addr1)
+    {
+        ConsoleView_PrintFormat(_T("  End address should be greater than start address.\r\n"));
+        return FALSE;
+    }
+
+    uint16_t waddr1 = addr1 / 2;
+    uint16_t waddr2 = addr2 & 1 ? addr2 / 2 : (addr2 - 1) / 2;
+    size_t bsize = (waddr2 - waddr1 + 1) * 2;
+
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    WORD * pData = static_cast<WORD*>(::calloc(65536, 1));
+    uint16_t * pData = static_cast<uint16_t*>(::calloc(bsize, 1));
     if (pData == nullptr)
         return FALSE;
 
     bool isHaltMode = pProc->IsHaltMode();
     int addrtype;
-    for (WORD i = 0; i <= 32767; i++)
+    for (uint16_t i = waddr1; i <= waddr2; i++)
         pData[i] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
 
     TCHAR fname[20];
@@ -333,10 +343,11 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc)
             OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
     DWORD dwBytesWritten = 0;
-    ::WriteFile(file, pData, 65536, &dwBytesWritten, NULL);
+    ::WriteFile(file, pData, bsize, &dwBytesWritten, NULL);
+    ::SetEndOfFile(file);
     ::free(pData);
     ::CloseHandle(file);
-    if (dwBytesWritten != 65536)
+    if (dwBytesWritten != bsize)
         return FALSE;
 
     ConsoleView_PrintFormat(_T("  %s memory saved to %s\r\n"), pProc->GetName(), fname);
@@ -568,7 +579,8 @@ void ConsoleView_CmdShowHelp(const ConsoleCommandParams& /*params*/)
             _T("  bcXXXXXX   Remove breakpoint at address XXXXXX\r\n")
             _T("  bc         Remove all breakpoints for the current processor\r\n")
             _T("  u          Save memory dump to file memdumpXPU.bin\r\n")
-            _T("  udl        Save display list dump to file displaylist.txt\r\n")
+            _T("  uXXXXXX YYYYYY  Save memory fragment to file memdumpXPU.bin\r\n")
+            _T("  udl        Save display list to file displaylist.txt\r\n")
             _T("  fcXXXXXX YYYYYY  Calculate floating number for the two octal words\r\n")
 #if !defined(PRODUCT)
             _T("  t          Tracing on/off to trace.log file\r\n")
@@ -622,7 +634,13 @@ void ConsoleView_CmdSetRegisterPSW(const ConsoleCommandParams& params)
 void ConsoleView_CmdSaveMemoryDump(const ConsoleCommandParams& /*params*/)
 {
     CProcessor* pProc = ConsoleView_GetCurrentProcessor();
-    ConsoleView_SaveMemoryDump(pProc);
+    ConsoleView_SaveMemoryDump(pProc, 0, 0xffff);
+}
+
+void ConsoleView_CmdSaveMemoryFragment(const ConsoleCommandParams& params)
+{
+    CProcessor* pProc = ConsoleView_GetCurrentProcessor();
+    ConsoleView_SaveMemoryDump(pProc, params.paramOct1, params.paramOct2);
 }
 
 void ConsoleView_CmdPrintMemoryDumpAtPC(const ConsoleCommandParams& /*params*/)
@@ -896,6 +914,7 @@ static ConsoleCommands[] =
     { _T("D%ho"), ARGINFO_OCT, ConsoleView_CmdPrintDisassembleAtAddress },
     { _T("d"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
     { _T("D"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
+    { _T("u%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSaveMemoryFragment },
     { _T("u"), ARGINFO_NONE, ConsoleView_CmdSaveMemoryDump },
     { _T("udl"), ARGINFO_NONE, ConsoleView_CmdSaveDisplayListDump },
     { _T("m%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSetMemoryAtAddress },
