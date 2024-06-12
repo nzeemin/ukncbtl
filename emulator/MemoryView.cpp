@@ -459,7 +459,7 @@ void MemoryView_GotoAddress(WORD wAddress)
     }
     else if (addroffset >= m_nPageSize * 16)
     {
-        WORD baseaddr = (WORD)((m_wCurrentAddress & 0xFFF0) - (m_nPageSize - 1) * 16);
+        WORD baseaddr = (WORD)(m_wCurrentAddress & 0xFFF0);
         MemoryView_ScrollTo(baseaddr);
     }
 
