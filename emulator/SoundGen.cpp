@@ -40,7 +40,7 @@ int bufcurpos;
 
 static void CALLBACK WaveCallback(HWAVEOUT /*hwo*/, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR /*dwParam1*/, DWORD_PTR /*dwParam2*/)
 {
-    int* freeBlockCounter = (int*)dwInstance;
+    int* freeBlockCounter = reinterpret_cast<int*>(dwInstance);
     if (uMsg != WOM_DONE)
         return;
 
@@ -55,20 +55,18 @@ void SoundGen_Initialize(WORD volume)
     if (m_SoundGenInitialized)
         return;
 
-    unsigned char* mbuffer;
-
     size_t totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
 
-    mbuffer = static_cast<unsigned char*>(calloc(totalBufferSize, 1));
+    unsigned char* mbuffer = static_cast<unsigned char*>(calloc(totalBufferSize, 1));
     if (mbuffer == nullptr)
         return;
 
-    waveBlocks = (WAVEHDR*)mbuffer;
+    waveBlocks = reinterpret_cast<WAVEHDR*>(mbuffer);
     mbuffer += sizeof(WAVEHDR) * BLOCK_COUNT;
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
         waveBlocks[i].dwBufferLength = BLOCK_SIZE;
-        waveBlocks[i].lpData = (LPSTR)mbuffer;
+        waveBlocks[i].lpData = reinterpret_cast<LPSTR>(mbuffer);
         mbuffer += BLOCK_SIZE;
     }
 
@@ -96,7 +94,6 @@ void SoundGen_Initialize(WORD volume)
     bufcurpos = 0;
 
     m_SoundGenInitialized = true;
-    //waveOutSetPlaybackRate(hWaveOut,0x00008000);
 }
 
 void SoundGen_Finalize()
@@ -105,7 +102,7 @@ void SoundGen_Finalize()
         return;
 
     while (waveFreeBlockCount < BLOCK_COUNT)
-        Sleep(3);
+        Sleep(1);
 
     for (int i = 0; i < waveFreeBlockCount; i++)
     {
@@ -119,7 +116,7 @@ void SoundGen_Finalize()
     ::free(waveBlocks);
     waveBlocks = nullptr;
 
-    m_SoundGenInitialized = FALSE;
+    m_SoundGenInitialized = false;
 }
 
 void SoundGen_SetVolume(WORD volume)

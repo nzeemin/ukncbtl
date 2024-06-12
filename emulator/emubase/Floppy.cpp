@@ -143,7 +143,7 @@ void CFloppyController::DetachImage(int drive)
 //////////////////////////////////////////////////////////////////////
 
 
-uint16_t CFloppyController::GetState(void)
+uint16_t CFloppyController::GetState()
 {
     if (m_track == 0)
         m_status |= FLOPPY_STATUS_TRACK0;
@@ -243,7 +243,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
     }
 }
 
-uint16_t CFloppyController::GetData(void)
+uint16_t CFloppyController::GetData()
 {
     if (m_okTrace) DebugLogFormat(_T("Floppy READ\t\t%04x\r\n"), m_datareg);
 

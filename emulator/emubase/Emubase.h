@@ -121,7 +121,6 @@ public:
     ~CFloppyController();
     void Reset();       ///< Reset the device
 
-public:
     /// \brief Attach the image to the drive -- insert disk
     bool AttachImage(int drive, LPCTSTR sFileName);
     /// \brief Detach image from the drive -- remove disk
@@ -132,11 +131,11 @@ public:
     bool IsReadOnly(int drive) const { return m_drivedata[drive].okReadOnly; }
     /// \brief Check if floppy engine now rotates
     bool IsEngineOn() const { return (m_flags & FLOPPY_CMD_ENGINESTART) != 0; }
-    uint16_t GetData(void);         ///< Reading port 177132 -- data
-    uint16_t GetState(void);        ///< Reading port 177130 -- device status
+    uint16_t GetData();             ///< Reading port 177132 -- data
+    uint16_t GetState();            ///< Reading port 177130 -- device status
     void SetCommand(uint16_t cmd);  ///< Writing to port 177130 -- commands
     void WriteData(uint16_t data);  ///< Writing to port 177132 -- data
-    void Periodic();            ///< Rotate disk; call it each 64 us -- 15625 times per second
+    void Periodic();                ///< Rotate disk; call it each 64 us -- 15625 times per second
     void SetTrace(bool okTrace) { m_okTrace = okTrace; }  // Set trace mode on/off
 
 private:

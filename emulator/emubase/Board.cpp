@@ -468,7 +468,7 @@ void CMotherboard::SetHardPortWord(int slot, uint16_t port, uint16_t data)
 uint16_t CMotherboard::GetROMWord(uint16_t offset) const
 {
     ASSERT(offset < 32768);
-    return *((uint16_t*)(m_pROM + (offset & 0xFFFE)));
+    return *reinterpret_cast<uint16_t*>(m_pROM + (offset & 0xFFFE));
 }
 uint8_t CMotherboard::GetROMByte(uint16_t offset) const
 {
@@ -483,7 +483,7 @@ uint16_t CMotherboard::GetROMCartWord(int cartno, uint16_t offset) const
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
         return 0177777;
-    uint16_t* p = (uint16_t*) (m_pROMCart[cartindex] + (offset & 0xFFFE));
+    uint16_t* p = reinterpret_cast<uint16_t*>(m_pROMCart[cartindex] + (offset & 0xFFFE));
     return *p;
 }
 uint8_t CMotherboard::GetROMCartByte(int cartno, uint16_t offset) const
@@ -661,12 +661,12 @@ void CMotherboard::SetSoundAYVal(int chip, uint8_t val)
 
 void CMotherboard::SetMouse(bool onoff)
 {
-    ((CSecondMemoryController*)m_pSecondMemCtl)->SetMouse(onoff);
+    reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl)->SetMouse(onoff);
 }
 
 void CMotherboard::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight)
 {
-    ((CSecondMemoryController*)m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight);
+    reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight);
 }
 
 
@@ -733,35 +733,35 @@ bool CMotherboard::SystemFrame()
         // CPU - 16 times, PPU - 12.5 times
         if (m_CPUbps == nullptr && m_PPUbps == nullptr)  // No breakpoints, no need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  1 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  2 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-            /*  3 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  4 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  5 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-            /*  6 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  7 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /*  8 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
-            /*  9 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /* 10 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;
-            /* 11 */  SYSTEMFRAME_EXECUTE_CPU;  SYSTEMFRAME_EXECUTE_PPU;  SYSTEMFRAME_EXECUTE_CPU;
+            /*  0 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  1 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  2 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
+            /*  3 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  4 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  5 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
+            /*  6 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  7 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /*  8 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
+            /*  9 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /* 10 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
+            /* 11 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
                 SYSTEMFRAME_EXECUTE_PPU;
         }
         else  // Have breakpoint, need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  1 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
-            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  4 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
-            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  7 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
-            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;
-            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU;  SYSTEMFRAME_EXECUTE_BP_PPU;  SYSTEMFRAME_EXECUTE_BP_CPU;
+            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  1 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
+            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  4 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
+            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  7 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
+            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
+            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
                 SYSTEMFRAME_EXECUTE_BP_PPU;
         }
@@ -771,7 +771,7 @@ bool CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();  // Each 32nd tick -- FDD tick
 
             // Keyboard processing
-            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+            CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
             if ((pMemCtl->m_Port177700 & 0200) == 0)
             {
                 uint8_t row_Y = m_scanned_key & 0xF;
@@ -825,7 +825,7 @@ bool CMotherboard::SystemFrame()
                 if (m_TapeReadCallback != nullptr)  // Tape reading
                 {
                     bool tapeBit = (*m_TapeReadCallback)(1);
-                    CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     if (pMemCtl->TapeInput(tapeBit))
                     {
                         m_timerflags |= 040;  // Set bit 5 of timer state: external event ready to read
@@ -833,7 +833,7 @@ bool CMotherboard::SystemFrame()
                 }
                 else if (m_TapeWriteCallback != nullptr)  // Tape writing
                 {
-                    CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                     (*m_TapeWriteCallback)(value, 1);
                 }
@@ -842,7 +842,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_SerialInCallback != nullptr && frameticks % 416 == 0)
         {
-            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -855,7 +855,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_SerialOutCallback != nullptr && frameticks % serialOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (serialTxCount > 0)
             {
                 serialTxCount--;
@@ -881,7 +881,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_NetworkInCallback != nullptr && frameticks % 64 == 0)
         {
-            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -897,7 +897,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_NetworkOutCallback != nullptr && frameticks % networkOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = dynamic_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
             if (networkTxCount > 0)
             {
                 networkTxCount--;
@@ -926,7 +926,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_ParallelOutCallback != nullptr && !m_okSoundCovox)
         {
-            CSecondMemoryController* pMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+            CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
             if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
             {
                 // Strobe set, Printer Ack set => reset Printer Ack
@@ -985,12 +985,12 @@ void CMotherboard::KeyboardEvent(uint8_t scancode, bool okPressed)
 void CMotherboard::SaveToImage(uint8_t* pImage)
 {
     // Board data                                       // Offset Size
-    uint16_t* pwImage = (uint16_t*) (pImage + 32);      //   32    --
+    uint16_t* pwImage = reinterpret_cast<uint16_t*>(pImage + 32);  //   32    --
     *pwImage++ = m_timer;                               //   32     2
     *pwImage++ = m_timerreload;                         //   34     2
     *pwImage++ = m_timerflags;                          //   36     2
     *pwImage++ = m_timerdivider;                        //   38     2
-    uint32_t* pdwImage = (uint32_t*)pwImage;            //   40    --
+    uint32_t* pdwImage = reinterpret_cast<uint32_t*>(pwImage);  //   40    --
     memcpy(pdwImage, m_chancputx, 3 * 4); pdwImage += 3;//   40    12
     memcpy(pdwImage, m_chancpurx, 2 * 4); pdwImage += 2;//   52     8
     memcpy(pdwImage, m_chanpputx, 2 * 4); pdwImage += 2;//   60     8
@@ -1001,7 +1001,7 @@ void CMotherboard::SaveToImage(uint8_t* pImage)
     *pbImage++ = 0;                                     //   82     1  // not used
     *pbImage++ = m_scanned_key;                         //   83     1
     memcpy(pbImage, m_kbd_matrix, 2 * 16); pbImage += 32;//  84    32
-    pwImage = (uint16_t*) pbImage;                      //  116    --
+    pwImage = reinterpret_cast<uint16_t*>(pbImage);     //  116    --
     *pwImage++ = m_multiply;                            //  116     2
     memcpy(pwImage, freq_per, 12); pwImage += 6;        //  118    12
     memcpy(pwImage, freq_out, 12); pwImage += 6;        //  130    12
@@ -1041,7 +1041,7 @@ void CMotherboard::LoadFromImage(const uint8_t* pImage)
     m_timerreload = *pwImage++;                         //   34     2
     m_timerflags = *pwImage++;                          //   36     2
     m_timerdivider = *pwImage++;                        //   38     2
-    uint32_t* pdwImage = (uint32_t*)pwImage;            //   40    --
+    const uint32_t* pdwImage = reinterpret_cast<const uint32_t*>(pwImage);  //   40    --
     memcpy(m_chancputx, pdwImage, 3 * 4); pdwImage += 3;//   40    12
     memcpy(m_chancpurx, pdwImage, 2 * 4); pdwImage += 2;//   52     8
     memcpy(m_chanpputx, pdwImage, 2 * 4); pdwImage += 2;//   60     8
@@ -1052,7 +1052,7 @@ void CMotherboard::LoadFromImage(const uint8_t* pImage)
     pbImage++;                                          //   82     1  // not used
     m_scanned_key = *pbImage++;                         //   83     1
     memcpy(m_kbd_matrix, pbImage, 2 * 16); pbImage += 32;//  84    32
-    pwImage = (const uint16_t*) pbImage;                //  116    --
+    pwImage = reinterpret_cast<const uint16_t*>(pbImage);  //  116    --
     m_multiply = *pwImage++;                            //  116     2
     memcpy(freq_per, pwImage, 12); pwImage += 6;        //  118    12
     memcpy(freq_out, pwImage, 12); pwImage += 6;        //  130    12
@@ -1180,7 +1180,6 @@ uint8_t CMotherboard::ChanRxStateGetCPU(uint8_t chan)
 {
     chan &= 3;
     ASSERT(chan < 2);
-
     return (m_chancpurx[chan].ready << 7) | (m_chancpurx[chan].irq << 6);
 }
 
@@ -1193,21 +1192,16 @@ uint8_t CMotherboard::ChanTxStateGetCPU(uint8_t chan)
 
 uint8_t CMotherboard::ChanRxStateGetPPU()
 {
-    uint8_t res;
-
-    res = (m_irq_cpureset << 6) | (m_chanppurx[2].ready << 5) | (m_chanppurx[1].ready << 4) | (m_chanppurx[0].ready << 3) |
-          (m_chanppurx[2].irq << 2)   | (m_chanppurx[1].irq << 1)   | (m_chanppurx[0].irq);
-
-
+    uint8_t res =
+        (m_irq_cpureset << 6) | (m_chanppurx[2].ready << 5) | (m_chanppurx[1].ready << 4) | (m_chanppurx[0].ready << 3) |
+        (m_chanppurx[2].irq << 2)   | (m_chanppurx[1].irq << 1)   | (m_chanppurx[0].irq);
     return res;
 }
 uint8_t CMotherboard::ChanTxStateGetPPU()
 {
-    uint8_t res;
-    res = (m_chanpputx[1].ready << 4) | (m_chanpputx[0].ready << 3) | (m_chan0disabled << 2) |
-          (m_chanpputx[1].irq << 1)   | (m_chanpputx[0].irq);
-
-
+    uint8_t res =
+        (m_chanpputx[1].ready << 4) | (m_chanpputx[0].ready << 3) | (m_chan0disabled << 2) |
+        (m_chanpputx[1].irq << 1)   | (m_chanpputx[0].irq);
     return res;
 }
 void CMotherboard::ChanRxStateSetCPU(uint8_t chan, uint8_t state)
@@ -1465,7 +1459,7 @@ void CMotherboard::SetFloppyData(uint16_t val)
 
 //////////////////////////////////////////////////////////////////////
 
-uint16_t CMotherboard::GetKeyboardRegister(void)
+uint16_t CMotherboard::GetKeyboardRegister()
 {
     uint16_t w7214 = GetRAMWord(0, 07214);
     uint8_t b22556 = GetRAMByte(0, 022556);
@@ -1493,7 +1487,7 @@ uint16_t CMotherboard::GetKeyboardRegister(void)
     return res;
 }
 
-void CMotherboard::DoSound(void)
+void CMotherboard::DoSound()
 {
     freq_out[0] = (m_timer >> 3) & 1; //8000
     if (m_multiply >= 4)
@@ -1636,7 +1630,7 @@ void CMotherboard::SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALL
 
 void CMotherboard::SetParallelOutCallback(PARALLELOUTCALLBACK outcallback)
 {
-    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
     if (outcallback == nullptr)  // Reset callback
     {
         pMemCtl->m_Port177101 &= ~2;  // Reset OnLine flag
