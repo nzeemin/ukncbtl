@@ -136,22 +136,27 @@ int APIENTRY _tWinMain(
                 ::Sleep(1);  // We should not consume 100% of CPU
             else
             {
-                // Slow down to 25 frames per second
-                LARGE_INTEGER nFrameFinishTime;  // Frame start time
-                ::QueryPerformanceCounter(&nFrameFinishTime);
-                LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
-                        * 1000 / nPerformanceFrequency.QuadPart;
-                LONGLONG nFrameDelay = 1000 / 25 - 1;  // 1000 millisec / 25 = 40 millisec
+                LONGLONG nFrameDelay = 1000ll / 25 - 8;  // 1000 millisec / 25 = 40 millisec
                 if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
-                    nFrameDelay = 1000 / 25 * 4 - 1;
+                    nFrameDelay = 1000ll / 25 * 4 - 3;
                 else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
-                    nFrameDelay = 1000 / 25 * 2 - 1;
+                    nFrameDelay = 1000ll / 25 * 2 - 2;
                 else if (Settings_GetRealSpeed() == 2)  // Speed 200%
-                    nFrameDelay = 1000 / 25 / 2 - 1;
-                if (nTimeElapsed > 0 && nTimeElapsed < nFrameDelay)
+                    nFrameDelay = 1000ll / 25 / 2 - 4;
+
+                for (;;)
                 {
-                    LONG nTimeToSleep = (LONG)(nFrameDelay - nTimeElapsed);
-                    ::Sleep((DWORD)nTimeToSleep);
+                    LARGE_INTEGER nFrameFinishTime;  // Frame start time
+                    ::QueryPerformanceCounter(&nFrameFinishTime);
+                    LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
+                        * 1000ll / nPerformanceFrequency.QuadPart;
+                    if (nTimeElapsed <= 0 || nTimeElapsed >= nFrameDelay)
+                        break;
+                    DWORD nDelayRemaining = (DWORD)(nFrameDelay - nTimeElapsed);
+                    if (nDelayRemaining == 1)
+                        ::Sleep(0);
+                    else
+                        ::Sleep(nDelayRemaining / 2);
                 }
             }
         }

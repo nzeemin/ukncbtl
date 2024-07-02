@@ -686,6 +686,9 @@ void ConsoleView_CmdSwitchCpuPpu(const ConsoleCommandParams& /*params*/)
     m_okCurrentProc = !m_okCurrentProc;
     DebugView_SetCurrentProc(m_okCurrentProc);   // Switch DebugView to current processor
     DisasmView_SetCurrentProc(m_okCurrentProc);   // Switch DisasmView to current processor
+
+    LPCTSTR procName = ConsoleView_GetCurrentProcessor()->GetName();
+    ConsoleView_PrintFormat(_T("  Switched to %s\r\n"), procName);
 }
 
 void ConsoleView_CmdPrintAllRegisters(const ConsoleCommandParams& /*params*/)
