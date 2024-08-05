@@ -133,37 +133,39 @@ int APIENTRY _tWinMain(
         if (g_okEmulatorRunning && !Settings_GetSound())
         {
             if (Settings_GetRealSpeed() == 0)
-                ::Sleep(1);  // We should not consume 100% of CPU
+                ::Sleep(0);  // We should not consume 100% of CPU
             else
             {
-                LONGLONG nFrameDelay = 1000ll / 25 - 8;  // 1000 millisec / 25 = 40 millisec
+                LONGLONG nFrameDelay = 1000ll / FRAMERATE - 6;  // 1000 millisec / 50 = 20 millisec
                 if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
-                    nFrameDelay = 1000ll / 25 * 4 - 3;
+                    nFrameDelay = 1000ll / FRAMERATE * 4 - 2;
                 else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
-                    nFrameDelay = 1000ll / 25 * 2 - 2;
+                    nFrameDelay = 1000ll / FRAMERATE * 2 - 3;
                 else if (Settings_GetRealSpeed() == 2)  // Speed 200%
-                    nFrameDelay = 1000ll / 25 / 2 - 4;
+                    nFrameDelay = 1000ll / FRAMERATE / 2 - 6;
 
                 for (;;)
                 {
                     LARGE_INTEGER nFrameFinishTime;  // Frame start time
                     ::QueryPerformanceCounter(&nFrameFinishTime);
                     LONGLONG nTimeElapsed = (nFrameFinishTime.QuadPart - nFrameStartTime.QuadPart)
-                        * 1000ll / nPerformanceFrequency.QuadPart;
+                            * 1000ll / nPerformanceFrequency.QuadPart;
                     if (nTimeElapsed <= 0 || nTimeElapsed >= nFrameDelay)
                         break;
-                    DWORD nDelayRemaining = (DWORD)(nFrameDelay - nTimeElapsed);
-                    if (nDelayRemaining == 1)
+                    LONGLONG nDelayRemaining = nFrameDelay - nTimeElapsed;
+                    if (nDelayRemaining <= 1)
                         ::Sleep(0);
                     else
-                        ::Sleep(nDelayRemaining / 2);
+                        ::Sleep((DWORD)(nDelayRemaining / 2));
                 }
             }
         }
 
-        //// Time bomb for perfomance analysis
-        //if (Emulator_GetUptime() >= 300)  // 5 minutes
-        //    ::PostQuitMessage(0);
+#if 0
+        // Time bomb for performance analysis
+        if (Emulator_GetUptime() >= 300)  // 5 minutes
+            ::PostQuitMessage(0);
+#endif
     }
 endprog:
 

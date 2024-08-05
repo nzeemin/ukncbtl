@@ -18,6 +18,8 @@ class CProcessor;
 class CMemoryController;
 class CSoundAY;
 
+#define FRAMERATE 50  // Количество фремов в секунду
+
 // Floppy debug constants
 #define FLOPPY_FSM_WAITFORLSB   0
 #define FLOPPY_FSM_WAITFORMSB   1

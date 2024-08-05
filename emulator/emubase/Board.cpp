@@ -688,19 +688,17 @@ void CMotherboard::DebugTicks()
 }
 
 /*
-Каждый фрейм равен 1/25 секунды = 40 мс = 20000 тиков, 1 тик = 2 мкс.
-
-* 20000 тиков системного таймера - на каждый 1-й тик
-* 2 сигнала EVNT, в 0-й и 10000-й тик фрейма
-* 320000 тиков ЦП - 16 раз за один тик
-* 250000 тиков ПП - 12.5 раз за один тик
-* Отрисовка 288 видимых строк, по 32 тика на строку (только в первой половине фрейма)
-** Первая невидимая строка (#0) начинает рисоваться на 96-ой тик
-** Первая видимая строка (#18) начинает рисоваться на 672-й тик
+Каждый фрейм равен 1/50 секунды = 20 мс = 10000 тиков, 1 тик = 2 мкс по времени машины.
+* 10000 тиков системного таймера - на каждый 2-й тик
+* 1 сигнал EVNT, в 0-й тик фрейма
+* 160000 тиков ЦП - 16 раз за один тик
+* 125000 тиков ПП - 12.5 раз за один тик
+* Отрисовка 312 строк
 * 625 тиков FDD - каждый 32-й тик
 * 48 тиков обмена с COM-портом - каждый 416 тик
 * 8?? тиков обмена с NET-портом - каждый 64 тик ???
 */
+#define FRAMETICKS 10000  // Количество тиков в одном фрейме
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
@@ -709,25 +707,25 @@ void CMotherboard::DebugTicks()
     { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
 bool CMotherboard::SystemFrame()
 {
-    int frameticks = 0;  // count 20000 ticks
+    int frameticks = 0;  // count 10000 ticks
 
     m_SoundChanges = 0;
-    int soundSamplesPerFrame = SAMPLERATE / 25, soundBrasErr = 0;
+    int soundSamplesPerFrame = SAMPLERATE / FRAMERATE, soundBrasErr = 0;
 
-    const int serialOutTicks = 20000 / (9600 / 25);
+    const int serialOutTicks = FRAMETICKS / (9600 / FRAMERATE);
     int serialTxCount = 0;
-    const int networkOutTicks = 7; //20000 / (57600 / 25);
+    const int networkOutTicks = 7; // FRAMETICKS / (57600 / FRAMERATE);
     int networkTxCount = 0;
 
     int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
     if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
-        tapeSamplesPerFrame = m_nTapeSampleRate / 25;
+        tapeSamplesPerFrame = m_nTapeSampleRate / FRAMERATE;
 
     do
     {
         TimerTick();  // System timer tick
 
-        if (frameticks % 10000 == 0)
+        if (frameticks == 0)
             Tick50();  // 1/50 timer event
 
         // CPU - 16 times, PPU - 12.5 times
@@ -746,7 +744,9 @@ bool CMotherboard::SystemFrame()
             /* 10 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
             /* 11 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
-                SYSTEMFRAME_EXECUTE_PPU;
+            {
+                SYSTEMFRAME_EXECUTE_PPU
+            }
         }
         else  // Have breakpoint, need to check
         {
@@ -763,7 +763,9 @@ bool CMotherboard::SystemFrame()
             /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
             /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
-                SYSTEMFRAME_EXECUTE_BP_PPU;
+            {
+                SYSTEMFRAME_EXECUTE_BP_PPU
+            }
         }
 
         if ((frameticks & 31) == 0)  // (frameticks % 32 == 0)
@@ -809,18 +811,18 @@ bool CMotherboard::SystemFrame()
             m_pHardDrives[1]->Periodic();
 
         soundBrasErr += soundSamplesPerFrame;
-        if (2 * soundBrasErr >= 20000)
+        if (2 * soundBrasErr >= FRAMETICKS)
         {
-            soundBrasErr -= 20000;
+            soundBrasErr -= FRAMETICKS;
             DoSound();
         }
 
         if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
         {
             tapeBrasErr += tapeSamplesPerFrame;
-            if (2 * tapeBrasErr >= 20000)
+            if (2 * tapeBrasErr >= FRAMETICKS)
             {
-                tapeBrasErr -= 20000;
+                tapeBrasErr -= FRAMETICKS;
 
                 if (m_TapeReadCallback != nullptr)  // Tape reading
                 {
@@ -944,7 +946,7 @@ bool CMotherboard::SystemFrame()
 
         frameticks++;
     }
-    while (frameticks < 20000);
+    while (frameticks < FRAMETICKS);
 
     return true;
 }

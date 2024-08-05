@@ -324,7 +324,7 @@ void MainWindow_RestoreSettings()
     }
 
     // Reattach cartridge and HDD images
-    for (int slot = 0; slot < 2; slot++)
+    for (int slot = 1; slot <= 2; slot++)
     {
         buf[0] = _T('\0');
         Settings_GetCartridgeFilePath(slot, buf);

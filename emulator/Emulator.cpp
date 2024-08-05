@@ -63,7 +63,7 @@ uint16_t g_wEmulatorPrevCpuPC = 0177777;  // Previous PC value
 uint16_t g_wEmulatorPpuPC = 0177777;      // Current PC value
 uint16_t g_wEmulatorPrevPpuPC = 0177777;  // Previous PC value
 
-// Digit keys scan codes uset for AutoBoot feature
+// Digit keys scan codes used for AutoBoot feature
 const BYTE m_arrDigitKeyScans[] =
 {
     0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177  // 0, 1, ... 9
@@ -710,7 +710,7 @@ bool Emulator_SystemFrame()
     if (nTicksElapsed >= 1000)
     {
         double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
-        double dSpeed = dFramesPerSecond / 25.0 * 100;
+        double dSpeed = dFramesPerSecond / FRAMERATE * 100;
         TCHAR buffer[16];
         _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%03.f%%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
@@ -722,9 +722,9 @@ bool Emulator_SystemFrame()
         m_dwTickCount = dwCurrentTicks;
     }
 
-    // Calculate emulator uptime (25 frames per second)
+    // Calculate emulator uptime
     m_nUptimeFrameCount++;
-    if (m_nUptimeFrameCount >= 25)
+    if (m_nUptimeFrameCount >= FRAMERATE)
     {
         m_dwEmulatorUptime++;
         m_nUptimeFrameCount = 0;
