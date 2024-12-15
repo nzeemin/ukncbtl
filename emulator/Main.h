@@ -202,6 +202,8 @@ void Settings_GetDebugFontName(LPTSTR buffer);
 void Settings_SetDebugFontName(LPCTSTR sFontName);
 BOOL Settings_GetDebugCpuPpu();
 void Settings_SetDebugCpuPpu(BOOL flag);
+WORD Settings_GetDebugBreakpoint(int bpno, BOOL okCpuPpu);
+void Settings_SetDebugBreakpoint(int bpno, BOOL okCpuPpu, WORD address);
 void Settings_SetDebugMemoryMode(WORD mode);
 WORD Settings_GetDebugMemoryMode();
 void Settings_SetDebugMemoryAddress(WORD address);

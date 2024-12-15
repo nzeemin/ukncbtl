@@ -347,6 +347,28 @@ void Settings_SetDebugFontName(LPCTSTR sFontName)
 
 SETTINGS_GETSET_DWORD(DebugCpuPpu, _T("DebugCpuPpu"), BOOL, FALSE);
 
+void Settings_SetDebugBreakpoint(int bpno, BOOL okCpuPpu, WORD address)
+{
+    TCHAR bufValueName[17];
+    lstrcpy(bufValueName, _T("DebugBreakptCpu0"));
+    bufValueName[12] = okCpuPpu ? _T('C') : _T('P');
+    bufValueName[15] = bpno < 10 ? _T('0') + (TCHAR)bpno : _T('A') + (TCHAR)(bpno - 10);
+    if (address == 0177777)
+        Settings_SaveStringValue(bufValueName, NULL);  // delete value
+    else
+        Settings_SaveDwordValue(bufValueName, address);
+}
+WORD Settings_GetDebugBreakpoint(int bpno, BOOL okCpuPpu)
+{
+    TCHAR bufValueName[17];
+    lstrcpy(bufValueName, _T("DebugBreakptCpu0"));
+    bufValueName[12] = okCpuPpu ? _T('C') : _T('P');
+    bufValueName[15] = bpno < 10 ? _T('0') + (TCHAR)bpno : _T('A') + (TCHAR)(bpno - 10);
+    DWORD dwValue = 0xFFFFFFFF;
+    Settings_LoadDwordValue(bufValueName, &dwValue);
+    return (WORD)dwValue;
+}
+
 SETTINGS_GETSET_DWORD(DebugMemoryMode, _T("DebugMemoryMode"), WORD, 3);
 SETTINGS_GETSET_DWORD(DebugMemoryAddress, _T("DebugMemoryAddress"), WORD, 0);
 SETTINGS_GETSET_DWORD(DebugMemoryBase, _T("DebugMemoryBase"), WORD, 0);
