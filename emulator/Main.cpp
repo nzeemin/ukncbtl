@@ -14,6 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <crtdbg.h>
 #include <CommCtrl.h>
 #include <shellapi.h>
+#include <timeapi.h>
 
 #include "Main.h"
 #include "Emulator.h"
@@ -94,6 +95,10 @@ int APIENTRY _tWinMain(
     LARGE_INTEGER nPerformanceFrequency;
     ::QueryPerformanceFrequency(&nPerformanceFrequency);
 
+    TIMECAPS caps;
+    VERIFY(!::timeGetDevCaps(&caps, sizeof(caps)));
+    VERIFY(!::timeBeginPeriod(caps.wPeriodMin));
+
     // Main message loop
     MSG msg;
     for (;;)
@@ -133,16 +138,18 @@ int APIENTRY _tWinMain(
         if (g_okEmulatorRunning && !Settings_GetSound())
         {
             if (Settings_GetRealSpeed() == 0)
-                ::Sleep(0);  // We should not consume 100% of CPU
+                ;  // Consume 100% of one CPU core
             else
             {
-                LONGLONG nFrameDelay = 1000ll / FRAMERATE - 6;  // 1000 millisec / 50 = 20 millisec
+                LONGLONG nFrameDelay = 1000ll / FRAMERATE;  // 1000 millisec / 50 = 20 millisec
                 if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
-                    nFrameDelay = 1000ll / FRAMERATE * 4 - 2;
+                    nFrameDelay = 1000ll / FRAMERATE * 4;
                 else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
-                    nFrameDelay = 1000ll / FRAMERATE * 2 - 3;
+                    nFrameDelay = 1000ll / FRAMERATE * 2;
                 else if (Settings_GetRealSpeed() == 2)  // Speed 200%
-                    nFrameDelay = 1000ll / FRAMERATE / 2 - 6;
+                    nFrameDelay = 1000ll / FRAMERATE / 2;
+                else if (Settings_GetRealSpeed() == 3)  // Speed 400%
+                    nFrameDelay = 1000ll / FRAMERATE / 4;
 
                 for (;;)
                 {
@@ -169,6 +176,7 @@ int APIENTRY _tWinMain(
     }
 endprog:
 
+    ::timeEndPeriod(caps.wPeriodMin);
     DoneInstance();
 
 #ifdef _DEBUG
