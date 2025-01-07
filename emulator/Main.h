@@ -38,6 +38,7 @@ void MainWindow_UpdateMenu();
 void MainWindow_UpdateWindowTitle();
 void MainWindow_UpdateRenderModeMenu();
 void MainWindow_UpdateAllViews();
+void MainWindow_UpdateDebugViews();
 BOOL MainWindow_InitToolbar();
 BOOL MainWindow_InitStatusbar();
 void MainWindow_ShowHideDebug();

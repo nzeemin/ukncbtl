@@ -877,12 +877,12 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                 *pOffset = address;
                 return ADDRTYPE_RAM0;
             }
-            else if ((m_Port177054 & 1) != 0)  // ROM selected
+            if ((m_Port177054 & 1) != 0)  // ROM selected
             {
                 *pOffset = address - 0100000;
                 return ADDRTYPE_ROM;
             }
-            else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
+            if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
             {
                 int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
                 if (m_pBoard->IsHardImageAttached(slot) && address >= 0110000)
@@ -890,12 +890,13 @@ int CSecondMemoryController::TranslateAddress(uint16_t address, bool /*okHaltMod
                     *pOffset = address;
                     return ADDRTYPE_IO;  // 110000-117777 - HDD ports
                 }
-                else
+                if (m_pBoard->IsROMCartridgeLoaded(slot))
                 {
                     int bank = (m_Port177054 & 6) >> 1;
-                    *pOffset = address - 0100000 + (((uint16_t)bank - 1) << 13);
+                    *pOffset = address - 0100000 + (uint16_t)((bank - 1) << 13);
                     return (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
                 }
+                return ADDRTYPE_DENY;
             }
             return ADDRTYPE_NONE;
         }

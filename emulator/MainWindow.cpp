@@ -1542,6 +1542,7 @@ void MainWindow_DoEmulatorFloppy(int slot)
         Settings_SetFloppyFilePath(slot, bufFileName);
     }
     MainWindow_UpdateMenu();
+    MainWindow_UpdateDebugViews();
 }
 
 void MainWindow_DoEmulatorCartridge(int slot)
@@ -1571,6 +1572,7 @@ void MainWindow_DoEmulatorCartridge(int slot)
         Settings_SetCartridgeFilePath(slot, bufFileName);
     }
     MainWindow_UpdateMenu();
+    MainWindow_UpdateDebugViews();
 }
 
 void MainWindow_DoEmulatorHardDrive(int slot)
@@ -1609,6 +1611,7 @@ void MainWindow_DoEmulatorHardDrive(int slot)
         Settings_SetHardFilePath(slot, bufFileName);
     }
     MainWindow_UpdateMenu();
+    MainWindow_UpdateDebugViews();
 }
 
 void MainWindow_OnToolbarGetInfoTip(LPNMTBGETINFOTIP lpnm)
@@ -1724,6 +1727,11 @@ void MainWindow_UpdateAllViews()
     InvalidateRect(g_hwndScreen, NULL, TRUE);
 
     // Update debug windows
+    MainWindow_UpdateDebugViews();
+}
+
+void MainWindow_UpdateDebugViews()
+{
     if (g_hwndDebug != NULL)
         InvalidateRect(g_hwndDebug, NULL, TRUE);
     if (g_hwndDisasm != NULL)
