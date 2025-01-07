@@ -137,19 +137,23 @@ int APIENTRY _tWinMain(
 
         if (g_okEmulatorRunning && !Settings_GetSound())
         {
-            if (Settings_GetRealSpeed() == 0)
-                ;  // Consume 100% of one CPU core
+            WORD speed = Settings_GetRealSpeed();
+            if (speed == 0)
+                ;  // Speed MAX, consume 100% of one CPU core
             else
             {
-                LONGLONG nFrameDelay = 1000ll / FRAMERATE;  // 1000 millisec / 50 = 20 millisec
-                if (Settings_GetRealSpeed() == 0x7ffe)  // Speed 25%
-                    nFrameDelay = 1000ll / FRAMERATE * 4;
-                else if (Settings_GetRealSpeed() == 0x7fff)  // Speed 50%
-                    nFrameDelay = 1000ll / FRAMERATE * 2;
-                else if (Settings_GetRealSpeed() == 2)  // Speed 200%
-                    nFrameDelay = 1000ll / FRAMERATE / 2;
-                else if (Settings_GetRealSpeed() == 3)  // Speed 400%
-                    nFrameDelay = 1000ll / FRAMERATE / 4;
+                LONGLONG nFrameDelay;
+                switch (speed)
+                {
+                case 0x7ffd: nFrameDelay = 1000ll / FRAMERATE * 10; break;  // Speed 10%
+                case 0x7ffe: nFrameDelay = 1000ll / FRAMERATE * 4;  break;  // Speed 25%
+                case 0x7fff: nFrameDelay = 1000ll / FRAMERATE * 2;  break;  // Speed 50%
+                case 2:      nFrameDelay = 1000ll / FRAMERATE / 2;  break;  // Speed 200%
+                case 3:      nFrameDelay = 1000ll / FRAMERATE / 4;  break;  // Speed 400%
+                default:  // Speed 100%
+                    nFrameDelay = 1000ll / FRAMERATE;  // 1000 millisec / 50 = 20 millisec
+                    break;
+                }
 
                 for (;;)
                 {
@@ -160,10 +164,7 @@ int APIENTRY _tWinMain(
                     if (nTimeElapsed <= 0 || nTimeElapsed >= nFrameDelay)
                         break;
                     LONGLONG nDelayRemaining = nFrameDelay - nTimeElapsed;
-                    if (nDelayRemaining <= 1)
-                        ::Sleep(0);
-                    else
-                        ::Sleep((DWORD)(nDelayRemaining / 2));
+                    ::Sleep((nDelayRemaining <= 2) ? 0 : (DWORD)(nDelayRemaining / 2));
                 }
             }
         }

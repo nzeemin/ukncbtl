@@ -899,6 +899,7 @@ void MainWindow_UpdateMenu()
     UINT speedcmd = 0;
     switch (Settings_GetRealSpeed())
     {
+    case 0x7ffd: speedcmd = ID_EMULATOR_SPEED10;   break;
     case 0x7ffe: speedcmd = ID_EMULATOR_SPEED25;   break;
     case 0x7fff: speedcmd = ID_EMULATOR_SPEED50;   break;
     case 0:      speedcmd = ID_EMULATOR_SPEEDMAX;  break;
@@ -906,7 +907,7 @@ void MainWindow_UpdateMenu()
     case 2:      speedcmd = ID_EMULATOR_SPEED200;  break;
     case 3:      speedcmd = ID_EMULATOR_SPEED400;  break;
     }
-    CheckMenuRadioItem(hMenu, ID_EMULATOR_SPEED25, ID_EMULATOR_SPEED400, speedcmd, MF_BYCOMMAND);
+    CheckMenuRadioItem(hMenu, ID_EMULATOR_SPEED10, ID_EMULATOR_SPEED400, speedcmd, MF_BYCOMMAND);
     // Emulator|FloppyX
     CheckMenuItem(hMenu, ID_EMULATOR_FLOPPY0, (g_pBoard->IsFloppyImageAttached(0) ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hMenu, ID_EMULATOR_FLOPPY1, (g_pBoard->IsFloppyImageAttached(1) ? MF_CHECKED : MF_UNCHECKED));
@@ -1060,6 +1061,9 @@ bool MainWindow_DoCommand(int commandId)
         break;
     case ID_EMULATOR_MOUSE:
         MainWindow_DoEmulatorMouse();
+        break;
+    case ID_EMULATOR_SPEED10:
+        MainWindow_DoEmulatorSpeed(0x7ffd);
         break;
     case ID_EMULATOR_SPEED25:
         MainWindow_DoEmulatorSpeed(0x7ffe);

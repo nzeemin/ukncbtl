@@ -74,10 +74,11 @@
 #define ID_VIEW_GRBSCREEN               32790
 #define ID_VIEW_GRAYSCREEN              32791
 #define ID_VIEW_FULLSCREEN              32792
-#define ID_EMULATOR                     32794
-#define ID_EMULATOR_RUN                 32795
-#define ID_EMULATOR_RESET               32796
-#define ID_EMULATOR_AUTOSTART           32797
+#define ID_EMULATOR                     32793
+#define ID_EMULATOR_RUN                 32794
+#define ID_EMULATOR_RESET               32795
+#define ID_EMULATOR_AUTOSTART           32796
+#define ID_EMULATOR_SPEED10             32797
 #define ID_EMULATOR_SPEED25             32798
 #define ID_EMULATOR_SPEED50             32799
 #define ID_EMULATOR_SPEEDMAX            32800

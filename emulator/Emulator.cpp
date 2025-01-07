@@ -439,6 +439,7 @@ void Emulator_SetSpeed(uint16_t realspeed)
     case 3: speedpercent = 400; break;
     case 0x7fff: speedpercent = 50; break;
     case 0x7ffe: speedpercent = 25; break;
+    case 0x7ffd: speedpercent = 10; break;
     default: speedpercent = 100; break;
     }
     m_wEmulatorSoundSpeed = speedpercent;
