@@ -7,6 +7,8 @@ UKNCBTL — UKNC Back to Life! emulator, Win32 version.
 
 ![GitHub all releases](https://img.shields.io/github/downloads/nzeemin/ukncbtl/total)
 
+![](https://github.com/nzeemin/ukncbtl/blob/master/docs/ukncbtl-keyboard.png)
+
 ### На русском / In Russian
 UKNCBTL — UKNC Back to Life! — это эмулятор компьютера Электроника МС-0511 (УКНЦ).
 УКНЦ это советский домашний/учебный компьютер, построенный на двух процессорах КМ1801ВМ2, совместимых по системе команд с Электроника-60, ДВК и др.
@@ -17,7 +19,7 @@ UKNCBTL — UKNC Back to Life! — это эмулятор компьютера 
  * Центральный и периферийный процессоры
  * Оба контроллера памяти
  * Видеоконтроллер
- * Контроллер гибких дисков (стандарт MZ)
+ * Контроллер гибких дисков (стандарт MZ, 400/800 КБ на диск)
  * Картриджи ПЗУ (24 КБ на картридж)
  * Звук
  * Контроллер жёсткого диска IDE (два варианта)
@@ -30,6 +32,8 @@ UKNCBTL — UKNC Back to Life! — это эмулятор компьютера 
 Огромное спасибо всем тем, кто внёс свой вклад в создание и развитие эмулятора, особенно:
  * Феликс Лазарев — проделал огромную работу на начальном этапе развития эмулятора
  * Алексей Кислый (Alex_K) — оказал неоценимую помощь во всех вопросах, касающихся деталей работы УКНЦ
+
+-----
 
 ### In English
 *UKNCBTL* is cross-platform UKNC emulator for Windows/Linux/Mac OS X.
@@ -52,6 +56,7 @@ Emulated:
 NOT emulated yet: network card, RAM disks, joysticks.
 
 -----
+
 The UKNCBTL project consists of:
 * [ukncbtl](https://github.com/nzeemin/ukncbtl/) written for Win32 and works under Windows 2000/2003/2008/XP/Vista/7/8/10.
 * [ukncbtl-renders](https://github.com/nzeemin/ukncbtl-renders/) — renderers for UKNCBTL Win32.
