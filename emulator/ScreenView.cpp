@@ -660,14 +660,14 @@ void ScreenView_UpdateMouse()
 
     RECT rcScreen = { m_xScreenOffset, m_yScreenOffset, m_xScreenOffset + m_cxScreenWidth, m_yScreenOffset + m_cyScreenHeight };
     ::MapWindowPoints(g_hwndScreen, NULL, (LPPOINT)&rcScreen, 2);
-    if (mousepos.x < rcScreen.left)
-        dx -= rcScreen.left - mousepos.x;
-    if (mousepos.x > rcScreen.right)
-        dx += mousepos.x - rcScreen.right;
-    if (mousepos.y < rcScreen.top)
-        dy -= rcScreen.top - mousepos.y;
-    if (mousepos.y > rcScreen.bottom)
-        dy += mousepos.y - rcScreen.bottom;
+    if (dx != 0 && mousepos.x < rcScreen.left)
+        dx -= (rcScreen.left - mousepos.x) / 2;
+    if (dx != 0 && mousepos.x > rcScreen.right)
+        dx += (mousepos.x - rcScreen.right) / 2;
+    if (dy != 0 && mousepos.y < rcScreen.top)
+        dy -= (rcScreen.top - mousepos.y) / 2;
+    if (dy != 0 && mousepos.y > rcScreen.bottom)
+        dy += (mousepos.y - rcScreen.bottom) / 2;
 
     if (m_cxScreenWidth != UKNC_SCREEN_WIDTH)
         dx = dx * UKNC_SCREEN_WIDTH / m_cxScreenWidth;
