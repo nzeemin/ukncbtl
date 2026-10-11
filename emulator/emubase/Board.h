@@ -109,6 +109,14 @@ typedef bool (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
 // Terminal out callback -- CPU sends character by channel 0
 typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
 
+// Instruction execution callback -- called by CPU/PPU just before an instruction is executed,
+// memory and registers are still in pre-execution state
+// Input:
+//   pProc      Processor executing the instruction (CPU or PPU), see CProcessor::GetName()
+//   address    Address of the instruction, PC value before the fetch
+//   opcode     First word of the instruction as fetched
+typedef void (CALLBACK* INSTRUCTIONCALLBACK)(const CProcessor* pProc, uint16_t address, uint16_t opcode);
+
 class CFloppyController;
 class CHardDrive;
 
@@ -287,6 +295,8 @@ public:  // System control
     void        SetNetworkCallbacks(NETWORKINCALLBACK incallback, NETWORKOUTCALLBACK outcallback);
     /// \brief Assign terminal callback functions.
     void        SetTerminalCallback(TERMINALOUTCALLBACK callback) { m_TerminalOutCallback = callback; }
+    /// \brief Assign callback for CPU/PPU instruction execution, nullptr to remove
+    void        SetInstructionCallback(INSTRUCTIONCALLBACK callback);
 public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);

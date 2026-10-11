@@ -85,7 +85,7 @@ protected:  // Interrupt processing
     uint8_t     m_VIRQreset;        ///< VIRQ request reset for given device
 protected:
     CMemoryController* m_pMemoryController;
-    bool m_okTrace;                 ///< Trace mode on/off
+    INSTRUCTIONCALLBACK m_pInstructionCallback;  ///< Called before each instruction execution, nullptr = off
 
 public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
@@ -139,7 +139,8 @@ public:  // Processor control
     void        CommandExecution();
     int         GetInternalTick() const { return m_internalTick; }
     void        ClearInternalTick() { m_internalTick = 0; }
-    void        SetTrace(bool okTrace) { m_okTrace = okTrace; }  ///< Set trace mode on/off
+    /// \brief Assign callback for instruction execution, nullptr to remove
+    void        SetInstructionCallback(INSTRUCTIONCALLBACK callback) { m_pInstructionCallback = callback; }
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(uint8_t* pImage) const;

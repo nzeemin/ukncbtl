@@ -275,12 +275,14 @@ CMotherboard::~CMotherboard ()
 void CMotherboard::SetTrace(uint32_t dwTrace)
 {
     m_dwTrace = dwTrace;
-    if (m_pPPU != nullptr)
-        m_pPPU->SetTrace((dwTrace & TRACE_PPU) != 0);
-    if (m_pCPU != nullptr)
-        m_pCPU->SetTrace((dwTrace & TRACE_CPU) != 0);
     if (m_pFloppyCtl != nullptr)
         m_pFloppyCtl->SetTrace((dwTrace & TRACE_FLOPPY) != 0);
+}
+
+void CMotherboard::SetInstructionCallback(INSTRUCTIONCALLBACK callback)
+{
+    m_pCPU->SetInstructionCallback(callback);
+    m_pPPU->SetInstructionCallback(callback);
 }
 
 void CMotherboard::Reset ()

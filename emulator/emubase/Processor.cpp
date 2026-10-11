@@ -267,7 +267,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_okStopped = true;
     m_internalTick = 0;
     m_pMemoryController = nullptr;
-    m_okTrace = false;
+    m_pInstructionCallback = nullptr;
     m_waitmode = false;
     m_stepmode = false;
     m_buserror = false;
@@ -539,33 +539,6 @@ void CProcessor::MemoryError()
 
 //////////////////////////////////////////////////////////////////////
 
-#if defined(PRODUCT)
-static void TraceInstruction(CProcessor* /*pProc*/, uint16_t /*address*/) {}
-#else
-static void TraceInstruction(CProcessor* pProc, uint16_t address)
-{
-    CMemoryController* pMemCtl = pProc->GetMemoryController();
-    bool okHaltMode = pProc->IsHaltMode();
-    uint16_t memory[4];
-    int addrtype = 0;
-    memory[0] = pMemCtl->GetWordView(address + 0 * 2, okHaltMode, true, &addrtype);
-    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
-    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
-    memory[3] = pMemCtl->GetWordView(address + 3 * 2, okHaltMode, true, &addrtype);
-
-    TCHAR bufaddr[7];
-    PrintOctalValue(bufaddr, address);
-
-    TCHAR instr[8];
-    TCHAR args[32];
-    DisassembleInstruction(memory, address, instr, args);
-    TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
-
-    DebugLog(buffer);
-}
-#endif
-
 void CProcessor::FetchInstruction()
 {
     // Считываем очередную инструкцию
@@ -578,8 +551,8 @@ void CProcessor::FetchInstruction()
 
 void CProcessor::TranslateInstruction()
 {
-    if (m_okTrace)
-        TraceInstruction(this, m_instructionpc);
+    if (m_pInstructionCallback != nullptr)
+        m_pInstructionCallback(this, m_instructionpc, m_instruction);
 
     // Prepare values to help decode the command
     m_regdest  = GetDigit(m_instruction, 0);

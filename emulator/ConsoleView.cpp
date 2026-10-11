@@ -534,7 +534,7 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
 #if !defined(PRODUCT)
 void ConsoleView_TraceLog(DWORD value)
 {
-    g_pBoard->SetTrace(value);
+    Emulator_SetTrace(value);
     if (value != TRACE_NONE)
         ConsoleView_PrintFormat(_T("  Trace ON, trace flags %06o\r\n"), (uint16_t)g_pBoard->GetTrace());
     else

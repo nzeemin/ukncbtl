@@ -69,6 +69,11 @@ void Emulator_PrepareScreenToText(void* pBits, const uint32_t* colors);
 
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 
+#if !defined(PRODUCT)
+// Set trace flags (TRACE_xxx) and install/remove the instruction callback accordingly
+void Emulator_SetTrace(uint32_t dwTrace);
+#endif
+
 // Update cached values after Run or Step
 void Emulator_OnUpdate();
 uint16_t Emulator_GetChangeRamStatus(int addrtype, uint16_t address);

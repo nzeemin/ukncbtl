@@ -483,6 +483,45 @@ void Emulator_SetMouse(bool mouseOnOff)
     g_pBoard->SetMouse(mouseOnOff);
 }
 
+#if !defined(PRODUCT)
+
+void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t address, uint16_t opcode)
+{
+    uint32_t dwTrace = g_pBoard->GetTrace();
+    uint32_t dwMask = (pProc == g_pBoard->GetCPU()) ? TRACE_CPU : TRACE_PPU;
+    if ((dwTrace & dwMask) == 0)
+        return;
+
+    const CMemoryController* pMemCtl = pProc->GetMemoryControllerConst();
+    bool okHaltMode = pProc->IsHaltMode();
+    uint16_t memory[3];
+    int addrtype = 0;
+    memory[0] = opcode;
+    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
+    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
+
+    TCHAR bufaddr[7];
+    PrintOctalValue(bufaddr, address);
+
+    TCHAR instr[8];
+    TCHAR args[32];
+    DisassembleInstruction(memory, address, instr, args);
+    TCHAR buffer[64];
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
+
+    DebugLog(buffer);
+}
+
+void Emulator_SetTrace(uint32_t dwTrace)
+{
+    g_pBoard->SetTrace(dwTrace);
+
+    bool okInstructionTrace = (dwTrace & (TRACE_CPU | TRACE_PPU)) != 0;
+    g_pBoard->SetInstructionCallback(okInstructionTrace ? Emulator_Instruction_Callback : nullptr);
+}
+
+#endif // !PRODUCT
+
 bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 {
     DWORD dwBytesRead;
