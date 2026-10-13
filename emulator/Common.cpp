@@ -130,7 +130,7 @@ void DebugLogClear()
 
     if (Common_LogFile != NULL)
     {
-        // Trunkate to zero length
+        // Truncate to zero length
         ::SetFilePointer(Common_LogFile, 0, 0, 0);
         ::SetEndOfFile(Common_LogFile);
     }

@@ -144,6 +144,7 @@
 #define ID_DEBUG_GOTO_ADDRESS           32902
 #define ID_DEBUG_COPY_VALUE_HEX         32903
 #define ID_VIEW_DISPLAY_LIST            32905
+#define ID_DEBUG_INSTRHISTORY           32906
 #define ID_HELP_COMMAND_LINE_HELP       32921
 #define IDC_STATIC                      -1
 

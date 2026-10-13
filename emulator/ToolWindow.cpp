@@ -203,6 +203,9 @@ void SplitterWindow_MoveWindows(HWND hwndSplitter, int deltaY)
     SetWindowPos(hwndTop, NULL, rcTop.left, rcTop.top, rcTop.right - rcTop.left, rcTop.bottom - rcTop.top + deltaY, SWP_NOZORDER);
     SetWindowPos(hwndBottom, NULL, rcBottom.left, rcBottom.top + deltaY, rcBottom.right - rcBottom.left, rcBottom.bottom - rcBottom.top - deltaY, SWP_NOZORDER);
     SetWindowPos(hwndSplitter, NULL, rcBottom.left, rcBottom.top + deltaY - 4, rcBottom.right - rcBottom.left, 4, SWP_NOZORDER);
+
+    // Let the main window re-layout the views that follow the top window height, like Instr History
+    MainWindow_AdjustWindowLayout();
 }
 
 LRESULT CALLBACK SplitterWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)

@@ -41,6 +41,7 @@
     <ClCompile Include="DebugView.cpp" />
     <ClCompile Include="Dialogs.cpp" />
     <ClCompile Include="DisasmView.cpp" />
+    <ClCompile Include="InstrHistoryView.cpp" />
     <ClCompile Include="Emulator.cpp" />
     <ClCompile Include="KeyboardView.cpp" />
     <ClCompile Include="MainWindow.cpp" />

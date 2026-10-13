@@ -26,6 +26,7 @@ const LPCTSTR CLASSNAME_DEBUGPORTSVIEW  = CLASSNAMEPREFIX _T("DEBUGPOTRS");
 const LPCTSTR CLASSNAME_DEBUGBREAKSVIEW = CLASSNAMEPREFIX _T("DEBUGBREAKS");
 const LPCTSTR CLASSNAME_DEBUGMEMORYVIEW = CLASSNAMEPREFIX _T("DEBUGMEMORY");
 const LPCTSTR CLASSNAME_DISASMVIEW      = CLASSNAMEPREFIX _T("DISASM");
+const LPCTSTR CLASSNAME_INSTRHISTORYVIEW = CLASSNAMEPREFIX _T("INSTRHISTORY");
 const LPCTSTR CLASSNAME_MEMORYVIEW      = CLASSNAMEPREFIX _T("MEMORY");
 const LPCTSTR CLASSNAME_MEMORYMAPVIEW   = CLASSNAMEPREFIX _T("MEMORYMAP");
 const LPCTSTR CLASSNAME_SPRITEVIEW      = CLASSNAMEPREFIX _T("SPRITE");
@@ -122,7 +123,22 @@ LRESULT CALLBACK DisasmViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK DisasmViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
 void DisasmView_OnUpdate();
 void DisasmView_SetCurrentProc(BOOL okCPU);
+int  DisasmView_GetWidth();  // Fixed width of the view, in pixels
 void DisasmView_LoadUnloadSubtitles();
+
+
+//////////////////////////////////////////////////////////////////////
+// InstrHistoryView
+
+extern HWND g_hwndInstrHistory;  // Instr History View window handle
+
+void InstrHistoryView_RegisterClass();
+void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int height);
+void InstrHistoryView_Redraw();
+LRESULT CALLBACK InstrHistoryViewWndProc(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK InstrHistoryViewViewerWndProc(HWND, UINT, WPARAM, LPARAM);
+void InstrHistoryView_SetCurrentProc(BOOL okCPU);
+void InstrHistoryView_OnUpdate();  // Take the snapshot of the history ring of the current processor
 
 
 //////////////////////////////////////////////////////////////////////

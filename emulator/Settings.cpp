@@ -390,6 +390,8 @@ SETTINGS_GETSET_DWORD(Keyboard, _T("Keyboard"), BOOL, TRUE);
 
 SETTINGS_GETSET_DWORD(Tape, _T("Tape"), BOOL, FALSE);
 
+SETTINGS_GETSET_DWORD(InstrHistory, _T("InstrHistory"), BOOL, FALSE);
+
 SETTINGS_GETSET_DWORD(Serial, _T("Serial"), BOOL, FALSE);
 
 SETTINGS_GETSET_DWORD(Parallel, _T("Parallel"), BOOL, FALSE);

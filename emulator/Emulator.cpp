@@ -116,6 +116,8 @@ bool Emulator_LoadUkncRom()
     return true;
 }
 
+void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t address, uint16_t opcode);
+
 bool Emulator_Init()
 {
     ASSERT(g_pBoard == nullptr);
@@ -145,7 +147,10 @@ bool Emulator_Init()
 
     g_pBoard->SetNetStation((uint16_t)Settings_GetNetStation());
 
+    g_pBoard->SetInstructionCallback(Emulator_Instruction_Callback);
+
     g_pBoard->Reset();
+    Emulator_ClearHistory();
 
     if (m_okEmulatorSound)
     {
@@ -179,6 +184,7 @@ void Emulator_Done()
 
     CProcessor::Done();
 
+    g_pBoard->SetInstructionCallback(nullptr);
     g_pBoard->SetSoundGenCallback(nullptr);
     SoundGen_Finalize();
 
@@ -252,6 +258,8 @@ void Emulator_Reset()
     ASSERT(g_pBoard != nullptr);
 
     g_pBoard->Reset();
+
+    Emulator_ClearHistory();
 
     m_nUptimeFrameCount = 0;
     m_dwEmulatorUptime = 0;
@@ -483,15 +491,36 @@ void Emulator_SetMouse(bool mouseOnOff)
     g_pBoard->SetMouse(mouseOnOff);
 }
 
-#if !defined(PRODUCT)
+// Instruction history: ring buffers for CPU and PPU, filled by Emulator_Instruction_Callback
+static InstructionRecord m_InstrHistory[2][INSTR_HISTORY_SIZE];  // [0] = PPU, [1] = CPU
+static int m_InstrHistoryHead[2] = { 0, 0 };    // Index of the next record to write
+static int m_InstrHistoryLength[2] = { 0, 0 };  // Number of valid records
 
+int Emulator_GetHistoryLength(bool okCpuPpu)
+{
+    return m_InstrHistoryLength[okCpuPpu ? 1 : 0];
+}
+
+// Index 0 is the most recent instruction
+const InstructionRecord& Emulator_GetHistoryRecord(bool okCpuPpu, int index)
+{
+    int ring = okCpuPpu ? 1 : 0;
+    ASSERT(index >= 0 && index < m_InstrHistoryLength[ring]);
+    return m_InstrHistory[ring][(m_InstrHistoryHead[ring] - 1 - index) & (INSTR_HISTORY_SIZE - 1)];
+}
+
+void Emulator_ClearHistory()
+{
+    m_InstrHistoryHead[0] = m_InstrHistoryHead[1] = 0;
+    m_InstrHistoryLength[0] = m_InstrHistoryLength[1] = 0;
+}
+
+// Called by CPU/PPU before each instruction is executed; installed always, records history and writes trace
 void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t address, uint16_t opcode)
 {
-    uint32_t dwTrace = g_pBoard->GetTrace();
-    uint32_t dwMask = (pProc == g_pBoard->GetCPU()) ? TRACE_CPU : TRACE_PPU;
-    if ((dwTrace & dwMask) == 0)
-        return;
+    bool okCpu = (pProc == g_pBoard->GetCPU());
 
+    // Instruction is at most 3 words long
     const CMemoryController* pMemCtl = pProc->GetMemoryControllerConst();
     bool okHaltMode = pProc->IsHaltMode();
     uint16_t memory[3];
@@ -499,6 +528,24 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     memory[0] = opcode;
     memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
     memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
+
+    // Put the instruction into the history ring
+    int ring = okCpu ? 1 : 0;
+    InstructionRecord& record = m_InstrHistory[ring][m_InstrHistoryHead[ring]];
+    record.pc = address;
+    record.words[0] = memory[0];
+    record.words[1] = memory[1];
+    record.words[2] = memory[2];
+    record.psw = pProc->GetPSW();
+    m_InstrHistoryHead[ring] = (m_InstrHistoryHead[ring] + 1) & (INSTR_HISTORY_SIZE - 1);
+    if (m_InstrHistoryLength[ring] < INSTR_HISTORY_SIZE)
+        m_InstrHistoryLength[ring]++;
+
+#if !defined(PRODUCT)
+    uint32_t dwTrace = g_pBoard->GetTrace();
+    uint32_t dwMask = okCpu ? TRACE_CPU : TRACE_PPU;
+    if ((dwTrace & dwMask) == 0)
+        return;
 
     TCHAR bufaddr[7];
     PrintOctalValue(bufaddr, address);
@@ -510,14 +557,14 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
 
     DebugLog(buffer);
+#endif // !PRODUCT
 }
+
+#if !defined(PRODUCT)
 
 void Emulator_SetTrace(uint32_t dwTrace)
 {
     g_pBoard->SetTrace(dwTrace);
-
-    bool okInstructionTrace = (dwTrace & (TRACE_CPU | TRACE_PPU)) != 0;
-    g_pBoard->SetInstructionCallback(okInstructionTrace ? Emulator_Instruction_Callback : nullptr);
 }
 
 #endif // !PRODUCT
@@ -1227,6 +1274,7 @@ bool Emulator_LoadImage(LPCTSTR sFilePath)
     // Restore emulator state from the image
     g_pBoard->Reset();
     g_pBoard->LoadFromImage(pImage);
+    Emulator_ClearHistory();
 
     m_dwEmulatorUptime = *(uint32_t*)(pImage + 16);
 

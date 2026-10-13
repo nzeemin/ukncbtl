@@ -82,6 +82,8 @@ BOOL  m_okDisasmJumpPredict;
 TCHAR m_strDisasmHint[42] = { 0 };
 TCHAR m_strDisasmHint2[42] = { 0 };
 
+const int DISASMVIEW_WIDTH_CHARS = 80;  // Fixed width of the view, in characters
+
 int m_cxDisasmBreakpointZone = 16;  // Width of breakpoint zone at the left, for mouse click
 int m_cyDisasmLine = 10;  // cyLine for the current font
 
@@ -556,6 +558,21 @@ void DisasmView_SetCurrentProc(BOOL okCPU)
     InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
     DisasmView_UpdateWindowText();
     DisasmView_OnUpdate();  // We have to re-build the list of lines to show
+    InstrHistoryView_SetCurrentProc(okCPU);  // Instr History follows the current processor
+}
+
+// Width of the view is fixed, DISASMVIEW_WIDTH_CHARS characters of the debug font
+int DisasmView_GetWidth()
+{
+    HDC hdc = GetDC(g_hwnd);
+    HFONT hFont = CreateMonospacedFont();
+    HGDIOBJ hOldFont = SelectObject(hdc, hFont);
+    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    SelectObject(hdc, hOldFont);
+    VERIFY(::DeleteObject(hFont));
+    ReleaseDC(g_hwnd, hdc);
+
+    return cxChar * DISASMVIEW_WIDTH_CHARS + 8;  // 8 is for the border and the margin
 }
 
 // Update after Run or Step
