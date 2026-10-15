@@ -86,6 +86,7 @@ protected:  // Interrupt processing
 protected:
     CMemoryController* m_pMemoryController;
     INSTRUCTIONCALLBACK m_pInstructionCallback;  ///< Called before each instruction execution, nullptr = off
+    INTERRUPTCALLBACK m_pInterruptCallback;      ///< Called when an interrupt is taken, nullptr = off
 
 public:
     CMemoryController* GetMemoryController() { return m_pMemoryController; }
@@ -141,6 +142,8 @@ public:  // Processor control
     void        ClearInternalTick() { m_internalTick = 0; }
     /// \brief Assign callback for instruction execution, nullptr to remove
     void        SetInstructionCallback(INSTRUCTIONCALLBACK callback) { m_pInstructionCallback = callback; }
+    /// \brief Assign callback for interrupts, nullptr to remove
+    void        SetInterruptCallback(INTERRUPTCALLBACK callback) { m_pInterruptCallback = callback; }
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
     void        SaveToImage(uint8_t* pImage) const;

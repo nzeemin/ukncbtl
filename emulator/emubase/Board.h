@@ -31,6 +31,8 @@ class CSoundAY;
 #define TRACE_FLOPPY    0100  // Trace floppies
 #define TRACE_PPU       0200  // Trace PPU instructions
 #define TRACE_CPU       0400  // Trace CPU instructions
+#define TRACE_PPUINT   01000  // Trace PPU interrupts
+#define TRACE_CPUINT   02000  // Trace CPU interrupts
 #define TRACE_ALL    0177777  // Trace all
 
 // Emulator image constants
@@ -116,6 +118,15 @@ typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
 //   address    Address of the instruction, PC value before the fetch
 //   opcode     First word of the instruction as fetched
 typedef void (CALLBACK* INSTRUCTIONCALLBACK)(const CProcessor* pProc, uint16_t address, uint16_t opcode);
+
+// Interrupt callback -- called by CPU/PPU when an interrupt or trap has been taken: the old PC/PSW
+// are saved and the new PC/PSW are loaded from the vector
+// Input:
+//   pProc      Processor that took the interrupt (CPU or PPU), see CProcessor::GetName();
+//              pProc->GetPC() / GetPSW() are the handler address and PSW, IsHaltMode() is the handler mode
+//   oldPc      PC where the interrupt appeared: the address of the code that was interrupted
+//   vector     Interrupt vector address; for HALT mode interrupts it includes the SEL register high byte
+typedef void (CALLBACK* INTERRUPTCALLBACK)(const CProcessor* pProc, uint16_t oldPc, uint16_t vector);
 
 class CFloppyController;
 class CHardDrive;
@@ -297,6 +308,8 @@ public:  // System control
     void        SetTerminalCallback(TERMINALOUTCALLBACK callback) { m_TerminalOutCallback = callback; }
     /// \brief Assign callback for CPU/PPU instruction execution, nullptr to remove
     void        SetInstructionCallback(INSTRUCTIONCALLBACK callback);
+    /// \brief Assign callback for CPU/PPU interrupts, nullptr to remove
+    void        SetInterruptCallback(INTERRUPTCALLBACK callback);
 public:  // Saving/loading emulator status
     void        SaveToImage(uint8_t* pImage);
     void        LoadFromImage(const uint8_t* pImage);

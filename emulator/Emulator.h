@@ -72,16 +72,20 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 // Instruction history, recorded always for both CPU and PPU
 const int INSTR_HISTORY_SIZE = 256;  // Must be a power of two
 
+// A record is either an executed instruction or an interrupt taken by the processor
 struct InstructionRecord
 {
-    uint16_t pc;
-    uint16_t words[3];  // Opcode and two next words; the instruction is at most 3 words long
-    uint16_t psw;       // Processor status word before the instruction; bit 0400 = HALT mode
+    uint16_t pc;        // Instruction: its address; interrupt: PC where the interrupt appeared
+    uint16_t words[3];  // Instruction: opcode and two next words, the instruction is at most 3 words long;
+    // interrupt: vector, new PC, new PSW
+    uint16_t psw;       // Instruction: PSW before it; interrupt: new PSW; bit 0400 = HALT mode
+    bool     interrupt; // true = interrupt record
 };
 
 int Emulator_GetHistoryLength(bool okCpuPpu);  // okCpuPpu: true = CPU, false = PPU
 const InstructionRecord& Emulator_GetHistoryRecord(bool okCpuPpu, int index);  // index 0 = most recent
 void Emulator_ClearHistory();
+LPCTSTR Emulator_GetInterruptName(uint16_t vector);  // Short name of the interrupt vector
 
 #if !defined(PRODUCT)
 // Set trace flags (TRACE_xxx); the instruction callback itself is always installed

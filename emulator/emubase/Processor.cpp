@@ -268,6 +268,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_internalTick = 0;
     m_pMemoryController = nullptr;
     m_pInstructionCallback = nullptr;
+    m_pInterruptCallback = nullptr;
     m_waitmode = false;
     m_stepmode = false;
     m_buserror = false;
@@ -300,6 +301,7 @@ void CProcessor::Execute()
 
 bool CProcessor::InterruptProcessing ()
 {
+    uint16_t oldPc = GetPC();  // PC where the interrupt appears, for m_pInterruptCallback
     uint16_t intrVector = 0xFFFF;
     bool currMode = ((m_psw & 0400) != 0);  // Current processor mode: true = HALT mode, false = USER mode
     bool intrMode = false;  // true = HALT mode interrupt, false = USER mode interrupt
@@ -456,6 +458,10 @@ bool CProcessor::InterruptProcessing ()
                     }
                 }
             }
+
+            // The interrupt is taken when the new PC/PSW were loaded; on a bus error (m_RPLYrq) it was not
+            if (m_pInterruptCallback != nullptr && !m_RPLYrq)
+                m_pInterruptCallback(this, oldPc, intrVector);
 
             return true;
         }

@@ -285,6 +285,12 @@ void CMotherboard::SetInstructionCallback(INSTRUCTIONCALLBACK callback)
     m_pPPU->SetInstructionCallback(callback);
 }
 
+void CMotherboard::SetInterruptCallback(INTERRUPTCALLBACK callback)
+{
+    m_pCPU->SetInterruptCallback(callback);
+    m_pPPU->SetInterruptCallback(callback);
+}
+
 void CMotherboard::Reset ()
 {
     m_pPPU->SetDCLOPin(true);
