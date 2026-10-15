@@ -83,7 +83,7 @@ public:
 static const uint16_t CpuMemoryAccessAddressRanges[] =
 {
     0176640, 8,
-    0176564, 4,  // Регистры пультового терминала
+    0176564, 4,  // Console terminal registers
     0, 0
 };
 class CBusDeviceCpuMemoryAccess : public CBusDevice
@@ -690,18 +690,18 @@ void CMotherboard::DebugTicks()
 }
 
 /*
-Каждый фрейм равен 1/50 секунды = 20 мс = 10000 тиков, 1 тик = 2 мкс по времени машины.
-* 10000 тиков системного таймера - на каждый тик
-* 1 сигнал EVNT, в 0-й тик фрейма
-* 160000 тиков ЦП - 16 раз за один тик
-* 125000 тиков ПП - 12.5 раз за один тик
-* Отрисовка 312 строк
-* 625 тиков FDD - каждый 32-й тик
-* 48 тиков обмена с COM-портом - каждый 416 тик
-* 8?? тиков обмена с NET-портом - каждый 64 тик ???
+Each frame is 1/50 second = 20 ms = 10000 ticks, 1 tick = 2 us of machine time.
+* 10000 system timer ticks - on every tick
+* 1 EVNT signal, at tick 0 of the frame
+* 160000 CPU ticks - 16 times per tick
+* 125000 PPU ticks - 12.5 times per tick
+* Drawing 312 lines
+* 625 FDD ticks - every 32nd tick
+* 48 COM port exchange ticks - every 416th tick
+* 8?? NET port exchange ticks - every 64th tick ???
 */
 
-#define FRAMETICKS 10000  // Количество тиков в одном фрейме
+#define FRAMETICKS 10000  // Number of ticks in one frame
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \

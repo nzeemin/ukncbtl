@@ -1,4 +1,4 @@
-/*  This file is part of NEONBTL.
+п»ї/*  This file is part of NEONBTL.
 NEONBTL is free software: you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
@@ -143,7 +143,7 @@ void DiaplayList_FillTreeView()
     bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
     bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
 
-    for (int yy = 0; yy < 307; yy++)  // Цикл по строкам
+    for (int yy = 0; yy < 307; yy++)  // Loop over the lines
     {
         const size_t buffersize = 256 - 1;
         TCHAR buffer[buffersize + 1];

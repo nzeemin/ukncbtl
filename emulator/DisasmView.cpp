@@ -432,9 +432,9 @@ void DisasmView_LoadUnloadSubtitles()
     DisasmView_OnUpdate();  // We have to re-build the list of lines to show
 }
 
-// Разбор текста "субтитров".
-// На входе -- текст в m_strDisasmSubtitles в формате UTF16 LE, заканчивается символом с кодом 0.
-// На выходе -- массив описаний [адрес в памяти, тип, адрес строки комментария] в m_SubtitleItems.
+// Parsing the "subtitles" text.
+// Input: text in m_strDisasmSubtitles in UTF-16 LE format, ends with a character with code 0.
+// Output: array of descriptions [memory address, type, comment string address] in m_SubtitleItems.
 BOOL DisasmView_ParseSubtitles()
 {
     ASSERT(m_strDisasmSubtitles != nullptr);
@@ -457,9 +457,9 @@ BOOL DisasmView_ParseSubtitles()
             continue;
         }
 
-        if (*pText >= _T('0') && *pText <= _T('9'))  // Цифра -- считаем что это адрес
+        if (*pText >= _T('0') && *pText <= _T('9'))  // A digit -- we assume it is an address
         {
-            // Парсим адрес
+            // Parse the address
             TCHAR* pAddrStart = pText;
             while (*pText != 0 && *pText >= _T('0') && *pText <= _T('9')) pText++;
             if (*pText == 0) break;
@@ -469,23 +469,23 @@ BOOL DisasmView_ParseSubtitles()
             ParseOctalValue(pAddrStart, &address);
             *pText = chSave;
 
-            if (pBlockCommentStart != nullptr)  // На предыдущей строке был комментарий к блоку
+            if (pBlockCommentStart != nullptr)  // The previous line had a block comment
             {
-                // Сохраняем комментарий к блоку в массиве
+                // Save the block comment in the array
                 DisasmView_AddSubtitle(address, SUBTYPE_BLOCKCOMMENT, pBlockCommentStart);
                 pBlockCommentStart = nullptr;
             }
 
-            // Пропускаем разделители
+            // Skip the delimiters
             while (*pText != 0 &&
                    (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
                 pText++;
             BOOL okDirective = (*pText == _T('.'));
 
-            // Ищем начало комментария и конец строки
+            // Look for the start of the comment and the end of the line
             while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
             if (*pText == 0) break;
-            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, комментарий не обнаружен
+            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, no comment found
             {
                 pText++;
 
@@ -494,22 +494,22 @@ BOOL DisasmView_ParseSubtitles()
                 continue;
             }
 
-            // Нашли начало комментария -- ищем конец строки или файла
+            // Found the start of the comment -- look for the end of the line or the file
             TCHAR* pCommentStart = pText;
             while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
 
-            // Сохраняем комментарий в массиве
+            // Save the comment in the array
             DisasmView_AddSubtitle(address,
                     (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
                     pCommentStart);
 
             if (*pText == 0) break;
-            *pText = 0;  // Обозначаем конец комментария
+            *pText = 0;  // Mark the end of the comment
             pText++;
         }
-        else  // Не цифра -- пропускаем до конца строки
+        else  // Not a digit -- skip to the end of the line
         {
-            if (*pText == _T(';'))  // Строка начинается с комментария - предположительно, комментарий к блоку
+            if (*pText == _T(';'))  // The line starts with a comment -- presumably a block comment
                 pBlockCommentStart = pText;
             else
                 pBlockCommentStart = nullptr;
@@ -518,7 +518,7 @@ BOOL DisasmView_ParseSubtitles()
             if (*pText == 0) break;
             if (*pText == _T('\n') || *pText == _T('\r'))  // EOL
             {
-                *pText = 0;  // Обозначаем конец комментария - для комментария к блоку
+                *pText = 0;  // Mark the end of the comment -- for a block comment
                 pText++;
             }
         }
@@ -647,7 +647,7 @@ void DisasmView_OnUpdate()
             {
                 pLineItem->type |= LINETYPE_SUBTITLE;
                 pLineItem->pSubItem = pSubItem;
-                // Строку с субтитром мы можем использовать как опорную для дизассемблера
+                // We can use the subtitle line as an anchor for the disassembler
                 if (disasmfrom > address)
                     disasmfrom = address;
             }

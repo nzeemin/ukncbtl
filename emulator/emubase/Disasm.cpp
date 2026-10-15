@@ -17,12 +17,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emubase.h"
 
 
-// Формат отображения режимов адресации
+// Display formats for the addressing modes
 const LPCTSTR ADDRESS_MODE_FORMAT[] =
 {
     _T("%s"), _T("(%s)"), _T("(%s)+"), _T("@(%s)+"), _T("-(%s)"), _T("@-(%s)"), _T("%06o(%s)"), _T("@%06o(%s)")
 };
-// Формат отображения режимов адресации для регистра PC
+// Display formats for the addressing modes of the PC register
 const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
 {
     _T("PC"), _T("(PC)"), _T("#%06o"), _T("@#%06o"), _T("-(PC)"), _T("@-(PC)"), _T("%06o"), _T("@%06o")
@@ -184,7 +184,7 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     case PI_SENZV:  _tcscpy(strInstr, _T("SENZV"));  return 1;
     case PI_SCC:    _tcscpy(strInstr, _T("SCC"));    return 1;
 
-        // Спецкоманды режима HALT ВМ2
+        // Special commands of the VM2 HALT mode
     case PI_START:  _tcscpy(strInstr, _T("START"));  return 1;
     case PI_STEP:   _tcscpy(strInstr, _T("STEP"));   return 1;
     case PI_RSEL:   _tcscpy(strInstr, _T("RSEL"));   return 1;
@@ -472,8 +472,8 @@ bool Disasm_GetJumpConditionHint(
     if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
     {
         _sntprintf(buffer, buffersize - 1, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
-        // BHI:  IF ((С or Z) == 0)
-        // BLOS: IF ((С or Z) == 1)
+        // BHI:  IF ((C or Z) == 0)
+        // BLOS: IF ((C or Z) == 1)
         bool value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
         return ((instr & 0400) == 0) ? !value : value;
     }

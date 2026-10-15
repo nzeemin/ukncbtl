@@ -407,30 +407,30 @@ uint16_t CFirstMemoryController::GetPortWord(uint16_t address)
         return 0;
 
     case 0176560: //network
-    case 0176561: // СА: Регистр состояния приемника
+    case 0176561: // Network adapter: receiver status register
         return (m_Port176560 + m_NetStation);
-    case 0176562: // СА: Регистр данных приемника
-    case 0176563: // нижние 8 бит доступны по чтению
+    case 0176562: // Network adapter: receiver data register
+    case 0176563: // lower 8 bits are readable
         m_Port176560 &= ~010200;  // Reset bit 12 and bit 7
         return (m_Port176562 + m_NetStation);
-    case 0176564: // СА: Регистр состояния источника
+    case 0176564: // Network adapter: transmitter status register
     case 0176565:
         return (m_Port176564 + m_NetStation);
-    case 0176566: // СА: Регистр данных источника
+    case 0176566: // Network adapter: transmitter data register
     case 0176567:
         return (0360 + m_NetStation);
 
-    case 0176570:  // Стык С2: Регистр состояния приемника
+    case 0176570:  // Serial: receiver status register
     case 0176571:
         return m_Port176570;
-    case 0176572:  // Стык С2: Регистр данных приемника
-    case 0176573:  // нижние 8 бит доступны по чтению
+    case 0176572:  // Serial: receiver data register
+    case 0176573:  // lower 8 bits are readable
         m_Port176570 &= ~010200;  // Reset bit 12 and bit 7
         return m_Port176572;
-    case 0176574:  // Стык С2: Регистр состояния источника
+    case 0176574:  // Serial: transmitter status register
     case 0176575:
         return m_Port176574;
-    case 0176576:  // Стык С2: Регистр данных источника
+    case 0176576:  // Serial: transmitter data register
     case 0176577:
         return 0370;
 
@@ -548,35 +548,35 @@ void CFirstMemoryController::SetPortByte(uint16_t address, uint8_t byte)
         break;
 
     case 0176560: //network
-    case 0176561: //СА: Регистр состояния приемника
+    case 0176561: // Network adapter: receiver status register
         m_Port176560 = (m_Port176560 & ~0104) | (word & 0104);  // Bits 2,6 only
         break;
-    case 0176562: // СА: Регистр данных приемника
-    case 0176563: // недоступен по записи
+    case 0176562: // Network adapter: receiver data register
+    case 0176563: // not writable
         return;
-    case 0176564: // СА: Регистр состояния источника
+    case 0176564: // Network adapter: transmitter status register
     case 0176565:
         m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
         break;
-    case 0176566: // СА: Регистр данных источника
-    case 0176567: // нижние 8 бит доступны по записи
+    case 0176566: // Network adapter: transmitter data register
+    case 0176567: // lower 8 bits are writable
         m_Port176566 = word & 0xff;
         m_Port176564 &= ~0200;  // Reset bit 7 (Ready)
         break;
 
-    case 0176570:  // Стык С2: Регистр состояния приемника
+    case 0176570:  // Serial: receiver status register
     case 0176571:
         m_Port176570 = (m_Port176570 & ~0100) | (word & 0100);  // Bit 6 only
         break;
-    case 0176572:  // Стык С2: Регистр данных приемника
-    case 0176573:  // недоступен по записи
+    case 0176572:  // Serial: receiver data register
+    case 0176573:  // not writable
         return;
-    case 0176574:  // Стык С2: Регистр состояния источника
+    case 0176574:  // Serial: transmitter status register
     case 0176575:
         m_Port176574 = (m_Port176574 & ~0105) | (word & 0105);  // Bits 0,2,6
         break;
-    case 0176576:  // Стык С2: Регистр данных источника
-    case 0176577:  // нижние 8 бит доступны по записи
+    case 0176576:  // Serial: transmitter data register
+    case 0176577:  // lower 8 bits are writable
         m_Port176576 = word & 0xff;
         m_Port176574 &= ~0200;  // Reset bit 7 (Ready)
         break;
@@ -668,41 +668,41 @@ void CFirstMemoryController::SetPortWord(uint16_t address, uint16_t word)
         break;
 
     case 0176560: //network
-    case 0176561: // СА: Регистр состояния приемника
+    case 0176561: // Network adapter: receiver status register
         if (((m_Port176560 & 0300) == 0200) && (word & 0100))
             m_pProcessor->InterruptVIRQ(9, 0360);
         m_Port176560 = (m_Port176560 & ~0104) | (word & 0104);  // Bits 2,6 only
         break;
-    case 0176562:  // СА: Регистр данных приемника
-    case 0176563:  // недоступен по записи
+    case 0176562:  // Network adapter: receiver data register
+    case 0176563:  // not writable
         return;
-    case 0176564:  // СА: Регистр состояния источника
+    case 0176564:  // Network adapter: transmitter status register
     case 0176565:
         if (((m_Port176564 & 0300) == 0200) && (word & 0100))
             m_pProcessor->InterruptVIRQ(10, 0364);
         m_Port176564 = (m_Port176564 & ~0105) | (word & 0105);  // Bits 0,2,6
         break;
-    case 0176566:  // СА: Регистр данных источника
-    case 0176567:  // нижние 8 бит доступны по записи
+    case 0176566:  // Network adapter: transmitter data register
+    case 0176567:  // lower 8 bits are writable
         m_Port176566 = word & 0xff;
         m_Port176564 &= ~0200;  // Reset bit 7 (Ready)
         break;
 
-    case 0176570:  // Стык С2: Регистр состояния приемника
+    case 0176570:  // Serial: receiver status register
     case 0176571:
         m_Port176570 = (m_Port176570 & ~0100) | (word & 0100);  // Bit 6 only
         break;
-    case 0176572:  // Стык С2: Регистр данных приемника
-    case 0176573:  // недоступен по записи
+    case 0176572:  // Serial: receiver data register
+    case 0176573:  // not writable
         return;
-    case 0176574:  // Стык С2: Регистр состояния источника
+    case 0176574:  // Serial: transmitter status register
     case 0176575:
         if (((m_Port176574 & 0300) == 0200) && (word & 0100))
             m_pProcessor->InterruptVIRQ(8, 0374);
         m_Port176574 = (m_Port176574 & ~0105) | (word & 0105);  // Bits 0,2,6
         break;
-    case 0176576:  // Стык С2: Регистр данных источника
-    case 0176577:  // нижние 8 бит доступны по записи
+    case 0176576:  // Serial: transmitter data register
+    case 0176577:  // lower 8 bits are writable
         m_Port176576 = word & 0xff;
         m_Port176574 &= ~128;  // Reset bit 7 (Ready)
         break;

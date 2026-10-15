@@ -150,7 +150,7 @@ const DWORD ScreenView_GrayColors[16 * 8] =
 
 //////////////////////////////////////////////////////////////////////
 
-//Прототип функции преобразования экрана
+//Prototype of the screen conversion function
 typedef void (CALLBACK* PREPARE_SCREEN_CALLBACK)(void* pImageBits);
 
 struct ScreenModeStruct
@@ -478,7 +478,7 @@ void ScreenView_RedrawScreen()
 // Choose color palette depending of screen mode
 const DWORD* ScreenView_GetPalette()
 {
-    //TODO: Вынести switch в ScreenView_SetMode()
+    //TODO: Move the switch into ScreenView_SetMode()
     const DWORD* colors;
     switch (m_ScreenMode)
     {
@@ -525,7 +525,7 @@ WORD ScreenView_GetKeyEventFromQueue()
     return keyevent;
 }
 
-const BYTE arrPcscan2UkncscanLat[256] =    // ЛАТ
+const BYTE arrPcscan2UkncscanLat[256] =    // LAT
 {
     /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
     /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
@@ -545,7 +545,7 @@ const BYTE arrPcscan2UkncscanLat[256] =    // ЛАТ
     /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
     /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
 };
-const BYTE arrPcscan2UkncscanRus[256] =    // РУС
+const BYTE arrPcscan2UkncscanRus[256] =    // RUS
 {
     /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
     /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
@@ -599,7 +599,7 @@ void ScreenView_ScanKeyboard()
             }
             bEntPressed = FALSE;
         }
-        // Выбираем таблицу маппинга в зависимости от флага РУС/ЛАТ в УКНЦ
+        // Choose the mapping table depending on the RUS/LAT flag in the UKNC
         uint16_t ukncRegister = g_pBoard->GetKeyboardRegister();
 
         // Check every key for state change

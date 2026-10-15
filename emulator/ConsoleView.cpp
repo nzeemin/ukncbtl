@@ -493,7 +493,7 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
     int totalLength = 0;
     int lastLength = 0;
     int length = 0;
-    for (int index = 0; index < nWindowSize; index++)  // Рисуем строки
+    for (int index = 0; index < nWindowSize; index++)  // Draw the lines
     {
         PrintOctalValue(bufaddr, address);
         WORD value = memory[index];
