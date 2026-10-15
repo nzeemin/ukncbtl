@@ -39,6 +39,10 @@ int m_nInstrHistoryBottomLine = 0;  // Index of the instruction shown at the bot
 
 
 void InstrHistoryView_DoDraw(HDC hdc);
+void InstrHistoryView_OnMouseWheel(WPARAM wParam);
+void InstrHistoryView_OnVScroll(WORD scrollcmd);
+void InstrHistoryView_SetBottomLine(int index);
+void InstrHistoryView_UpdateScrollBar();
 
 
 void InstrHistoryView_RegisterClass()
@@ -82,7 +86,7 @@ void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int heigh
     m_hwndInstrHistoryViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
             CLASSNAME_INSTRHISTORYVIEW, NULL,
-            WS_CHILD | WS_VISIBLE,
+            WS_CHILD | WS_VISIBLE | WS_VSCROLL,
             0, 0, rcClient.right, rcClient.bottom,
             g_hwndInstrHistory, NULL, g_hInst, NULL);
 
@@ -135,6 +139,18 @@ LRESULT CALLBACK InstrHistoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM w
             EndPaint(hWnd, &ps);
         }
         break;
+    case WM_LBUTTONDOWN:
+        ::SetFocus(hWnd);  // Mouse wheel goes to the focused window
+        break;
+    case WM_MOUSEWHEEL:
+        InstrHistoryView_OnMouseWheel(wParam);
+        break;
+    case WM_VSCROLL:
+        InstrHistoryView_OnVScroll(LOWORD(wParam));
+        break;
+    case WM_SIZE:
+        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine);  // Re-clamp for the new number of rows
+        break;
     case WM_COMMAND:
         // Forward commands to the main window
         ::PostMessage(g_hwnd, WM_COMMAND, wParam, lParam);
@@ -155,6 +171,110 @@ void InstrHistoryView_SetCurrentProc(BOOL okCPU)
     InstrHistoryView_OnUpdate();
 }
 
+// Number of lines that fit into the viewer
+int InstrHistoryView_GetRowCount()
+{
+    HDC hdc = GetDC(m_hwndInstrHistoryViewer);
+    HFONT hFont = CreateMonospacedFont();
+    HGDIOBJ hOldFont = SelectObject(hdc, hFont);
+    int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
+    SelectObject(hdc, hOldFont);
+    VERIFY(::DeleteObject(hFont));
+    ReleaseDC(m_hwndInstrHistoryViewer, hdc);
+
+    RECT rcClient;  GetClientRect(m_hwndInstrHistoryViewer, &rcClient);
+    int rows = (rcClient.bottom - 2) / cyLine;
+    return rows > 0 ? rows : 1;
+}
+
+// The biggest index of the bottom line: the oldest instruction is at the top line
+int InstrHistoryView_GetMaxBottomLine()
+{
+    int max = m_nInstrHistorySnapshotLength - InstrHistoryView_GetRowCount();
+    return max > 0 ? max : 0;
+}
+
+// The scrollbar top is the oldest instruction, the bottom is the most recent one
+void InstrHistoryView_UpdateScrollBar()
+{
+    if (m_hwndInstrHistoryViewer == (HWND) INVALID_HANDLE_VALUE)
+        return;
+
+    int max = InstrHistoryView_GetMaxBottomLine();
+    SCROLLINFO si;
+    ZeroMemory(&si, sizeof(si));
+    si.cbSize = sizeof(si);
+    si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE | SIF_DISABLENOSCROLL;
+    si.nMin = 0;
+    si.nMax = max + InstrHistoryView_GetRowCount() - 1;
+    si.nPage = InstrHistoryView_GetRowCount();
+    si.nPos = max - m_nInstrHistoryBottomLine;
+    SetScrollInfo(m_hwndInstrHistoryViewer, SB_VERT, &si, TRUE);
+}
+
+void InstrHistoryView_SetBottomLine(int index)
+{
+    if (m_hwndInstrHistoryViewer == (HWND) INVALID_HANDLE_VALUE)
+        return;
+
+    int max = InstrHistoryView_GetMaxBottomLine();
+    if (index > max) index = max;
+    if (index < 0) index = 0;
+    if (index != m_nInstrHistoryBottomLine)
+    {
+        m_nInstrHistoryBottomLine = index;
+        InvalidateRect(m_hwndInstrHistoryViewer, NULL, TRUE);
+    }
+    InstrHistoryView_UpdateScrollBar();
+}
+
+void InstrHistoryView_OnMouseWheel(WPARAM wParam)
+{
+    short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+    int steps = zDelta / 40;  // 120 units per notch = 3 lines
+    if (steps == 0)
+        return;
+    InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + steps);  // Wheel up shows older instructions
+}
+
+void InstrHistoryView_OnVScroll(WORD scrollcmd)
+{
+    int max = InstrHistoryView_GetMaxBottomLine();
+    int rows = InstrHistoryView_GetRowCount();
+    switch (scrollcmd)
+    {
+    case SB_LINEUP:
+        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + 1);
+        break;
+    case SB_LINEDOWN:
+        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine - 1);
+        break;
+    case SB_PAGEUP:
+        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + rows);
+        break;
+    case SB_PAGEDOWN:
+        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine - rows);
+        break;
+    case SB_TOP:
+        InstrHistoryView_SetBottomLine(max);
+        break;
+    case SB_BOTTOM:
+        InstrHistoryView_SetBottomLine(0);
+        break;
+    case SB_THUMBTRACK:
+    case SB_THUMBPOSITION:
+        {
+            SCROLLINFO si;
+            ZeroMemory(&si, sizeof(si));
+            si.cbSize = sizeof(si);
+            si.fMask = SIF_TRACKPOS;  // 32-bit position, the message has only 16 bits
+            GetScrollInfo(m_hwndInstrHistoryViewer, SB_VERT, &si);
+            InstrHistoryView_SetBottomLine(max - si.nTrackPos);
+        }
+        break;
+    }
+}
+
 // Update after Run or Step
 void InstrHistoryView_OnUpdate()
 {
@@ -162,9 +282,13 @@ void InstrHistoryView_OnUpdate()
     for (int i = 0; i < length; i++)
         m_InstrHistorySnapshot[i] = Emulator_GetHistoryRecord(m_okInstrHistoryProcessor, i);
     m_nInstrHistorySnapshotLength = length;
+    m_nInstrHistoryBottomLine = 0;  // Every update (stop, step, reset) scrolls back to the most recent instruction
 
     if (g_hwndInstrHistory != (HWND) INVALID_HANDLE_VALUE && m_hwndInstrHistoryViewer != (HWND) INVALID_HANDLE_VALUE)
+    {
+        InstrHistoryView_UpdateScrollBar();
         InvalidateRect(m_hwndInstrHistoryViewer, NULL, TRUE);
+    }
 }
 
 // Lines go from bottom to top: the line with index m_nInstrHistoryBottomLine is at the bottom
