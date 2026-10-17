@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "ToolWindow.h"
 #include "Emulator.h"
 #include "emubase/Emubase.h"
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////
 
@@ -32,6 +33,14 @@ HFONT m_hfontConsole = NULL;
 WNDPROC m_wndprocConsoleEdit = NULL;  // Old window proc address of the console prompt
 bool m_okCurrentProc = false;  // Current processor: TRUE - CPU, FALSE - PPU
 HBRUSH m_hbrConsoleFocused = NULL;
+
+const size_t CONSOLE_HISTORY_SIZE = 32;  // Commands kept
+std::vector<TcharString> m_ConsoleHistory;  // Oldest first, the newest command is the last element
+int m_nConsoleHistoryPos = -1;  // -1 = editing a new line; 0 = newest stored command, 1 = the one before, ...
+
+void ConsoleView_HistoryAdd(LPCTSTR command);
+void ConsoleView_HistoryUp();
+void ConsoleView_HistoryDown();
 
 CProcessor* ConsoleView_GetCurrentProcessor();
 void ConsoleView_AdjustWindowLayout();
@@ -185,11 +194,15 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_CHAR:
         if (wParam == 13)
         {
+            TCHAR command[32];
+            GetWindowText(m_hwndConsoleEdit, command, 32);
+            ConsoleView_HistoryAdd(command);
             ConsoleView_DoConsoleCommand();
             return 0;
         }
         if (wParam == VK_ESCAPE)
         {
+            m_nConsoleHistoryPos = -1;
             TCHAR command[32];
             GetWindowText(m_hwndConsoleEdit, command, 32);
             if (*command == 0)  // If command is empty
@@ -198,10 +211,61 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T(""));  // Clear command
             return 0;
         }
+        m_nConsoleHistoryPos = -1;  // The line is being edited, next Up starts from the newest
+        break;
+    case WM_KEYDOWN:
+        if (wParam == VK_UP)
+        {
+            ConsoleView_HistoryUp();
+            return 0;
+        }
+        if (wParam == VK_DOWN)
+        {
+            ConsoleView_HistoryDown();
+            return 0;
+        }
         break;
     }
 
     return CallWindowProc(m_wndprocConsoleEdit, hWnd, message, wParam, lParam);
+}
+
+void ConsoleView_HistoryAdd(LPCTSTR command)
+{
+    m_nConsoleHistoryPos = -1;
+    if (command[0] == 0) return;
+    if (!m_ConsoleHistory.empty() && m_ConsoleHistory.back() == command) return;
+
+    m_ConsoleHistory.push_back(command);
+    if (m_ConsoleHistory.size() > CONSOLE_HISTORY_SIZE)
+        m_ConsoleHistory.erase(m_ConsoleHistory.begin());
+}
+
+void ConsoleView_HistoryShow()
+{
+    LPCTSTR text = _T("");
+    size_t len = 0;
+    if (m_nConsoleHistoryPos >= 0)
+    {
+        const TcharString& command = m_ConsoleHistory[m_ConsoleHistory.size() - 1 - m_nConsoleHistoryPos];
+        text = command.c_str();
+        len = command.length();
+    }
+    SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)text);
+    SendMessage(m_hwndConsoleEdit, EM_SETSEL, (WPARAM)len, (LPARAM)len);  // Caret to the end
+}
+void ConsoleView_HistoryUp()
+{
+    if (m_ConsoleHistory.empty()) return;
+    if (m_nConsoleHistoryPos < (int)m_ConsoleHistory.size() - 1)
+        m_nConsoleHistoryPos++;
+    ConsoleView_HistoryShow();
+}
+void ConsoleView_HistoryDown()
+{
+    if (m_nConsoleHistoryPos == -1) return;
+    m_nConsoleHistoryPos--;
+    ConsoleView_HistoryShow();
 }
 
 void ConsoleView_Activate()
@@ -946,6 +1010,7 @@ void ConsoleView_DoConsoleCommand()
     TCHAR command[32];
     GetWindowText(m_hwndConsoleEdit, command, 32);
     SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T(""));  // Clear command
+    m_nConsoleHistoryPos = -1;  // Also covers commands put by toolbar and menu
 
     if (command[0] == 0) return;  // Nothing to do
 

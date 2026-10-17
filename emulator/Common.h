@@ -12,6 +12,10 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
+#include <string>
+
+typedef std::basic_string<TCHAR> TcharString;
+
 //////////////////////////////////////////////////////////////////////
 
 #ifdef _DEBUG
