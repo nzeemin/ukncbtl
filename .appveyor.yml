@@ -27,3 +27,6 @@ environment:
 build:
   project: emulator\$(PROJECTFILE)
 
+
+test_script:
+  - if not "%CONFIGURATION%"=="Product" vstest.console.exe /Logger:Appveyor tests\%CONFIGURATION%\UKNCBTL-Tests.dll
