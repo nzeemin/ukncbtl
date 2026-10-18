@@ -141,3 +141,47 @@ bool TestBoard::TakeInterrupt()
 {
     return CPU()->InterruptProcessing();
 }
+
+TempFile::TempFile(const TCHAR* extension)
+{
+    static unsigned int counter = 0;
+    TCHAR dir[MAX_PATH];
+    ::GetTempPath(MAX_PATH, dir);
+    _stprintf_s(m_path, _T("%sukncbtl-test-%u-%u%s"), dir, (unsigned int) ::GetCurrentProcessId(), counter++, extension);
+    ::DeleteFile(m_path);
+}
+
+TempFile::~TempFile()
+{
+    ::SetFileAttributes(m_path, FILE_ATTRIBUTE_NORMAL);
+    ::DeleteFile(m_path);
+}
+
+void TempFile::Write(const std::vector<uint8_t>& content)
+{
+    FILE* fp = ::_tfopen(m_path, _T("wb"));
+    Assert::IsTrue(fp != nullptr, _T("temp file is created"));
+    if (!content.empty())
+        ::fwrite(&content[0], 1, content.size(), fp);
+    ::fclose(fp);
+}
+
+std::vector<uint8_t> TempFile::Read() const
+{
+    std::vector<uint8_t> content;
+    FILE* fp = ::_tfopen(m_path, _T("rb"));
+    Assert::IsTrue(fp != nullptr, _T("temp file is opened"));
+    ::fseek(fp, 0, SEEK_END);
+    long size = ::ftell(fp);
+    ::fseek(fp, 0, SEEK_SET);
+    content.resize((size_t) size);
+    if (size > 0)
+        ::fread(&content[0], 1, (size_t) size, fp);
+    ::fclose(fp);
+    return content;
+}
+
+void TempFile::SetReadOnly(bool readOnly)
+{
+    ::SetFileAttributes(m_path, readOnly ? FILE_ATTRIBUTE_READONLY : FILE_ATTRIBUTE_NORMAL);
+}

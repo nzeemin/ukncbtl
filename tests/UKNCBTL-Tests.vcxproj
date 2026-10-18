@@ -88,9 +88,12 @@
     <ClCompile Include="..\emulator\emubase\SoundAY.cpp" />
     <ClCompile Include="BoardTests.cpp" />
     <ClCompile Include="DisasmTests.cpp" />
+    <ClCompile Include="FloppyTests.cpp" />
+    <ClCompile Include="HardDriveTests.cpp" />
     <ClCompile Include="MemoryTests.cpp" />
     <ClCompile Include="ProcessorControlTests.cpp" />
     <ClCompile Include="ProcessorTests.cpp" />
+    <ClCompile Include="SoundAYTests.cpp" />
     <ClCompile Include="TestCommon.cpp" />
     <ClCompile Include="TestHelpers.cpp" />
     <ClCompile Include="stdafx.cpp">
