@@ -380,6 +380,33 @@ public:
         CheckCases(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
+    TEST_METHOD(Disasm_SobTargetBelowZeroWrapsTo16Bits)
+    {
+        // The address is 16-bit: 000000 + 2 - 2 * 3 = -4 = 177774
+        static const DisasmCase cases[] =
+        {
+            { 00000, { 0077103 }, _T("SOB"), _T("R1, 177774"), 1 },
+            { 00002, { 0077177 }, _T("SOB"), _T("R1, 177606"), 1 },  // 2 + 2 - 126 = -122
+        };
+        CheckCases(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Disasm_Mark)
+    {
+        // MARK nn: the 6-bit constant nn, not an operand; the instruction is one word long
+        static const DisasmCase cases[] =
+        {
+            { 01000, { 0006400 }, _T("MARK"), _T("0"),  1 },
+            { 01000, { 0006405 }, _T("MARK"), _T("5"),  1 },
+            { 01000, { 0006412 }, _T("MARK"), _T("12"), 1 },
+            { 01000, { 0006477 }, _T("MARK"), _T("77"), 1 },
+            // low bits that look like an operand with an extra word: still one word
+            { 01000, { 0006427, 0123456 }, _T("MARK"), _T("27"), 1 },
+            { 01000, { 0006467, 0123456 }, _T("MARK"), _T("67"), 1 },
+        };
+        CheckCases(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
     TEST_METHOD(Disasm_UnknownInstructions)
     {
         // Characterization: the opcodes below have no mnemonic in the disassembler

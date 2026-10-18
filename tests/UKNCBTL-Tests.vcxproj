@@ -90,6 +90,7 @@
     <ClCompile Include="DisasmTests.cpp" />
     <ClCompile Include="FloppyTests.cpp" />
     <ClCompile Include="HardDriveTests.cpp" />
+    <ClCompile Include="HintTests.cpp" />
     <ClCompile Include="MemoryTests.cpp" />
     <ClCompile Include="ProcessorControlTests.cpp" />
     <ClCompile Include="ProcessorTests.cpp" />
