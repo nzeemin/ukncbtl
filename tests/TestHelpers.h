@@ -1,0 +1,62 @@
+﻿/*  This file is part of UKNCBTL.
+    UKNCBTL is free software: you can redistribute it and/or modify it under the terms
+of the GNU Lesser General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version.
+    UKNCBTL is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+See the GNU Lesser General Public License for more details.
+    You should have received a copy of the GNU Lesser General Public License along with
+UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
+
+// TestHelpers.h : fixtures shared by the tests
+
+#pragma once
+
+#include "emubase\Emubase.h"
+
+// Condition code bits of the PSW, defined here on purpose: the tests must not depend on Defines.h
+const uint16_t TF_C = 01;
+const uint16_t TF_V = 02;
+const uint16_t TF_Z = 04;
+const uint16_t TF_N = 010;
+const uint16_t TF_ALL = 017;
+
+/// AreEqual for 16-bit values: CppUnitTest has no ToString for uint16_t in older Visual Studio
+void Eq(unsigned int expected, unsigned int actual, const TCHAR* msg);
+
+/// Text of the flags for messages, for example "NZvc": uppercase = set; buf has at least 5 characters
+void FlagsText(uint16_t flags, TCHAR* buf);
+
+/// \brief A motherboard with the CPU in USER mode, ready to execute programs placed in RAM.
+/// \details All memory access goes through the CPU memory controller, so addresses are the
+/// addresses the CPU sees. The ROM is not loaded; tests use RAM only.
+class TestBoard
+{
+public:
+    TestBoard();
+    ~TestBoard();
+
+    CMotherboard* Board() { return m_pBoard; }
+    CProcessor* CPU() { return m_pBoard->GetCPU(); }
+
+    /// Write a word / byte to the CPU memory
+    void SetWord(uint16_t address, uint16_t word);
+    void SetByte(uint16_t address, uint8_t byte);
+    /// Read a word / byte from the CPU memory without side effects
+    uint16_t GetWord(uint16_t address);
+    uint8_t GetByte(uint16_t address);
+
+    /// Put the program words to the memory and set PC to the first of them
+    void LoadProgram(uint16_t address, const uint16_t* words, size_t count);
+    void SetRegs(const uint16_t* regs);  ///< R0..R7, 8 values
+    void SetFlags(uint16_t flags);       ///< N, Z, V, C bits (TF_*), the other PSW bits are cleared
+    uint16_t GetFlags();                 ///< N, Z, V, C bits (TF_*)
+
+    /// Execute the given number of instructions
+    void Run(int instructions = 1);
+    /// Take the pending interrupt (trap, reserved instruction), as the processor does before the next instruction
+    bool TakeInterrupt();
+
+private:
+    CMotherboard* m_pBoard;
+};

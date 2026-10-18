@@ -76,6 +76,9 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="TestHelpers.h" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="..\emulator\emubase\Board.cpp" />
     <ClCompile Include="..\emulator\emubase\Disasm.cpp" />
     <ClCompile Include="..\emulator\emubase\Floppy.cpp" />
@@ -85,7 +88,10 @@
     <ClCompile Include="..\emulator\emubase\SoundAY.cpp" />
     <ClCompile Include="BoardTests.cpp" />
     <ClCompile Include="DisasmTests.cpp" />
+    <ClCompile Include="ProcessorControlTests.cpp" />
+    <ClCompile Include="ProcessorTests.cpp" />
     <ClCompile Include="TestCommon.cpp" />
+    <ClCompile Include="TestHelpers.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
