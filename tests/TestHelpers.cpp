@@ -51,6 +51,12 @@ TestBoard::TestBoard()
     pCPU->SetPSW(0);
     for (int r = 0; r < 8; r++)
         pCPU->SetReg(r, 0);
+
+    // Reset() starts the PPU: take its start interrupt, so that later interrupt checks see only new requests
+    PPU()->InterruptProcessing();
+    PPU()->SetPSW(0);
+    for (int r = 0; r < 8; r++)
+        PPU()->SetReg(r, 0);
 }
 
 TestBoard::~TestBoard()
@@ -78,6 +84,26 @@ uint8_t TestBoard::GetByte(uint16_t address)
 {
     uint16_t word = GetWord(address);
     return (address & 1) ? (uint8_t) (word >> 8) : (uint8_t) (word & 0xFF);
+}
+
+void TestBoard::SetPpuWord(uint16_t address, uint16_t word)
+{
+    m_pBoard->GetPPUMemoryController()->SetWord(address, false, word);
+}
+
+uint16_t TestBoard::GetPpuWord(uint16_t address)
+{
+    int addrtype;
+    return m_pBoard->GetPPUMemoryController()->GetWordView(address & 0xFFFE, false, false, &addrtype);
+}
+
+void TestBoard::StartCPU()
+{
+    SetPpuWord(0177716, 0100000);
+    CPU()->InterruptProcessing();  // the start interrupt
+    CPU()->SetPSW(0);
+    for (int r = 0; r < 8; r++)
+        CPU()->SetReg(r, 0);
 }
 
 void TestBoard::LoadProgram(uint16_t address, const uint16_t* words, size_t count)

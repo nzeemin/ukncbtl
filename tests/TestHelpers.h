@@ -38,6 +38,9 @@ public:
 
     CMotherboard* Board() { return m_pBoard; }
     CProcessor* CPU() { return m_pBoard->GetCPU(); }
+    CProcessor* PPU() { return m_pBoard->GetPPU(); }
+    CFirstMemoryController* CpuMem() { return static_cast<CFirstMemoryController*>(m_pBoard->GetCPUMemoryController()); }
+    CSecondMemoryController* PpuMem() { return static_cast<CSecondMemoryController*>(m_pBoard->GetPPUMemoryController()); }
 
     /// Write a word / byte to the CPU memory
     void SetWord(uint16_t address, uint16_t word);
@@ -45,6 +48,14 @@ public:
     /// Read a word / byte from the CPU memory without side effects
     uint16_t GetWord(uint16_t address);
     uint8_t GetByte(uint16_t address);
+
+    /// Write / read a word in the PPU memory (the read has no side effects, ports read as 0)
+    void SetPpuWord(uint16_t address, uint16_t word);
+    uint16_t GetPpuWord(uint16_t address);
+
+    /// Start the CPU the way the PPU does it, with bit 15 of the port 177716, and take the start interrupt.
+    /// After that the CPU is running in USER mode with PC = 0, and it accepts VIRQ requests.
+    void StartCPU();
 
     /// Put the program words to the memory and set PC to the first of them
     void LoadProgram(uint16_t address, const uint16_t* words, size_t count);
