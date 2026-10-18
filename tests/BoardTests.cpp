@@ -19,7 +19,7 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 TEST_CLASS(BoardSmokeTests)
 {
 public:
-    TEST_METHOD(BoardCreateAndReset)
+    TEST_METHOD(Board_CreateAndReset)
     {
         CMotherboard board;
         board.Reset();
@@ -30,7 +30,7 @@ public:
         Assert::IsNotNull(board.GetPPUMemoryController());
     }
 
-    TEST_METHOD(BoardRamWordRoundTrip)
+    TEST_METHOD(Board_RamWordRoundTrip)
     {
         CMotherboard board;
         board.Reset();
