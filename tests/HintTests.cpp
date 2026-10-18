@@ -230,6 +230,32 @@ public:
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
+    TEST_METHOD(Hint_AddressEdges)
+    {
+        // The index is added in 16 bits; SP has the same word hints as the other registers; PC-relative
+        // operands count the extra words of the operands before them (the PC is read after the index word)
+        static const HintCase cases[] =
+        {
+            { _T("CLR 4(R1), 16-bit wrap"),  { 0005061, 4 }, { 0, 0177776, 0, 0, 0, 0, STACK }, { { 02, 0123456 } }, 0, 0, 0,
+                2, _T("R1=177776"), _T("(R1+000004)=123456") },   // 0177776 + 4 = 0200002 = 000002
+            { _T("CLR @4(R1), 16-bit wrap"), { 0005071, 4 }, { 0, 0177776, 0, 0, 0, 0, STACK }, { { 02, 0300 } }, 0, 0, 0,
+                2, _T("R1=177776"), _T("(R1+000004)=000300") },
+            { _T("CLR -(SP)"),   { 0005046 }, { 0, 0, 0, 0, 0, 0, 0402 }, { { 0400, 0123456 } }, 0, 0, 0,
+                2, _T("SP=000402"), _T("(SP-2)=123456") },
+            { _T("CLR (SP)+"),   { 0005026 }, { 0, 0, 0, 0, 0, 0, 0400 }, { { 0400, 0123456 } }, 0, 0, 0,
+                2, _T("SP=000400"), _T("(SP)=123456") },
+            { _T("CLRB (SP)+"),  { 0105026 }, { 0, 0, 0, 0, 0, 0, 0400 }, { { 0400, 0123456 } }, 0, 0, 0,
+                2, _T("SP=000400"), _T("(SP)=056") },   // the autoincrement of a byte operation is 2, the operand is at SP
+            // The source has an extra word, so the PC-relative destination is read after two extra words:
+            // the PC is 01006 and 01006 + 0177172 = 0200 (16 bits)
+            { _T("MOV #1234,200(PC)"),    { 0012767, 01234, 0177172 }, { 0, 0, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                1, _T("(000200)=123456"), _T("") },
+            { _T("MOV 4(R1),200(PC)"),    { 0016167, 4, 0177172 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 }, { 0204, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200, (000200)=123456"), _T("(R1+000004)=000111") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
     TEST_METHOD(Hint_RegisterAndOperand)
     {
         // MUL, DIV, ASH, ASHC, XOR: the register in bits 8..6 and the operand
@@ -259,6 +285,86 @@ public:
             // JMP with the relative and the absolute addressing is shown by the jump arrow, not by a hint
             { _T("JMP 10(PC)"), { 0000167, 010 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
             { _T("JMP @#200"),  { 0000137, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_CompareAndLogicInstructions)
+    {
+        // CMP, BIT, BIC, BIS: source and destination like MOV. The word at 0200 is 0123456 (low byte 056,
+        // high byte 0247), the word at 0300 is 0111111 (low byte 0111, high byte 0222).
+        // When only the destination has the second line, it is aligned under the destination hint.
+        static const HintCase cases[] =
+        {
+            { _T("CMP (R1),(R2)"),  { 0021112 }, { 0, 0200, 0300, 0, 0, 0, STACK }, { { 0200, 0111 }, { 0300, 0222 } }, 0, 0, 0,
+                2, _T("R1=000200, R2=000300"), _T("(R1)=000111, (R2)=000222") },
+            { _T("BIT (R1),R2"),    { 0031102 }, { 0, 0200, 7, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200, R2=000007"), _T("(R1)=000111") },
+            { _T("BIC R1,(R2)"),    { 0040112 }, { 0, 7, 0200, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R1=000007, R2=000200"), _T("           (R2)=000111") },
+            { _T("BIS (R1)+,R2"),   { 0052102 }, { 0, 0200, 7, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200, R2=000007"), _T("(R1)=000111") },
+            { _T("CMPB (R1),(R2)"), { 0121112 }, { 0, 0200, 0300, 0, 0, 0, STACK }, { { 0200, 0123456 }, { 0300, 0111111 } }, 0, 0, 0,
+                2, _T("R1=000200, R2=000300"), _T("(R1)=056, (R2)=111") },
+            { _T("BITB (R1),R2"),   { 0131102 }, { 0, 0200, 7, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                2, _T("R1=000200, R2=000007"), _T("(R1)=056") },
+            { _T("BICB R1,(R2)"),   { 0140112 }, { 0, 7, 0301, 0, 0, 0, STACK }, { { 0300, 0111111 } }, 0, 0, 0,
+                2, _T("R1=000007, R2=000301"), _T("           (R2)=222") },  // the odd address: the high byte
+            { _T("BISB (R1)+,R2"),  { 0152102 }, { 0, 0201, 7, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                2, _T("R1=000201, R2=000007"), _T("(R1)=247") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_StatusWordAndSignExtension)
+    {
+        // MTPS and MFPS are byte operations (the bit 15 of the opcode is set), SXT is a word operation
+        static const HintCase cases[] =
+        {
+            { _T("MTPS R1"),    { 0106401 }, { 0, 0123, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R1=000123"), _T("") },
+            { _T("MTPS (R1)"),  { 0106411 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=056") },
+            { _T("MFPS (R1)+"), { 0106721 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=056") },
+            { _T("SXT R1"),     { 0006701 }, { 0, 0123, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R1=000123"), _T("") },
+            { _T("SXT (R1)"),   { 0006711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=123456") },
+            { _T("SXT 2(R1)"),  { 0006761, 2 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0202, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1+000002)=000111") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_DivAndAshc)
+    {
+        // Characterization: only the register of the instruction is shown. DIV and ASHC also use the next
+        // register of the pair (R1 for R0), docs/hints-improvements.md 3.3 adds it; this test changes then.
+        static const HintCase cases[] =
+        {
+            { _T("DIV (R2),R0"), { 0071012 }, { 1, 0, 0200, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R0=000001, R2=000200"), _T("           (R2)=000111") },
+            { _T("ASHC R2,R0"),  { 0073002 }, { 1, 0, 3, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R0=000001, R2=000003"), _T("") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_CallAndJmpDestinations)
+    {
+        // CALL is JSR PC,dst. The jump hint does not cover it (its range stops at JSR SP), so the instruction hint
+        // shows the destination, except for the relative and the absolute addressing, which have the arrow.
+        static const HintCase cases[] =
+        {
+            { _T("CALL (R1)"),     { 0004711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=000111") },
+            { _T("CALL @(R1)+"),   { 0004731 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=000300") },
+            { _T("JMP @(R1)+"),    { 0000131 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=000300") },
+            { _T("CALL @#200"),    { 0004737, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
+            { _T("CALL 10(PC)"),   { 0004767, 010 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
@@ -519,5 +625,20 @@ public:
                 2, _T("R1=177560, R2=000000"), _T("(R1)=I/O") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    // Cosmetic: the jump hints print the stack pointer as R6, the operand hints and the disassembler as SP
+    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_Jump_StackPointerIsNamedSp_KnownBug)
+        TEST_IGNORE()
+    END_TEST_METHOD_ATTRIBUTE()
+    TEST_METHOD(Hint_Jump_StackPointerIsNamedSp_KnownBug)
+    {
+        static const JumpHintCase cases[] =
+        {
+            { _T("JSR SP,(R1)"), { 0004611 }, { 0, 0200, 0, 0, 0, 0, 0400 }, NO_MEM, 0, _T("SP=000400"), true },
+            { _T("RTS SP"),      { 0000206 }, { 0, 0, 0, 0, 0, 0, 0400 }, { { 0400, 01234 } }, 0, _T("SP=000400, (SP)=001234"), true },
+            { _T("SOB SP,"),     { 0077602 }, { 0, 0, 0, 0, 0, 0, 0400 }, NO_MEM, 0, _T("SP=000400"), true },
+        };
+        CheckJumpHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 };
