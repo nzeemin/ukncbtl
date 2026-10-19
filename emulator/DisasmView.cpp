@@ -941,7 +941,7 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
 
             if (address == proccurrent && m_Hint.count > 0)  // For current instruction, draw "Instruction Hints"
             {
-                COLORREF hintcolor = Settings_GetColor(isjump ? ColorDebugJumpHint : ColorDebugHint);
+                COLORREF hintcolor = Settings_GetColor(m_Hint.isJump ? ColorDebugJumpHint : ColorDebugHint);
                 ::SetTextColor(hdc, hintcolor);
                 for (int i = 0; i < m_Hint.count; i++)
                 {

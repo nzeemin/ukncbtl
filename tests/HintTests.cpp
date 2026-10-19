@@ -9,7 +9,7 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // HintTests.cpp : tests for the instruction hints of the disassembler view
-// (Disasm_GetInstructionHint and Disasm_GetJumpConditionHint), see docs/hints-improvements.md
+// (Disasm_GetHint and Disasm_GetJumpConditionHint), see docs/hints-improvements.md
 //
 // Expected values come from what the processor does with the operands (GetWordAddr, GetByteAddr,
 // ExecuteMARK, InterruptProcessing), not from the output of the hint functions. A case that the
@@ -52,6 +52,7 @@ struct HintCase
     int lines;          // the expected number of hint lines
     const TCHAR* line1;
     const TCHAR* line2;
+    const TCHAR* line3;  // the third line; omitted = empty
 };
 
 struct JumpHintCase
@@ -79,24 +80,30 @@ void Prepare(TestBoard& tb, const uint16_t* words, size_t wordCount, const uint1
     tb.CPU()->SetCPSW(cpsw);
 }
 
+// Compare the hint with the expected lines; a null expected line is the empty line
+void CompareHint(const DisasmHint& hint, const TCHAR* name, uint16_t opcode, int lines,
+                 const TCHAR* line1, const TCHAR* line2, const TCHAR* line3)
+{
+    const TCHAR* expected[3] = { line1, line2, line3 };
+    TCHAR msg[100];
+    _stprintf_s(msg, _T("%s, opcode %06o: lines"), name, (unsigned int) opcode);
+    Assert::AreEqual(lines, hint.count, msg);
+    for (int i = 0; i < 3; i++)
+    {
+        _stprintf_s(msg, _T("%s, opcode %06o: line %d"), name, (unsigned int) opcode, i + 1);
+        Assert::AreEqual(expected[i] != nullptr ? expected[i] : _T(""), hint.lines[i], msg);
+    }
+}
+
 void CheckHint(const HintCase& c)
 {
     TestBoard tb;
     Prepare(tb, c.words, 3, c.regs, c.mem, c.psw, c.cpc, c.cpsw);
 
-    TCHAR line1[64] = _T("not set");
-    TCHAR line2[64] = _T("not set");
-    int lines = Disasm_GetInstructionHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), line1, line2);
-
-    TCHAR msg[100];
-    _stprintf_s(msg, _T("%s, opcode %06o: lines"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.lines, lines, msg);
-    _stprintf_s(msg, _T("%s, opcode %06o: line 1"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.line1, line1, msg);
-    _stprintf_s(msg, _T("%s, opcode %06o: line 2"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.line2, line2, msg);
+    DisasmHint hint;
+    Disasm_GetHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+    CompareHint(hint, c.name, c.words[0], c.lines, c.line1, c.line2, c.line3);
 }
-
 void CheckHints(const HintCase* cases, size_t count)
 {
     for (size_t i = 0; i < count; i++)
@@ -145,18 +152,8 @@ void CheckHint3(const HintCase3& c)
 
     DisasmHint hint;
     Disasm_GetHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
-
-    TCHAR msg[100];
-    _stprintf_s(msg, _T("%s, opcode %06o: lines"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.lines, hint.count, msg);
-    _stprintf_s(msg, _T("%s, opcode %06o: line 1"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.line1, hint.lines[0], msg);
-    _stprintf_s(msg, _T("%s, opcode %06o: line 2"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.line2, hint.lines[1], msg);
-    _stprintf_s(msg, _T("%s, opcode %06o: line 3"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.line3, hint.lines[2], msg);
+    CompareHint(hint, c.name, c.words[0], c.lines, c.line1, c.line2, c.line3);
 }
-
 void CheckHints3(const HintCase3* cases, size_t count)
 {
     for (size_t i = 0; i < count; i++)
@@ -197,13 +194,13 @@ public:
             { _T("CLR -(R1)"),    { 0005041 }, { 0, 0202, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000202"), _T("(R1-2)=123456") },
             { _T("CLR @(R1)+"),   { 0005031 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=000300") },  // the word at the pointer: Part 2 adds a third line
+                3, _T("R1=000200"), _T("(R1)=000300"), _T("(000300)=000000") },  // the pointer is at 0200, the operand at 0300 is 0
             { _T("CLR @-(R1)"),   { 0005051 }, { 0, 0202, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
-                2, _T("R1=000202"), _T("(R1-2)=000300") },
+                3, _T("R1=000202"), _T("(R1-2)=000300"), _T("(000300)=000000") },
             { _T("CLR 4(R1)"),    { 0005061, 4 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0204, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000200"), _T("(R1+000004)=123456") },
             { _T("CLR @4(R1)"),   { 0005071, 4 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0204, 0300 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1+000004)=000300") },
+                3, _T("R1=000200"), _T("(R1+000004)=000300"), _T("(000300)=000000") },
             { _T("CLR 177774(R1)"), { 0005061, 0177774 }, { 0, 0210, 0, 0, 0, 0, STACK }, { { 0204, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000210"), _T("(R1+177774)=123456") },  // the index is negative: 0210 - 4 = 0204
         };
@@ -225,7 +222,7 @@ public:
             { _T("CLRB 1(R1)"),    { 0105061, 1 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000200"), _T("(R1+000001)=247") },
             { _T("CLRB @(R1)+"),   { 0105031 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=000300") },  // the pointer is a word even for a byte operation
+                3, _T("R1=000200"), _T("(R1)=000300"), _T("(000300)=000") },  // the pointer is a word even for a byte operation; the operand is a byte
             { _T("MOVB (R1)+,R2"), { 0112102 }, { 0, 0200, 5, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000200, R2=000005"), _T("(R1)=056") },
         };
@@ -280,7 +277,7 @@ public:
             { _T("CLR 4(R1), 16-bit wrap"),  { 0005061, 4 }, { 0, 0177776, 0, 0, 0, 0, STACK }, { { 02, 0123456 } }, 0, 0, 0,
                 2, _T("R1=177776"), _T("(R1+000004)=123456") },   // 0177776 + 4 = 0200002 = 000002
             { _T("CLR @4(R1), 16-bit wrap"), { 0005071, 4 }, { 0, 0177776, 0, 0, 0, 0, STACK }, { { 02, 0300 } }, 0, 0, 0,
-                2, _T("R1=177776"), _T("(R1+000004)=000300") },
+                3, _T("R1=177776"), _T("(R1+000004)=000300"), _T("(000300)=000000") },
             { _T("CLR -(SP)"),   { 0005046 }, { 0, 0, 0, 0, 0, 0, 0402 }, { { 0400, 0123456 } }, 0, 0, 0,
                 2, _T("SP=000402"), _T("(SP-2)=123456") },
             { _T("CLR (SP)+"),   { 0005026 }, { 0, 0, 0, 0, 0, 0, 0400 }, { { 0400, 0123456 } }, 0, 0, 0,
@@ -299,15 +296,16 @@ public:
 
     TEST_METHOD(Hint_RegisterAndOperand)
     {
-        // MUL, DIV, ASH, ASHC, XOR: the register in bits 8..6 and the operand
+        // MUL, DIV, ASH, ASHC, XOR: the register in bits 8..6 and the operand; the hint follows the notation:
+        // "operand, register" for MUL, ASH (and DIV, ASHC), "register, operand" for XOR
         static const HintCase cases[] =
         {
             { _T("MUL (R2),R1"),  { 0070112 }, { 0, 3, 0200, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
-                2, _T("R1=000003, R2=000200"), _T("           (R2)=123456") },  // aligned under R2
+                2, _T("R2=000200, R1=000003"), _T("(R2)=123456") },
             { _T("XOR R1,(R2)"),  { 0074112 }, { 0, 7, 0200, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
                 2, _T("R1=000007, R2=000200"), _T("           (R2)=123456") },  // aligned under R2
             { _T("ASH R2,R1"),    { 0072102 }, { 0, 3, 2, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
-                1, _T("R1=000003, R2=000002"), _T("") },
+                1, _T("R2=000002, R1=000003"), _T("") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
@@ -322,7 +320,7 @@ public:
             { _T("ASL (R1)"), { 0006311 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
                 2, _T("R1=000200"), _T("(R1)=000111") },
             { _T("JMP (R1)"), { 0000111 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=000111") },
+                1, _T("R1=000200"), _T("") },
             // JMP with the relative and the absolute addressing is shown by the jump arrow, not by a hint
             { _T("JMP 10(PC)"), { 0000167, 010 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
             { _T("JMP @#200"),  { 0000137, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
@@ -362,32 +360,95 @@ public:
         // MTPS and MFPS are byte operations (the bit 15 of the opcode is set), SXT is a word operation
         static const HintCase cases[] =
         {
+            // MTPS and MFPS show the low byte of the PSW, SXT shows N
             { _T("MTPS R1"),    { 0106401 }, { 0, 0123, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
-                1, _T("R1=000123"), _T("") },
+                1, _T("R1=000123, PS=000"), _T("") },
             { _T("MTPS (R1)"),  { 0106411 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=056") },
-            { _T("MFPS (R1)+"), { 0106721 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=056") },
+                2, _T("R1=000200, PS=000"), _T("(R1)=056") },
+            { _T("MFPS (R1)+"), { 0106721 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 013, 0, 0,
+                2, _T("R1=000200, PS=013"), _T("(R1)=056") },
             { _T("SXT R1"),     { 0006701 }, { 0, 0123, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
-                1, _T("R1=000123"), _T("") },
-            { _T("SXT (R1)"),   { 0006711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=123456") },
+                1, _T("R1=000123, N=0"), _T("") },
+            { _T("SXT (R1)"),   { 0006711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0123456 } }, 010, 0, 0,
+                2, _T("R1=000200, N=1"), _T("(R1)=123456") },
             { _T("SXT 2(R1)"),  { 0006761, 2 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0202, 0111 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1+000002)=000111") },
+                2, _T("R1=000200, N=0"), _T("(R1+000002)=000111") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
     TEST_METHOD(Hint_DivAndAshc)
     {
-        // Characterization: only the register of the instruction is shown. DIV and ASHC also use the next
-        // register of the pair (R1 for R0), docs/hints-improvements.md 3.3 adds it; this test changes then.
+        // DIV and ASHC use the register pair Rn:Rn|1; the hint shows the operand first, then the pair
+        // (for an odd register Rn|1 is the register itself). The registers already shown are not repeated.
+        // MUL reads only Rn: the operand, then the register.
         static const HintCase cases[] =
         {
-            { _T("DIV (R2),R0"), { 0071012 }, { 1, 0, 0200, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
-                2, _T("R0=000001, R2=000200"), _T("           (R2)=000111") },
-            { _T("ASHC R2,R0"),  { 0073002 }, { 1, 0, 3, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
-                1, _T("R0=000001, R2=000003"), _T("") },
+            { _T("DIV (R2),R0"), { 0071012 }, { 1, 2, 0200, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R2=000200, R0=000001, R1=000002"), _T("(R2)=000111") },
+            { _T("ASHC R2,R0"),  { 0073002 }, { 1, 2, 3, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R2=000003, R0=000001, R1=000002"), _T("") },
+            { _T("DIV (R2),R3"), { 0071312 }, { 0, 0, 0200, 5, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                2, _T("R2=000200, R3=000005"), _T("(R2)=000111") },
+            { _T("ASHC R1,R0"),  { 0073001 }, { 1, 2, 3, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R1=000002, R0=000001"), _T("") },
+            { _T("MUL R2,R0"),   { 0070002 }, { 1, 2, 3, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                1, _T("R2=000003, R0=000001"), _T("") },
+        };
+        CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_OldInterfaceWrappers)
+    {
+        // Disasm_GetInstructionHint (two lines, a regular instruction) and Disasm_GetJumpConditionHint (the first
+        // line of the jump hint) are wrappers for the callers of the old interface
+        {
+            TestBoard tb;
+            const uint16_t words[3] = { 0012122, 0, 0 };  // MOV (R1)+,(R2)+
+            const uint16_t regs[7] = { 0, 0200, 0300, 0, 0, 0, STACK };
+            const MemWord mem[MAX_MEM] = { { 0200, 0111 }, { 0300, 0222 } };
+            Prepare(tb, words, 3, regs, mem, 0, 0, 0);
+            TCHAR line1[64] = _T("x"), line2[64] = _T("x");
+            int lines = Disasm_GetInstructionHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), line1, line2);
+            Assert::AreEqual(2, lines);
+            Assert::AreEqual(_T("R1=000200, R2=000300"), line1);
+            Assert::AreEqual(_T("(R1)=000111, (R2)=000222"), line2);
+        }
+        {
+            TestBoard tb;
+            const uint16_t words[3] = { 0001002, 0, 0 };  // BNE
+            const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
+            Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
+            TCHAR text[64] = _T("x");
+            bool predict = Disasm_GetJumpConditionHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), text);
+            Assert::IsTrue(predict);  // Z=0: BNE jumps
+            Assert::AreEqual(_T("Z=0"), text);
+        }
+    }
+
+    TEST_METHOD(Hint_Fis)
+    {
+        // FADD, FSUB, FMUL, FDIV: the register points at two 32-bit values, (Rn) and (Rn+4), shown as word pairs HIGH:LOW
+        static const HintCase cases[] =
+        {
+            { _T("FADD R1"), { 0075001 }, { 0, 0200, 0, 0, 0, 0, STACK },
+                { { 0200, 040200 }, { 0202, 0 }, { 0204, 040000 }, { 0206, 01 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=040200:000000, (R1+4)=040000:000001") },
+            { _T("FSUB R1"), { 0075011 }, { 0, 0200, 0, 0, 0, 0, STACK },
+                { { 0200, 040200 }, { 0202, 0 }, { 0204, 040000 }, { 0206, 01 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=040200:000000, (R1+4)=040000:000001") },
+            { _T("FMUL R1"), { 0075021 }, { 0, 0200, 0, 0, 0, 0, STACK },
+                { { 0200, 040200 }, { 0202, 0 }, { 0204, 040000 }, { 0206, 01 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=040200:000000, (R1+4)=040000:000001") },
+            { _T("FDIV R1"), { 0075031 }, { 0, 0200, 0, 0, 0, 0, STACK },
+                { { 0200, 040200 }, { 0202, 0 }, { 0204, 040000 }, { 0206, 01 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("(R1)=040200:000000, (R1+4)=040000:000001") },
+            { _T("FADD SP"), { 0075006 }, { 0, 0, 0, 0, 0, 0, 0200 },
+                { { 0200, 040200 }, { 0202, 0 }, { 0204, 040000 }, { 0206, 0 } }, 0, 0, 0,
+                2, _T("SP=000200"), _T("(SP)=040200:000000, (SP+4)=040000:000000") },
+            // an odd register cannot address a word
+            { _T("FADD R1, odd"), { 0075001 }, { 0, 0201, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0,
+                2, _T("R1=000201"), _T("(R1)=N/A, (R1+4)=N/A") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
@@ -399,11 +460,22 @@ public:
         static const HintCase cases[] =
         {
             { _T("CALL (R1)"),     { 0004711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
-                2, _T("R1=000200"), _T("(R1)=000111") },
+                1, _T("R1=000200"), _T("") },
+            { _T("JMP (R1)+"),     { 0000121 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0, 0, 0,
+                1, _T("R1=000200"), _T("") },
+            { _T("JMP -(R1)"),     { 0000141 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0176, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("R1-2=000176") },
+            { _T("JMP 4(R1)"),     { 0000161, 4 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0204, 0111 } }, 0, 0, 0,
+                2, _T("R1=000200"), _T("R1+4=000204") },
             { _T("CALL @(R1)+"),   { 0004731 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
                 2, _T("R1=000200"), _T("(R1)=000300") },
             { _T("JMP @(R1)+"),    { 0000131 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 } }, 0, 0, 0,
                 2, _T("R1=000200"), _T("(R1)=000300") },
+            // the pointer is the jump target; the word at the target is the next instruction, no third line
+            { _T("JMP @2(R0)"),    { 0000170, 2 }, { 0200, 0, 0, 0, 0, 0, STACK }, { { 0202, 0300 }, { 0300, 0222 } }, 0, 0, 0,
+                3, _T("R0=000200"), _T("R0+2=000202"), _T("(000202)=000300") },
+            { _T("JMP @-(R0)"),    { 0000150 }, { 0200, 0, 0, 0, 0, 0, STACK }, { { 0176, 0300 } }, 0, 0, 0,
+                3, _T("R0=000200"), _T("R0-2=000176"), _T("(000176)=000300") },
             { _T("CALL @#200"),    { 0004737, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
             { _T("CALL 10(PC)"),   { 0004767, 010 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, 0, 0, _T(""), _T("") },
         };
@@ -427,6 +499,11 @@ public:
                 1, _T("R1=000010, C=0"), _T("") },
             { _T("ROL R1"),       { 0006101 }, { 0, 010, 0, 0, 0, 0, STACK }, NO_MEM, TF_C, 0, 0,
                 1, _T("R1=000010, C=1"), _T("") },
+            // the PC destination: the carry alone, or after the destination hint if it has one
+            { _T("ADC PC"),       { 0005507 }, { 0, 010, 0, 0, 0, 0, STACK }, NO_MEM, TF_C, 0, 0,
+                1, _T("C=1"), _T("") },
+            { _T("ADC @#300"),    { 0005537, 0300 }, { 0, 010, 0, 0, 0, 0, STACK }, { { 0300, 0123456 } }, 0, 0, 0,
+                1, _T("(000300)=123456, C=0"), _T("") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
@@ -447,21 +524,229 @@ public:
 
     TEST_METHOD(Hint_HaltModeCommands)
     {
-        // The hints do not check the mode; the cases use the HALT mode, where the commands work
+        // The cases use the HALT mode, where the commands work
         static const HintCase cases[] =
         {
-            { _T("MFUS"), { 0000021 }, { 045, 0, 0, 0, 0, 0123, STACK }, NO_MEM, 0400, 0, 0,
-                1, _T("R5=000123, R0=000045"), _T("") },
-            { _T("MTUS"), { 0000031 }, { 045, 0, 0, 0, 0, 0123, STACK }, NO_MEM, 0400, 0, 0,
-                1, _T("R0=000045, R5=000123"), _T("") },
+            // MFUS reads (R5), MTUS overwrites (R5-2), both in the USER mode map; RAM here, the values are put there
+            { _T("MFUS"), { 0000021 }, { 045, 0, 0, 0, 0, 0124, STACK }, { { 0124, 07777 } }, 0400, 0, 0,
+                2, _T("R5=000124, R0=000045"), _T("(R5)=007777") },
+            { _T("MTUS"), { 0000031 }, { 045, 0, 0, 0, 0, 0124, STACK }, { { 0122, 05252 } }, 0400, 0, 0,
+                2, _T("R0=000045, R5=000124"), _T("(R5-2)=005252") },
             { _T("RCPC"), { 0000022 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 01234, 0,
                 1, _T("PC'=001234, R0=000045"), _T("") },
             { _T("RCPS"), { 0000024 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 0, 0340,
                 1, _T("PS'=000340, R0=000045"), _T("") },
+            { _T("RUN"),  { 0000010 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 01234, 0340,
+                1, _T("PC'=001234, PS'=000340"), _T("") },
+            { _T("STEP"), { 0000014 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 01234, 0340,
+                1, _T("PC'=001234, PS'=000340"), _T("") },
+            { _T("WCPC"), { 0000032 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 01234, 0340,
+                1, _T("R0=000045, PC'=001234"), _T("") },
+            { _T("WCPS"), { 0000034 }, { 045, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0400, 01234, 0340,
+                1, _T("R0=000045, PS'=000340"), _T("") },
         };
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
+    TEST_METHOD(Hint_HaltModeCommandsInUserModeShowTheMode)
+    {
+        // In USER mode every command 000010..000037 traps as a reserved instruction: the hint is the mode only
+        for (uint16_t instr = 0000010; instr <= 0000037; instr++)
+        {
+            const HintCase cases[] =
+            {
+                { _T("HALT-mode command"), { instr }, { 045, 0, 0, 0, 0, 0123, STACK }, NO_MEM, 0, 01234, 0340,
+                    1, _T("USER mode"), _T("") },
+            };
+            CheckHints(cases, 1);
+        }
+    }
+
+    TEST_METHOD(Hint_Jsr)
+    {
+        // JSR shows the link register, and the destination except the relative and the absolute addressing
+        // (they have the arrow); CALL (JSR PC) has no link register to show
+        static const HintCase3 cases[] =
+        {
+            { _T("JSR R5,(R1)"),    { 0004511 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0111 } }, 0,
+                1, _T("R5=000010, R1=000200"), _T(""), _T("") },
+            { _T("JSR R5,@(R1)+"),  { 0004531 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0300, 0222 } }, 0,
+                2, _T("R5=000010, R1=000200"), _T("           (R1)=000300"), _T("") },
+            { _T("JSR R5,@4(R1)"),  { 0004571, 4 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0204, 0300 } }, 0,
+                3, _T("R5=000010, R1=000200"), _T("           R1+4=000204"), _T("           (000204)=000300") },
+            { _T("JSR R3,@#200"),   { 0004337, 0200 }, { 0, 0, 0, 3, 0, 0, STACK }, NO_MEM, 0,
+                1, _T("R3=000003"), _T(""), _T("") },
+            { _T("JSR R5,10(PC)"),  { 0004567, 010 }, { 0, 0, 0, 0, 0, 010, STACK }, NO_MEM, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR SP,(R1)"),    { 0004611 }, { 0, 0200, 0, 0, 0, 0, 0400 }, { { 0200, 0111 } }, 0,
+                1, _T("SP=000400, R1=000200"), _T(""), _T("") },
+            { _T("CALL (R1)"),      { 0004711 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0111 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("CALL @#200"),     { 0004737, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, 0, _T(""), _T(""), _T("") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_JumpDestinationsAllModes)
+    {
+        // JMP, CALL (JSR PC) and JSR R5: every addressing mode of the destination, on R1 and on PC.
+        // The word at the target is the next instruction and is never shown; an address calculated from a register
+        // is "expression=address", a deferred mode adds the pointer; the relative and the absolute modes have the arrow.
+        // R1 = 0200, R5 = 010; 0200 = 0300 (a pointer), 0176 = 0301, 0204 = 0302, 01014 = 0300 (a PC-relative pointer)
+        static const HintCase3 cases[] =
+        {
+            { _T("JMP R1"), { 0101 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("JMP (R1)"), { 0111 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("JMP (R1)+"), { 0121 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("JMP @(R1)+"), { 0131 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("(R1)=000300"), _T("") },
+            { _T("JMP -(R1)"), { 0141 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("R1-2=000176"), _T("") },
+            { _T("JMP @-(R1)"), { 0151 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R1=000200"), _T("R1-2=000176"), _T("(000176)=000301") },
+            { _T("JMP 4(R1)"), { 0161, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("R1+4=000204"), _T("") },
+            { _T("JMP @4(R1)"), { 0171, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R1=000200"), _T("R1+4=000204"), _T("(000204)=000302") },
+            { _T("JMP #300"), { 0127, 0300 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP @#200"), { 0137, 0200 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP (PC)"), { 0117 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP -(PC)"), { 0147 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP @-(PC)"), { 0157 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP 10(PC)"), { 0167, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("JMP @10(PC)"), { 0177, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("(001014)=000300"), _T(""), _T("") },
+            { _T("CALL R1"), { 04701 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("CALL (R1)"), { 04711 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("CALL (R1)+"), { 04721 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R1=000200"), _T(""), _T("") },
+            { _T("CALL @(R1)+"), { 04731 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("(R1)=000300"), _T("") },
+            { _T("CALL -(R1)"), { 04741 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("R1-2=000176"), _T("") },
+            { _T("CALL @-(R1)"), { 04751 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R1=000200"), _T("R1-2=000176"), _T("(000176)=000301") },
+            { _T("CALL 4(R1)"), { 04761, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R1=000200"), _T("R1+4=000204"), _T("") },
+            { _T("CALL @4(R1)"), { 04771, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R1=000200"), _T("R1+4=000204"), _T("(000204)=000302") },
+            { _T("CALL #300"), { 04727, 0300 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL @#200"), { 04737, 0200 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL (PC)"), { 04717 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL -(PC)"), { 04747 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL @-(PC)"), { 04757 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL 10(PC)"), { 04767, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                0, _T(""), _T(""), _T("") },
+            { _T("CALL @10(PC)"), { 04777, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("(001014)=000300"), _T(""), _T("") },
+            { _T("JSR R5,R1"), { 04501 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010, R1=000200"), _T(""), _T("") },
+            { _T("JSR R5,(R1)"), { 04511 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010, R1=000200"), _T(""), _T("") },
+            { _T("JSR R5,(R1)+"), { 04521 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010, R1=000200"), _T(""), _T("") },
+            { _T("JSR R5,@(R1)+"), { 04531 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R5=000010, R1=000200"), _T("           (R1)=000300"), _T("") },
+            { _T("JSR R5,-(R1)"), { 04541 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R5=000010, R1=000200"), _T("           R1-2=000176"), _T("") },
+            { _T("JSR R5,@-(R1)"), { 04551 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R5=000010, R1=000200"), _T("           R1-2=000176"), _T("           (000176)=000301") },
+            { _T("JSR R5,4(R1)"), { 04561, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                2, _T("R5=000010, R1=000200"), _T("           R1+4=000204"), _T("") },
+            { _T("JSR R5,@4(R1)"), { 04571, 04 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                3, _T("R5=000010, R1=000200"), _T("           R1+4=000204"), _T("           (000204)=000302") },
+            { _T("JSR R5,#300"), { 04527, 0300 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,@#200"), { 04537, 0200 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,(PC)"), { 04517 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,-(PC)"), { 04547 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,@-(PC)"), { 04557 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,10(PC)"), { 04567, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010"), _T(""), _T("") },
+            { _T("JSR R5,@10(PC)"), { 04577, 010 }, { 0, 0200, 0, 0, 0, 010, STACK }, { { 0200, 0300 }, { 0176, 0301 }, { 0204, 0302 }, { 01014, 0300 } }, 0,
+                1, _T("R5=000010, (001014)=000300"), _T(""), _T("") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_ReturnsAndTrapsHaveTheNewPsw)
+    {
+        // RTI and RTT pop the PC and the PSW; a trap takes the new PC and PSW from its vector, in USER mode
+        static const HintCase3 cases[] =
+        {
+            { _T("RTI"),     { 0000002 }, { 0, 0, 0, 0, 0, 0, STACK }, { { STACK, 01234 }, { STACK + 2, 0340 } }, 0,
+                2, _T("(SP)=001234"), _T("(SP+2)=000340"), _T("") },
+            { _T("RTT"),     { 0000006 }, { 0, 0, 0, 0, 0, 0, STACK }, { { STACK, 01234 }, { STACK + 2, 0340 } }, 0,
+                2, _T("(SP)=001234"), _T("(SP+2)=000340"), _T("") },
+            { _T("BPT"),     { 0000003 }, { 0, 0, 0, 0, 0, 0, STACK }, { { 014, 0300 }, { 016, 0340 } }, 0,
+                2, _T("(000014)=000300"), _T("(000016)=000340"), _T("") },
+            { _T("IOT"),     { 0000004 }, { 0, 0, 0, 0, 0, 0, STACK }, { { 020, 0301 }, { 022, 0341 } }, 0,
+                2, _T("(000020)=000301"), _T("(000022)=000341"), _T("") },
+            { _T("EMT 5"),   { 0104005 }, { 0, 0, 0, 0, 0, 0, STACK }, { { 030, 0302 }, { 032, 0342 } }, 0,
+                2, _T("(000030)=000302"), _T("(000032)=000342"), _T("") },
+            { _T("TRAP 5"),  { 0104405 }, { 0, 0, 0, 0, 0, 0, STACK }, { { 034, 0303 }, { 036, 0343 } }, 0,
+                2, _T("(000034)=000303"), _T("(000036)=000343"), _T("") },
+            // RETURN and RTS have one line
+            { _T("RETURN"),  { 0000207 }, { 0, 0, 0, 0, 0, 0, STACK }, { { STACK, 01234 } }, 0,
+                1, _T("(SP)=001234"), _T(""), _T("") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_GetHint_JumpInstructionsHaveTheJumpFlag)
+    {
+        // isJump is set for every jump and return, also when the hint is empty or comes from the instruction hint
+        static const uint16_t jumps[] =
+        {
+            0000402, 0001002, 0003402, 0100002, 0103402,   // BR, BNE, BLE, BPL, BLO
+            0077102,                                        // SOB
+            0000111, 0000137, 0000167,                      // JMP (R1), JMP @#, JMP X(PC)
+            0004511, 0004711, 0004737,                      // JSR R5,(R1), CALL (R1), CALL @#
+            0000207, 0000205, 0000002, 0000006,             // RETURN, RTS R5, RTI, RTT
+            0000003, 0000004, 0104005, 0104405,             // BPT, IOT, EMT, TRAP
+        };
+        static const uint16_t others[] =
+        {
+            0010102, 0005001, 0006403, 0000240, 0000001, 0000000, 0000005, 0070112,  // MOV, CLR, MARK, NOP, WAIT, HALT, RESET, MUL
+        };
+        for (int kind = 0; kind < 2; kind++)
+        {
+            const uint16_t* list = kind == 0 ? jumps : others;
+            size_t count = kind == 0 ? sizeof(jumps) / sizeof(jumps[0]) : sizeof(others) / sizeof(others[0]);
+            for (size_t i = 0; i < count; i++)
+            {
+                TestBoard tb;
+                const uint16_t words[3] = { list[i], 0, 0 };
+                const uint16_t regs[7] = { 0, 0200, 0, 0, 0, 010, STACK };
+                Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
+                DisasmHint hint;
+                Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+                TCHAR msg[40];
+                _stprintf_s(msg, _T("opcode %06o"), (unsigned int) list[i]);
+                Assert::AreEqual(kind == 0, hint.isJump, msg);
+            }
+        }
+    }
     // The third line: the operand of a deferred addressing mode
 
     TEST_METHOD(Hint_ThirdLine_DeferredModes)
@@ -643,9 +928,8 @@ public:
     {
         static const JumpHintCase cases[] =
         {
-            // JSR with a register other than PC shows the link register; CALL has no jump hint
-            { _T("JSR R5,(R1)"), { 0004511 }, { 0, 0200, 0, 0, 0, 010, STACK }, NO_MEM, 0, _T("R5=000010"), true },
-            { _T("JSR R3,@#200"), { 0004337, 0200 }, { 0, 0, 0, 3, 0, 0, STACK }, NO_MEM, 0, _T("R3=000003"), true },
+            // JSR and CALL have no jump hint: the instruction hint shows the link register and the destination (Hint_Jsr)
+            { _T("JSR R5,(R1)"), { 0004511 }, { 0, 0200, 0, 0, 0, 010, STACK }, NO_MEM, 0, _T(""), true },
             { _T("CALL @#200"), { 0004737, 0200 }, { 0, 0, 0, 0, 0, 0, STACK }, NO_MEM, 0, _T(""), true },
             // RETURN is RTS PC: the new PC is the word at (SP); RTS Rn takes it from Rn, and then pops Rn
             { _T("RETURN"), { 0000207 }, { 0, 0, 0, 0, 0, 0, STACK }, { { STACK, 01234 } }, 0, _T("(SP)=001234"), true },
@@ -671,14 +955,11 @@ public:
     }
 
     // The former known bugs of the hints, fixed in Phase 3 of docs/hints-improvements.md (1.2, 1.3, 1.4, 1.5, 1.7),
-    // and the ones still open (1.1 MARK, 1.6 the name of SP). The expected text is what the processor does.
+    // and the one still open (1.6 the name of SP). The expected text is what the processor does.
 
-    // 1.1: MARK nn: SP = PC + 2*nn, where PC is the address after MARK; PC = R5; R5 = (SP)+.
+    // 1.1 (fixed in Phase 5): MARK nn: SP = PC + 2*nn, where PC is the address after MARK; PC = R5; R5 = (SP)+.
     // The hint must show the new PC (R5) and the word that becomes R5, at PROG + 2 + 2 * 3 = 01010.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_MarkShowsTheWordThatBecomesR5_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_MarkShowsTheWordThatBecomesR5_KnownBug)
+    TEST_METHOD(Hint_MarkShowsTheWordThatBecomesR5)
     {
         static const HintCase cases[] =
         {
@@ -757,15 +1038,11 @@ public:
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    // Cosmetic: the jump hints print the stack pointer as R6, the operand hints and the disassembler as SP
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_Jump_StackPointerIsNamedSp_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_Jump_StackPointerIsNamedSp_KnownBug)
+    TEST_METHOD(Hint_Jump_StackPointerIsNamedSp)
     {
+        // The stack pointer is named SP, as in the operand hints and in the disassembler (JSR SP is in Hint_Jsr)
         static const JumpHintCase cases[] =
         {
-            { _T("JSR SP,(R1)"), { 0004611 }, { 0, 0200, 0, 0, 0, 0, 0400 }, NO_MEM, 0, _T("SP=000400"), true },
             { _T("RTS SP"),      { 0000206 }, { 0, 0, 0, 0, 0, 0, 0400 }, { { 0400, 01234 } }, 0, _T("SP=000400, (SP)=001234"), true },
             { _T("SOB SP,"),     { 0077602 }, { 0, 0, 0, 0, 0, 0, 0400 }, NO_MEM, 0, _T("SP=000400"), true },
         };

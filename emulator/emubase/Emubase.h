@@ -55,18 +55,21 @@ struct DisasmHint
 /// \param[out] pHint    The lines of the hint, their number and the jump prediction
 void Disasm_GetHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, DisasmHint* pHint);
 
-// Prepare "Jump Hint" string, and also calculate condition for conditional jump
+// A wrapper for the callers of the old interface; the application uses Disasm_GetHint() instead.
+// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one), the first two lines
+// buffer, buffer2 - buffers for 1st and 2nd lines of the instruction hint, min size 42
+// Returns: number of hint lines, at most 2; 0 = no hints
+int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
+        const CMemoryController * pMemCtl,
+        LPTSTR buffer, LPTSTR buffer2);
+
+// A wrapper over the jump hint code of Disasm_GetHint(), kept for the callers that use the old interface: the application
+// itself calls Disasm_GetHint(). Gives the first line of the jump hint only (a string buffer of at
+// least 32 characters; empty if the instruction has no jump hint) and calculates the condition for a conditional jump
 // Returns: jump prediction flag: true = will jump, false = will not jump
 bool Disasm_GetJumpConditionHint(
     const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer);
 
-// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one), the first two lines
-// buffer, buffer2 - buffers for 1st and 2nd lines of the instruction hint, min size 42
-// Returns: number of hint lines, at most 2; 0 = no hints
-// Disasm_GetHint() gives up to three lines
-int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
-        const CMemoryController * pMemCtl,
-        LPTSTR buffer, LPTSTR buffer2);
 
 //////////////////////////////////////////////////////////////////////
 // CFloppy
