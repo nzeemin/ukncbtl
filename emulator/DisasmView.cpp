@@ -79,10 +79,14 @@ const int MAX_DISASMLINECOUNT = 50;
 DisasmLineItem* m_pDisasmLineItems = nullptr;
 
 BOOL  m_okDisasmJumpPredict;
-TCHAR m_strDisasmHint[42] = { 0 };
-TCHAR m_strDisasmHint2[42] = { 0 };
+DisasmHint m_Hint;  // Hints of the current instruction, up to DISASM_HINT_LINES lines
 
 const int DISASMVIEW_WIDTH_CHARS = 80;  // Fixed width of the view, in characters
+const int DISASMVIEW_TOP = 2;  // Y of the first row
+const int DISASMVIEW_WINDOW_WORDS = 30;  // The window of the memory read for the rows, in words
+const int DISASMVIEW_ROWS_BEFORE_PC = 5;  // The window starts this many words before PC, so the PC row is at this index
+// The PC row and its two following words must be inside the window, and the window must fit into the rows
+static_assert(DISASMVIEW_ROWS_BEFORE_PC + 2 < DISASMVIEW_WINDOW_WORDS, "The PC row and its words must be in the window");
 
 int m_cxDisasmBreakpointZone = 16;  // Width of breakpoint zone at the left, for mouse click
 int m_cyDisasmLine = 10;  // cyLine for the current font
@@ -302,7 +306,7 @@ void DisasmView_OnRButtonDown(int mousex, int mousey)
     DisasmLineItem* pLineItem = nullptr;
     if (lineindex >= 0 && lineindex < MAX_DISASMLINECOUNT)
         pLineItem = m_pDisasmLineItems + lineindex;
-    if (pLineItem->type == LINETYPE_NONE)
+    if (pLineItem != nullptr && pLineItem->type == LINETYPE_NONE)
         pLineItem = nullptr;
 
     m_nDisasmSelectedLineIndex = (pLineItem == nullptr) ? m_nDisasmCurrentLineIndex : lineindex;
@@ -584,28 +588,60 @@ void DisasmView_OnUpdate()
 
     ASSERT(m_pDisasmLineItems != nullptr);
     memset(m_pDisasmLineItems, 0, sizeof(DisasmLineItem) * MAX_DISASMLINECOUNT);
-    m_strDisasmHint[0] = 0;
-    m_strDisasmHint2[0] = 0;
+    m_Hint.count = 0;
+    m_okDisasmJumpPredict = FALSE;
 
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
     uint16_t proccurrent = pProc->GetPC();
     uint16_t current = m_wDisasmBaseAddr;
     uint16_t previous = (m_okDisasmProcessor) ? g_wEmulatorPrevCpuPC : g_wEmulatorPrevPpuPC;
 
-    // Read from the processor memory to the buffer
-    const int nWindowSize = 30;
+    // Read from the processor memory to the buffer; the two words after the window are for the instructions
+    // in the last rows, which can have extra words. The addresses wrap around 16 bits, so the positions in
+    // the window are word indexes, counted from the window start; no comparison of the addresses.
+    const int nWindowSize = DISASMVIEW_WINDOW_WORDS;
     uint16_t memory[nWindowSize + 2];
     int addrtype[nWindowSize + 2];
-    for (int idx = 0; idx < nWindowSize; idx++)
+    uint16_t windowStart = (uint16_t)(current - DISASMVIEW_ROWS_BEFORE_PC * 2);
+    for (int idx = 0; idx < nWindowSize + 2; idx++)
     {
         memory[idx] = pMemCtl->GetWordView(
-                (uint16_t)(current + idx * 2 - 10), pProc->IsHaltMode(), true, addrtype + idx);
+                (uint16_t)(windowStart + idx * 2), pProc->IsHaltMode(), true, addrtype + idx);
     }
 
-    uint16_t address = current - 10;
-    uint16_t disasmfrom = current;
-    if (previous >= address && previous < current)
-        disasmfrom = previous;
+    uint16_t address = windowStart;
+
+    // The index of the word where decoding starts: the PC row, or the previous PC when the decoding
+    // from there lands exactly on the PC row. Otherwise the walk can run through the PC row as an operand word
+    // of the previous instruction, and the PC row would get no mnemonic and no hint.
+    int disasmfrom = DISASMVIEW_ROWS_BEFORE_PC;
+    uint16_t previousOffset = (uint16_t)(previous - windowStart);  // in bytes
+    if (previousOffset < DISASMVIEW_ROWS_BEFORE_PC * 2)
+    {
+        int walk = previousOffset / 2;
+        while (walk < DISASMVIEW_ROWS_BEFORE_PC)
+        {
+            uint16_t walkAddress = (uint16_t)(windowStart + walk * 2);
+            // A row that the subtitles mark as data is one word, as in the main loop below
+            bool okWalkData = false;
+            if (m_okDisasmSubtitles)
+            {
+                const DisasmSubtitleItem* pWalkSub = DisasmView_FindSubtitle(walkAddress, SUBTYPE_COMMENT | SUBTYPE_DATA);
+                okWalkData = (pWalkSub != nullptr && (pWalkSub->type & SUBTYPE_DATA) != 0);
+            }
+            int walkLength = 1;
+            if (!okWalkData)
+            {
+                TCHAR strInstr[16];
+                TCHAR strArg[40];
+                walkLength = DisassembleInstruction(memory + walk, walkAddress, strInstr, strArg);
+                if (walkLength < 1) walkLength = 1;
+            }
+            walk += walkLength;
+        }
+        if (walk == DISASMVIEW_ROWS_BEFORE_PC)
+            disasmfrom = previousOffset / 2;
+    }
 
     // Prepare the list of lines in m_pDisasmLineItems
     int lineindex = 0;
@@ -648,15 +684,15 @@ void DisasmView_OnUpdate()
                 pLineItem->type |= LINETYPE_SUBTITLE;
                 pLineItem->pSubItem = pSubItem;
                 // We can use the subtitle line as an anchor for the disassembler
-                if (disasmfrom > address)
-                    disasmfrom = address;
+                if (disasmfrom > index)
+                    disasmfrom = index;
             }
         }
 
         if ((pLineItem->type & LINETYPE_DATA) == 0)
             pLineItem->type |= LINETYPE_INSTR;  // if it's not a data then an instruction
 
-        if (address >= disasmfrom && length == 0)
+        if (index >= disasmfrom && length == 0)
         {
             if (okData)  // We have non-instruction on the address -- no need to disassemble
             {
@@ -669,18 +705,15 @@ void DisasmView_OnUpdate()
 
                 if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
                 {
-                    if (Disasm_CheckForJump(memory + index, &pLineItem->jumpdelta))
+                    if (Disasm_CheckForJump(memory + index, address, &pLineItem->jumpdelta))
                     {
                         pLineItem->type |= LINETYPE_JUMP;
                     }
 
                     if (address == proccurrent)  // For current instruction, prepare the instruction hints
                     {
-                        m_okDisasmJumpPredict = Disasm_GetJumpConditionHint(memory + index, pProc, pMemCtl, m_strDisasmHint);
-                        if (*m_strDisasmHint == 0)  // we don't have the jump hint
-                        {
-                            Disasm_GetInstructionHint(memory + index, pProc, pMemCtl, m_strDisasmHint, m_strDisasmHint2);
-                        }
+                        Disasm_GetHint(memory + index, pProc, pMemCtl, &m_Hint);
+                        m_okDisasmJumpPredict = m_Hint.jumpPredict;
                     }
                 }
             }
@@ -704,6 +737,8 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLOR
     if (dist < 2) dist = 2;
     if (dist > 20) dist = 16;
 
+    // The arrow starts at the middle of the row of the jump instruction and ends at the top edge of the target
+    // row: the target instruction is not executed yet, the execution arrives to it from above on the next step
     int yTo = yFrom + delta * cyLine;
     yFrom += cyLine / 2;
 
@@ -778,7 +813,7 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
 
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     int x = 32 + 4 - cxChar * 4;
-    int y = 2;
+    int y = DISASMVIEW_TOP;
     m_cxDisasmBreakpointZone = cxChar * 5 / 2;
     m_cyDisasmLine = cyLine;
     COLORREF colorText = Settings_GetColor(ColorDebugText);
@@ -790,6 +825,9 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
     ::SetTextColor(hdc, colorText);
 
     uint16_t proccurrent = pProc->GetPC();
+    // The window is always built around PC (DisasmView_OnUpdate), so the PC row is the row DISASMVIEW_ROWS_BEFORE_PC:
+    // the current-line bar and the PC marker rely on this
+    ASSERT(current == proccurrent);
 
     // Draw breakpoint zone
     COLORREF colorBreakptZone = Settings_GetColor(ColorDebugBreakptZone);
@@ -802,11 +840,14 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
     // Draw current line background
     if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
     {
-        int yCurrent = (proccurrent - (current - 5)) * cyLine;
+        // The PC row is always the row number DISASMVIEW_ROWS_BEFORE_PC. The bar starts DISASMVIEW_TOP pixels
+        // above the text of the row, on purpose: the text of the rows starts at DISASMVIEW_TOP
+        int yCurrent = DISASMVIEW_ROWS_BEFORE_PC * cyLine;
+        RECT rcViewer;  GetClientRect(m_hwndDisasmViewer, &rcViewer);
         COLORREF colorBackCurr = Settings_GetColor(ColorDebugBackCurrent);
         HBRUSH hBrushCurrent = ::CreateSolidBrush(colorBackCurr);
         HGDIOBJ oldBrush = ::SelectObject(hdc, hBrushCurrent);
-        PatBlt(hdc, 0, yCurrent, 1000, cyLine, PATCOPY);
+        PatBlt(hdc, 0, yCurrent, rcViewer.right, cyLine, PATCOPY);
         ::SelectObject(hdc, oldBrush);
         VERIFY(::DeleteObject(hBrushCurrent));
     }
@@ -898,13 +939,15 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
                 }
             }
 
-            if (address == proccurrent && *m_strDisasmHint != 0)  // For current instruction, draw "Instruction Hints"
+            if (address == proccurrent && m_Hint.count > 0)  // For current instruction, draw "Instruction Hints"
             {
                 COLORREF hintcolor = Settings_GetColor(isjump ? ColorDebugJumpHint : ColorDebugHint);
                 ::SetTextColor(hdc, hintcolor);
-                TextOut(hdc, x + 52 * cxChar, y, m_strDisasmHint, static_cast<int>(_tcslen(m_strDisasmHint)));
-                if (*m_strDisasmHint2 != 0)
-                    TextOut(hdc, x + 52 * cxChar, y + cyLine, m_strDisasmHint2, static_cast<int>(_tcslen(m_strDisasmHint2)));
+                for (int i = 0; i < m_Hint.count; i++)
+                {
+                    const TCHAR* strHint = m_Hint.lines[i];
+                    TextOut(hdc, x + 52 * cxChar, y + i * cyLine, strHint, static_cast<int>(_tcslen(strHint)));
+                }
                 ::SetTextColor(hdc, colorText);
             }
         }

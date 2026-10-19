@@ -28,21 +28,45 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \return  Number of words in the instruction
 uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHAR* sArg);
 
-bool Disasm_CheckForJump(const uint16_t* memory, int* pDelta);
+/// \brief Check if the instruction is a jump with a known target, for the jump arrow
+/// \param[in]  memory   Memory image: the instruction and the word after it (the offset or the address of the target)
+/// \param[in]  address  Address of the instruction
+/// \param[out] pDelta   Distance in words from the instruction to the target, negative = back
+/// \return  true if the instruction is a jump with a known target
+bool Disasm_CheckForJump(const uint16_t* memory, uint16_t address, int* pDelta);
+
+// Hints of the current instruction: up to three lines of text and the jump prediction
+#define DISASM_HINT_LINES       3
+#define DISASM_HINT_SIZE        64   ///< Size of a hint line, in characters, including the terminator
+#define DISASM_HINT_PIECE_SIZE  24   ///< Size of a hint of one operand, a line joins the hints of the source and the destination
+
+struct DisasmHint
+{
+    TCHAR lines[DISASM_HINT_LINES][DISASM_HINT_SIZE];  ///< The lines; the unused ones are empty
+    int   count;        ///< Number of the lines used, 0..3; 0 = no hints
+    bool  isJump;       ///< The text is a jump hint
+    bool  jumpPredict;  ///< Jump prediction flag: true = will jump, false = will not jump
+};
+
+/// \brief Prepare the hints of the instruction at PC
+/// \param[in]  memory   Memory image: the instruction and the two words after it
+/// \param[in]  pProc    Processor, the instruction is at its PC
+/// \param[in]  pMemCtl  Memory controller of the processor
+/// \param[out] pHint    The lines of the hint, their number and the jump prediction
+void Disasm_GetHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, DisasmHint* pHint);
 
 // Prepare "Jump Hint" string, and also calculate condition for conditional jump
 // Returns: jump prediction flag: true = will jump, false = will not jump
 bool Disasm_GetJumpConditionHint(
     const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer);
 
-// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one)
+// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one), the first two lines
 // buffer, buffer2 - buffers for 1st and 2nd lines of the instruction hint, min size 42
-// Returns: number of hint lines; 0 = no hints
-int Disasm_GetInstructionHint(
-    const uint16_t* memory, const CProcessor * pProc,
-    const CMemoryController * pMemCtl,
-    LPTSTR buffer, LPTSTR buffer2);
-
+// Returns: number of hint lines, at most 2; 0 = no hints
+// Disasm_GetHint() gives up to three lines
+int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
+        const CMemoryController * pMemCtl,
+        LPTSTR buffer, LPTSTR buffer2);
 
 //////////////////////////////////////////////////////////////////////
 // CFloppy

@@ -63,17 +63,9 @@ void CheckJumpCases(const JumpCase* cases, size_t count)
         TCHAR msg[40];
         _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i].words[0]);
         int delta = 12345;
-        Assert::IsTrue(Disasm_CheckForJump(cases[i].words, &delta), msg);
+        Assert::IsTrue(Disasm_CheckForJump(cases[i].words, 01000, &delta), msg);  // the address does not matter here
         Assert::AreEqual(cases[i].delta, delta, msg);
     }
-}
-
-// Disasm_CheckForJump with the address of the instruction, which the absolute jumps need
-// (docs/hints-improvements.md, 4.1). Until the function takes the address, the argument is ignored.
-bool CheckForJumpAt(const uint16_t* memory, uint16_t address, int* pDelta)
-{
-    UNREFERENCED_PARAMETER(address);
-    return Disasm_CheckForJump(memory, pDelta);
 }
 
 struct AbsoluteJumpCase
@@ -90,7 +82,7 @@ void CheckAbsoluteJumpCases(const AbsoluteJumpCase* cases, size_t count)
         TCHAR msg[60];
         _stprintf_s(msg, _T("opcode %06o at %06o"), (unsigned int) cases[i].words[0], (unsigned int) cases[i].addr);
         int delta = 12345;
-        Assert::IsTrue(CheckForJumpAt(cases[i].words, cases[i].addr, &delta), msg);
+        Assert::IsTrue(Disasm_CheckForJump(cases[i].words, cases[i].addr, &delta), msg);
         Assert::AreEqual(cases[i].delta, delta, msg);
     }
 }
@@ -502,7 +494,7 @@ public:
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) opcodes[i]);
             uint16_t memory[2] = { opcodes[i], 0 };
             int delta = 12345;
-            Assert::IsTrue(Disasm_CheckForJump(memory, &delta), msg);
+            Assert::IsTrue(Disasm_CheckForJump(memory, 01000, &delta), msg);
             Assert::AreEqual(4, delta, msg);
         }
     }
@@ -520,13 +512,9 @@ public:
         CheckJumpCases(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    // Known bug: JSR with a link register other than PC and the relative addressing is a static jump
-    // like CALL, but it gets no arrow. The tracked opcodes are only 0004767 (CALL) and 0000167 (JMP).
-    BEGIN_TEST_METHOD_ATTRIBUTE(Disasm_CheckForJumpJsrOtherRegisters_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Disasm_CheckForJumpJsrOtherRegisters_KnownBug)
+    TEST_METHOD(Disasm_CheckForJumpJsrOtherRegisters)
     {
+        // JSR with a link register other than PC and the relative addressing is a static jump like CALL
         static const JumpCase cases[] =
         {
             { { 0004067, 0000000 },  2 },   // JSR R0, next
@@ -537,14 +525,9 @@ public:
         CheckJumpCases(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    // Missing feature: JMP and CALL with an absolute address have a known target, but the function
-    // does not get the address of the instruction and gives no arrow (4.1). The test uses the address
-    // through CheckForJumpAt(), which passes it on when the function takes it.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Disasm_CheckForJumpAbsolute_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Disasm_CheckForJumpAbsolute_KnownBug)
+    TEST_METHOD(Disasm_CheckForJumpAbsolute)
     {
+        // JMP and CALL with an absolute address: the distance is computed from the address of the instruction
         static const AbsoluteJumpCase cases[] =
         {
             { 01000, { 0000137, 01100 },  32 },   // JMP @#1100: (01100 - 01000) / 2
@@ -558,7 +541,7 @@ public:
 
     TEST_METHOD(Disasm_CheckForJumpAbsoluteOddTargetHasNoArrow)
     {
-        // An odd address is not a valid target of a jump: no arrow, now and when absolute jumps get one
+        // An odd address is not a valid target of a jump: no arrow
         static const uint16_t cases[][2] =
         {
             { 0000137, 01001 },  // JMP @#1001
@@ -569,7 +552,25 @@ public:
             TCHAR msg[40];
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i][0]);
             int delta = 12345;
-            Assert::IsFalse(CheckForJumpAt(cases[i], 01000, &delta), msg);
+            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000, &delta), msg);
+        }
+    }
+
+    TEST_METHOD(Disasm_CheckForJumpRelativeOddTargetHasNoArrow)
+    {
+        // The instruction address is even, so an odd offset gives an odd target: no arrow, as for the absolute form
+        static const uint16_t cases[][2] =
+        {
+            { 0000167, 0000001 },  // JMP 1(PC)
+            { 0004767, 0000003 },  // CALL 3(PC)
+            { 0004567, 0177777 },  // JSR R5,-1(PC)
+        };
+        for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+        {
+            TCHAR msg[40];
+            _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i][0]);
+            int delta = 12345;
+            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000, &delta), msg);
         }
     }
 
@@ -578,9 +579,11 @@ public:
         static const uint16_t cases[] =
         {
             0000000,  // HALT
-            0004000,  // JSR R0,... is not tracked
-            0004737,  // CALL @#addr: the target is not relative
+            0004000,  // JSR R0,R0: a register is not a target
+            0004511,  // JSR R5,(R1): the target depends on a register
             0000111,  // JMP (R1)
+            0000121,  // JMP (R1)+
+            0000177,  // JMP @X(PC): the target is in memory
             0010001,  // MOV
             0104000,  // EMT
             0104400,  // TRAP
@@ -592,7 +595,7 @@ public:
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i]);
             uint16_t memory[2] = { cases[i], 0 };
             int delta = 12345;
-            Assert::IsFalse(Disasm_CheckForJump(memory, &delta), msg);
+            Assert::IsFalse(Disasm_CheckForJump(memory, 01000, &delta), msg);
         }
     }
 };

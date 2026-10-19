@@ -38,6 +38,8 @@ struct MemWord
 
 const int MAX_MEM = 4;
 
+const MemWord NO_MEM_ARRAY[MAX_MEM] = { { 0, 0 } };
+
 struct HintCase
 {
     const TCHAR* name;
@@ -120,6 +122,45 @@ void CheckJumpHints(const JumpHintCase* cases, size_t count)
 {
     for (size_t i = 0; i < count; i++)
         CheckJumpHint(cases[i]);
+}
+
+// The cases of Disasm_GetHint: up to three lines
+struct HintCase3
+{
+    const TCHAR* name;
+    uint16_t words[3];
+    uint16_t regs[7];
+    MemWord mem[MAX_MEM];
+    uint16_t psw;
+    int lines;
+    const TCHAR* line1;
+    const TCHAR* line2;
+    const TCHAR* line3;
+};
+
+void CheckHint3(const HintCase3& c)
+{
+    TestBoard tb;
+    Prepare(tb, c.words, 3, c.regs, c.mem, c.psw, 0, 0);
+
+    DisasmHint hint;
+    Disasm_GetHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+
+    TCHAR msg[100];
+    _stprintf_s(msg, _T("%s, opcode %06o: lines"), c.name, (unsigned int) c.words[0]);
+    Assert::AreEqual(c.lines, hint.count, msg);
+    _stprintf_s(msg, _T("%s, opcode %06o: line 1"), c.name, (unsigned int) c.words[0]);
+    Assert::AreEqual(c.line1, hint.lines[0], msg);
+    _stprintf_s(msg, _T("%s, opcode %06o: line 2"), c.name, (unsigned int) c.words[0]);
+    Assert::AreEqual(c.line2, hint.lines[1], msg);
+    _stprintf_s(msg, _T("%s, opcode %06o: line 3"), c.name, (unsigned int) c.words[0]);
+    Assert::AreEqual(c.line3, hint.lines[2], msg);
+}
+
+void CheckHints3(const HintCase3* cases, size_t count)
+{
+    for (size_t i = 0; i < count; i++)
+        CheckHint3(cases[i]);
 }
 
 }
@@ -421,6 +462,109 @@ public:
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
+    // The third line: the operand of a deferred addressing mode
+
+    TEST_METHOD(Hint_ThirdLine_DeferredModes)
+    {
+        // Line 2 is the pointer, line 3 is the operand at the pointer. The word at 0300 is 0123456
+        // (low byte 056, high byte 0247), the word at 0300 for the byte case is 0111111 (high byte 0222).
+        static const HintCase3 cases[] =
+        {
+            { _T("CLR @(R1)+"),   { 0005031 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 }, { 0300, 0123456 } }, 0,
+                3, _T("R1=000200"), _T("(R1)=000300"), _T("(000300)=123456") },
+            { _T("CLR @-(R1)"),   { 0005051 }, { 0, 0202, 0, 0, 0, 0, STACK }, { { 0200, 0300 }, { 0300, 0123456 } }, 0,
+                3, _T("R1=000202"), _T("(R1-2)=000300"), _T("(000300)=123456") },
+            { _T("CLR @4(R1)"),   { 0005071, 4 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0204, 0300 }, { 0300, 0123456 } }, 0,
+                3, _T("R1=000200"), _T("(R1+000004)=000300"), _T("(000300)=123456") },
+            { _T("CLRB @(R1)+"),  { 0105031 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0301 }, { 0300, 0111111 } }, 0,
+                3, _T("R1=000200"), _T("(R1)=000301"), _T("(000301)=222") },  // the pointer is odd: the high byte
+            { _T("MOV @(R1)+,R2"), { 0013102 }, { 0, 0200, 7, 0, 0, 0, STACK }, { { 0200, 0300 }, { 0300, 0123456 } }, 0,
+                3, _T("R1=000200, R2=000007"), _T("(R1)=000300"), _T("(000300)=123456") },
+            { _T("ADC @(R1)+"),   { 0005531 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0300 }, { 0300, 0123456 } }, 0,
+                3, _T("R1=000200, C=0"), _T("(R1)=000300"), _T("(000300)=123456") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_ThirdLine_PcDeferred)
+    {
+        // @X(PC): the pointer is at the PC-relative address (01004 + 0177174 = 0200), it goes to line 1,
+        // and the operand to line 2
+        static const HintCase3 cases[] =
+        {
+            { _T("MOV @X(PC),R1"), { 0017701, 0177174 }, { 0, 5, 0, 0, 0, 0, STACK }, { { 0200, 0300 }, { 0300, 0123456 } }, 0,
+                2, _T("(000200)=000300, R1=000005"), _T("(000300)=123456"), _T("") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_ThirdLine_SourceAndDestination)
+    {
+        static const HintCase3 cases[] =
+        {
+            // Both operands are deferred: every line joins two pieces
+            { _T("MOV @(R1)+,@(R2)+"), { 0013132 }, { 0, 0200, 0210, 0, 0, 0, STACK },
+                { { 0200, 0300 }, { 0210, 0310 }, { 0300, 0111 }, { 0310, 0222 } }, 0,
+                3, _T("R1=000200, R2=000210"), _T("(R1)=000300, (R2)=000310"), _T("(000300)=000111, (000310)=000222") },
+            // Only the destination is deferred: the pieces of the lines 2 and 3 are aligned under the destination piece
+            { _T("MOV R1,@(R2)+"), { 0010132 }, { 0, 7, 0210, 0, 0, 0, STACK }, { { 0210, 0310 }, { 0310, 0222 } }, 0,
+                3, _T("R1=000007, R2=000210"), _T("           (R2)=000310"), _T("           (000310)=000222") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_ThirdLine_IoAndUnknownPointers)
+    {
+        // "I/O" is not a value: when the pointer is an I/O port there is no third line;
+        // when the operand is in the I/O range, the third line shows it as "I/O"
+        static const HintCase3 cases[] =
+        {
+            { _T("CLR @(R1)+, the pointer is I/O"), { 0005031 }, { 0, 0177560, 0, 0, 0, 0, STACK }, NO_MEM, 0,
+                2, _T("R1=177560"), _T("(R1)=I/O"), _T("") },
+            { _T("CLR @(R1)+, the operand is I/O"), { 0005031 }, { 0, 0200, 0, 0, 0, 0, STACK }, { { 0200, 0177560 } }, 0,
+                3, _T("R1=000200"), _T("(R1)=177560"), _T("(177560)=I/O") },
+        };
+        CheckHints3(cases, sizeof(cases) / sizeof(cases[0]));
+    }
+
+    TEST_METHOD(Hint_GetHint_JumpFlagAndPrediction)
+    {
+        // Disasm_GetHint gives the jump hint if the instruction has one, the instruction hint otherwise
+        {
+            TestBoard tb;
+            const uint16_t words[3] = { 0001002, 0, 0 };  // BNE
+            const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
+            Prepare(tb, words, 3, regs, NO_MEM_ARRAY, TF_Z, 0, 0);
+            DisasmHint hint;
+            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            Assert::AreEqual(1, hint.count, _T("BNE: lines"));
+            Assert::IsTrue(hint.isJump, _T("BNE: isJump"));
+            Assert::IsFalse(hint.jumpPredict, _T("BNE with Z set: the jump is not taken"));
+            Assert::AreEqual(_T("Z=1"), hint.lines[0], _T("BNE: text"));
+        }
+        {
+            TestBoard tb;
+            const uint16_t words[3] = { 0010102, 0, 0 };  // MOV R1,R2
+            const uint16_t regs[7] = { 0, 1, 2, 0, 0, 0, STACK };
+            Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
+            DisasmHint hint;
+            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            Assert::AreEqual(1, hint.count, _T("MOV: lines"));
+            Assert::IsFalse(hint.isJump, _T("MOV: isJump"));
+            Assert::AreEqual(_T("R1=000001, R2=000002"), hint.lines[0], _T("MOV: text"));
+            Assert::AreEqual(_T(""), hint.lines[1], _T("MOV: the unused line is empty"));
+        }
+        {
+            TestBoard tb;
+            const uint16_t words[3] = { 0000240, 0, 0 };  // NOP
+            const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
+            Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
+            DisasmHint hint;
+            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            Assert::AreEqual(0, hint.count, _T("NOP: no hint"));
+        }
+    }
+
     // The jump hints
 
     TEST_METHOD(Hint_Jump_NoHint)
@@ -526,7 +670,8 @@ public:
         CheckJumpHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    // Known bugs of the hints, see docs/hints-improvements.md. The expected text is what the processor does.
+    // The former known bugs of the hints, fixed in Phase 3 of docs/hints-improvements.md (1.2, 1.3, 1.4, 1.5, 1.7),
+    // and the ones still open (1.1 MARK, 1.6 the name of SP). The expected text is what the processor does.
 
     // 1.1: MARK nn: SP = PC + 2*nn, where PC is the address after MARK; PC = R5; R5 = (SP)+.
     // The hint must show the new PC (R5) and the word that becomes R5, at PROG + 2 + 2 * 3 = 01010.
@@ -544,10 +689,7 @@ public:
     }
 
     // 1.2: the destination is evaluated after the autoincrement / autodecrement of the source
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_DestinationSeesTheAutoincrementOfTheSource_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_DestinationSeesTheAutoincrementOfTheSource_KnownBug)
+    TEST_METHOD(Hint_DestinationSeesTheAutoincrementOfTheSource)
     {
         static const HintCase cases[] =
         {
@@ -567,10 +709,7 @@ public:
 
     // 1.3: PC as a register has an extra word only in the modes 2, 3, 6 and 7. MOV PC,2(R1) has one
     // extra word (the index of the destination), and the hint takes it for the word of the source.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_PcRegisterWithoutAnExtraWord_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_PcRegisterWithoutAnExtraWord_KnownBug)
+    TEST_METHOD(Hint_PcRegisterWithoutAnExtraWord)
     {
         static const HintCase cases[] =
         {
@@ -583,10 +722,7 @@ public:
     }
 
     // 1.4: a byte operation with -(SP) steps by 2, so the operand is the low byte of the word at SP-2
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_ByteDecrementOfSpSteps2_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_ByteDecrementOfSpSteps2_KnownBug)
+    TEST_METHOD(Hint_ByteDecrementOfSpSteps2)
     {
         static const HintCase cases[] =
         {
@@ -597,10 +733,7 @@ public:
     }
 
     // 1.7: SUB has the bit 15 set, but it is a word operation: the operand is a word
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_SubIsAWordOperation_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_SubIsAWordOperation_KnownBug)
+    TEST_METHOD(Hint_SubIsAWordOperation)
     {
         static const HintCase cases[] =
         {
@@ -612,10 +745,7 @@ public:
 
     // 1.5: an I/O port is not memory: reading it from the view gives 0, and the hint must not show it as a value.
     // The CPU in USER mode sees 0160000-0177777 as I/O.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hint_IoPortIsNotShownAsAValue_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hint_IoPortIsNotShownAsAValue_KnownBug)
+    TEST_METHOD(Hint_IoPortIsNotShownAsAValue)
     {
         static const HintCase cases[] =
         {
