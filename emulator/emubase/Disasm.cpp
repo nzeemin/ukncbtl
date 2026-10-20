@@ -511,7 +511,7 @@ static bool Disasm_MemoryHint(LPTSTR hint, size_t hintsize, const CMemoryControl
     return okValue;
 }
 
-// "(label)=HHHHHH:LLLLLL": a 32-bit FIS value, two words at the address and at address + 2.
+// "(label)=HHHHHH:LLLLLL = value": a 32-bit FIS value, two words at the address and at address + 2.
 // An odd address cannot be read as a word pair (bus error); a pair that is not readable shows N/A or I/O.
 static void Disasm_PairHint(LPTSTR hint, size_t hintsize, const CMemoryController * pMemCtl, bool haltMode,
         LPCTSTR label, uint16_t address)
@@ -526,7 +526,11 @@ static void Disasm_PairHint(LPTSTR hint, size_t hintsize, const CMemoryControlle
     bool okHigh = Disasm_ReadHintValue(pMemCtl, haltMode, address, false, &high, strHigh);
     bool okLow = Disasm_ReadHintValue(pMemCtl, haltMode, static_cast<uint16_t>(address + 2), false, &low, strLow);
     if (okHigh && okLow)
-        _sntprintf(hint, hintsize - 1, _T("%s=%s:%s"), label, strHigh, strLow);  // "(RN)=HHHHHH:LLLLLL"
+    {
+        TCHAR strValue[32];
+        Disasm_FloatToString(high, low, strValue, sizeof(strValue) / sizeof(strValue[0]));
+        _sntprintf(hint, hintsize - 1, _T("%s=%s:%s = %s"), label, strHigh, strLow, strValue);  // "(RN)=HHHHHH:LLLLLL = value"
+    }
     else
         _sntprintf(hint, hintsize - 1, _T("%s=%s"), label, okHigh ? strLow : strHigh);  // "(RN)=N/A" or "(RN)=I/O"
 }
@@ -1004,19 +1008,18 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
     }
 
     // FADD, FSUB, FMUL, FDIV: the register points at the arguments, the first one at (Rn), the second at (Rn+4);
-    // the roles are not claimed, the values are shown by position. Line 1: the register; line 2: the two values.
+    // the roles are not claimed, the values are shown by position. Line 1: the register; lines 2 and 3: the two values.
     if ((instr & ~static_cast<uint16_t>(7)) == PI_FADD || (instr & ~static_cast<uint16_t>(7)) == PI_FSUB ||
         (instr & ~static_cast<uint16_t>(7)) == PI_FMUL || (instr & ~static_cast<uint16_t>(7)) == PI_FDIV)
     {
         int reg = instr & 7;
         uint16_t regval = pProc->GetReg(reg);
         _sntprintf(buffer, buffersize - 1, _T("%s=%06o"), REGISTER_NAME[reg], regval);  // "RN=XXXXXX"
-        TCHAR label[16], pair1[DISASM_HINT_PIECE_SIZE + 8], pair2[DISASM_HINT_PIECE_SIZE + 8];
+        TCHAR label[16];
         _sntprintf(label, 15, _T("(%s)"), REGISTER_NAME[reg]);
-        Disasm_PairHint(pair1, sizeof(pair1) / sizeof(pair1[0]), pMemCtl, pProc->IsHaltMode(), label, regval);
+        Disasm_PairHint(buffer2, buffersize, pMemCtl, pProc->IsHaltMode(), label, regval);  // "(RN)=HHHHHH:LLLLLL = value"
         _sntprintf(label, 15, _T("(%s+4)"), REGISTER_NAME[reg]);
-        Disasm_PairHint(pair2, sizeof(pair2) / sizeof(pair2[0]), pMemCtl, pProc->IsHaltMode(), label, static_cast<uint16_t>(regval + 4));
-        _sntprintf(buffer2, buffersize - 1, _T("%s, %s"), pair1, pair2);  // "(RN)=HHHHHH:LLLLLL, (RN+4)=HHHHHH:LLLLLL"
+        Disasm_PairHint(buffer3, buffersize, pMemCtl, pProc->IsHaltMode(), label, static_cast<uint16_t>(regval + 4));  // "(RN+4)=..."
     }
 
     // HALT mode commands (000010..000037): in USER mode they trap as a reserved instruction, so the hint is only the mode
@@ -1111,4 +1114,52 @@ void Disasm_GetHint(const uint16_t* memory, const CProcessor * pProc, const CMem
         return;
     }
     pHint->count = Disasm_InstructionHintLines(memory, pProc, pMemCtl, pHint);
+}
+
+// Round the absolute value to the 24-bit mantissa of the FIS number
+static double Disasm_RoundMantissa24(double value)
+{
+    int e;
+    double m = frexp(fabs(value), &e);
+    return ldexp(floor(m * 16777216.0 + 0.5), e - 24);
+}
+
+void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t bufferSize)
+{
+    int exp = (high >> 7) & 0xFF;
+    double res;
+    if (exp == 0)  // zero exponent means real zero (0.0)
+        res = 0.0;
+    else if (exp >= 3)
+    {
+        // DEC and IEEE single share the layout; DEC exponent = IEEE exponent + 2
+        // (bias 128 and mantissa 0.1m vs bias 127 and 1.m), so subtract 1 from the high 7 bits of exponent
+        uint32_t bits = (static_cast<uint32_t>(high) << 16) | low;
+        bits = (bits & 0x80FFFFFF) | (((((bits >> 24) & 0x7F) - 1) & 0x7F) << 24);
+        float fvalue;  memcpy(&fvalue, &bits, sizeof(fvalue));
+        res = fvalue;
+    }
+    else  // the result would be denormal in IEEE single
+    {
+        uint32_t mant = ((static_cast<uint32_t>(high) << 16 | low) & 0x7FFFFF) | 0x800000;
+        res = ldexp(static_cast<double>(mant) / 16777216.0, exp - 128);
+        if ((high & 0x8000) != 0) res = -res;
+    }
+    // Use the shortest representation that gives back the same 24-bit mantissa (at most 9 digits);
+    // "%g" with a short precision switches to the exponent form too early, so keep the integer digits
+    int digits = 1;
+    if (res != 0.0)
+    {
+        int intdigits = static_cast<int>(floor(log10(fabs(res)))) + 1;
+        if (intdigits > 1 && intdigits <= 9) digits = intdigits;
+    }
+    for (; digits < 9; digits++)
+    {
+        _sntprintf(buffer, bufferSize - 1, _T("%.*g"), digits, res);
+        buffer[bufferSize - 1] = 0;
+        if (Disasm_RoundMantissa24(_tcstod(buffer, NULL)) == Disasm_RoundMantissa24(res))
+            return;
+    }
+    _sntprintf(buffer, bufferSize - 1, _T("%.9g"), res);
+    buffer[bufferSize - 1] = 0;
 }

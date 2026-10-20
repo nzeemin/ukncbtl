@@ -70,6 +70,13 @@ int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
 bool Disasm_GetJumpConditionHint(
     const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer);
 
+/// \brief Convert two words of a FIS floating point number (DEC single precision) to a string
+/// \param[in]  high        High word: sign, 8-bit exponent (bias 128), high 7 bits of the mantissa
+/// \param[in]  low         Low word: low 16 bits of the mantissa
+/// \param[out] buffer      Result string buffer, "%g" format with the shortest number of digits (at most 9) that keeps the 24-bit mantissa; "0" if the exponent is zero (real zero)
+/// \param[in]  bufferSize  Size of the buffer in characters, including the terminator
+void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t bufferSize);
+
 
 //////////////////////////////////////////////////////////////////////
 // CFloppy

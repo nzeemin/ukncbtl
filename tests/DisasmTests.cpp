@@ -598,4 +598,63 @@ public:
             Assert::IsFalse(Disasm_CheckForJump(memory, 01000, &delta), msg);
         }
     }
+
+    TEST_METHOD(Disasm_FloatToStringNumbers)
+    {
+        struct FloatCase { uint16_t high; uint16_t low; const TCHAR* expected; };
+        static const FloatCase cases[] =
+        {
+            { 0000000, 0000000, _T("0") },
+            { 0040200, 0000000, _T("1") },
+            { 0040400, 0000000, _T("2") },
+            { 0040500, 0000000, _T("3") },
+            { 0040600, 0000000, _T("4") },
+            { 0040640, 0000000, _T("5") },
+            { 0041040, 0000000, _T("10") },
+            { 0041310, 0000000, _T("25") },
+            { 0040511, 0007733, _T("3.1415927") },   // PI
+            { 0040311, 0007733, _T("1.5707964") },    // PI/2
+            { 0040206, 0005222, _T("1.0471976") },    // PI/3
+            { 0040111, 0007733, _T("0.7853982") },  // PI/4
+            { 0040006, 0005222, _T("0.5235988") },  // PI/6
+            { 0040265, 0002363, _T("1.4142135") },   // sqrt(2)
+            { 0040455, 0174124, _T("2.7182817") },   // E
+            { 0040317, 0015675, _T("1.618034") },   // the golden ratio
+            { 0041034, 0164012, _T("9.80665") },   // G, the standard gravity
+        };
+        for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+        {
+            TCHAR msg[40];
+            _stprintf_s(msg, _T("float %06o %06o"), (unsigned int) cases[i].high, (unsigned int) cases[i].low);
+            TCHAR buffer[32];
+            Disasm_FloatToString(cases[i].high, cases[i].low, buffer, sizeof(buffer) / sizeof(TCHAR));
+            Assert::AreEqual(cases[i].expected, buffer, msg);
+        }
+    }
+
+    TEST_METHOD(Disasm_FloatToStringLimits)
+    {
+        struct FloatCase { uint16_t high; uint16_t low; const TCHAR* expected; };
+        static const FloatCase cases[] =
+        {
+            { 0041020, 0000000, _T("9") },            // the example from the manual
+            { 0141020, 0000000, _T("-9") },           // sign bit
+            { 0100000, 0000000, _T("0") },            // zero exponent is real zero whatever the sign and mantissa
+            { 0000177, 0177777, _T("0") },
+            { 0000200, 0000000, _T("2.938736e-039") },  // the smallest number
+            { 0100200, 0000000, _T("-2.938736e-039") },
+            { 0000600, 0000000, _T("1.1754944e-038") },  // exponent 3, the smallest one the bit trick handles
+            { 0000400, 0000000, _T("5.877472e-039") },  // exponent 2, IEEE denormal
+            { 0077777, 0177777, _T("1.7014117e+038") },  // the largest number
+            { 0177777, 0177777, _T("-1.7014117e+038") },
+        };
+        for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
+        {
+            TCHAR msg[40];
+            _stprintf_s(msg, _T("float %06o %06o"), (unsigned int) cases[i].high, (unsigned int) cases[i].low);
+            TCHAR buffer[32];
+            Disasm_FloatToString(cases[i].high, cases[i].low, buffer, sizeof(buffer) / sizeof(TCHAR));
+            Assert::AreEqual(cases[i].expected, buffer, msg);
+        }
+    }
 };

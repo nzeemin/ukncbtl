@@ -900,29 +900,17 @@ void ConsoleView_CmdCalculateFloatNumber(const ConsoleCommandParams& params)
     unsigned short O2 = params.paramOct2;
 
     unsigned long mant = ((((unsigned long)O1 << 16) | O2) & 0x7FFFFFL) | 0x800000L;
-    short exp = (O1 >> 7) & 0xFF; exp -= 128;
+    short exp = (O1 >> 7) & 0xFF;
+    if (exp == 0)  // zero exponent means real zero (0.0)
+    {
+        ConsoleView_PrintFormat(_T("exp: 0, mant: 0x%lx\r\n0\r\n"), mant);
+        return;
+    }
+    exp -= 128;
     ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
-    unsigned long scmant = 0x800000L;
-    long double sres = 0.5;
-    long double res = 0.0;
-    while (scmant != 0)
-    {
-        if ((scmant & mant) != 0) res += sres;
-        scmant >>= 1; sres /= 2;
-    }
-    while (exp != 0)
-    {
-        if (exp < 0)
-        {
-            res /= 2; exp++;
-        }
-        else
-        {
-            res *= 2; exp--;
-        }
-    }
-    if ((O1 & 0x8000) != 0) res = -res;
-    ConsoleView_PrintFormat(_T("%Lg\r\n"), res);
+    TCHAR buffer[32];
+    Disasm_FloatToString(O1, O2, buffer, sizeof(buffer) / sizeof(TCHAR));
+    ConsoleView_PrintFormat(_T("%s\r\n"), buffer);
 }
 
 #if !defined(PRODUCT)
