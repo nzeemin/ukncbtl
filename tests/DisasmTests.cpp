@@ -294,14 +294,14 @@ public:
         CheckCases(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    TEST_METHOD(Disasm_PushAndPop)
+    TEST_METHOD(Disasm_PushAndPopAreShownAsMov)
     {
         static const DisasmCase cases[] =
         {
-            { 01000, { 0010046 }, _T("PUSH"), _T("R0"),        1 },  // MOV R0,-(SP)
-            { 01000, { 0012600 }, _T("POP"),  _T("R0"),        1 },  // MOV (SP)+,R0
-            { 01000, { 0110046 }, _T("MOVB"), _T("R0, -(SP)"), 1 },  // byte move is not PUSH
-            { 01000, { 0112600 }, _T("MOVB"), _T("(SP)+, R0"), 1 },  // byte move is not POP
+            { 01000, { 0010046 }, _T("MOV"),  _T("R0, -(SP)"), 1 },  // PUSH is shown as a regular MOV
+            { 01000, { 0012600 }, _T("MOV"),  _T("(SP)+, R0"), 1 },  // POP is shown as a regular MOV
+            { 01000, { 0110046 }, _T("MOVB"), _T("R0, -(SP)"), 1 },
+            { 01000, { 0112600 }, _T("MOVB"), _T("(SP)+, R0"), 1 },
         };
         CheckCases(cases, sizeof(cases) / sizeof(cases[0]));
     }
