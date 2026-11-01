@@ -231,7 +231,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
         m_flags &= ~FLOPPY_CMD_SEARCHSYNC;
         m_searchsync = true;
         m_crccalculus = true;
-        m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
+        m_status &= ~(FLOPPY_STATUS_CHECKSUMOK | FLOPPY_STATUS_MOREDATA); // a pending word must not block the search
     }
 
     if (m_writing && (cmd & FLOPPY_CMD_SKIPSYNC))  // Writing marker

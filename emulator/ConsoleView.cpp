@@ -234,7 +234,13 @@ void ConsoleView_HistoryAdd(LPCTSTR command)
 {
     m_nConsoleHistoryPos = -1;
     if (command[0] == 0) return;
-    if (!m_ConsoleHistory.empty() && m_ConsoleHistory.back() == command) return;
+
+    // Remove the same command from anywhere in the history, so it moves to the newest position
+    for (size_t i = m_ConsoleHistory.size(); i > 0; i--)
+    {
+        if (m_ConsoleHistory[i - 1] == command)
+            m_ConsoleHistory.erase(m_ConsoleHistory.begin() + (i - 1));
+    }
 
     m_ConsoleHistory.push_back(command);
     if (m_ConsoleHistory.size() > CONSOLE_HISTORY_SIZE)
