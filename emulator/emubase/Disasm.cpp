@@ -120,10 +120,18 @@ uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint1
 //   strInstr - instruction mnemonics buffer, at least 8 characters
 //   strArg   - instruction arguments buffer, at least 32 characters
 //   Return value: number of words in the instruction
-uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* strInstr, TCHAR* strArg)
+uint16_t DisassembleInstruction(std::span<const uint16_t> memory, uint16_t addr,
+                               std::span<TCHAR> instruction, std::span<TCHAR> argument)
 {
-    //const size_t strInstrSize = 8;
-    const size_t strArgSize = 32;
+    if (memory.empty() || instruction.size() < 8 || argument.size() < 32)
+        return 0;
+    // Missing extension words are zero-filled, so even truncated input is safe to inspect.
+    std::array<uint16_t, 3> words{};
+    std::ranges::copy(memory.first((std::min)(memory.size(), words.size())), words.begin());
+    const uint16_t* pMemory = words.data();
+    TCHAR* strInstr = instruction.data();
+    TCHAR* strArg = argument.data();
+    const size_t strArgSize = argument.size();
 
     *strInstr = 0;
     *strArg = 0;
@@ -142,56 +150,56 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     // No fields
     switch (instr)
     {
-    case PI_HALT:   _tcscpy(strInstr, _T("HALT"));   return 1;
-    case PI_WAIT:   _tcscpy(strInstr, _T("WAIT"));   return 1;
-    case PI_RTI:    _tcscpy(strInstr, _T("RTI"));    return 1;
-    case PI_BPT:    _tcscpy(strInstr, _T("BPT"));    return 1;
-    case PI_IOT:    _tcscpy(strInstr, _T("IOT"));    return 1;
-    case PI_RESET:  _tcscpy(strInstr, _T("RESET"));  return 1;
-    case PI_RTT:    _tcscpy(strInstr, _T("RTT"));    return 1;
-    case PI_NOP:    _tcscpy(strInstr, _T("NOP"));    return 1;
-    case PI_CLC:    _tcscpy(strInstr, _T("CLC"));    return 1;
-    case PI_CLV:    _tcscpy(strInstr, _T("CLV"));    return 1;
-    case PI_CLVC:   _tcscpy(strInstr, _T("CLVC"));   return 1;
-    case PI_CLZ:    _tcscpy(strInstr, _T("CLZ"));    return 1;
-    case PI_CLZC:   _tcscpy(strInstr, _T("CLZC"));   return 1;
-    case PI_CLZV:   _tcscpy(strInstr, _T("CLZV"));   return 1;
-    case PI_CLZVC:  _tcscpy(strInstr, _T("CLZVC"));  return 1;
-    case PI_CLN:    _tcscpy(strInstr, _T("CLN"));    return 1;
-    case PI_CLNC:   _tcscpy(strInstr, _T("CLNC"));   return 1;
-    case PI_CLNV:   _tcscpy(strInstr, _T("CLNV"));   return 1;
-    case PI_CLNVC:  _tcscpy(strInstr, _T("CLNVC"));  return 1;
-    case PI_CLNZ:   _tcscpy(strInstr, _T("CLNZ"));   return 1;
-    case PI_CLNZC:  _tcscpy(strInstr, _T("CLNZC"));  return 1;
-    case PI_CLNZV:  _tcscpy(strInstr, _T("CLNZV"));  return 1;
-    case PI_CCC:    _tcscpy(strInstr, _T("CCC"));    return 1;
-    case PI_NOP260: _tcscpy(strInstr, _T("NOP260")); return 1;
-    case PI_SEC:    _tcscpy(strInstr, _T("SEC"));    return 1;
-    case PI_SEV:    _tcscpy(strInstr, _T("SEV"));    return 1;
-    case PI_SEVC:   _tcscpy(strInstr, _T("SEVC"));   return 1;
-    case PI_SEZ:    _tcscpy(strInstr, _T("SEZ"));    return 1;
-    case PI_SEZC:   _tcscpy(strInstr, _T("SEZC"));   return 1;
-    case PI_SEZV:   _tcscpy(strInstr, _T("SEZV"));   return 1;
-    case PI_SEZVC:  _tcscpy(strInstr, _T("SEZVC"));  return 1;
-    case PI_SEN:    _tcscpy(strInstr, _T("SEN"));    return 1;
-    case PI_SENC:   _tcscpy(strInstr, _T("SENC"));   return 1;
-    case PI_SENV:   _tcscpy(strInstr, _T("SENV"));   return 1;
-    case PI_SENVC:  _tcscpy(strInstr, _T("SENVC"));  return 1;
-    case PI_SENZ:   _tcscpy(strInstr, _T("SENZ"));   return 1;
-    case PI_SENZC:  _tcscpy(strInstr, _T("SENZC"));  return 1;
-    case PI_SENZV:  _tcscpy(strInstr, _T("SENZV"));  return 1;
-    case PI_SCC:    _tcscpy(strInstr, _T("SCC"));    return 1;
+    case PI_HALT:   _tcscpy_s(strInstr, instruction.size(), _T("HALT"));   return 1;
+    case PI_WAIT:   _tcscpy_s(strInstr, instruction.size(), _T("WAIT"));   return 1;
+    case PI_RTI:    _tcscpy_s(strInstr, instruction.size(), _T("RTI"));    return 1;
+    case PI_BPT:    _tcscpy_s(strInstr, instruction.size(), _T("BPT"));    return 1;
+    case PI_IOT:    _tcscpy_s(strInstr, instruction.size(), _T("IOT"));    return 1;
+    case PI_RESET:  _tcscpy_s(strInstr, instruction.size(), _T("RESET"));  return 1;
+    case PI_RTT:    _tcscpy_s(strInstr, instruction.size(), _T("RTT"));    return 1;
+    case PI_NOP:    _tcscpy_s(strInstr, instruction.size(), _T("NOP"));    return 1;
+    case PI_CLC:    _tcscpy_s(strInstr, instruction.size(), _T("CLC"));    return 1;
+    case PI_CLV:    _tcscpy_s(strInstr, instruction.size(), _T("CLV"));    return 1;
+    case PI_CLVC:   _tcscpy_s(strInstr, instruction.size(), _T("CLVC"));   return 1;
+    case PI_CLZ:    _tcscpy_s(strInstr, instruction.size(), _T("CLZ"));    return 1;
+    case PI_CLZC:   _tcscpy_s(strInstr, instruction.size(), _T("CLZC"));   return 1;
+    case PI_CLZV:   _tcscpy_s(strInstr, instruction.size(), _T("CLZV"));   return 1;
+    case PI_CLZVC:  _tcscpy_s(strInstr, instruction.size(), _T("CLZVC"));  return 1;
+    case PI_CLN:    _tcscpy_s(strInstr, instruction.size(), _T("CLN"));    return 1;
+    case PI_CLNC:   _tcscpy_s(strInstr, instruction.size(), _T("CLNC"));   return 1;
+    case PI_CLNV:   _tcscpy_s(strInstr, instruction.size(), _T("CLNV"));   return 1;
+    case PI_CLNVC:  _tcscpy_s(strInstr, instruction.size(), _T("CLNVC"));  return 1;
+    case PI_CLNZ:   _tcscpy_s(strInstr, instruction.size(), _T("CLNZ"));   return 1;
+    case PI_CLNZC:  _tcscpy_s(strInstr, instruction.size(), _T("CLNZC"));  return 1;
+    case PI_CLNZV:  _tcscpy_s(strInstr, instruction.size(), _T("CLNZV"));  return 1;
+    case PI_CCC:    _tcscpy_s(strInstr, instruction.size(), _T("CCC"));    return 1;
+    case PI_NOP260: _tcscpy_s(strInstr, instruction.size(), _T("NOP260")); return 1;
+    case PI_SEC:    _tcscpy_s(strInstr, instruction.size(), _T("SEC"));    return 1;
+    case PI_SEV:    _tcscpy_s(strInstr, instruction.size(), _T("SEV"));    return 1;
+    case PI_SEVC:   _tcscpy_s(strInstr, instruction.size(), _T("SEVC"));   return 1;
+    case PI_SEZ:    _tcscpy_s(strInstr, instruction.size(), _T("SEZ"));    return 1;
+    case PI_SEZC:   _tcscpy_s(strInstr, instruction.size(), _T("SEZC"));   return 1;
+    case PI_SEZV:   _tcscpy_s(strInstr, instruction.size(), _T("SEZV"));   return 1;
+    case PI_SEZVC:  _tcscpy_s(strInstr, instruction.size(), _T("SEZVC"));  return 1;
+    case PI_SEN:    _tcscpy_s(strInstr, instruction.size(), _T("SEN"));    return 1;
+    case PI_SENC:   _tcscpy_s(strInstr, instruction.size(), _T("SENC"));   return 1;
+    case PI_SENV:   _tcscpy_s(strInstr, instruction.size(), _T("SENV"));   return 1;
+    case PI_SENVC:  _tcscpy_s(strInstr, instruction.size(), _T("SENVC"));  return 1;
+    case PI_SENZ:   _tcscpy_s(strInstr, instruction.size(), _T("SENZ"));   return 1;
+    case PI_SENZC:  _tcscpy_s(strInstr, instruction.size(), _T("SENZC"));  return 1;
+    case PI_SENZV:  _tcscpy_s(strInstr, instruction.size(), _T("SENZV"));  return 1;
+    case PI_SCC:    _tcscpy_s(strInstr, instruction.size(), _T("SCC"));    return 1;
 
         // Special commands of the VM2 HALT mode
-    case PI_START:  _tcscpy(strInstr, _T("START"));  return 1;
-    case PI_STEP:   _tcscpy(strInstr, _T("STEP"));   return 1;
-    case PI_RSEL:   _tcscpy(strInstr, _T("RSEL"));   return 1;
-    case PI_MFUS:   _tcscpy(strInstr, _T("MFUS"));   return 1;
-    case PI_RCPC:   _tcscpy(strInstr, _T("RCPC"));   return 1;
-    case PI_RCPS:   _tcscpy(strInstr, _T("RCPS"));   return 1;
-    case PI_MTUS:   _tcscpy(strInstr, _T("MTUS"));   return 1;
-    case PI_WCPC:   _tcscpy(strInstr, _T("WCPC"));   return 1;
-    case PI_WCPS:   _tcscpy(strInstr, _T("WCPS"));   return 1;
+    case PI_START:  _tcscpy_s(strInstr, instruction.size(), _T("START"));  return 1;
+    case PI_STEP:   _tcscpy_s(strInstr, instruction.size(), _T("STEP"));   return 1;
+    case PI_RSEL:   _tcscpy_s(strInstr, instruction.size(), _T("RSEL"));   return 1;
+    case PI_MFUS:   _tcscpy_s(strInstr, instruction.size(), _T("MFUS"));   return 1;
+    case PI_RCPC:   _tcscpy_s(strInstr, instruction.size(), _T("RCPC"));   return 1;
+    case PI_RCPS:   _tcscpy_s(strInstr, instruction.size(), _T("RCPS"));   return 1;
+    case PI_MTUS:   _tcscpy_s(strInstr, instruction.size(), _T("MTUS"));   return 1;
+    case PI_WCPC:   _tcscpy_s(strInstr, instruction.size(), _T("WCPC"));   return 1;
+    case PI_WCPS:   _tcscpy_s(strInstr, instruction.size(), _T("WCPS"));   return 1;
     }
 
     // One field
@@ -199,29 +207,29 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     {
         if (GetDigit(instr, 0) == 7)
         {
-            _tcscpy(strInstr, _T("RETURN"));
+            _tcscpy_s(strInstr, instruction.size(), _T("RETURN"));
             return 1;
         }
 
-        _tcscpy(strInstr, _T("RTS"));
-        _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);
+        _tcscpy_s(strInstr, instruction.size(), _T("RTS"));
+        _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);
         return 1;
     }
 
     // FIS
     switch (instr & ~static_cast<uint16_t>(7))
     {
-    case PI_FADD:  _tcscpy(strInstr, _T("FADD"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FSUB:  _tcscpy(strInstr, _T("FSUB"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FMUL:  _tcscpy(strInstr, _T("FMUL"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FDIV:  _tcscpy(strInstr, _T("FDIV"));  _tcscpy(strArg, REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FADD:  _tcscpy_s(strInstr, instruction.size(), _T("FADD"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FSUB:  _tcscpy_s(strInstr, instruction.size(), _T("FSUB"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FMUL:  _tcscpy_s(strInstr, instruction.size(), _T("FMUL"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FDIV:  _tcscpy_s(strInstr, instruction.size(), _T("FDIV"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
     }
 
     // MARK has a 6-bit constant instead of an operand, the instruction is one word long
     if ((instr & ~static_cast<uint16_t>(077)) == PI_MARK)
     {
-        _tcscpy(strInstr, _T("MARK"));
-        _sntprintf(strArg, strArgSize - 1, _T("%o"), static_cast<unsigned int>(instr & 077));
+        _tcscpy_s(strInstr, instruction.size(), _T("MARK"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%o"), static_cast<unsigned int>(instr & 077));
         return 1;
     }
 
@@ -230,29 +238,29 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
 
     switch (instr & ~static_cast<uint16_t>(077))
     {
-    case PI_JMP:    _tcscpy(strInstr, _T("JMP"));   _tcscpy(strArg, strDst);  return length;
-    case PI_SWAB:   _tcscpy(strInstr, _T("SWAB"));  _tcscpy(strArg, strDst);  return length;
-    case PI_SXT:    _tcscpy(strInstr, _T("SXT"));   _tcscpy(strArg, strDst);  return length;
-    case PI_MTPS:   _tcscpy(strInstr, _T("MTPS"));  _tcscpy(strArg, strDst);  return length;
-    case PI_MFPS:   _tcscpy(strInstr, _T("MFPS"));  _tcscpy(strArg, strDst);  return length;
+    case PI_JMP:    _tcscpy_s(strInstr, instruction.size(), _T("JMP"));   _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_SWAB:   _tcscpy_s(strInstr, instruction.size(), _T("SWAB"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_SXT:    _tcscpy_s(strInstr, instruction.size(), _T("SXT"));   _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_MTPS:   _tcscpy_s(strInstr, instruction.size(), _T("MTPS"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_MFPS:   _tcscpy_s(strInstr, instruction.size(), _T("MFPS"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
     }
 
     okByte = (instr & 0100000) != 0;
 
     switch (instr & ~static_cast<uint16_t>(0100077))
     {
-    case PI_CLR:  _tcscpy(strInstr, okByte ? _T("CLRB") : _T("CLR"));  _tcscpy(strArg, strDst);  return length;
-    case PI_COM:  _tcscpy(strInstr, okByte ? _T("COMB") : _T("COM"));  _tcscpy(strArg, strDst);  return length;
-    case PI_INC:  _tcscpy(strInstr, okByte ? _T("INCB") : _T("INC"));  _tcscpy(strArg, strDst);  return length;
-    case PI_DEC:  _tcscpy(strInstr, okByte ? _T("DECB") : _T("DEC"));  _tcscpy(strArg, strDst);  return length;
-    case PI_NEG:  _tcscpy(strInstr, okByte ? _T("NEGB") : _T("NEG"));  _tcscpy(strArg, strDst);  return length;
-    case PI_ADC:  _tcscpy(strInstr, okByte ? _T("ADCB") : _T("ADC"));  _tcscpy(strArg, strDst);  return length;
-    case PI_SBC:  _tcscpy(strInstr, okByte ? _T("SBCB") : _T("SBC"));  _tcscpy(strArg, strDst);  return length;
-    case PI_TST:  _tcscpy(strInstr, okByte ? _T("TSTB") : _T("TST"));  _tcscpy(strArg, strDst);  return length;
-    case PI_ROR:  _tcscpy(strInstr, okByte ? _T("RORB") : _T("ROR"));  _tcscpy(strArg, strDst);  return length;
-    case PI_ROL:  _tcscpy(strInstr, okByte ? _T("ROLB") : _T("ROL"));  _tcscpy(strArg, strDst);  return length;
-    case PI_ASR:  _tcscpy(strInstr, okByte ? _T("ASRB") : _T("ASR"));  _tcscpy(strArg, strDst);  return length;
-    case PI_ASL:  _tcscpy(strInstr, okByte ? _T("ASLB") : _T("ASL"));  _tcscpy(strArg, strDst);  return length;
+    case PI_CLR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("CLRB") : _T("CLR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_COM:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("COMB") : _T("COM"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_INC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("INCB") : _T("INC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_DEC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("DECB") : _T("DEC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_NEG:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("NEGB") : _T("NEG"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_ADC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ADCB") : _T("ADC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_SBC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("SBCB") : _T("SBC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_TST:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("TSTB") : _T("TST"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_ROR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("RORB") : _T("ROR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_ROL:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ROLB") : _T("ROL"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_ASR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ASRB") : _T("ASR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_ASL:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ASLB") : _T("ASL"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
     }
 
     length = 1;
@@ -261,29 +269,29 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     // Branches & interrupts
     switch (instr & ~static_cast<uint16_t>(0377))
     {
-    case PI_BR:   _tcscpy(strInstr, _T("BR"));   _tcscpy(strArg, strDst);  return 1;
-    case PI_BNE:  _tcscpy(strInstr, _T("BNE"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BEQ:  _tcscpy(strInstr, _T("BEQ"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BGE:  _tcscpy(strInstr, _T("BGE"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BLT:  _tcscpy(strInstr, _T("BLT"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BGT:  _tcscpy(strInstr, _T("BGT"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BLE:  _tcscpy(strInstr, _T("BLE"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BPL:  _tcscpy(strInstr, _T("BPL"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BMI:  _tcscpy(strInstr, _T("BMI"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BHI:  _tcscpy(strInstr, _T("BHI"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BLOS:  _tcscpy(strInstr, _T("BLOS"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BVC:  _tcscpy(strInstr, _T("BVC"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BVS:  _tcscpy(strInstr, _T("BVS"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BHIS:  _tcscpy(strInstr, _T("BHIS"));  _tcscpy(strArg, strDst);  return 1;
-    case PI_BLO:  _tcscpy(strInstr, _T("BLO"));  _tcscpy(strArg, strDst);  return 1;
+    case PI_BR:   _tcscpy_s(strInstr, instruction.size(), _T("BR"));   _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BNE:  _tcscpy_s(strInstr, instruction.size(), _T("BNE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BEQ:  _tcscpy_s(strInstr, instruction.size(), _T("BEQ"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BGE:  _tcscpy_s(strInstr, instruction.size(), _T("BGE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BLT:  _tcscpy_s(strInstr, instruction.size(), _T("BLT"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BGT:  _tcscpy_s(strInstr, instruction.size(), _T("BGT"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BLE:  _tcscpy_s(strInstr, instruction.size(), _T("BLE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BPL:  _tcscpy_s(strInstr, instruction.size(), _T("BPL"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BMI:  _tcscpy_s(strInstr, instruction.size(), _T("BMI"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BHI:  _tcscpy_s(strInstr, instruction.size(), _T("BHI"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BLOS:  _tcscpy_s(strInstr, instruction.size(), _T("BLOS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BVC:  _tcscpy_s(strInstr, instruction.size(), _T("BVC"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BVS:  _tcscpy_s(strInstr, instruction.size(), _T("BVS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BHIS:  _tcscpy_s(strInstr, instruction.size(), _T("BHIS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BLO:  _tcscpy_s(strInstr, instruction.size(), _T("BLO"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
     }
 
     _sntprintf(strDst, strDstSize - 1, _T("%06o"), static_cast<uint8_t>(instr & 0xff));
 
     switch (instr & ~static_cast<uint16_t>(0377))
     {
-    case PI_EMT:   _tcscpy(strInstr, _T("EMT"));   _tcscpy(strArg, strDst + 3);  return 1;
-    case PI_TRAP:  _tcscpy(strInstr, _T("TRAP"));  _tcscpy(strArg, strDst + 3);  return 1;
+    case PI_EMT:   _tcscpy_s(strInstr, instruction.size(), _T("EMT"));   _tcscpy_s(strArg, argument.size(), strDst + 3);  return 1;
+    case PI_TRAP:  _tcscpy_s(strInstr, instruction.size(), _T("TRAP"));  _tcscpy_s(strArg, argument.size(), strDst + 3);  return 1;
     }
 
     // Three fields
@@ -292,53 +300,53 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     case PI_JSR:
         if (GetDigit(instr, 2) == 7)
         {
-            _tcscpy(strInstr, _T("CALL"));
+            _tcscpy_s(strInstr, instruction.size(), _T("CALL"));
             length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf(strArg, strArgSize - 1, _T("%s"), strDst);  // strArg = strDst;
+            _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s"), strDst);  // strArg = strDst;
         }
         else
         {
-            _tcscpy(strInstr, _T("JSR"));
+            _tcscpy_s(strInstr, instruction.size(), _T("JSR"));
             strReg = REGISTER_NAME[GetDigit(instr, 2)];
             length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+            _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         }
         return length;
     case PI_MUL:
-        _tcscpy(strInstr, _T("MUL"));
+        _tcscpy_s(strInstr, instruction.size(), _T("MUL"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_DIV:
-        _tcscpy(strInstr, _T("DIV"));
+        _tcscpy_s(strInstr, instruction.size(), _T("DIV"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASH:
-        _tcscpy(strInstr, _T("ASH"));
+        _tcscpy_s(strInstr, instruction.size(), _T("ASH"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_ASHC:
-        _tcscpy(strInstr, _T("ASHC"));
+        _tcscpy_s(strInstr, instruction.size(), _T("ASHC"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
         return length;
     case PI_XOR:
-        _tcscpy(strInstr, _T("XOR"));
+        _tcscpy_s(strInstr, instruction.size(), _T("XOR"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         return length;
     case PI_SOB:
-        _tcscpy(strInstr, _T("SOB"));
+        _tcscpy_s(strInstr, instruction.size(), _T("SOB"));
         strReg = REGISTER_NAME[GetDigit(instr, 2)];
         _sntprintf(strDst, strDstSize - 1, _T("%06o"), static_cast<uint16_t>(addr - (GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) * 2 + 2));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
         return 1;
     }
 
@@ -352,41 +360,41 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
     switch (instr & ~static_cast<uint16_t>(0107777))
     {
     case PI_MOV:
-        _tcscpy(strInstr, okByte ? _T("MOVB") : _T("MOV"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("MOVB") : _T("MOV"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_CMP:
-        _tcscpy(strInstr, okByte ? _T("CMPB") : _T("CMP"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("CMPB") : _T("CMP"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIT:
-        _tcscpy(strInstr, okByte ? _T("BITB") : _T("BIT"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BITB") : _T("BIT"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIC:
-        _tcscpy(strInstr, okByte ? _T("BICB") : _T("BIC"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BICB") : _T("BIC"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_BIS:
-        _tcscpy(strInstr, okByte ? _T("BISB") : _T("BIS"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BISB") : _T("BIS"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     }
 
     switch (instr & ~static_cast<uint16_t>(0007777))
     {
     case PI_ADD:
-        _tcscpy(strInstr, _T("ADD"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), _T("ADD"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     case PI_SUB:
-        _tcscpy(strInstr, _T("SUB"));
-        _sntprintf(strArg, strArgSize - 1, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
+        _tcscpy_s(strInstr, instruction.size(), _T("SUB"));
+        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
         return length;
     }
 
-    _tcscpy(strInstr, _T("unknown"));
-    _sntprintf(strArg, strArgSize - 1, _T("%06o"), instr);
+    _tcscpy_s(strInstr, instruction.size(), _T("unknown"));
+    _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%06o"), instr);
     return 1;
 }
 

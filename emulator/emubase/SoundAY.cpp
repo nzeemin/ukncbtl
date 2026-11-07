@@ -17,11 +17,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Emubase.h"
 
-#define MAX_OUTPUT 0x0ffff
+static constexpr auto MAX_OUTPUT = 0x0ffff;
 
-#define STEP3 1
+static constexpr auto STEP3 = 1;
 #define STEP2 length
-#define STEP  2
+static constexpr auto STEP = 2;
 
 /* register id's */
 #define AY_AFINE    (0)

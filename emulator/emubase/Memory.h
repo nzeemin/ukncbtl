@@ -14,6 +14,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "Defines.h"
 #include "Board.h"
+#include <array>
+#include <vector>
 
 class CProcessor;
 
@@ -21,17 +23,17 @@ class CProcessor;
 //////////////////////////////////////////////////////////////////////
 
 // TranslateAddress result code
-#define ADDRTYPE_RAM0  0    ///< RAM plane 0
-#define ADDRTYPE_RAM1  1    ///< RAM plane 1
-#define ADDRTYPE_RAM2  2    ///< RAM plane 2
-#define ADDRTYPE_RAM12 4    ///< RAM plane 1 & 2 - a special case for CPU memory
-#define ADDRTYPE_ROM   32   ///< ROM
-#define ADDRTYPE_ROMCART1 40  ///< ADDRTYPE_ROM + 8  -- ROM cartridge #1
-#define ADDRTYPE_ROMCART2 48  ///< ADDRTYPE_ROM + 16 -- ROM cartridge #2
-#define ADDRTYPE_IO    64   ///< I/O port; bits 5..0 -- device number
-#define ADDRTYPE_NONE  128  ///< No data
-#define ADDRTYPE_DENY  255  ///< Access denied
-#define ADDRTYPE_MASK_RAM  7  ///< Mask to get memory plane number
+inline constexpr auto ADDRTYPE_RAM0 = 0;    ///< RAM plane 0
+inline constexpr auto ADDRTYPE_RAM1 = 1;    ///< RAM plane 1
+inline constexpr auto ADDRTYPE_RAM2 = 2;    ///< RAM plane 2
+inline constexpr auto ADDRTYPE_RAM12 = 4;    ///< RAM plane 1 & 2 - a special case for CPU memory
+inline constexpr auto ADDRTYPE_ROM = 32;   ///< ROM
+inline constexpr auto ADDRTYPE_ROMCART1 = 40;  ///< ADDRTYPE_ROM + 8  -- ROM cartridge #1
+inline constexpr auto ADDRTYPE_ROMCART2 = 48;  ///< ADDRTYPE_ROM + 16 -- ROM cartridge #2
+inline constexpr auto ADDRTYPE_IO = 64;   ///< I/O port; bits 5..0 -- device number
+inline constexpr auto ADDRTYPE_NONE = 128;  ///< No data
+inline constexpr auto ADDRTYPE_DENY = 255;  ///< Access denied
+inline constexpr auto ADDRTYPE_MASK_RAM = 7;  ///< Mask to get memory plane number
 
 
 //////////////////////////////////////////////////////////////////////
@@ -43,16 +45,15 @@ class CMemoryController
 protected:
     CMotherboard*   m_pBoard;       ///< Motherboard attached
     CProcessor*     m_pProcessor;   ///< Processor attached
-    uint8_t*        m_pMapping;     ///< Memory mapping
-    CBusDevice**    m_pDevices;     ///< Attached bus devices
-    int             m_nDeviceCount;
+    std::array<uint8_t, 65536> m_pMapping{}; ///< Memory mapping
+    std::vector<const CBusDevice*> m_pDevices; ///< Non-owning bus devices
 public:
     CMemoryController();
     virtual ~CMemoryController();
     void        Attach(CMotherboard* board, CProcessor* processor)
     { m_pBoard = board;  m_pProcessor = processor; }
     /// \brief Attach/reattach bus devices
-    void        AttachDevices(const CBusDevice** pDevices);
+    void        AttachDevices(std::span<const CBusDevice* const> devices);
     virtual void UpdateMemoryMap();
     // Reset to initial state
     virtual void DCLO_Signal() = 0;  ///< DCLO signal
@@ -73,8 +74,8 @@ public:  // Access to memory
     /// \brief Read SEL register
     virtual uint16_t GetSelRegister() const = 0;
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(uint8_t* pImage) = 0;
-    virtual void LoadFromImage(const uint8_t* pImage) = 0;
+    virtual void SaveToImage(std::span<uint8_t, 64> image) = 0;
+    virtual void LoadFromImage(std::span<const uint8_t, 64> image) = 0;
 protected:
     /// \brief Determine memory type for given address - see ADDRTYPE_Xxx constants
     /// \param okHaltMode  processor mode (USER/HALT)
@@ -106,8 +107,8 @@ protected:  // Access to I/O ports
     virtual uint8_t GetPortByte(uint16_t address);
     virtual void SetPortByte(uint16_t address, uint8_t byte);
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(uint8_t* pImage);
-    virtual void LoadFromImage(const uint8_t* pImage);
+    virtual void SaveToImage(std::span<uint8_t, 64> image);
+    virtual void LoadFromImage(std::span<const uint8_t, 64> image);
 public:  // CPU specific
     bool SerialInput(uint8_t inputByte);
     bool NetworkInput(uint8_t inputByte);
@@ -148,8 +149,8 @@ protected:  // Access to I/O ports
     virtual uint8_t GetPortByte(uint16_t address);
     virtual void SetPortByte(uint16_t address, uint8_t byte);  //TODO
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(uint8_t* pImage);
-    virtual void LoadFromImage(const uint8_t* pImage);
+    virtual void SaveToImage(std::span<uint8_t, 64> image);
+    virtual void LoadFromImage(std::span<const uint8_t, 64> image);
 public:  // PPU specifics
     void KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Keyboard key pressed or released
     bool TapeInput(bool inputBit);

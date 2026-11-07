@@ -12,7 +12,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "WavPcmFile.h"
+#include "LittleEndian.h"
 #include <cstdio>
+#include <array>
+#include <climits>
+#include <memory>
 #include <share.h>
 
 
@@ -85,12 +89,14 @@ void WavPcmFile_SetPosition(HWAVPCMFILE wavpcmfile, uint32_t position)
 
 HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
 {
+    if (sampleRate <= 0)
+        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
     const int bitsPerSample = 8;
     const int channels = 1;
     const int blockAlign = channels * bitsPerSample / 8;
 
-    FILE* fpFileNew = ::_tfsopen(filename, _T("w+b"), _SH_DENYWR);
-    if (fpFileNew == nullptr)
+    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfsopen(filename, _T("w+b"), _SH_DENYWR), &::fclose);
+    if (!file)
         return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to create file
 
     // Prepare and write file header
@@ -101,31 +107,29 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
     memcpy(&consolidated_header[8], magic2, 4);  // WAVE
 
     memcpy(&consolidated_header[12], format_tag_id, 4);  // fmt
-    *reinterpret_cast<uint32_t*>(consolidated_header + 16) = 16;  // Size of "fmt" chunk
-    *reinterpret_cast<uint16_t*>(consolidated_header + 20) = WAV_FORMAT_PCM;  // AudioFormat = PCM
-    *reinterpret_cast<uint16_t*>(consolidated_header + 22) = channels;  // NumChannels = mono
-    *reinterpret_cast<uint32_t*>(consolidated_header + 24) = sampleRate;  // SampleRate
-    *reinterpret_cast<uint32_t*>(consolidated_header + 28) = sampleRate * channels * bitsPerSample / 8;  // ByteRate
-    *reinterpret_cast<uint16_t*>(consolidated_header + 32) = blockAlign;
-    *reinterpret_cast<uint16_t*>(consolidated_header + 34) = bitsPerSample;
+    const uint32_t formatSize = 16;
+    const uint16_t format = WAV_FORMAT_PCM, channelCount = channels, align = blockAlign, bits = bitsPerSample;
+    const uint32_t rate = static_cast<uint32_t>(sampleRate), byteRate = rate * blockAlign;
+    auto header = std::span{consolidated_header};
+    little_endian::write<uint32_t>(header.subspan<16, 4>(), formatSize);
+    little_endian::write<uint16_t>(header.subspan<20, 2>(), format);
+    little_endian::write<uint16_t>(header.subspan<22, 2>(), channelCount);
+    little_endian::write<uint32_t>(header.subspan<24, 4>(), rate);
+    little_endian::write<uint32_t>(header.subspan<28, 4>(), byteRate);
+    little_endian::write<uint16_t>(header.subspan<32, 2>(), align);
+    little_endian::write<uint16_t>(header.subspan<34, 2>(), bits);
 
     memcpy(&consolidated_header[36], data_tag_id, 4);  // data
 
     // Write consolidated header
-    uint32_t bytesWritten = ::fwrite(consolidated_header, 1, sizeof(consolidated_header), fpFileNew);
+    size_t bytesWritten = ::fwrite(consolidated_header, 1, sizeof(consolidated_header), file.get());
     if (bytesWritten != sizeof(consolidated_header))
     {
-        ::fclose(fpFileNew);
         return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to write consolidated header
     }
 
-    WAVPCMFILE* pWavPcm = static_cast<WAVPCMFILE*>(::calloc(1, sizeof(WAVPCMFILE)));
-    if (pWavPcm == nullptr)
-    {
-        ::fclose(fpFileNew);
-        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to allocate memory
-    }
-    pWavPcm->fpFile = fpFileNew;
+    auto pWavPcm = std::make_unique<WAVPCMFILE>();
+    pWavPcm->fpFile = file.get();
     pWavPcm->nChannels = channels;
     pWavPcm->nSampleFrequency = sampleRate;
     pWavPcm->nBitsPerSample = bitsPerSample;
@@ -134,21 +138,25 @@ HWAVPCMFILE WavPcmFile_Create(LPCTSTR filename, int sampleRate)
     pWavPcm->dwDataSize = 0;
     pWavPcm->okWriting = true;
 
-    WavPcmFile_SetPosition(reinterpret_cast<HWAVPCMFILE>(pWavPcm), 0);
-
-    return reinterpret_cast<HWAVPCMFILE>(pWavPcm);
+    WavPcmFile_SetPosition(reinterpret_cast<HWAVPCMFILE>(pWavPcm.get()), 0);
+    file.release();
+    return reinterpret_cast<HWAVPCMFILE>(pWavPcm.release());
 }
 
 HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
 {
-    FILE* fpFileOpen = ::_tfsopen(filename, _T("rb"), _SH_DENYWR);
+    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfsopen(filename, _T("rb"), _SH_DENYWR), &::fclose);
+    FILE* fpFileOpen = file.get();
     if (fpFileOpen == nullptr)
         return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to open file
 
     uint32_t offset = 0;
-    ::fseek(fpFileOpen, 0, SEEK_END);
-    uint32_t fileSize = ::ftell(fpFileOpen);
-    ::fseek(fpFileOpen, 0, SEEK_SET);
+    if (::fseek(fpFileOpen, 0, SEEK_END) != 0)
+        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
+    long fileLength = ::ftell(fpFileOpen);
+    if (fileLength < 12 || ::fseek(fpFileOpen, 0, SEEK_SET) != 0)
+        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
+    uint32_t fileSize = static_cast<uint32_t>(fileLength);
 
     uint8_t fileHeader[12];
     size_t bytesRead = ::fread(fileHeader, 1, sizeof(fileHeader), fpFileOpen);
@@ -156,74 +164,78 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
         memcmp(&fileHeader[0], magic1, 4) != 0 ||
         memcmp(&fileHeader[8], magic2, 4) != 0)
     {
-        ::fclose(fpFileOpen);
         return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to read file header OR invalid 'RIFF' tag OR invalid 'WAVE' tag
     }
     offset += bytesRead;
 
-    uint32_t statedSize = *reinterpret_cast<uint32_t*>(fileHeader + 4) + 8;
-    if (statedSize > fileSize)
-        statedSize = fileSize;
+    uint32_t riffSize = little_endian::read<uint32_t>(std::span{fileHeader}.subspan<4, 4>());
+    if (riffSize < 4 || riffSize > fileSize - 8)
+        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
+    uint32_t statedSize = riffSize + 8;
 
     uint8_t tagHeader[8];
-    uint16_t formatTag[8];
+    std::array<uint8_t, 16> formatTag{};
     bool formatSpecified = false;
+    bool dataSpecified = false;
     uint16_t formatType = 1, channels = 1, bitsPerSample = 1, blockAlign = 0;
     uint32_t sampleFrequency = 22050, bytesPerSecond, dataOffset = 0, dataSize = 0;
     while (offset < statedSize)
     {
+        if (statedSize - offset < sizeof(tagHeader))
+            return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
         bytesRead = ::fread(tagHeader, 1, sizeof(tagHeader), fpFileOpen);
         if (bytesRead != sizeof(tagHeader))
         {
-            ::fclose(fpFileOpen);
             return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to read tag header
         }
         offset += bytesRead;
 
-        uint32_t tagSize = *reinterpret_cast<uint32_t*>(tagHeader + 4);
+        uint32_t tagSize = little_endian::read<uint32_t>(std::span{tagHeader}.subspan<4, 4>());
+        if (tagSize > statedSize - offset)
+            return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
         if (!memcmp(tagHeader, format_tag_id, 4))
         {
-            if (formatSpecified || tagSize < sizeof(formatTag))
+            if (formatSpecified || tagSize < formatTag.size())
             {
-                ::fclose(fpFileOpen);
                 return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Wrong tag header
             }
             formatSpecified = true;
 
-            bytesRead = ::fread(formatTag, 1, sizeof(formatTag), fpFileOpen);
-            if (bytesRead != sizeof(formatTag))
+            bytesRead = ::fread(formatTag.data(), 1, formatTag.size(), fpFileOpen);
+            if (bytesRead != formatTag.size())
             {
-                ::fclose(fpFileOpen);
                 return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to read format tag
             }
 
-            formatType = formatTag[0];
-            channels = formatTag[1];
-            sampleFrequency = formatTag[2];
-            bytesPerSecond = formatTag[4];
-            blockAlign = formatTag[6];
-            bitsPerSample = formatTag[7];
+            const auto formatBytes = std::span{formatTag};
+            formatType = little_endian::read<uint16_t>(formatBytes.subspan<0, 2>());
+            channels = little_endian::read<uint16_t>(formatBytes.subspan<2, 2>());
+            sampleFrequency = little_endian::read<uint32_t>(formatBytes.subspan<4, 4>());
+            bytesPerSecond = little_endian::read<uint32_t>(formatBytes.subspan<8, 4>());
+            blockAlign = little_endian::read<uint16_t>(formatBytes.subspan<12, 2>());
+            bitsPerSample = little_endian::read<uint16_t>(formatBytes.subspan<14, 2>());
 
             if (formatType != WAV_FORMAT_PCM)
             {
-                ::fclose(fpFileOpen);
                 return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Unsupported format
             }
-            if (sampleFrequency * bitsPerSample * channels / 8 != bytesPerSecond ||
-                (bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32))
+            if ((bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 32) ||
+                channels == 0 || blockAlign == 0 || blockAlign > 16 ||
+                blockAlign != channels * (bitsPerSample / 8) ||
+                sampleFrequency == 0 || sampleFrequency > INT_MAX ||
+                static_cast<uint64_t>(sampleFrequency) * blockAlign != bytesPerSecond)
             {
-                ::fclose(fpFileOpen);
                 return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Wrong format tag
             }
         }
         else if (!memcmp(tagHeader, data_tag_id, 4))
         {
-            if (!formatSpecified)
+            if (!formatSpecified || dataSpecified || tagSize % blockAlign != 0)
             {
-                ::fclose(fpFileOpen);
                 return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Wrong tag
             }
 
+            dataSpecified = true;
             dataOffset = offset;
             dataSize = tagSize;
         }
@@ -232,15 +244,17 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
         }
 
         offset += tagSize;
-        ::fseek(fpFileOpen, offset, SEEK_SET);
+        // Older versions of the emulator wrote odd-sized final data chunks without padding.
+        if ((tagSize & 1) && offset < statedSize)
+            ++offset;
+        if (::fseek(fpFileOpen, offset, SEEK_SET) != 0)
+            return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
     }
 
-    WAVPCMFILE* pWavPcm = static_cast<WAVPCMFILE*>(::calloc(1, sizeof(WAVPCMFILE)));
-    if (pWavPcm == nullptr)
-    {
-        ::fclose(fpFileOpen);
-        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);  // Failed to allocate memory
-    }
+    if (!formatSpecified || !dataSpecified)
+        return static_cast<HWAVPCMFILE>(INVALID_HANDLE_VALUE);
+
+    auto pWavPcm = std::make_unique<WAVPCMFILE>();
     pWavPcm->fpFile = fpFileOpen;
     pWavPcm->nChannels = channels;
     pWavPcm->nSampleFrequency = sampleFrequency;
@@ -250,9 +264,11 @@ HWAVPCMFILE WavPcmFile_Open(LPCTSTR filename)
     pWavPcm->dwDataSize = dataSize;
     pWavPcm->okWriting = false;
 
-    WavPcmFile_SetPosition(reinterpret_cast<HWAVPCMFILE>(pWavPcm), 0);
+    file.release();
 
-    return reinterpret_cast<HWAVPCMFILE>(pWavPcm);
+    WavPcmFile_SetPosition(reinterpret_cast<HWAVPCMFILE>(pWavPcm.get()), 0);
+
+    return reinterpret_cast<HWAVPCMFILE>(pWavPcm.release());
 }
 
 void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
@@ -264,18 +280,27 @@ void WavPcmFile_Close(HWAVPCMFILE wavpcmfile)
 
     if (pWavPcm->okWriting)
     {
+        if (pWavPcm->dwDataSize & 1)
+        {
+            ::fseek(pWavPcm->fpFile, 0, SEEK_END);
+            const uint8_t padding = 0;
+            ::fwrite(&padding, 1, 1, pWavPcm->fpFile);
+        }
         // Write data chunk size
         ::fseek(pWavPcm->fpFile, 4, SEEK_SET);
-        uint32_t chunkSize = 36 + pWavPcm->dwDataSize;
-        uint32_t bytesWritten = ::fwrite(&chunkSize, 1, 4, pWavPcm->fpFile);
+        uint32_t chunkSize = 36 + pWavPcm->dwDataSize + (pWavPcm->dwDataSize & 1);
+        std::array<uint8_t, 4> sizeBytes{};
+        little_endian::write<uint32_t>(sizeBytes, chunkSize);
+        size_t bytesWritten = ::fwrite(sizeBytes.data(), 1, sizeBytes.size(), pWavPcm->fpFile);
         // Write data subchunk size
         ::fseek(pWavPcm->fpFile, 40, SEEK_SET);
-        bytesWritten = ::fwrite(&(pWavPcm->dwDataSize), 1, 4, pWavPcm->fpFile);
+        little_endian::write<uint32_t>(sizeBytes, pWavPcm->dwDataSize);
+        bytesWritten = ::fwrite(sizeBytes.data(), 1, sizeBytes.size(), pWavPcm->fpFile);
     }
 
     ::fclose(pWavPcm->fpFile);
     pWavPcm->fpFile = nullptr;
-    ::free(pWavPcm);
+    delete pWavPcm;
 }
 
 bool WavPcmFile_WriteOne(HWAVPCMFILE wavpcmfile, unsigned int value)
@@ -312,8 +337,10 @@ unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
 
     // Read one sample
     uint32_t bytesToRead = pWavPcm->nBlockAlign;
-    uint8_t data[16];
-    size_t bytesRead = ::fread(data, 1, bytesToRead, pWavPcm->fpFile);
+    std::array<uint8_t, 16> data{};
+    if (bytesToRead == 0 || bytesToRead > data.size())
+        return 0;
+    size_t bytesRead = ::fread(data.data(), 1, bytesToRead, pWavPcm->fpFile);
     if (bytesRead != bytesToRead)
         return 0;
 
@@ -324,15 +351,15 @@ unsigned int WavPcmFile_ReadOne(HWAVPCMFILE wavpcmfile)
     switch (pWavPcm->nBitsPerSample)
     {
     case 8:
-        value = *data;
+        value = data[0];
         value = value << 24;
         break;
     case 16:
-        value = *reinterpret_cast<uint16_t*>(data);
+        value = little_endian::read<uint16_t>(std::span{data}.first<2>());
         value = value << 16;
         break;
     case 32:
-        value = *reinterpret_cast<uint32_t*>(data);
+        value = little_endian::read<uint32_t>(std::span{data}.first<4>());
         break;
     }
 

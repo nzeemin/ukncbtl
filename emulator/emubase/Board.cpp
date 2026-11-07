@@ -13,6 +13,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Emubase.h"
 #include "Board.h"
+#include "ImageSerialization.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -184,93 +185,55 @@ CMotherboard::CMotherboard ()
     m_okSoundAY = m_okSoundCovox = false;
 
     // Create devices
-    m_pCPU = new CProcessor(_T("CPU"));
-    m_pPPU = new CProcessor(_T("PPU"));
-    m_pFirstMemCtl = new CFirstMemoryController();
-    m_pSecondMemCtl = new CSecondMemoryController();
-    m_pFloppyCtl = new CFloppyController();
+    m_pCPU = std::make_unique<CProcessor>(_T("CPU"));
+    m_pPPU = std::make_unique<CProcessor>(_T("PPU"));
+    m_pFirstMemCtl = std::make_unique<CFirstMemoryController>();
+    m_pSecondMemCtl = std::make_unique<CSecondMemoryController>();
+    m_pFloppyCtl = std::make_unique<CFloppyController>();
     m_pHardDrives[0] = nullptr;
     m_pHardDrives[1] = nullptr;
-    m_pSoundAY[0] = new CSoundAY();
-    m_pSoundAY[1] = new CSoundAY();
-    m_pSoundAY[2] = new CSoundAY();
+    m_pSoundAY[0] = std::make_unique<CSoundAY>();
+    m_pSoundAY[1] = std::make_unique<CSoundAY>();
+    m_pSoundAY[2] = std::make_unique<CSoundAY>();
 
     // Connect devices
-    m_pCPU->AttachMemoryController(m_pFirstMemCtl);
-    m_pFirstMemCtl->Attach(this, m_pCPU);
-    m_pPPU->AttachMemoryController(m_pSecondMemCtl);
-    m_pSecondMemCtl->Attach(this, m_pPPU);
+    m_pCPU->AttachMemoryController(m_pFirstMemCtl.get());
+    m_pFirstMemCtl->Attach(this, m_pCPU.get());
+    m_pPPU->AttachMemoryController(m_pSecondMemCtl.get());
+    m_pSecondMemCtl->Attach(this, m_pPPU.get());
 
     // Allocate memory for RAM and ROM
-    m_pRAM[0] = static_cast<uint8_t*>(calloc(65536, 1));
-    m_pRAM[1] = static_cast<uint8_t*>(calloc(65536, 1));
-    m_pRAM[2] = static_cast<uint8_t*>(calloc(65536, 1));
-    m_pROM    = static_cast<uint8_t*>(calloc(32768, 1));
+    m_pRAM[0] = std::make_unique<uint8_t[]>(65536);
+    m_pRAM[1] = std::make_unique<uint8_t[]>(65536);
+    m_pRAM[2] = std::make_unique<uint8_t[]>(65536);
+    m_pROM = std::make_unique<uint8_t[]>(32768);
     m_pROMCart[0] = nullptr;
     m_pROMCart[1] = nullptr;
 
     // Prepare bus devices
-    m_pCpuDevices = static_cast<CBusDevice**>(calloc(6, sizeof(CBusDevice*)));
-    m_pCpuDevices[0] = new CBusDeviceProcessorTimer();
-    m_pCpuDevices[1] = new CBusDeviceCpuChannels();
-    m_pCpuDevices[2] = new CBusDeviceNetworkAdapter();
-    m_pCpuDevices[3] = new CBusDeviceSerialPort();
-    m_pCpuDevices[4] = new CBusDeviceCpuMemoryAccess();
-    m_pCpuDevices[5] = nullptr;
-    m_pPpuDevices = static_cast<CBusDevice**>(calloc(8, sizeof(CBusDevice*)));
-    m_pPpuDevices[0] = new CBusDeviceProcessorTimer();
-    m_pPpuDevices[1] = new CBusDevicePpuChannels();
-    m_pPpuDevices[2] = new CBusDevicePpuMemoryAccess();
-    m_pPpuDevices[3] = new CBusDeviceProgrammablePort();
-    m_pPpuDevices[4] = new CBusDeviceKeyboard();
-    m_pPpuDevices[5] = new CBusDeviceFloppyController();
-    m_pPpuDevices[6] = new CBusDeviceHardDrive();
-    m_pPpuDevices[7] = nullptr;
+    m_cpuDeviceOwners[0] = std::make_unique<CBusDeviceProcessorTimer>();
+    m_cpuDeviceOwners[1] = std::make_unique<CBusDeviceCpuChannels>();
+    m_cpuDeviceOwners[2] = std::make_unique<CBusDeviceNetworkAdapter>();
+    m_cpuDeviceOwners[3] = std::make_unique<CBusDeviceSerialPort>();
+    m_cpuDeviceOwners[4] = std::make_unique<CBusDeviceCpuMemoryAccess>();
+    m_ppuDeviceOwners[0] = std::make_unique<CBusDeviceProcessorTimer>();
+    m_ppuDeviceOwners[1] = std::make_unique<CBusDevicePpuChannels>();
+    m_ppuDeviceOwners[2] = std::make_unique<CBusDevicePpuMemoryAccess>();
+    m_ppuDeviceOwners[3] = std::make_unique<CBusDeviceProgrammablePort>();
+    m_ppuDeviceOwners[4] = std::make_unique<CBusDeviceKeyboard>();
+    m_ppuDeviceOwners[5] = std::make_unique<CBusDeviceFloppyController>();
+    m_ppuDeviceOwners[6] = std::make_unique<CBusDeviceHardDrive>();
 
-    m_pFirstMemCtl->AttachDevices((const CBusDevice**)m_pCpuDevices);
-    m_pSecondMemCtl->AttachDevices((const CBusDevice**)m_pPpuDevices);
+    for (size_t i = 0; i < m_cpuDeviceOwners.size(); ++i)
+        m_pCpuDevices[i] = m_cpuDeviceOwners[i].get();
+    for (size_t i = 0; i < m_ppuDeviceOwners.size(); ++i)
+        m_pPpuDevices[i] = m_ppuDeviceOwners[i].get();
+
+    m_pFirstMemCtl->AttachDevices(std::span{m_pCpuDevices}.first<5>());
+    m_pSecondMemCtl->AttachDevices(std::span{m_pPpuDevices}.first<7>());
 }
 
-CMotherboard::~CMotherboard ()
-{
-    // Delete bus devices
-    CBusDevice** ppDevice = m_pCpuDevices;
-    while (*ppDevice != nullptr)
-    {
-        delete *ppDevice;
-        *ppDevice = nullptr;
-        ppDevice++;
-    }
-    free(m_pCpuDevices);
-    ppDevice = m_pPpuDevices;
-    while (*ppDevice != nullptr)
-    {
-        delete *ppDevice;
-        *ppDevice = nullptr;
-        ppDevice++;
-    }
-    free(m_pPpuDevices);
-
-    // Delete devices
-    delete m_pCPU;
-    delete m_pPPU;
-    delete m_pFirstMemCtl;
-    delete m_pSecondMemCtl;
-    delete m_pFloppyCtl;
-    delete m_pSoundAY[0];
-    delete m_pSoundAY[1];
-    delete m_pSoundAY[2];
-
-    // Free memory
-    free(m_pRAM[0]);
-    free(m_pRAM[1]);
-    free(m_pRAM[2]);
-    free(m_pROM);
-    if (m_pROMCart[0] != nullptr) free(m_pROMCart[0]);
-    if (m_pROMCart[1] != nullptr) free(m_pROMCart[1]);
-    if (m_pHardDrives[0] != nullptr) delete m_pHardDrives[0];
-    if (m_pHardDrives[1] != nullptr) delete m_pHardDrives[1];
-}
+CMotherboard::~CMotherboard () = default;
 
 void CMotherboard::SetTrace(uint32_t dwTrace)
 {
@@ -332,7 +295,7 @@ void CMotherboard::Reset ()
 
 void CMotherboard::LoadROM(const uint8_t* pBuffer)  // Load 32 KB ROM image from the buffer
 {
-    memcpy(m_pROM, pBuffer, 32768);
+    memcpy(m_pROM.get(), pBuffer, 32768);
 }
 
 void CMotherboard::LoadROMCartridge(int cartno, const uint8_t* pBuffer)  // Load 24 KB ROM cartridge image
@@ -342,20 +305,20 @@ void CMotherboard::LoadROMCartridge(int cartno, const uint8_t* pBuffer)  // Load
 
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
-        m_pROMCart[cartindex] = static_cast<uint8_t*>(calloc(24 * 1024, 1));
+        m_pROMCart[cartindex] = std::make_unique<uint8_t[]>(24 * 1024);
 
-    memcpy(m_pROMCart[cartindex], pBuffer, 24 * 1024);
+    memcpy(m_pROMCart[cartindex].get(), pBuffer, 24 * 1024);
 }
 
 void CMotherboard::LoadRAM(int plan, const uint8_t* pBuffer)  // Load 32 KB RAM image from the buffer
 {
     ASSERT(plan >= 0 && plan <= 2);
-    memcpy(m_pRAM[plan], pBuffer, 32768);
+    memcpy(m_pRAM[plan].get(), pBuffer, 32768);
 }
 
 void CMotherboard::SetNetStation(uint16_t station)
 {
-    CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+    CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl.get());
     pMemCtl->m_NetStation = station;
 }
 
@@ -405,11 +368,7 @@ void CMotherboard::UnloadROMCartridge(int cartno)
 {
     ASSERT(cartno == 1 || cartno == 2);  // Only two cartridges, #1 and #2
     int cartindex = cartno - 1;
-    if (m_pROMCart[cartindex] != nullptr)
-    {
-        free(m_pROMCart[cartindex]);
-        m_pROMCart[cartindex] = nullptr;
-    }
+    m_pROMCart[cartindex].reset();
 }
 
 
@@ -424,7 +383,7 @@ bool CMotherboard::IsHardImageAttached(int slot) const
 bool CMotherboard::IsHardImageReadOnly(int slot) const
 {
     ASSERT(slot >= 1 && slot <= 2);
-    CHardDrive* pHardDrive = m_pHardDrives[slot - 1];
+    CHardDrive* pHardDrive = m_pHardDrives[slot - 1].get();
     if (pHardDrive == nullptr) return false;
     return pHardDrive->IsReadOnly();
 }
@@ -433,22 +392,20 @@ bool CMotherboard::AttachHardImage(int slot, LPCTSTR sFileName)
 {
     ASSERT(slot >= 1 && slot <= 2);
 
-    m_pHardDrives[slot - 1] = new CHardDrive();
-    bool success = m_pHardDrives[slot - 1]->AttachImage(sFileName);
-    if (success)
-    {
-        m_pHardDrives[slot - 1]->Reset();
-        m_pSecondMemCtl->UpdateMemoryMap();
-    }
+    auto drive = std::make_unique<CHardDrive>();
+    if (!drive->AttachImage(sFileName))
+        return false;
 
-    return success;
+    drive->Reset();
+    m_pHardDrives[slot - 1] = std::move(drive);
+    m_pSecondMemCtl->UpdateMemoryMap();
+    return true;
 }
 void CMotherboard::DetachHardImage(int slot)
 {
     ASSERT(slot >= 1 && slot <= 2);
 
-    delete m_pHardDrives[slot - 1];
-    m_pHardDrives[slot - 1] = nullptr;
+    m_pHardDrives[slot - 1].reset();
 }
 
 uint16_t CMotherboard::GetHardPortWord(int slot, uint16_t port)
@@ -476,7 +433,8 @@ void CMotherboard::SetHardPortWord(int slot, uint16_t port, uint16_t data)
 uint16_t CMotherboard::GetROMWord(uint16_t offset) const
 {
     ASSERT(offset < 32768);
-    return *reinterpret_cast<uint16_t*>(m_pROM + (offset & 0xFFFE));
+    offset &= 0xFFFE;
+    return static_cast<uint16_t>(m_pROM[offset] | (m_pROM[offset + 1] << 8));
 }
 uint8_t CMotherboard::GetROMByte(uint16_t offset) const
 {
@@ -491,8 +449,9 @@ uint16_t CMotherboard::GetROMCartWord(int cartno, uint16_t offset) const
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
         return 0177777;
-    uint16_t* p = reinterpret_cast<uint16_t*>(m_pROMCart[cartindex] + (offset & 0xFFFE));
-    return *p;
+    offset &= 0xFFFE;
+    return static_cast<uint16_t>(m_pROMCart[cartindex][offset] |
+        (m_pROMCart[cartindex][offset + 1] << 8));
 }
 uint8_t CMotherboard::GetROMCartByte(int cartno, uint16_t offset) const
 {
@@ -501,7 +460,7 @@ uint8_t CMotherboard::GetROMCartByte(int cartno, uint16_t offset) const
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
         return 0377;
-    uint8_t* p = m_pROMCart[cartindex] + offset;
+    uint8_t* p = m_pROMCart[cartindex].get() + offset;
     return *p;
 }
 
@@ -669,12 +628,12 @@ void CMotherboard::SetSoundAYVal(int chip, uint8_t val)
 
 void CMotherboard::SetMouse(bool onoff)
 {
-    reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl)->SetMouse(onoff);
+    static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get())->SetMouse(onoff);
 }
 
 void CMotherboard::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight)
 {
-    reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl)->MouseMove(dx, dy, btnLeft, btnRight);
+    static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get())->MouseMove(dx, dy, btnLeft, btnRight);
 }
 
 
@@ -707,7 +666,7 @@ Each frame is 1/50 second = 20 ms = 10000 ticks, 1 tick = 2 us of machine time.
 * 8?? NET port exchange ticks - every 64th tick ???
 */
 
-#define FRAMETICKS 10000  // Number of ticks in one frame
+static constexpr auto FRAMETICKS = 10000;  // Number of ticks in one frame
 #define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
 #define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
@@ -782,7 +741,7 @@ bool CMotherboard::SystemFrame()
             m_pFloppyCtl->Periodic();  // Each 32nd tick -- FDD tick
 
             // Keyboard processing
-            CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
             if ((pMemCtl->m_Port177700 & 0200) == 0)
             {
                 uint8_t row_Y = m_scanned_key & 0xF;
@@ -836,7 +795,7 @@ bool CMotherboard::SystemFrame()
                 if (m_TapeReadCallback != nullptr)  // Tape reading
                 {
                     bool tapeBit = (*m_TapeReadCallback)(1);
-                    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
                     if (pMemCtl->TapeInput(tapeBit))
                     {
                         m_timerflags |= 040;  // Set bit 5 of timer state: external event ready to read
@@ -844,7 +803,7 @@ bool CMotherboard::SystemFrame()
                 }
                 else if (m_TapeWriteCallback != nullptr)  // Tape writing
                 {
-                    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+                    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
                     (*m_TapeWriteCallback)(value, 1);
                 }
@@ -853,7 +812,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_SerialInCallback != nullptr && frameticks % 416 == 0)
         {
-            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl.get());
             if ((pMemCtl->m_Port176574 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -866,7 +825,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_SerialOutCallback != nullptr && frameticks % serialOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl.get());
             if (serialTxCount > 0)
             {
                 serialTxCount--;
@@ -892,7 +851,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_NetworkInCallback != nullptr && frameticks % 64 == 0)
         {
-            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl.get());
             if ((pMemCtl->m_Port176564 & 004) == 0)  // Not loopback?
             {
                 uint8_t b;
@@ -908,7 +867,7 @@ bool CMotherboard::SystemFrame()
         }
         if (m_NetworkOutCallback != nullptr && frameticks % networkOutTicks == 0)
         {
-            CFirstMemoryController* pMemCtl = reinterpret_cast<CFirstMemoryController*>(m_pFirstMemCtl);
+            CFirstMemoryController* pMemCtl = static_cast<CFirstMemoryController*>(m_pFirstMemCtl.get());
             if (networkTxCount > 0)
             {
                 networkTxCount--;
@@ -937,7 +896,7 @@ bool CMotherboard::SystemFrame()
 
         if (m_ParallelOutCallback != nullptr && !m_okSoundCovox)
         {
-            CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+            CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
             if ((pMemCtl->m_Port177102 & 0x80) == 0x80 && (pMemCtl->m_Port177101 & 0x80) == 0x80)
             {
                 // Strobe set, Printer Ack set => reset Printer Ack
@@ -993,105 +952,91 @@ void CMotherboard::KeyboardEvent(uint8_t scancode, bool okPressed)
 //TODO: Floppy drive state
 //TODO: Hard drive state
 
-void CMotherboard::SaveToImage(uint8_t* pImage)
+void CMotherboard::SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE> image)
 {
-    // Board data                                       // Offset Size
-    uint16_t* pwImage = reinterpret_cast<uint16_t*>(pImage + 32);  //   32    --
-    *pwImage++ = m_timer;                               //   32     2
-    *pwImage++ = m_timerreload;                         //   34     2
-    *pwImage++ = m_timerflags;                          //   36     2
-    *pwImage++ = m_timerdivider;                        //   38     2
-    uint32_t* pdwImage = reinterpret_cast<uint32_t*>(pwImage);  //   40    --
-    memcpy(pdwImage, m_chancputx, 3 * 4); pdwImage += 3;//   40    12
-    memcpy(pdwImage, m_chancpurx, 2 * 4); pdwImage += 2;//   52     8
-    memcpy(pdwImage, m_chanpputx, 2 * 4); pdwImage += 2;//   60     8
-    memcpy(pdwImage, m_chanppurx, 3 * 4); pdwImage += 3;//   68    12
-    uint8_t* pbImage = (uint8_t*) pdwImage;             //   80    --
-    *pbImage++ = m_chan0disabled;                       //   80     1
-    *pbImage++ = m_irq_cpureset;                        //   81     1
-    *pbImage++ = 0;                                     //   82     1  // not used
-    *pbImage++ = m_scanned_key;                         //   83     1
-    memcpy(pbImage, m_kbd_matrix, 2 * 16); pbImage += 32;//  84    32
-    pwImage = reinterpret_cast<uint16_t*>(pbImage);     //  116    --
-    *pwImage++ = m_multiply;                            //  116     2
-    memcpy(pwImage, freq_per, 12); pwImage += 6;        //  118    12
-    memcpy(pwImage, freq_out, 12); pwImage += 6;        //  130    12
-    memcpy(pwImage, freq_enable, 12); /*pwImage += 6;*/ //  142    12
-
+    static_assert(sizeof(m_chancputx) == 12 && sizeof(m_chancpurx) == 8 &&
+                  sizeof(m_chanpputx) == 8 && sizeof(m_chanppurx) == 12 && sizeof(m_kbd_matrix) == 32);
+    auto* pImage = image.data();
+    image::Writer writer(image.subspan<32, 128>());
+    writer.word(m_timer);
+    writer.word(m_timerreload);
+    writer.word(m_timerflags);
+    writer.word(m_timerdivider);
+    writer.copy(m_chancputx);
+    writer.copy(m_chancpurx);
+    writer.copy(m_chanpputx);
+    writer.copy(m_chanppurx);
+    writer.byte(m_chan0disabled);
+    writer.byte(m_irq_cpureset);
+    writer.byte(0);
+    writer.byte(m_scanned_key);
+    writer.copy(m_kbd_matrix);
+    writer.word(m_multiply);
+    for (auto value : freq_per) writer.word(value);
+    for (auto value : freq_out) writer.word(value);
+    for (auto value : freq_enable) writer.word(value);
     // CPU status
-    uint8_t* pImageCPU = pImage + 160;
-    m_pCPU->SaveToImage(pImageCPU);
+    m_pCPU->SaveToImage(image.subspan<160, 64>());
     // PPU status
-    uint8_t* pImagePPU = pImageCPU + 64;
-    m_pPPU->SaveToImage(pImagePPU);
+    m_pPPU->SaveToImage(image.subspan<224, 64>());
     // CPU memory/IO controller status
-    uint8_t* pImageCpuMem = pImagePPU + 64;
-    m_pFirstMemCtl->SaveToImage(pImageCpuMem);
+    m_pFirstMemCtl->SaveToImage(image.subspan<288, 64>());
     // PPU memory/IO controller status
-    uint8_t* pImagePpuMem = pImageCpuMem + 64;
-    m_pSecondMemCtl->SaveToImage(pImagePpuMem);
+    m_pSecondMemCtl->SaveToImage(image.subspan<352, 64>());
 
     // ROM
     uint8_t* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE;
-    memcpy(pImageRom, m_pROM, 32 * 1024);
+    memcpy(pImageRom, m_pROM.get(), 32 * 1024);
     // RAM planes 0, 1, 2
     uint8_t* pImageRam = pImageRom + 32 * 1024;
-    memcpy(pImageRam, m_pRAM[0], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[0].get(), 64 * 1024);
     pImageRam += 64 * 1024;
-    memcpy(pImageRam, m_pRAM[1], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[1].get(), 64 * 1024);
     pImageRam += 64 * 1024;
-    memcpy(pImageRam, m_pRAM[2], 64 * 1024);
+    memcpy(pImageRam, m_pRAM[2].get(), 64 * 1024);
     pImageRam += 64 * 1024;
     ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
 }
-void CMotherboard::LoadFromImage(const uint8_t* pImage)
+void CMotherboard::LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE> image)
 {
-    // Board data                                       // Offset Size
-    const uint16_t* pwImage = (const uint16_t*) (pImage + 32);//   32    --
-    m_timer = *pwImage++;                               //   32     2
-    m_timerreload = *pwImage++;                         //   34     2
-    m_timerflags = *pwImage++;                          //   36     2
-    m_timerdivider = *pwImage++;                        //   38     2
-    const uint32_t* pdwImage = reinterpret_cast<const uint32_t*>(pwImage);  //   40    --
-    memcpy(m_chancputx, pdwImage, 3 * 4); pdwImage += 3;//   40    12
-    memcpy(m_chancpurx, pdwImage, 2 * 4); pdwImage += 2;//   52     8
-    memcpy(m_chanpputx, pdwImage, 2 * 4); pdwImage += 2;//   60     8
-    memcpy(m_chanppurx, pdwImage, 3 * 4); pdwImage += 3;//   68    12
-    const uint8_t* pbImage = (const uint8_t*) pdwImage; //   80    --
-    m_chan0disabled = *pbImage++;                       //   80     1
-    m_irq_cpureset = *pbImage++;                        //   81     1
-    pbImage++;                                          //   82     1  // not used
-    m_scanned_key = *pbImage++;                         //   83     1
-    memcpy(m_kbd_matrix, pbImage, 2 * 16); pbImage += 32;//  84    32
-    pwImage = reinterpret_cast<const uint16_t*>(pbImage);  //  116    --
-    m_multiply = *pwImage++;                            //  116     2
-    memcpy(freq_per, pwImage, 12); pwImage += 6;        //  118    12
-    memcpy(freq_out, pwImage, 12); pwImage += 6;        //  130    12
-    memcpy(freq_enable, pwImage, 12); pwImage += 6;     //  142    12
-
+    const auto* pImage = image.data();
+    image::Reader reader(image.subspan<32, 128>());
+    m_timer = reader.word();
+    m_timerreload = reader.word();
+    m_timerflags = reader.word();
+    m_timerdivider = reader.word();
+    reader.copy(m_chancputx);
+    reader.copy(m_chancpurx);
+    reader.copy(m_chanpputx);
+    reader.copy(m_chanppurx);
+    m_chan0disabled = reader.byte();
+    m_irq_cpureset = reader.byte();
+    reader.skip(1);
+    m_scanned_key = reader.byte();
+    reader.copy(m_kbd_matrix);
+    m_multiply = reader.word();
+    for (auto& value : freq_per) value = reader.word();
+    for (auto& value : freq_out) value = reader.word();
+    for (auto& value : freq_enable) value = reader.word();
     // CPU status
-    const uint8_t* pImageCPU = pImage + 160;            //  160    32
-    m_pCPU->LoadFromImage(pImageCPU);
+    m_pCPU->LoadFromImage(image.subspan<160, 64>());
     // PPU status
-    const uint8_t* pImagePPU = pImageCPU + 64;          //  224    32
-    m_pPPU->LoadFromImage(pImagePPU);
+    m_pPPU->LoadFromImage(image.subspan<224, 64>());
     // CPU memory/IO controller status
-    const uint8_t* pImageCpuMem = pImagePPU + 64;       //  288    64
-    m_pFirstMemCtl->LoadFromImage(pImageCpuMem);
+    m_pFirstMemCtl->LoadFromImage(image.subspan<288, 64>());
     // PPU memory/IO controller status
-    const uint8_t* pImagePpuMem = pImageCpuMem + 64;    //  352    64
-    m_pSecondMemCtl->LoadFromImage(pImagePpuMem);
+    m_pSecondMemCtl->LoadFromImage(image.subspan<352, 64>());
 
     // ROM
     const uint8_t* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE; // 512
-    memcpy(m_pROM, pImageRom, 32 * 1024);
+    memcpy(m_pROM.get(), pImageRom, 32 * 1024);
     // RAM planes 0, 1, 2
     const uint8_t* pImageRam = pImageRom + 32 * 1024;
-    memcpy(m_pRAM[0], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[0].get(), pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
-    memcpy(m_pRAM[1], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[1].get(), pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
-    memcpy(m_pRAM[2], pImageRam, 64 * 1024);
+    memcpy(m_pRAM[2].get(), pImageRam, 64 * 1024);
     pImageRam += 64 * 1024;
     ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
 }
@@ -1538,7 +1483,7 @@ void CMotherboard::DoSound()
     if (m_okSoundCovox)
     {
         // Get byte from printer port output register, inverted, and merge it with the channel data
-        CSecondMemoryController* pSecondMemCtl = dynamic_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+        CSecondMemoryController* pSecondMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
         uint8_t valuecovox = pSecondMemCtl->m_Port177100 ^ 0xff;
         value ^= valuecovox << 7;
     }
@@ -1641,7 +1586,7 @@ void CMotherboard::SetSerialCallbacks(SERIALINCALLBACK incallback, SERIALOUTCALL
 
 void CMotherboard::SetParallelOutCallback(PARALLELOUTCALLBACK outcallback)
 {
-    CSecondMemoryController* pMemCtl = reinterpret_cast<CSecondMemoryController*>(m_pSecondMemCtl);
+    CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
     if (outcallback == nullptr)  // Reset callback
     {
         pMemCtl->m_Port177101 &= ~2;  // Reset OnLine flag

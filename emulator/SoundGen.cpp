@@ -14,15 +14,17 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "emubase/Emubase.h"
 #include "SoundGen.h"
 #include "mmsystem.h"
+#include <atomic>
+#include <array>
 
 //////////////////////////////////////////////////////////////////////
 
 
 static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
 
-static CRITICAL_SECTION waveCriticalSection;
-static WAVEHDR*         waveBlocks;
-static volatile int     waveFreeBlockCount;
+static std::array<WAVEHDR, BLOCK_COUNT> waveBlocks{};
+static std::array<std::array<char, BLOCK_SIZE>, BLOCK_COUNT> waveSamples{};
+static std::atomic<int> waveFreeBlockCount{0};
 static int              waveCurrentBlock;
 
 static bool m_SoundGenInitialized = false;
@@ -40,14 +42,11 @@ int bufcurpos;
 
 static void CALLBACK WaveCallback(HWAVEOUT /*hwo*/, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR /*dwParam1*/, DWORD_PTR /*dwParam2*/)
 {
-    int* freeBlockCounter = reinterpret_cast<int*>(dwInstance);
+    auto* freeBlockCounter = reinterpret_cast<std::atomic<int>*>(dwInstance);
     if (uMsg != WOM_DONE)
         return;
 
-    EnterCriticalSection(&waveCriticalSection);
-    (*freeBlockCounter)++;
-
-    LeaveCriticalSection(&waveCriticalSection);
+    freeBlockCounter->fetch_add(1);
 }
 
 void SoundGen_Initialize(WORD volume)
@@ -55,19 +54,11 @@ void SoundGen_Initialize(WORD volume)
     if (m_SoundGenInitialized)
         return;
 
-    size_t totalBufferSize = (BLOCK_SIZE + sizeof(WAVEHDR)) * BLOCK_COUNT;
-
-    unsigned char* mbuffer = static_cast<unsigned char*>(calloc(totalBufferSize, 1));
-    if (mbuffer == nullptr)
-        return;
-
-    waveBlocks = reinterpret_cast<WAVEHDR*>(mbuffer);
-    mbuffer += sizeof(WAVEHDR) * BLOCK_COUNT;
+    waveBlocks = {};
     for (int i = 0; i < BLOCK_COUNT; i++)
     {
         waveBlocks[i].dwBufferLength = BLOCK_SIZE;
-        waveBlocks[i].lpData = reinterpret_cast<LPSTR>(mbuffer);
-        mbuffer += BLOCK_SIZE;
+        waveBlocks[i].lpData = waveSamples[i].data();
     }
 
     waveFreeBlockCount = BLOCK_COUNT;
@@ -90,7 +81,6 @@ void SoundGen_Initialize(WORD volume)
 
     waveOutSetVolume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
 
-    InitializeCriticalSection(&waveCriticalSection);
     bufcurpos = 0;
 
     m_SoundGenInitialized = true;
@@ -110,11 +100,7 @@ void SoundGen_Finalize()
             waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
     }
 
-    DeleteCriticalSection(&waveCriticalSection);
     waveOutClose(hWaveOut);
-
-    ::free(waveBlocks);
-    waveBlocks = nullptr;
 
     m_SoundGenInitialized = false;
 }
@@ -155,12 +141,18 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
         memcpy(current->lpData, buffer, BUFSIZE);
         current->dwBufferLength = BLOCK_SIZE;
 
-        waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR));
-        waveOutWrite(hWaveOut, current, sizeof(WAVEHDR));
-
-        EnterCriticalSection(&waveCriticalSection);
-        waveFreeBlockCount--;
-        LeaveCriticalSection(&waveCriticalSection);
+        if (waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        {
+            bufcurpos = 0;
+            return;
+        }
+        waveFreeBlockCount.fetch_sub(1);
+        if (waveOutWrite(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        {
+            waveFreeBlockCount.fetch_add(1);
+            bufcurpos = 0;
+            return;
+        }
 
         while (!waveFreeBlockCount)
             Sleep(1);

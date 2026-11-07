@@ -397,27 +397,25 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc, uint16_t addr1, uint16_t addr
     size_t bsize = (waddr2 - waddr1 + 1) * 2;
 
     CMemoryController* pMemCtl = pProc->GetMemoryController();
-    uint16_t * pData = static_cast<uint16_t*>(::calloc(bsize, 1));
-    if (pData == nullptr)
-        return FALSE;
+    std::vector<uint16_t> data(bsize / sizeof(uint16_t));
 
     bool isHaltMode = pProc->IsHaltMode();
     int addrtype;
     for (uint16_t i = waddr1; i <= waddr2; i++)
-        pData[i] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
+        data[i - waddr1] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
 
     TCHAR fname[20];
     _sntprintf(fname, sizeof(fname) / sizeof(TCHAR) - 1, _T("memdump%s.bin"), pProc->GetName());
     HANDLE file = ::CreateFile(fname,
             GENERIC_WRITE, FILE_SHARE_READ, NULL,
-            OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE)
+        return FALSE;
 
     DWORD dwBytesWritten = 0;
-    ::WriteFile(file, pData, bsize, &dwBytesWritten, NULL);
-    ::SetEndOfFile(file);
-    ::free(pData);
+    BOOL written = ::WriteFile(file, data.data(), static_cast<DWORD>(bsize), &dwBytesWritten, NULL);
     ::CloseHandle(file);
-    if (dwBytesWritten != bsize)
+    if (!written || dwBytesWritten != bsize)
         return FALSE;
 
     ConsoleView_PrintFormat(_T("  %s memory saved to %s\r\n"), pProc->GetName(), fname);
@@ -583,7 +581,7 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
                 break;
             TCHAR instr[8];
             TCHAR args[32];
-            length = DisassembleInstruction(memory + index, address, instr, args);
+            length = DisassembleInstruction(std::span{memory}.subspan(index), address, instr, args);
             lastLength = length;
             if (index + length > nWindowSize)
                 break;

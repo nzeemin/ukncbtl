@@ -14,6 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Memory.h"
 #include "Board.h"
 #include "Processor.h"
+#include "ImageSerialization.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -22,42 +23,16 @@ CMemoryController::CMemoryController ()
 {
     m_pProcessor = nullptr;
     m_pBoard = nullptr;
-    m_pMapping = static_cast<uint8_t*>(malloc(65536));
-    memset(m_pMapping, ADDRTYPE_NONE, 65536);
-    m_pDevices = nullptr;
-    m_nDeviceCount = 0;
+    m_pMapping.fill(ADDRTYPE_NONE);
 }
 
 CMemoryController::~CMemoryController ()
 {
-    free(m_pMapping);
-
-    if (m_pDevices != nullptr)
-        free(m_pDevices);
 }
 
-void CMemoryController::AttachDevices(const CBusDevice **pDevices)
+void CMemoryController::AttachDevices(std::span<const CBusDevice* const> devices)
 {
-    // Free the previously allocated memory
-    if (m_pDevices != nullptr)
-    {
-        free(m_pDevices);  m_pDevices = nullptr;
-    }
-
-    // Calculate device count
-    const CBusDevice ** p = pDevices;
-    int deviceCount = 0;
-    while (*p != nullptr)
-    {
-        deviceCount++;
-        p++;
-    }
-
-    // Allocate memory and store the devices
-    m_pDevices = static_cast<CBusDevice **>(calloc((deviceCount + 1), sizeof(CBusDevice*)));
-    m_pDevices[0] = nullptr;
-    memcpy(m_pDevices + 1, pDevices, deviceCount * sizeof(CBusDevice*));
-    m_nDeviceCount = deviceCount;
+    m_pDevices.assign(devices.begin(), devices.end());
 
     // Update the memory map
     UpdateMemoryMap();
@@ -65,20 +40,18 @@ void CMemoryController::AttachDevices(const CBusDevice **pDevices)
 
 void CMemoryController::UpdateMemoryMap()
 {
-    memset(m_pMapping, ADDRTYPE_NONE, 65536);
+    m_pMapping.fill(ADDRTYPE_NONE);
 
-    CBusDevice ** pDevices = m_pDevices;
-    for (int device = 1; device <= m_nDeviceCount; device++, pDevices++)
+    for (size_t device = 0; device < m_pDevices.size(); ++device)
     {
-        CBusDevice * pDevice = *pDevices;
-        if (pDevice == nullptr) continue;
-        uint8_t deviceIndex = (uint8_t)device | ADDRTYPE_IO;
-        const uint16_t * pRanges = (*pDevices)->GetAddressRanges();
+        const CBusDevice* pDevice = m_pDevices[device];
+        uint8_t deviceIndex = static_cast<uint8_t>(device + 1) | ADDRTYPE_IO;
+        const uint16_t * pRanges = pDevice->GetAddressRanges();
         while (*pRanges != 0)
         {
             uint16_t start = *pRanges;  pRanges++;
             uint16_t length = *pRanges;  pRanges++;
-            for (uint16_t addr = start; addr < start + length; addr++)
+            for (uint32_t addr = start; addr < static_cast<uint32_t>(start) + length && addr < m_pMapping.size(); addr++)
                 m_pMapping[addr] = deviceIndex;
         }
     }
@@ -754,29 +727,29 @@ bool CFirstMemoryController::NetworkInput(uint8_t inputByte)
 //   2*8 bytes      8 port registers
 //    48 bytes      Reserved
 
-void CFirstMemoryController::SaveToImage(uint8_t* pImage)
+void CFirstMemoryController::SaveToImage(std::span<uint8_t, 64> image)
 {
-    uint16_t* pwImage = (uint16_t*) pImage;
-    *pwImage++ = m_Port176640;
-    *pwImage++ = m_Port176642;
-    *pwImage++ = m_Port176644;
-    *pwImage++ = m_Port176646;
-    *pwImage++ = m_Port176570;
-    *pwImage++ = m_Port176572;
-    *pwImage++ = m_Port176574;
-    *pwImage++ = m_Port176576;
+    image::Writer writer(image);
+    writer.word(m_Port176640);
+    writer.word(m_Port176642);
+    writer.word(m_Port176644);
+    writer.word(m_Port176646);
+    writer.word(m_Port176570);
+    writer.word(m_Port176572);
+    writer.word(m_Port176574);
+    writer.word(m_Port176576);
 }
-void CFirstMemoryController::LoadFromImage(const uint8_t* pImage)
+void CFirstMemoryController::LoadFromImage(std::span<const uint8_t, 64> image)
 {
-    uint16_t* pwImage = (uint16_t*) pImage;
-    m_Port176640 = *pwImage++;
-    m_Port176642 = *pwImage++;
-    m_Port176644 = *pwImage++;
-    m_Port176646 = *pwImage++;
-    m_Port176570 = *pwImage++;
-    m_Port176572 = *pwImage++;
-    m_Port176574 = *pwImage++;
-    m_Port176576 = *pwImage++;
+    image::Reader reader(image);
+    m_Port176640 = reader.word();
+    m_Port176642 = reader.word();
+    m_Port176644 = reader.word();
+    m_Port176646 = reader.word();
+    m_Port176570 = reader.word();
+    m_Port176572 = reader.word();
+    m_Port176574 = reader.word();
+    m_Port176576 = reader.word();
 }
 
 
@@ -826,34 +799,34 @@ void CSecondMemoryController::UpdateMemoryMap()
     CMemoryController::UpdateMemoryMap();
 
     // 000000-077777 - PPU RAM
-    memset(m_pMapping, ADDRTYPE_RAM0, 0100000);
+    memset(m_pMapping.data(), ADDRTYPE_RAM0, 0100000);
 
     // 100000-117777 - Window block 0
     uint8_t filler = ADDRTYPE_NONE;
     if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
-        memset(m_pMapping + 0100000, ADDRTYPE_RAM0, 020000);
+        memset(m_pMapping.data() + 0100000, ADDRTYPE_RAM0, 020000);
     else if ((m_Port177054 & 1) != 0)  // ROM selected
-        memset(m_pMapping + 0100000, ADDRTYPE_ROM, 020000);
+        memset(m_pMapping.data() + 0100000, ADDRTYPE_ROM, 020000);
     else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
     {
         int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
         filler = (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
-        memset(m_pMapping + 0100000, filler, 010000);
+        memset(m_pMapping.data() + 0100000, filler, 010000);
         if (!m_pBoard->IsHardImageAttached(slot))
-            memset(m_pMapping + 0110000, filler, 010000);
+            memset(m_pMapping.data() + 0110000, filler, 010000);
     }
 
     // 120000-137777 - Window block 1
     filler = ((m_Port177054 & 32) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 5 set => RAM selected
-    memset(m_pMapping + 0120000, filler, 020000);
+    memset(m_pMapping.data() + 0120000, filler, 020000);
 
     // 140000-157777 - Window block 2
     filler = ((m_Port177054 & 64) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 6 set => RAM selected
-    memset(m_pMapping + 0140000, filler, 020000);
+    memset(m_pMapping.data() + 0140000, filler, 020000);
 
     // 160000-176777 - Window block 3
     filler = ((m_Port177054 & 128) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 7 set => RAM selected
-    memset(m_pMapping + 0160000, filler, 017000);
+    memset(m_pMapping.data() + 0160000, filler, 017000);
 
     // 177000-177777 - I/O addresses
     for (uint16_t addr = 0177777; addr >= 0177000; addr--)
@@ -1665,53 +1638,53 @@ void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bo
 //      3 bytes     3 port registers
 //     37 bytes     Reserved
 
-void CSecondMemoryController::SaveToImage(uint8_t* pImage)
+void CSecondMemoryController::SaveToImage(std::span<uint8_t, 64> image)
 {
-    uint16_t* pwImage = (uint16_t*) pImage;
-    *pwImage++ = m_Port177010;
-    *pwImage++ = m_Port177012;
-    *pwImage++ = m_Port177014;
+    image::Writer writer(image);
+    writer.word(m_Port177010);
+    writer.word(m_Port177012);
+    writer.word(m_Port177014);
 
-    *pwImage++ = m_Port177016;
-    *pwImage++ = m_Port177020;
-    *pwImage++ = m_Port177022;
-    *pwImage++ = m_Port177024;
-    *pwImage++ = m_Port177026;
+    writer.word(m_Port177016);
+    writer.word(m_Port177020);
+    writer.word(m_Port177022);
+    writer.word(m_Port177024);
+    writer.word(m_Port177026);
 
-    *pwImage++ = m_Port177700;
-    *pwImage++ = m_Port177702;
-    *pwImage++ = m_Port177716;
+    writer.word(m_Port177700);
+    writer.word(m_Port177702);
+    writer.word(m_Port177716);
 
-    *pwImage++ = m_Port177054;
+    writer.word(m_Port177054);
 
-    uint8_t* pbImage = (uint8_t*) pwImage;
-    *pbImage++ = m_Port177100;
-    *pbImage++ = m_Port177101;
-    *pbImage++ = m_Port177102;
+
+    writer.byte(m_Port177100);
+    writer.byte(m_Port177101);
+    writer.byte(m_Port177102);
 }
-void CSecondMemoryController::LoadFromImage(const uint8_t* pImage)
+void CSecondMemoryController::LoadFromImage(std::span<const uint8_t, 64> image)
 {
-    uint16_t* pwImage = (uint16_t*) pImage;
-    m_Port177010 = *pwImage++;
-    m_Port177012 = *pwImage++;
-    m_Port177014 = *pwImage++;
+    image::Reader reader(image);
+    m_Port177010 = reader.word();
+    m_Port177012 = reader.word();
+    m_Port177014 = reader.word();
 
-    m_Port177016 = *pwImage++;
-    m_Port177020 = *pwImage++;
-    m_Port177022 = *pwImage++;
-    m_Port177024 = *pwImage++;
-    m_Port177026 = *pwImage++;
+    m_Port177016 = reader.word();
+    m_Port177020 = reader.word();
+    m_Port177022 = reader.word();
+    m_Port177024 = reader.word();
+    m_Port177026 = reader.word();
 
-    m_Port177700 = *pwImage++;
-    m_Port177702 = *pwImage++;
-    m_Port177716 = *pwImage++;
+    m_Port177700 = reader.word();
+    m_Port177702 = reader.word();
+    m_Port177716 = reader.word();
 
-    m_Port177054 = *pwImage++;
+    m_Port177054 = reader.word();
 
-    uint8_t* pbImage = (uint8_t*) pwImage;
-    m_Port177100 = *pbImage++;
-    m_Port177101 = *pbImage++;
-    m_Port177102 = *pbImage++;
+
+    m_Port177100 = reader.byte();
+    m_Port177101 = reader.byte();
+    m_Port177102 = reader.byte();
 
     UpdateMemoryMap();
 }

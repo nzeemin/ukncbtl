@@ -212,15 +212,15 @@ BOOL InputBoxValidate(HWND hDlg)
     TCHAR buffer[8];
     GetWindowText(hEdit, buffer, 8);
 
-    WORD value;
-    if (! ParseOctalValue(buffer, &value))
+    const auto value = ParseOctalValue(buffer);
+    if (!value)
     {
         MessageBox(NULL, _T("Please enter correct octal value."), _T("Input Box Validation"),
                 MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
         return FALSE;
     }
 
-    *m_pInputBoxValueOctal = value;
+    *m_pInputBoxValueOctal = *value;
 
     return TRUE;
 }
@@ -350,21 +350,26 @@ void Dialogs_DoCreateDisk(int tracks)
     }
 
     // Zero-fill the file
-    ::SetFilePointer(hFile, fileSize, NULL, FILE_BEGIN);
-    ::SetEndOfFile(hFile);
+    BOOL success = ::SetFilePointer(hFile, fileSize, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+                   ::SetEndOfFile(hFile);
 
     // Prepare disk the same way as INIT does
-    ::SetFilePointer(hFile, 0, NULL, FILE_BEGIN);
-    ::WriteFile(hFile, DiskInitBlockAt0000, sizeof(DiskInitBlockAt0000), NULL, NULL);
-    ::SetFilePointer(hFile, 0x03D2, NULL, FILE_BEGIN);
-    ::WriteFile(hFile, DiskInitBlockAt03D2, sizeof(DiskInitBlockAt03D2), NULL, NULL);
+    auto writeBlock = [hFile](LONG offset, const void* data, DWORD size) {
+        DWORD written = 0;
+        return ::SetFilePointer(hFile, offset, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+            ::WriteFile(hFile, data, size, &written, NULL) && written == size;
+    };
+    success = success && writeBlock(0, DiskInitBlockAt0000, sizeof(DiskInitBlockAt0000));
+    success = success && writeBlock(0x03D2, DiskInitBlockAt03D2, sizeof(DiskInitBlockAt03D2));
     const uint8_t* DiskInitBlockAt0C00 = (tracks <= 40) ? DiskInitBlockAt0C00For400K : DiskInitBlockAt0C00For800K;
-    ::SetFilePointer(hFile, 0x0C00, NULL, FILE_BEGIN);
-    ::WriteFile(hFile, DiskInitBlockAt0C00, 26, NULL, NULL);
+    success = success && writeBlock(0x0C00, DiskInitBlockAt0C00, 26);
 
-    ::CloseHandle(hFile);
+    success = ::CloseHandle(hFile) && success;
 
-    AlertInfo(_T("New disk file created successfully."));
+    if (success)
+        AlertInfo(_T("New disk file created successfully."));
+    else
+        AlertWarning(_T("Failed to write the new disk file."));
 }
 
 
@@ -399,9 +404,15 @@ void ShowSettingsDialog()
 void FillRenderCombo(HWND hRender)
 {
     TCHAR searchPath[MAX_PATH];
-    ::GetModuleFileName(GetModuleHandle(NULL), searchPath, MAX_PATH);
-    TCHAR* pos = _tcsrchr(searchPath, _T('\\')) + 1;  // Cutoff the file name
-    _tcscpy(pos, _T("Render*.dll"));  // Add search mask
+    DWORD length = ::GetModuleFileName(GetModuleHandle(NULL), searchPath, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH)
+        return;
+    TCHAR* separator = _tcsrchr(searchPath, _T('\\'));
+    if (separator == nullptr)
+        return;
+    TCHAR* pos = separator + 1;
+    if (_tcscpy_s(pos, MAX_PATH - (pos - searchPath), _T("Render*.dll")) != 0)
+        return;
 
     WIN32_FIND_DATA finddata;
     HANDLE hfind = ::FindFirstFile(searchPath, &finddata);
@@ -414,6 +425,7 @@ void FillRenderCombo(HWND hRender)
             if (!::FindNextFile(hfind, &finddata))
                 break;
         }
+        ::FindClose(hfind);
     }
 
     TCHAR buffer[32];

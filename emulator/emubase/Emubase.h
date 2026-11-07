@@ -21,12 +21,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Disassembler
 
 /// \brief Disassemble one instruction of KM1801VM2 processor
-/// \param[in]  pMemory Memory image (we read only words of the instruction)
+/// \param[in]  memory Instruction words; missing extension words are treated as zero
 /// \param[in]  addr    Address of the instruction
-/// \param[out] sInstr  Instruction mnemonics buffer - at least 8 characters
-/// \param[out] sArg    Instruction arguments buffer - at least 32 characters
-/// \return  Number of words in the instruction
-uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* sInstr, TCHAR* sArg);
+/// \param[out] instruction Instruction mnemonics buffer - at least 8 characters
+/// \param[out] argument Instruction arguments buffer - at least 32 characters
+/// \return Number of words in the instruction, or zero for an empty input or undersized output
+uint16_t DisassembleInstruction(std::span<const uint16_t> memory, uint16_t addr,
+                               std::span<TCHAR> instruction, std::span<TCHAR> argument);
 
 /// \brief Check if the instruction is a jump with a known target, for the jump arrow
 /// \param[in]  memory   Memory image: the instruction and the word after it (the offset or the address of the target)
@@ -36,9 +37,9 @@ uint16_t DisassembleInstruction(const uint16_t* pMemory, uint16_t addr, TCHAR* s
 bool Disasm_CheckForJump(const uint16_t* memory, uint16_t address, int* pDelta);
 
 // Hints of the current instruction: up to three lines of text and the jump prediction
-#define DISASM_HINT_LINES       3
-#define DISASM_HINT_SIZE        64   ///< Size of a hint line, in characters, including the terminator
-#define DISASM_HINT_PIECE_SIZE  24   ///< Size of a hint of one operand, a line joins the hints of the source and the destination
+inline constexpr auto DISASM_HINT_LINES = 3;
+inline constexpr auto DISASM_HINT_SIZE = 64;   ///< Size of a hint line, in characters, including the terminator
+inline constexpr auto DISASM_HINT_PIECE_SIZE = 24;   ///< Size of a hint of one operand, a line joins the hints of the source and the destination
 
 struct DisasmHint
 {
@@ -81,29 +82,29 @@ void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t buf
 //////////////////////////////////////////////////////////////////////
 // CFloppy
 
-#define SAMPLERATE                      22050
+inline constexpr auto SAMPLERATE = 22050;
 
-#define FLOPPY_FSM_IDLE                 0
+inline constexpr auto FLOPPY_FSM_IDLE = 0;
 
-#define FLOPPY_CMD_CORRECTION250             04
-#define FLOPPY_CMD_CORRECTION500            010
-#define FLOPPY_CMD_ENGINESTART              020  ///< Engine on/off
-#define FLOPPY_CMD_SIDEUP                   040  ///< Side: 1 -- upper head, 0 -- lower head
-#define FLOPPY_CMD_DIR                     0100  ///< Direction: 0 -- to center (towards trk0), 1 -- from center (towards trk80)
-#define FLOPPY_CMD_STEP                    0200  ///< Step / ready
-#define FLOPPY_CMD_SEARCHSYNC              0400  ///< Search sync
-#define FLOPPY_CMD_SKIPSYNC               01000  ///< Skip sync
+inline constexpr auto FLOPPY_CMD_CORRECTION250 = 04;
+inline constexpr auto FLOPPY_CMD_CORRECTION500 = 010;
+inline constexpr auto FLOPPY_CMD_ENGINESTART = 020;  ///< Engine on/off
+inline constexpr auto FLOPPY_CMD_SIDEUP = 040;  ///< Side: 1 -- upper head, 0 -- lower head
+inline constexpr auto FLOPPY_CMD_DIR = 0100;  ///< Direction: 0 -- to center (towards trk0), 1 -- from center (towards trk80)
+inline constexpr auto FLOPPY_CMD_STEP = 0200;  ///< Step / ready
+inline constexpr auto FLOPPY_CMD_SEARCHSYNC = 0400;  ///< Search sync
+inline constexpr auto FLOPPY_CMD_SKIPSYNC = 01000;  ///< Skip sync
 
-#define FLOPPY_STATUS_TRACK0                 01  ///< Track 0 flag
-#define FLOPPY_STATUS_RDY                    02  ///< Ready status
-#define FLOPPY_STATUS_WRITEPROTECT           04  ///< Write protect
-#define FLOPPY_STATUS_MOREDATA             0200  ///< Need more data flag
-#define FLOPPY_STATUS_CHECKSUMOK         040000  ///< Checksum verified OK
-#define FLOPPY_STATUS_INDEXMARK         0100000  ///< Index flag, indicates the beginning of track
+inline constexpr auto FLOPPY_STATUS_TRACK0 = 01;  ///< Track 0 flag
+inline constexpr auto FLOPPY_STATUS_RDY = 02;  ///< Ready status
+inline constexpr auto FLOPPY_STATUS_WRITEPROTECT = 04;  ///< Write protect
+inline constexpr auto FLOPPY_STATUS_MOREDATA = 0200;  ///< Need more data flag
+inline constexpr auto FLOPPY_STATUS_CHECKSUMOK = 040000;  ///< Checksum verified OK
+inline constexpr auto FLOPPY_STATUS_INDEXMARK = 0100000;  ///< Index flag, indicates the beginning of track
 
-#define FLOPPY_RAWTRACKSIZE             6250     ///< Raw track size, bytes
+inline constexpr auto FLOPPY_RAWTRACKSIZE = 6250;     ///< Raw track size, bytes
 #define FLOPPY_RAWMARKERSIZE            (FLOPPY_RAWTRACKSIZE / 2)
-#define FLOPPY_INDEXLENGTH              150      ///< Length of index hole, in bytes of raw track image
+inline constexpr auto FLOPPY_INDEXLENGTH = 150;      ///< Length of index hole, in bytes of raw track image
 
 /// \brief Floppy drive (one of four drives in the floppy controller)
 /// \sa CFloppyController
@@ -174,14 +175,14 @@ public:
 
 private:
     void PrepareTrack();
-    void FlushChanges();  ///< If current track was changed - save it
+    bool FlushChanges();  ///< If current track was changed - save it
 };
 
 
 //////////////////////////////////////////////////////////////////////
 // CHardDrive
 
-#define IDE_DISK_SECTOR_SIZE      512
+inline constexpr auto IDE_DISK_SECTOR_SIZE = 512;
 
 /// \brief UKNC IDE hard drive
 class CHardDrive
@@ -227,7 +228,7 @@ public:
     void Periodic();
 
 private:
-    uint32_t CalculateOffset() const;  ///< Calculate sector offset in the HDD image
+    bool CalculateOffset(long& offset) const;  ///< Validate CHS and calculate the image offset
     void HandleCommand(uint8_t command);  ///< Handle the IDE command
     void ReadNextSector();
     void ReadSectorDone();

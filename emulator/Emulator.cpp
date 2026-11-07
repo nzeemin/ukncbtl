@@ -12,11 +12,15 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <cstdio>
+#include <array>
+#include <memory>
+#include <vector>
 #include <share.h>
 #include "Main.h"
 #include "Emulator.h"
 #include "Views.h"
 #include "emubase/Emubase.h"
+#include "emubase/ImageSerialization.h"
 #include "SoundGen.h"
 
 //NOTE: I know, we use unsafe string functions
@@ -26,6 +30,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 CMotherboard* g_pBoard = nullptr;
+static std::unique_ptr<CMotherboard> g_boardOwner;
 
 bool g_okEmulatorInitialized = false;
 bool g_okEmulatorRunning = false;
@@ -58,6 +63,8 @@ long m_nUptimeFrameCount = 0;
 
 uint8_t* g_pEmulatorRam[3] = { nullptr, nullptr, nullptr };  // RAM values - for change tracking
 uint8_t* g_pEmulatorChangedRam[3] = { nullptr, nullptr, nullptr };  // RAM change flags
+static std::unique_ptr<uint8_t[]> g_emulatorRamOwners[3];
+static std::unique_ptr<uint8_t[]> g_emulatorChangedRamOwners[3];
 uint16_t g_wEmulatorCpuPC = 0177777;      // Current PC value
 uint16_t g_wEmulatorPrevCpuPC = 0177777;  // Previous PC value
 uint16_t g_wEmulatorPpuPC = 0177777;      // Current PC value
@@ -77,18 +84,15 @@ const LPCTSTR FILE_NAME_UKNC_ROM = _T("uknc_rom.bin");
 
 bool Emulator_LoadUkncRom()
 {
-    void * pData = ::calloc(32768, 1);
-    if (pData == nullptr)
-        return false;
+    std::array<uint8_t, 32768> data{};
 
     FILE* fpFile = ::_tfsopen(FILE_NAME_UKNC_ROM, _T("rb"), _SH_DENYWR);
     if (fpFile != nullptr)
     {
-        size_t dwBytesRead = ::fread(pData, 1, 32256, fpFile);
+        size_t dwBytesRead = ::fread(data.data(), 1, 32256, fpFile);
         ::fclose(fpFile);
         if (dwBytesRead != 32256)
         {
-            ::free(pData);
             return false;
         }
     }
@@ -103,15 +107,12 @@ bool Emulator_LoadUkncRom()
             (hResLoaded = ::LoadResource(NULL, hRes)) == NULL ||
             (pResData = ::LockResource(hResLoaded)) == NULL)
         {
-            ::free(pData);
             return false;
         }
-        ::memcpy(pData, pResData, 32256);
+        ::memcpy(data.data(), pResData, 32256);
     }
 
-    g_pBoard->LoadROM((const uint8_t *)pData);
-
-    ::free(pData);
+    g_pBoard->LoadROM(data.data());
 
     return true;
 }
@@ -138,11 +139,15 @@ bool Emulator_Init()
         if (address != 0177777) m_wEmulatorPPUBpsCount = i + 1;
     }
 
-    g_pBoard = new CMotherboard();
+    g_boardOwner = std::make_unique<CMotherboard>();
+    g_pBoard = g_boardOwner.get();
 
     if (! Emulator_LoadUkncRom())
     {
         AlertWarning(_T("Failed to load UKNC ROM image."));
+        g_boardOwner.reset();
+        g_pBoard = nullptr;
+        CProcessor::Done();
         return false;
     }
 
@@ -166,8 +171,10 @@ bool Emulator_Init()
     // Allocate memory for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        g_pEmulatorRam[i] = static_cast<uint8_t*>(::calloc(65536, 1));
-        g_pEmulatorChangedRam[i] = static_cast<uint8_t*>(::calloc(65536, 1));
+        g_emulatorRamOwners[i] = std::make_unique<uint8_t[]>(65536);
+        g_emulatorChangedRamOwners[i] = std::make_unique<uint8_t[]>(65536);
+        g_pEmulatorRam[i] = g_emulatorRamOwners[i].get();
+        g_pEmulatorChangedRam[i] = g_emulatorChangedRamOwners[i].get();
     }
 
     g_okEmulatorInitialized = TRUE;
@@ -205,14 +212,16 @@ void Emulator_Done()
         m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
     }
 
-    delete g_pBoard;
+    g_boardOwner.reset();
     g_pBoard = nullptr;
 
     // Free memory used for old RAM values
     for (int i = 0; i < 3; i++)
     {
-        ::free(g_pEmulatorRam[i]);
-        ::free(g_pEmulatorChangedRam[i]);
+        g_emulatorRamOwners[i].reset();
+        g_emulatorChangedRamOwners[i].reset();
+        g_pEmulatorRam[i] = nullptr;
+        g_pEmulatorChangedRam[i] = nullptr;
     }
 
     g_okEmulatorInitialized = false;
@@ -988,33 +997,18 @@ uint16_t Emulator_GetChangeRamStatus(int addrtype, uint16_t address)
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
-    FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
-    if (fpFile == nullptr)
+    std::unique_ptr<FILE, decltype(&::fclose)> fpFile(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR), &::fclose);
+    if (!fpFile)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
         return false;
     }
 
     // Allocate memory
-    BYTE* pImage = static_cast<BYTE*>(::calloc(24 * 1024, 1));
-    if (pImage == nullptr)
-    {
-        ::fclose(fpFile);
+    std::array<BYTE, 24 * 1024> image{};
+    if (::fread(image.data(), 1, image.size(), fpFile.get()) != image.size())
         return false;
-    }
-    size_t dwBytesRead = ::fread(pImage, 1, 24 * 1024, fpFile);
-    if (dwBytesRead != 24 * 1024)
-    {
-        ::free(pImage);
-        ::fclose(fpFile);
-        return false;
-    }
-
-    g_pBoard->LoadROMCartridge(slot, pImage);
-
-    // Free memory, close file
-    ::free(pImage);
-    ::fclose(fpFile);
+    g_pBoard->LoadROMCartridge(slot, image.data());
 
     //TODO: Save the file name for a future SaveImage() call
 
@@ -1266,88 +1260,46 @@ void Emulator_PrepareScreenToText(void* pImageBits, const uint32_t* colors)
 
 bool Emulator_SaveImage(LPCTSTR sFilePath)
 {
-    // Create file
+    std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0);
+    image::Writer header(std::span{image}.first<20>());
+    header.dword(UKNCIMAGE_HEADER1);
+    header.dword(UKNCIMAGE_HEADER2);
+    header.dword(UKNCIMAGE_VERSION);
+    header.dword(UKNCIMAGE_SIZE);
+    header.dword(m_dwEmulatorUptime);
+    g_pBoard->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
+
     FILE* fpFile = ::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR);
     if (fpFile == nullptr)
         return false;
-
-    // Allocate memory
-    uint8_t* pImage = static_cast<uint8_t*>(::calloc(UKNCIMAGE_SIZE, 1));
-    if (pImage == nullptr)
-    {
-        ::fclose(fpFile);
-        return false;
-    }
-    // Prepare header
-    uint32_t* pHeader = (uint32_t*)pImage;
-    *pHeader++ = UKNCIMAGE_HEADER1;
-    *pHeader++ = UKNCIMAGE_HEADER2;
-    *pHeader++ = UKNCIMAGE_VERSION;
-    *pHeader++ = UKNCIMAGE_SIZE;
-    // Store emulator state to the image
-    g_pBoard->SaveToImage(pImage);
-    *(uint32_t*)(pImage + 16) = m_dwEmulatorUptime;
-
-    // Save image to the file
-    size_t dwBytesWritten = ::fwrite(pImage, 1, UKNCIMAGE_SIZE, fpFile);
-    ::free(pImage);
-    ::fclose(fpFile);
-    if (dwBytesWritten != UKNCIMAGE_SIZE)
-        return false;
-
-    return TRUE;
+    const size_t bytesWritten = ::fwrite(image.data(), 1, image.size(), fpFile);
+    const int closeResult = ::fclose(fpFile);
+    return bytesWritten == image.size() && closeResult == 0;
 }
 
 bool Emulator_LoadImage(LPCTSTR sFilePath)
 {
-    Emulator_Stop();
-
-    // Open file
-    FILE* fpFile = ::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR);
-    if (fpFile == nullptr)
+    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR), &::fclose);
+    if (!file)
+        return false;
+    std::vector<uint8_t> image(UKNCIMAGE_SIZE);
+    if (::fread(image.data(), 1, image.size(), file.get()) != image.size())
         return false;
 
-    // Read header
-    uint32_t bufHeader[UKNCIMAGE_HEADER_SIZE / sizeof(uint32_t)];
-    size_t dwBytesRead = ::fread(bufHeader, 1, UKNCIMAGE_HEADER_SIZE, fpFile);
-    if (dwBytesRead != UKNCIMAGE_HEADER_SIZE)
-    {
-        ::fclose(fpFile);
+    image::Reader header(std::span<const uint8_t>{image}.first<20>());
+    if (header.dword() != UKNCIMAGE_HEADER1 || header.dword() != UKNCIMAGE_HEADER2 ||
+        header.dword() != UKNCIMAGE_VERSION || header.dword() != UKNCIMAGE_SIZE)
         return false;
-    }
-
-    //TODO: Check version and size
-
-    // Allocate memory
-    uint8_t* pImage = static_cast<uint8_t*>(::calloc(UKNCIMAGE_SIZE, 1));
-    if (pImage == nullptr)
-    {
-        ::fclose(fpFile);
-        return false;
-    }
-
-    // Read image
-    ::fseek(fpFile, 0, SEEK_SET);
-    dwBytesRead = ::fread(pImage, 1, UKNCIMAGE_SIZE, fpFile);
-    if (dwBytesRead != UKNCIMAGE_SIZE)
-    {
-        ::free(pImage);
-        ::fclose(fpFile);
-        return false;
-    }
+    const uint32_t uptime = header.dword();
 
     // Restore emulator state from the image
+    Emulator_Stop();
     g_pBoard->Reset();
-    g_pBoard->LoadFromImage(pImage);
+    g_pBoard->LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE>{image});
     Emulator_ClearHistory();
 
-    m_dwEmulatorUptime = *(uint32_t*)(pImage + 16);
-
-    // Free memory, close file
-    ::free(pImage);
-    ::fclose(fpFile);
-
-    return TRUE;
+    m_dwEmulatorUptime = uptime;
+    return true;
 }
 
 

@@ -15,9 +15,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-#define BUFSIZE     ((SAMPLERATE / 25) * 4)
-#define BLOCK_COUNT 8
-#define BLOCK_SIZE  BUFSIZE
+inline constexpr auto BUFSIZE = (SAMPLERATE / 25) * 4;
+inline constexpr auto BLOCK_COUNT = 8;
+inline constexpr auto BLOCK_SIZE = BUFSIZE;
 
 void SoundGen_Initialize(WORD volume);
 void SoundGen_Finalize();

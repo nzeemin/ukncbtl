@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "Main.h"
+#include <vector>
 
 //////////////////////////////////////////////////////////////////////
 
@@ -136,9 +137,9 @@ BOOL Settings_LoadColorValue(LPCTSTR sName, COLORREF* pColor)
     if (!Settings_LoadStringValue(sName, buffer, 12))
         return FALSE;
 
-    DWORD dwValue;
+    DWORD dwValue = 0;
     int result = _stscanf(buffer, _T("%lX"), &dwValue);
-    if (result == 0)
+    if (result != 1)
         return FALSE;
 
     // 00RRGGBB -> 00BBGGRR conversion
@@ -150,11 +151,11 @@ BOOL Settings_LoadColorValue(LPCTSTR sName, COLORREF* pColor)
 
 BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
 {
-    TCHAR* buffer = static_cast<TCHAR*>(::calloc(size * 2 + 1, sizeof(TCHAR)));
-    if (buffer == NULL)
+    if (size < 0 || (size > 0 && pData == nullptr))
         return FALSE;
+    std::vector<TCHAR> buffer(static_cast<size_t>(size) * 2 + 1, 0);
     const BYTE* p = static_cast<const BYTE*>(pData);
-    TCHAR* buf = buffer;
+    TCHAR* buf = buffer.data();
     for (int i = 0; i < size; i++)
     {
         int a = *p;
@@ -163,27 +164,20 @@ BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
         buf += 2;
     }
 
-    BOOL result = Settings_SaveStringValue(sName, buffer);
-
-    free(buffer);
-
-    return result;
+    return Settings_SaveStringValue(sName, buffer.data());
 }
 
 BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
 {
-    size_t buffersize = size * 2 + 1;
-    TCHAR* buffer = static_cast<TCHAR*>(::calloc(buffersize, sizeof(TCHAR)));
-    if (buffer == NULL)
+    if (size < 0 || (size > 0 && pData == nullptr))
         return FALSE;
-    if (!Settings_LoadStringValue(sName, buffer, buffersize))
-    {
-        free(buffer);
+    size_t buffersize = static_cast<size_t>(size) * 2 + 1;
+    std::vector<TCHAR> buffer(buffersize, 0);
+    if (!Settings_LoadStringValue(sName, buffer.data(), buffersize))
         return FALSE;
-    }
 
     BYTE* p = static_cast<BYTE*>(pData);
-    TCHAR* buf = buffer;
+    const TCHAR* buf = buffer.data();
     for (int i = 0; i < size; i++)
     {
         BYTE v = 0;
@@ -195,7 +189,6 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
             v = static_cast<BYTE>(ch - _T('A') + 10);
         else  // Not hex
         {
-            free(buffer);
             return FALSE;
         }
         buf++;
@@ -209,7 +202,6 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
             v |= static_cast<BYTE>(ch - _T('A') + 10);
         else  // Not hex
         {
-            free(buffer);
             return FALSE;
         }
         buf++;
@@ -217,8 +209,6 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
         *p = v;
         p++;
     }
-
-    free(buffer);
 
     return TRUE;
 }

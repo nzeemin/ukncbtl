@@ -155,23 +155,23 @@ enum ColorIndices
 /// @param width Source bitmap width
 /// @param height Source bitmap height
 /// @return Initialization result
-typedef BOOL (CALLBACK* RENDER_INIT_CALLBACK)(int width, int height, HWND hwndTarget);
+using RENDER_INIT_CALLBACK = BOOL (CALLBACK*)(int width, int height, HWND hwndTarget);
 
 /// \brief Finalize the render.
-typedef void (CALLBACK* RENDER_DONE_CALLBACK)();
+using RENDER_DONE_CALLBACK = void (CALLBACK*)();
 
 /// \brief Definition for render mode enumeration procedure.
-typedef void (CALLBACK* RENDER_MODE_ENUM_PROC)(int modeNum, LPCTSTR modeDesc, int modeWidth, int modeHeight);
+using RENDER_MODE_ENUM_PROC = void (CALLBACK*)(int modeNum, LPCTSTR modeDesc, int modeWidth, int modeHeight);
 
 /// \brief Enumerate available render modes.
-typedef void (CALLBACK* RENDER_ENUM_MODES_CALLBACK)(RENDER_MODE_ENUM_PROC);
+using RENDER_ENUM_MODES_CALLBACK = void (CALLBACK*)(RENDER_MODE_ENUM_PROC);
 
 /// \brief Select current render mode.
-typedef BOOL (CALLBACK* RENDER_SELECT_MODE_CALLBACK)(int mode);
+using RENDER_SELECT_MODE_CALLBACK = BOOL (CALLBACK*)(int mode);
 
 /// \brief Draw the source bitmap to the target window.
 /// @param pixels Source bitmap
-typedef void (CALLBACK* RENDER_DRAW_CALLBACK)(const void * pixels, HDC hdcTarget);
+using RENDER_DRAW_CALLBACK = void (CALLBACK*)(const void * pixels, HDC hdcTarget);
 
 
 //////////////////////////////////////////////////////////////////////

@@ -22,34 +22,34 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #define TIME_PER_SECTOR                 (IDE_DISK_SECTOR_SIZE / 2)
 
-#define IDE_PORT_DATA                   0x1f0
-#define IDE_PORT_ERROR                  0x1f1
-#define IDE_PORT_SECTOR_COUNT           0x1f2
-#define IDE_PORT_SECTOR_NUMBER          0x1f3
-#define IDE_PORT_CYLINDER_LSB           0x1f4
-#define IDE_PORT_CYLINDER_MSB           0x1f5
-#define IDE_PORT_HEAD_NUMBER            0x1f6
-#define IDE_PORT_STATUS_COMMAND         0x1f7
+static constexpr auto IDE_PORT_DATA = 0x1f0;
+static constexpr auto IDE_PORT_ERROR = 0x1f1;
+static constexpr auto IDE_PORT_SECTOR_COUNT = 0x1f2;
+static constexpr auto IDE_PORT_SECTOR_NUMBER = 0x1f3;
+static constexpr auto IDE_PORT_CYLINDER_LSB = 0x1f4;
+static constexpr auto IDE_PORT_CYLINDER_MSB = 0x1f5;
+static constexpr auto IDE_PORT_HEAD_NUMBER = 0x1f6;
+static constexpr auto IDE_PORT_STATUS_COMMAND = 0x1f7;
 
-#define IDE_STATUS_ERROR                0x01
-#define IDE_STATUS_HIT_INDEX            0x02
-#define IDE_STATUS_BUFFER_READY         0x08
-#define IDE_STATUS_SEEK_COMPLETE        0x10
-#define IDE_STATUS_DRIVE_READY          0x40
-#define IDE_STATUS_BUSY                 0x80
+static constexpr auto IDE_STATUS_ERROR = 0x01;
+static constexpr auto IDE_STATUS_HIT_INDEX = 0x02;
+static constexpr auto IDE_STATUS_BUFFER_READY = 0x08;
+static constexpr auto IDE_STATUS_SEEK_COMPLETE = 0x10;
+static constexpr auto IDE_STATUS_DRIVE_READY = 0x40;
+static constexpr auto IDE_STATUS_BUSY = 0x80;
 
-#define IDE_COMMAND_READ_MULTIPLE       0x20
-#define IDE_COMMAND_READ_MULTIPLE1      0x21
-#define IDE_COMMAND_SET_CONFIG          0x91
-#define IDE_COMMAND_WRITE_MULTIPLE      0x30
-#define IDE_COMMAND_WRITE_MULTIPLE1     0x31
-#define IDE_COMMAND_IDENTIFY            0xec
+static constexpr auto IDE_COMMAND_READ_MULTIPLE = 0x20;
+static constexpr auto IDE_COMMAND_READ_MULTIPLE1 = 0x21;
+static constexpr auto IDE_COMMAND_SET_CONFIG = 0x91;
+static constexpr auto IDE_COMMAND_WRITE_MULTIPLE = 0x30;
+static constexpr auto IDE_COMMAND_WRITE_MULTIPLE1 = 0x31;
+static constexpr auto IDE_COMMAND_IDENTIFY = 0xec;
 
-#define IDE_ERROR_NONE                  0x00
-#define IDE_ERROR_DEFAULT               0x01
-#define IDE_ERROR_UNKNOWN_COMMAND       0x04
-#define IDE_ERROR_BAD_LOCATION          0x10
-#define IDE_ERROR_BAD_SECTOR            0x80
+static constexpr auto IDE_ERROR_NONE = 0x00;
+static constexpr auto IDE_ERROR_DEFAULT = 0x01;
+static constexpr auto IDE_ERROR_UNKNOWN_COMMAND = 0x04;
+static constexpr auto IDE_ERROR_BAD_LOCATION = 0x10;
+static constexpr auto IDE_ERROR_BAD_SECTOR = 0x80;
 
 enum TimeoutEvent
 {
@@ -64,12 +64,9 @@ enum TimeoutEvent
 // Inverts 512 bytes in the buffer
 static void InvertBuffer(void* buffer)
 {
-    uint32_t* p = (uint32_t*) buffer;
-    for (int i = 0; i < 128; i++)
-    {
-        *p = ~(*p);
-        p++;
-    }
+    auto* p = static_cast<uint8_t*>(buffer);
+    for (int i = 0; i < IDE_DISK_SECTOR_SIZE; ++i)
+        p[i] = static_cast<uint8_t>(~p[i]);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -112,32 +109,39 @@ void CHardDrive::Reset()
 bool CHardDrive::AttachImage(LPCTSTR sFileName)
 {
     ASSERT(sFileName != nullptr);
+    if (sFileName == nullptr || m_fpFile != nullptr)
+        return false;
 
     // Open file
     m_okReadOnly = false;
-    m_fpFile = ::_tfopen(sFileName, _T("r+b"));
-    if (m_fpFile == nullptr)
+    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfopen(sFileName, _T("r+b")), &::fclose);
+    if (!file)
     {
         m_okReadOnly = true;
-        m_fpFile = ::_tfopen(sFileName, _T("rb"));
+        file.reset(::_tfopen(sFileName, _T("rb")));
     }
-    if (m_fpFile == nullptr)
+    if (!file)
         return false;
 
     // Check file size
-    ::fseek(m_fpFile, 0, SEEK_END);
-    uint32_t dwFileSize = ::ftell(m_fpFile);
-    ::fseek(m_fpFile, 0, SEEK_SET);
+    if (::fseek(file.get(), 0, SEEK_END) != 0)
+        return false;
+    const long fileSize = ::ftell(file.get());
+    if (fileSize < 0 || ::fseek(file.get(), 0, SEEK_SET) != 0)
+        return false;
+    uint32_t dwFileSize = static_cast<uint32_t>(fileSize);
     if (dwFileSize % 512 != 0)
         return false;
 
     // Read first sector
-    size_t dwBytesRead = ::fread(m_buffer, 1, 512, m_fpFile);
+    size_t dwBytesRead = ::fread(m_buffer, 1, 512, file.get());
     if (dwBytesRead != 512)
         return false;
 
     // Detect hard disk type
-    const uint16_t * pwHardBuffer = (const uint16_t*)m_buffer;
+    uint16_t hardHeader[6]{};
+    memcpy(hardHeader, m_buffer, sizeof(hardHeader));
+    const uint16_t* pwHardBuffer = hardHeader;
     if (pwHardBuffer[0] == 0x54A9 && pwHardBuffer[1] == 0xFFEF && pwHardBuffer[2] == 0xFEFF ||
         pwHardBuffer[0] == 0xAB56 && pwHardBuffer[1] == 0x0010 && pwHardBuffer[2] == 0x0100)  // HD type
     {
@@ -145,7 +149,10 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
         m_okInverted = (pwHardBuffer[0] == 0xAB56);
         // Invert the buffer if needed
         if (m_okInverted)
+        {
             InvertBuffer(m_buffer);
+            memcpy(hardHeader, m_buffer, sizeof(hardHeader));
+        }
 
         // Calculate geometry
         m_numsectors = pwHardBuffer[4];
@@ -179,6 +186,7 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
             return false;
     }
 
+    m_fpFile = file.release();
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
 
     m_status = IDE_STATUS_BUSY;
@@ -207,7 +215,8 @@ uint16_t CHardDrive::ReadPort(uint16_t port)
     case IDE_PORT_DATA:
         if (m_status & IDE_STATUS_BUFFER_READY)
         {
-            data = *((uint16_t*)(m_buffer + m_bufferoffset));
+            data = static_cast<uint16_t>(m_buffer[m_bufferoffset] |
+                (m_buffer[m_bufferoffset + 1] << 8));
             if (!m_okInverted)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
             m_bufferoffset += 2;
@@ -263,7 +272,8 @@ void CHardDrive::WritePort(uint16_t port, uint16_t data)
         {
             if (!m_okInverted)
                 data = ~data;  // Image stored non-inverted, but QBUS inverts the bits
-            *((uint16_t*)(m_buffer + m_bufferoffset)) = data;
+            m_buffer[m_bufferoffset] = static_cast<uint8_t>(data);
+            m_buffer[m_bufferoffset + 1] = static_cast<uint8_t>(data >> 8);
             m_bufferoffset += 2;
 
             //if (m_bufferoffset == 2)
@@ -392,7 +402,7 @@ void CHardDrive::HandleCommand(uint8_t command)
 static void swap_strncpy(uint8_t* dst, const char* src, int words)
 {
     int i;
-    for (i = 0; src[i] != 0; i++)
+    for (i = 0; i < words * 2 && src[i] != 0; i++)
         dst[i ^ 1] = src[i];
     for ( ; i < words * 2; i++)
         dst[i ^ 1] = ' ';
@@ -402,9 +412,8 @@ void CHardDrive::IdentifyDrive()
 {
     uint32_t totalsectors = (uint32_t)m_numcylinders * (uint32_t)m_numheads * (uint32_t)m_numsectors;
 
-    memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
-
-    uint16_t* pwBuffer = (uint16_t*)m_buffer;
+    uint16_t words[IDE_DISK_SECTOR_SIZE / sizeof(uint16_t)]{};
+    uint16_t* pwBuffer = words;
     pwBuffer[0]  = 0x045a;  // Configuration: fixed disk
     pwBuffer[1]  = (uint16_t)m_numcylinders;
     pwBuffer[3]  = (uint16_t)m_numheads;
@@ -418,17 +427,27 @@ void CHardDrive::IdentifyDrive()
     pwBuffer[54] = (uint16_t)m_numcylinders;
     pwBuffer[55] = (uint16_t)m_numheads;
     pwBuffer[56] = (uint16_t)m_numsectors;
-    *(uint32_t*)(pwBuffer + 57) = (uint32_t)m_numheads * (uint32_t)m_numsectors;
-    *(uint32_t*)(pwBuffer + 60) = totalsectors;
-    *(uint32_t*)(pwBuffer + 100) = totalsectors;
+    const uint32_t sectorsPerCylinder = static_cast<uint32_t>(m_numheads) * m_numsectors;
+    memcpy(pwBuffer + 57, &sectorsPerCylinder, sizeof(sectorsPerCylinder));
+    memcpy(pwBuffer + 60, &totalsectors, sizeof(totalsectors));
+    memcpy(pwBuffer + 100, &totalsectors, sizeof(totalsectors));
 
+    memcpy(m_buffer, words, sizeof(words));
     InvertBuffer(m_buffer);
 }
 
-uint32_t CHardDrive::CalculateOffset() const
+bool CHardDrive::CalculateOffset(long& offset) const
 {
-    int sector = (m_curcylinder * m_numheads + m_curhead) * m_numsectors + (m_cursector - 1);
-    return sector * IDE_DISK_SECTOR_SIZE;
+    if (m_curcylinder < 0 || m_curcylinder >= m_numcylinders || m_curhead < 0 ||
+        m_curhead >= m_numheads || m_cursector < 1 || m_cursector > m_numsectors)
+        return false;
+    const uint64_t sector = (static_cast<uint64_t>(m_curcylinder) * m_numheads + m_curhead) *
+        m_numsectors + (m_cursector - 1);
+    const uint64_t byteOffset = sector * IDE_DISK_SECTOR_SIZE;
+    if (byteOffset > LONG_MAX)
+        return false;
+    offset = static_cast<long>(byteOffset);
+    return true;
 }
 
 void CHardDrive::ReadNextSector()
@@ -447,11 +466,18 @@ void CHardDrive::ReadSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Read sector from HDD image to the buffer
-    uint32_t fileOffset = CalculateOffset();
-    ::fseek(m_fpFile, fileOffset, SEEK_SET);
+    long fileOffset = 0;
+    if (!CalculateOffset(fileOffset) || ::fseek(m_fpFile, fileOffset, SEEK_SET) != 0)
+    {
+        m_status &= ~IDE_STATUS_BUFFER_READY;
+        m_status |= IDE_STATUS_ERROR;
+        m_error = IDE_ERROR_BAD_SECTOR;
+        return;
+    }
     size_t dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
     if (dwBytesRead != IDE_DISK_SECTOR_SIZE)
     {
+        m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;
         return;
@@ -477,21 +503,22 @@ void CHardDrive::WriteSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Write buffer to the HDD image
-    uint32_t fileOffset = CalculateOffset();
+    long fileOffset = 0;
 
     //DebugLogFormat(_T("WriteSector %lx\r\n"), fileOffset);
 
-    if (m_okReadOnly)
+    if (m_okReadOnly || !CalculateOffset(fileOffset) || ::fseek(m_fpFile, fileOffset, SEEK_SET) != 0)
     {
+        m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;
         return;
     }
 
-    ::fseek(m_fpFile, fileOffset, SEEK_SET);
     size_t dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
     if (dwBytesWritten != IDE_DISK_SECTOR_SIZE)
     {
+        m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;
         return;

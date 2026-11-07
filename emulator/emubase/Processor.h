@@ -39,7 +39,7 @@ public:
     static void Done();  ///< Release memory used for static tables
 protected:  // Statics
     typedef void ( CProcessor::*ExecuteMethodRef )();
-    static ExecuteMethodRef* m_pExecuteMethodMap;
+    static std::unique_ptr<ExecuteMethodRef[]> m_pExecuteMethodMap;
 
 protected:  // Processor state
     TCHAR       m_name[5];          ///< Processor name (DO NOT use it inside the processor code!!!)
@@ -146,8 +146,8 @@ public:  // Processor control
     void        SetInterruptCallback(INTERRUPTCALLBACK callback) { m_pInterruptCallback = callback; }
 
 public:  // Saving/loading emulator status (pImage addresses up to 32 bytes)
-    void        SaveToImage(uint8_t* pImage) const;
-    void        LoadFromImage(const uint8_t* pImage);
+    void        SaveToImage(std::span<uint8_t, 64> image) const;
+    void        LoadFromImage(std::span<const uint8_t, 64> image);
 
 protected:  // Implementation
     void        FetchInstruction();      ///< Read next instruction

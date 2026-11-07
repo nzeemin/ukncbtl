@@ -266,25 +266,6 @@ void PrintBinaryValue(TCHAR* buffer, WORD value)
     buffer[16] = 0;
 }
 
-// Parse octal value from text
-BOOL ParseOctalValue(LPCTSTR text, WORD* pValue)
-{
-    WORD value = 0;
-    TCHAR* pChar = (TCHAR*) text;
-    for (int p = 0; ; p++)
-    {
-        if (p > 6) return FALSE;
-        TCHAR ch = *pChar;  pChar++;
-        if (ch == 0) break;
-        if (ch < _T('0') || ch > _T('7')) return FALSE;
-        value = (value << 3);
-        TCHAR digit = ch - _T('0');
-        value += digit;
-    }
-    *pValue = value;
-    return TRUE;
-}
-
 void DrawOctalValue(HDC hdc, int x, int y, WORD value)
 {
     TCHAR buffer[7];

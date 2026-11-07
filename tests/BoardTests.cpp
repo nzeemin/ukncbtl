@@ -479,11 +479,11 @@ public:
         a.PpuMem()->KeyboardEvent(0x2A, true);
 
         std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0);
-        pa->SaveToImage(&image[0]);
+        pa->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
 
         TestBoard b;
         CMotherboard* pb = b.Board();
-        pb->LoadFromImage(&image[0]);
+        pb->LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE>{image});
 
         Eq(rom[0] | (rom[1] << 8), pb->GetROMWord(0), _T("ROM"));
         Eq(rom[32766] | (rom[32767] << 8), pb->GetROMWord(32766), _T("ROM end"));
@@ -517,12 +517,12 @@ public:
         TestBoard a;
         a.SetPpuWord(0177054, 0360);  // RAM in all the windows
         std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0);
-        a.Board()->SaveToImage(&image[0]);
+        a.Board()->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
 
         TestBoard b;
         uint16_t offset;
         Eq(ADDRTYPE_ROM, b.PpuMem()->TranslateAddress(0100000, false, false, &offset, true), _T("ROM before the load"));
-        b.Board()->LoadFromImage(&image[0]);
+        b.Board()->LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE>{image});
         Eq(ADDRTYPE_RAM0, b.PpuMem()->TranslateAddress(0100000, false, false, &offset, true), _T("RAM after the load"));
     }
 
@@ -531,7 +531,7 @@ public:
         // The board writes only its own part of the header; the first 32 bytes belong to the application
         TestBoard a;
         std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0xEE);
-        a.Board()->SaveToImage(&image[0]);
+        a.Board()->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
         for (int i = 0; i < 32; i++)
             Eq(0xEE, image[i], _T("header byte"));
     }
