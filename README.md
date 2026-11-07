@@ -1,6 +1,30 @@
 # ukncbtl
 UKNCBTL — UKNC Back to Life! emulator, Win32 version.
 
+### Building on Windows
+
+Install Visual Studio 2026 with the Desktop development with C++ workload and a
+Windows SDK. Use its bundled CMake (4.1 or newer for the Visual Studio 2026
+generator), for example from a Visual Studio Developer PowerShell:
+
+```powershell
+cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
+cmake --build build --config Release
+```
+
+The executable is `build/Release/UKNCBTL.exe`. Use `--config Debug` for a
+debug build, or open the generated `build/UKNCBTL.sln` in Visual Studio.
+The emulator currently requires the Win32 target. CMake also supports older
+installed Visual Studio generators; select the matching generator explicitly.
+The build also produces `RenderVfw.dll` beside the executable; keep both files
+together when distributing or moving the program. `cmake --install build
+--config Release --prefix <destination>` installs both files. The default renderer
+is included from the upstream renderer project under `third_party/RenderVfw`.
+The ROM and other resources are embedded in the executable. This modern build
+uses the current Microsoft toolchain and Windows SDK and does not target Windows
+XP. The legacy Visual Studio projects, including the Microsoft C++ unit tests,
+remain available separately.
+
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Build status](https://ci.appveyor.com/api/projects/status/xicur65lusd5c3ab?svg=true)](https://ci.appveyor.com/project/nzeemin/ukncbtl)
 [![CodeFactor](https://www.codefactor.io/repository/github/nzeemin/ukncbtl/badge)](https://www.codefactor.io/repository/github/nzeemin/ukncbtl)

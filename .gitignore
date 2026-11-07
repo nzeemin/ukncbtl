@@ -20,5 +20,7 @@ UKNCBTL.APS
 *.img
 *.lst
 *.txt
+!CMakeLists.txt
+/build/
 *.uknc
 /x-*

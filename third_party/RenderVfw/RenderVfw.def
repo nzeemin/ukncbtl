@@ -1,0 +1,8 @@
+LIBRARY	"RenderVfw"
+
+EXPORTS
+	RenderInit
+	RenderDone
+	RenderEnumModes
+	RenderSelectMode
+	RenderDraw
