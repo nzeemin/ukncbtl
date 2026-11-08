@@ -23,10 +23,12 @@ jobs:
       - name: Configure PVS Studio
         run: |
           "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" credentials -u ${{ secrets.PVS_STUDIO_USERNAME }} -n ${{ secrets.PVS_STUDIO_KEY }}
+      - name: Configure CMake
+        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
       - name: Run PVS Studio
         run: |
           mkdir Results
-          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t .\emulator\UKNCBTL-VS2015.sln -e %GITHUB_WORKSPACE% -o .\Results\UKNCBTL.plog
+          "C:\Program Files (x86)\PVS-Studio\PVS-Studio_Cmd.exe" -t .\build\UKNCBTL.sln -e %GITHUB_WORKSPACE% -o .\Results\UKNCBTL.plog
         continue-on-error: true
       - name: Convert the report
         run: |

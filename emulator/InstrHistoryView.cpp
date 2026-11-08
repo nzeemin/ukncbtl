@@ -78,8 +78,7 @@ void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int heigh
             hwndParent, NULL, g_hInst, NULL);
 
     // ToolWindow subclassing
-    m_wndprocInstrHistoryToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
-            g_hwndInstrHistory, GWLP_WNDPROC, PtrToLong(InstrHistoryViewWndProc)) );
+    m_wndprocInstrHistoryToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndInstrHistory, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(InstrHistoryViewWndProc)));
 
     RECT rcClient;  GetClientRect(g_hwndInstrHistory, &rcClient);
 

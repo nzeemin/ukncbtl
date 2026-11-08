@@ -65,8 +65,7 @@ void DisplayListView_Create(int x, int y)
             NULL, NULL, g_hInst, NULL);
 
     // ToolWindow subclassing
-    m_wndprocDisplayListToolWindow = (WNDPROC)LongToPtr(SetWindowLongPtr(
-            g_hwndDisplayList, GWLP_WNDPROC, PtrToLong(DisplayListViewWndProc)));
+    m_wndprocDisplayListToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndDisplayList, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(DisplayListViewWndProc)));
 
     RECT rcClient;  GetClientRect(g_hwndDisplayList, &rcClient);
 

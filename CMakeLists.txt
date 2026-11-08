@@ -4,9 +4,12 @@ project(UKNCBTL LANGUAGES CXX RC)
 if(NOT WIN32 OR NOT MSVC)
   message(FATAL_ERROR "UKNCBTL requires Windows and the Microsoft C++ compiler")
 endif()
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
-  message(FATAL_ERROR "UKNCBTL requires a 32-bit (Win32) build")
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8 OR NOT CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "x64")
+  message(FATAL_ERROR "UKNCBTL requires an x86-64 (x64) build")
 endif()
+
+enable_language(ASM_MASM)
+add_library(CpuOverflow STATIC emulator/emubase/CpuOverflow.asm)
 
 # Track the newest language mode provided by the installed MSVC toolset.
 add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++latest>)
@@ -26,8 +29,8 @@ add_executable(UKNCBTL WIN32
 target_include_directories(UKNCBTL PRIVATE emulator emulator/res)
 target_compile_definitions(UKNCBTL PRIVATE UNICODE _UNICODE)
 target_precompile_headers(UKNCBTL PRIVATE emulator/stdafx.h)
-target_link_libraries(UKNCBTL PRIVATE vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
-target_link_options(UKNCBTL PRIVATE "LINKER:/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'")
+target_link_libraries(UKNCBTL PRIVATE CpuOverflow vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
+target_link_options(UKNCBTL PRIVATE "LINKER:/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'")
 set_property(TARGET UKNCBTL PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # The default renderer is loaded dynamically, so it must be built alongside the
@@ -41,6 +44,10 @@ install(TARGETS UKNCBTL RenderVfw RUNTIME DESTINATION .)
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(CpuOverflowTests tests/CpuOverflowTests.cpp)
+  target_link_libraries(CpuOverflowTests PRIVATE CpuOverflow)
+  add_test(NAME CpuOverflowTests COMMAND CpuOverflowTests)
+
   add_executable(ScreenScaleTests tests/ScreenScaleTests.cpp emulator/util/ScreenScale.cpp)
   target_include_directories(ScreenScaleTests PRIVATE emulator)
   target_compile_definitions(ScreenScaleTests PRIVATE UNICODE _UNICODE)
@@ -66,6 +73,7 @@ if(BUILD_TESTING)
   target_include_directories(CoreSmokeTests PRIVATE emulator)
   target_compile_definitions(CoreSmokeTests PRIVATE UNICODE _UNICODE)
   target_precompile_headers(CoreSmokeTests PRIVATE emulator/stdafx.h)
+  target_link_libraries(CoreSmokeTests PRIVATE CpuOverflow)
   add_test(NAME CoreSmokeTests COMMAND CoreSmokeTests)
 
   add_executable(DisasmCorpusTests tests/DisasmCorpusTests.cpp
@@ -75,6 +83,7 @@ if(BUILD_TESTING)
   target_include_directories(DisasmCorpusTests PRIVATE emulator)
   target_compile_definitions(DisasmCorpusTests PRIVATE UNICODE _UNICODE)
   target_precompile_headers(DisasmCorpusTests PRIVATE emulator/stdafx.h)
+  target_link_libraries(DisasmCorpusTests PRIVATE CpuOverflow)
   add_test(NAME DisasmCorpusTests COMMAND DisasmCorpusTests)
 
   # Run the existing Microsoft C++ unit tests through a small CTest adapter.
@@ -115,6 +124,6 @@ if(BUILD_TESTING)
   target_include_directories(LegacyCoreTests PRIVATE tests/compat tests emulator)
   target_compile_definitions(LegacyCoreTests PRIVATE UNICODE _UNICODE)
   target_precompile_headers(LegacyCoreTests PRIVATE emulator/stdafx.h)
-  target_link_libraries(LegacyCoreTests PRIVATE winmm)
+  target_link_libraries(LegacyCoreTests PRIVATE CpuOverflow winmm)
   add_test(NAME LegacyCoreTests COMMAND LegacyCoreTests)
 endif()

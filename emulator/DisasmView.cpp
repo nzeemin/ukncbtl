@@ -162,8 +162,7 @@ void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
     DisasmView_UpdateWindowText();
 
     // ToolWindow subclassing
-    m_wndprocDisasmToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
-            g_hwndDisasm, GWLP_WNDPROC, PtrToLong(DisasmViewWndProc)) );
+    m_wndprocDisasmToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndDisasm, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(DisasmViewWndProc)));
 
     RECT rcClient;  GetClientRect(g_hwndDisasm, &rcClient);
 
