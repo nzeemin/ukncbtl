@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // TapeView.cpp
 
 #include "stdafx.h"
+#include <format>
 #include <commdlg.h>
 #include "Main.h"
 #include "Views.h"
@@ -273,13 +274,10 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 
     DWORD wavLength = WavPcmFile_GetLength(m_hTapeWavPcmFile);
     int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
-    double wavLengthSeconds = double(wavLength) / wavFreq;
-
-    TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
-            _T("%d:%02d.%02d, %d Hz"),
-            int(wavLengthSeconds) / 60, int(wavLengthSeconds) % 60, int(wavLengthSeconds * 100) % 100, wavFreq);
-    SetWindowText(m_hwndTapeTotal, buffer);
+    const auto centiseconds = wavFreq > 0 ? static_cast<uint64_t>(wavLength) * 100 / wavFreq : 0;
+    const auto duration = std::format(_T("{}:{:02}.{:02}, {} Hz"),
+        centiseconds / 6000, centiseconds / 100 % 60, centiseconds % 100, wavFreq);
+    SetWindowText(m_hwndTapeTotal, duration.c_str());
 
     SetWindowText(m_hwndTapeOpen, g_sCloseWav);
     EnableWindow(m_hwndTapeSave, FALSE);
@@ -339,12 +337,10 @@ void TapeView_UpdatePosition()
 {
     DWORD wavPos = WavPcmFile_GetPosition(m_hTapeWavPcmFile);
     int wavFreq = WavPcmFile_GetFrequency(m_hTapeWavPcmFile);
-    double wavPosSeconds = double(wavPos) / wavFreq;
-    TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
-            _T("%d:%02d.%02d"),
-            int(wavPosSeconds) / 60, int(wavPosSeconds) % 60, int(wavPosSeconds * 100) % 100);
-    SetWindowText(m_hwndTapeCurrent, buffer);
+    const auto centiseconds = wavFreq > 0 ? static_cast<uint64_t>(wavPos) * 100 / wavFreq : 0;
+    const auto position = std::format(_T("{}:{:02}.{:02}"),
+        centiseconds / 6000, centiseconds / 100 % 60, centiseconds % 100);
+    SetWindowText(m_hwndTapeCurrent, position.c_str());
 
     m_dwTapePositionShown = wavPos;
 }

@@ -13,103 +13,106 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "Defines.h"
+#include <memory>
+#include <array>
+#include <span>
 
 class CProcessor;
 class CMemoryController;
 class CSoundAY;
 
-#define FRAMERATE 50  // Number of frames per second
+inline constexpr auto FRAMERATE = 50;  // Number of frames per second
 
 // Floppy debug constants
-#define FLOPPY_FSM_WAITFORLSB   0
-#define FLOPPY_FSM_WAITFORMSB   1
-#define FLOPPY_FSM_WAITFORTERM1 2
-#define FLOPPY_FSM_WAITFORTERM2 3
+inline constexpr auto FLOPPY_FSM_WAITFORLSB = 0;
+inline constexpr auto FLOPPY_FSM_WAITFORMSB = 1;
+inline constexpr auto FLOPPY_FSM_WAITFORTERM1 = 2;
+inline constexpr auto FLOPPY_FSM_WAITFORTERM2 = 3;
 
 // Trace flags
-#define TRACE_NONE         0  // Turn off all tracing
-#define TRACE_FLOPPY    0100  // Trace floppies
-#define TRACE_PPU       0200  // Trace PPU instructions
-#define TRACE_CPU       0400  // Trace CPU instructions
-#define TRACE_PPUINT   01000  // Trace PPU interrupts
-#define TRACE_CPUINT   02000  // Trace CPU interrupts
-#define TRACE_ALL    0177777  // Trace all
+inline constexpr auto TRACE_NONE = 0;  // Turn off all tracing
+inline constexpr auto TRACE_FLOPPY = 0100;  // Trace floppies
+inline constexpr auto TRACE_PPU = 0200;  // Trace PPU instructions
+inline constexpr auto TRACE_CPU = 0400;  // Trace CPU instructions
+inline constexpr auto TRACE_PPUINT = 01000;  // Trace PPU interrupts
+inline constexpr auto TRACE_CPUINT = 02000;  // Trace CPU interrupts
+inline constexpr auto TRACE_ALL = 0177777;  // Trace all
 
 // Emulator image constants
-#define UKNCIMAGE_HEADER_SIZE 512
-#define UKNCIMAGE_SIZE (UKNCIMAGE_HEADER_SIZE + (32 + 64 * 3) * 1024)
-#define UKNCIMAGE_HEADER1 0x434E4B55  // "UKNC"
-#define UKNCIMAGE_HEADER2 0x214C5442  // "BTL!"
-#define UKNCIMAGE_VERSION 0x00010001  // 1.1
+inline constexpr auto UKNCIMAGE_HEADER_SIZE = 512;
+inline constexpr auto UKNCIMAGE_SIZE = UKNCIMAGE_HEADER_SIZE + (32 + 64 * 3) * 1024;
+inline constexpr auto UKNCIMAGE_HEADER1 = 0x434E4B55;  // "UKNC"
+inline constexpr auto UKNCIMAGE_HEADER2 = 0x214C5442;  // "BTL!"
+inline constexpr auto UKNCIMAGE_VERSION = 0x00010001;  // 1.1
 
-#define KEYB_RUS        0x01
-#define KEYB_LAT        0x02
-#define KEYB_LOWERREG   0x10
+inline constexpr auto KEYB_RUS = 0x01;
+inline constexpr auto KEYB_LAT = 0x02;
+inline constexpr auto KEYB_LOWERREG = 0x10;
 
-typedef struct chan_tag
+struct chan_stc
 {
     uint8_t data;
     uint8_t ready;
     uint8_t irq;
     uint8_t rdwr;
-} chan_stc;
+};
 
-typedef struct kbd_row_tag
+struct kbd_row
 {
     uint8_t processed;
     uint8_t row_Y;
-} kbd_row;
+};
 
 // Tape emulator callback used to read a tape recorded data.
 // Input:
 //   samples    Number of samples to play.
 // Output:
 //   result     Bit to put in tape input port.
-typedef bool (CALLBACK* TAPEREADCALLBACK)(unsigned int samples);
+using TAPEREADCALLBACK = bool (CALLBACK*)(unsigned int samples);
 
 // Tape emulator callback used to write a data to tape.
 // Input:
 //   value      Sample value to write.
-typedef void (CALLBACK* TAPEWRITECALLBACK)(int value, unsigned int samples);
+using TAPEWRITECALLBACK = void (CALLBACK*)(int value, unsigned int samples);
 
 // Sound generator callback function type
-typedef void (CALLBACK* SOUNDGENCALLBACK)(unsigned short L, unsigned short R);
+using SOUNDGENCALLBACK = void (CALLBACK*)(unsigned short L, unsigned short R);
 
 // Network port callback for receiving
 // Output:
 //   pbyte      Byte received
 //   result     true means we have a new byte, false means not ready yet
-typedef bool (CALLBACK* NETWORKINCALLBACK)(uint8_t* pbyte);
+using NETWORKINCALLBACK = bool (CALLBACK*)(uint8_t* pbyte);
 
 // Network port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
 //   result     true means we translated the byte successfully, false means we have an error
-typedef bool (CALLBACK* NETWORKOUTCALLBACK)(uint8_t byte);
+using NETWORKOUTCALLBACK = bool (CALLBACK*)(uint8_t byte);
 
 // Serial port callback for receiving
 // Output:
 //   pbyte      Byte received
 //   result     true means we have a new byte, false means not ready yet
-typedef bool (CALLBACK* SERIALINCALLBACK)(uint8_t* pbyte);
+using SERIALINCALLBACK = bool (CALLBACK*)(uint8_t* pbyte);
 
 // Serial port callback for translating
 // Input:
 //   byte       A byte to translate
 // Output:
 //   result     true means we translated the byte successfully, false means we have an error
-typedef bool (CALLBACK* SERIALOUTCALLBACK)(uint8_t byte);
+using SERIALOUTCALLBACK = bool (CALLBACK*)(uint8_t byte);
 
 // Parallel port output callback
 // Input:
 //   byte       An output byte
 // Output:
 //   result     true means OK, false means we have an error
-typedef bool (CALLBACK* PARALLELOUTCALLBACK)(uint8_t byte);
+using PARALLELOUTCALLBACK = bool (CALLBACK*)(uint8_t byte);
 
 // Terminal out callback -- CPU sends character by channel 0
-typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
+using TERMINALOUTCALLBACK = void (CALLBACK*)(uint8_t byte);
 
 // Instruction execution callback -- called by CPU/PPU just before an instruction is executed,
 // memory and registers are still in pre-execution state
@@ -117,7 +120,7 @@ typedef void (CALLBACK* TERMINALOUTCALLBACK)(uint8_t byte);
 //   pProc      Processor executing the instruction (CPU or PPU), see CProcessor::GetName()
 //   address    Address of the instruction, PC value before the fetch
 //   opcode     First word of the instruction as fetched
-typedef void (CALLBACK* INSTRUCTIONCALLBACK)(const CProcessor* pProc, uint16_t address, uint16_t opcode);
+using INSTRUCTIONCALLBACK = void (CALLBACK*)(const CProcessor* pProc, uint16_t address, uint16_t opcode);
 
 // Interrupt callback -- called by CPU/PPU when an interrupt or trap has been taken: the old PC/PSW
 // are saved and the new PC/PSW are loaded from the vector
@@ -126,7 +129,7 @@ typedef void (CALLBACK* INSTRUCTIONCALLBACK)(const CProcessor* pProc, uint16_t a
 //              pProc->GetPC() / GetPSW() are the handler address and PSW, IsHaltMode() is the handler mode
 //   oldPc      PC where the interrupt appeared: the address of the code that was interrupted
 //   vector     Interrupt vector address; for HALT mode interrupts it includes the SEL register high byte
-typedef void (CALLBACK* INTERRUPTCALLBACK)(const CProcessor* pProc, uint16_t oldPc, uint16_t vector);
+using INTERRUPTCALLBACK = void (CALLBACK*)(const CProcessor* pProc, uint16_t oldPc, uint16_t vector);
 
 class CFloppyController;
 class CHardDrive;
@@ -154,31 +157,33 @@ public:  // Construct / destruct
     ~CMotherboard();
 
 protected:  // Devices
-    CProcessor*     m_pCPU;  ///< CPU device
-    CProcessor*     m_pPPU;  ///< PPU device
-    CMemoryController*  m_pFirstMemCtl;  ///< CPU memory control
-    CMemoryController*  m_pSecondMemCtl;  ///< PPU memory control
-    CFloppyController*  m_pFloppyCtl;  ///< FDD control
-    CHardDrive* m_pHardDrives[2];  ///< HDD control
-    CSoundAY*   m_pSoundAY[3];
+    std::unique_ptr<CProcessor> m_pCPU;  ///< CPU device
+    std::unique_ptr<CProcessor> m_pPPU;  ///< PPU device
+    std::unique_ptr<CMemoryController> m_pFirstMemCtl;  ///< CPU memory control
+    std::unique_ptr<CMemoryController> m_pSecondMemCtl;  ///< PPU memory control
+    std::unique_ptr<CFloppyController> m_pFloppyCtl;  ///< FDD control
+    std::unique_ptr<CHardDrive> m_pHardDrives[2];  ///< HDD control
+    std::unique_ptr<CSoundAY> m_pSoundAY[3];
 
 public:  // Getting devices
-    CProcessor*     GetCPU() { return m_pCPU; }  ///< Getter for m_pCPU
-    CProcessor*     GetPPU() { return m_pPPU; }  ///< Getter for m_pPPU
-    CMemoryController*  GetCPUMemoryController() { return m_pFirstMemCtl; }  ///< Get CPU memory controller
-    CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl; }  ///< Get PPU memory controller
+    CProcessor*     GetCPU() { return m_pCPU.get(); }  ///< Getter for m_pCPU
+    CProcessor*     GetPPU() { return m_pPPU.get(); }  ///< Getter for m_pPPU
+    CMemoryController*  GetCPUMemoryController() { return m_pFirstMemCtl.get(); }  ///< Get CPU memory controller
+    CMemoryController*  GetPPUMemoryController() { return m_pSecondMemCtl.get(); }  ///< Get PPU memory controller
 
 protected:
-    CBusDevice** m_pCpuDevices;  ///< List of CPU bus devices
-    CBusDevice** m_pPpuDevices;  ///< List of PPU bus devices
+    std::array<std::unique_ptr<CBusDevice>, 5> m_cpuDeviceOwners;
+    std::array<std::unique_ptr<CBusDevice>, 7> m_ppuDeviceOwners;
+    std::array<const CBusDevice*, 6> m_pCpuDevices{};
+    std::array<const CBusDevice*, 8> m_pPpuDevices{};
 public:
-    const CBusDevice** GetCPUBusDevices() { return (const CBusDevice**) m_pCpuDevices; }
-    const CBusDevice** GetPPUBusDevices() { return (const CBusDevice**) m_pPpuDevices; }
+    const CBusDevice** GetCPUBusDevices() { return m_pCpuDevices.data(); }
+    const CBusDevice** GetPPUBusDevices() { return m_pPpuDevices.data(); }
 
 protected:  // Memory
-    uint8_t*    m_pRAM[3];  ///< RAM, three planes, 64 KB each
-    uint8_t*    m_pROM;     ///< System ROM, 32 KB
-    uint8_t*    m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
+    std::unique_ptr<uint8_t[]> m_pRAM[3];  ///< RAM, three planes, 64 KB each
+    std::unique_ptr<uint8_t[]> m_pROM;     ///< System ROM, 32 KB
+    std::unique_ptr<uint8_t[]> m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
 public:  // Memory access
     uint16_t    GetRAMWord(int plan, uint16_t offset) const;
     uint8_t     GetRAMByte(int plan, uint16_t offset) const;
@@ -311,8 +316,8 @@ public:  // System control
     /// \brief Assign callback for CPU/PPU interrupts, nullptr to remove
     void        SetInterruptCallback(INTERRUPTCALLBACK callback);
 public:  // Saving/loading emulator status
-    void        SaveToImage(uint8_t* pImage);
-    void        LoadFromImage(const uint8_t* pImage);
+    void        SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE> image);
+    void        LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE> image);
 
     void        SetSound(uint16_t val);
     void        SetSoundAY(bool onoff) { m_okSoundAY = onoff; }
@@ -370,7 +375,8 @@ private:
 inline uint16_t CMotherboard::GetRAMWord(int plan, uint16_t offset) const
 {
     ASSERT(plan >= 0 && plan <= 2);
-    return *((uint16_t*)(m_pRAM[plan] + (offset & 0xFFFE)));
+    offset &= 0xFFFE;
+    return static_cast<uint16_t>(m_pRAM[plan][offset] | (m_pRAM[plan][offset + 1] << 8));
 }
 inline uint8_t CMotherboard::GetRAMByte(int plan, uint16_t offset) const
 {
@@ -380,7 +386,9 @@ inline uint8_t CMotherboard::GetRAMByte(int plan, uint16_t offset) const
 inline void CMotherboard::SetRAMWord(int plan, uint16_t offset, uint16_t word)
 {
     ASSERT(plan >= 0 && plan <= 2);
-    *((uint16_t*)(m_pRAM[plan] + (offset & 0xFFFE))) = word;
+    offset &= 0xFFFE;
+    m_pRAM[plan][offset] = static_cast<uint8_t>(word);
+    m_pRAM[plan][offset + 1] = static_cast<uint8_t>(word >> 8);
 }
 inline void CMotherboard::SetRAMByte(int plan, uint16_t offset, uint8_t byte)
 {

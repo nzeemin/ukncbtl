@@ -13,8 +13,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include <string>
+#include "util/Octal.h"
 
-typedef std::basic_string<TCHAR> TcharString;
+using TcharString = std::basic_string<TCHAR>;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -81,7 +82,7 @@ void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight);
 void PrintOctalValue(TCHAR* buffer, WORD value);
 void PrintHexValue(TCHAR* buffer, WORD value);
 void PrintBinaryValue(TCHAR* buffer, WORD value);
-BOOL ParseOctalValue(LPCTSTR text, WORD* pValue);
+
 void DrawOctalValue(HDC hdc, int x, int y, WORD value);
 void DrawHexValue(HDC hdc, int x, int y, WORD value);
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value);

@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <vector>
+#include <memory>
 
 #include <commdlg.h>
 #include <windowsx.h>
@@ -73,10 +74,12 @@ int m_nDisasmSelectedLineIndex  = -1;  // Line selected by user
 
 bool m_okDisasmSubtitles = false;
 TCHAR* m_strDisasmSubtitles = nullptr;
+static std::unique_ptr<TCHAR[]> m_subtitleTextOwner;
 std::vector<DisasmSubtitleItem> m_SubtitleItems;
 
 const int MAX_DISASMLINECOUNT = 50;
 DisasmLineItem* m_pDisasmLineItems = nullptr;
+static std::unique_ptr<DisasmLineItem[]> m_disasmLineItemsOwner;
 
 BOOL  m_okDisasmJumpPredict;
 DisasmHint m_Hint;  // Hints of the current instruction, up to DISASM_HINT_LINES lines
@@ -126,21 +129,22 @@ void DisasmView_RegisterClass()
 
 void DisasmView_Init()
 {
-    m_pDisasmLineItems = static_cast<DisasmLineItem*>(::calloc(MAX_DISASMLINECOUNT, sizeof(DisasmLineItem)));
+    m_disasmLineItemsOwner = std::make_unique<DisasmLineItem[]>(MAX_DISASMLINECOUNT);
+    m_pDisasmLineItems = m_disasmLineItemsOwner.get();
 }
 
 void DisasmView_Done()
 {
     if (m_strDisasmSubtitles != nullptr)
     {
-        free(m_strDisasmSubtitles);  m_strDisasmSubtitles = nullptr;
+        m_subtitleTextOwner.reset();  m_strDisasmSubtitles = nullptr;
     }
 
     m_SubtitleItems.clear();
 
     if (m_pDisasmLineItems != nullptr)
     {
-        free(m_pDisasmLineItems);
+        m_disasmLineItemsOwner.reset();
         m_pDisasmLineItems = nullptr;
     }
 }
@@ -384,7 +388,7 @@ void DisasmView_LoadUnloadSubtitles()
 {
     if (m_okDisasmSubtitles)  // Reset subtitles
     {
-        ::free(m_strDisasmSubtitles);  m_strDisasmSubtitles = nullptr;
+        m_subtitleTextOwner.reset();  m_strDisasmSubtitles = nullptr;
         m_SubtitleItems.clear();
         m_okDisasmSubtitles = FALSE;
         DisasmView_UpdateWindowText();
@@ -416,16 +420,29 @@ void DisasmView_LoadUnloadSubtitles()
         return;
     }
 
-    m_strDisasmSubtitles = static_cast<TCHAR*>(::calloc(dwSubFileSize + sizeof(TCHAR), 1));
-    DWORD dwBytesRead;
-    ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
-    ASSERT(dwBytesRead == dwSubFileSize);
+    if (dwSubFileSize % sizeof(TCHAR) != 0)
+    {
+        ::CloseHandle(hSubFile);
+        AlertWarning(_T("Subtitles file must contain UTF-16 text."));
+        return;
+    }
+    m_subtitleTextOwner = std::make_unique<TCHAR[]>(dwSubFileSize / sizeof(TCHAR) + 1);
+    m_strDisasmSubtitles = m_subtitleTextOwner.get();
+    DWORD dwBytesRead = 0;
+    BOOL readOk = m_strDisasmSubtitles != nullptr &&
+        ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
     ::CloseHandle(hSubFile);
+    if (!readOk || dwBytesRead != dwSubFileSize)
+    {
+        m_subtitleTextOwner.reset();  m_strDisasmSubtitles = nullptr;
+        AlertWarning(_T("Failed to read subtitles file."));
+        return;
+    }
 
     // Parse subtitles
     if (!DisasmView_ParseSubtitles())
     {
-        ::free(m_strDisasmSubtitles);  m_strDisasmSubtitles = nullptr;
+        m_subtitleTextOwner.reset();  m_strDisasmSubtitles = nullptr;
         m_SubtitleItems.clear();
         AlertWarning(_T("Failed to parse subtitles file."));
         return;
@@ -467,11 +484,10 @@ BOOL DisasmView_ParseSubtitles()
             TCHAR* pAddrStart = pText;
             while (*pText != 0 && *pText >= _T('0') && *pText <= _T('9')) pText++;
             if (*pText == 0) break;
-            TCHAR chSave = *pText;
-            *pText++ = 0;
-            uint16_t address;
-            ParseOctalValue(pAddrStart, &address);
-            *pText = chSave;
+            const auto parsedAddress = ParseOctalValue(std::basic_string_view<TCHAR>(pAddrStart, pText - pAddrStart));
+            if (!parsedAddress)
+                return FALSE;
+            const uint16_t address = *parsedAddress;
 
             if (pBlockCommentStart != nullptr)  // The previous line had a block comment
             {
@@ -634,7 +650,7 @@ void DisasmView_OnUpdate()
             {
                 TCHAR strInstr[16];
                 TCHAR strArg[40];
-                walkLength = DisassembleInstruction(memory + walk, walkAddress, strInstr, strArg);
+                walkLength = DisassembleInstruction(std::span{memory}.subspan(walk), walkAddress, strInstr, strArg);
                 if (walkLength < 1) walkLength = 1;
             }
             walk += walkLength;
@@ -701,7 +717,7 @@ void DisasmView_OnUpdate()
             else
             {
                 pLineItem->type |= LINETYPE_INSTR;
-                length = DisassembleInstruction(memory + index, address, pLineItem->strInstr, pLineItem->strArg);
+                length = DisassembleInstruction(std::span{memory}.subspan(index), address, pLineItem->strInstr, pLineItem->strArg);
 
                 if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
                 {

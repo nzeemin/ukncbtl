@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \file Processor.cpp  KM1801VM2 processor class implementation
 
 #include "stdafx.h"
+#include "ImageSerialization.h"
 #include "Processor.h"
 #include "Emubase.h"
 
@@ -126,7 +127,7 @@ uint16_t RESET_TIMING = 105 + 968;  // Technical description of KM1801VM2, p. 13
 //////////////////////////////////////////////////////////////////////
 
 
-CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = nullptr;
+std::unique_ptr<CProcessor::ExecuteMethodRef[]> CProcessor::m_pExecuteMethodMap;
 
 #define RegisterMethodOpc(/*uint16_t*/ opcode, /*CProcessor::ExecuteMethodRef*/ methodref) \
     { m_pExecuteMethodMap[opcode] = (methodref); }
@@ -140,7 +141,7 @@ CProcessor::ExecuteMethodRef* CProcessor::m_pExecuteMethodMap = nullptr;
 void CProcessor::Init()
 {
     ASSERT(m_pExecuteMethodMap == nullptr);
-    m_pExecuteMethodMap = static_cast<CProcessor::ExecuteMethodRef*>(::calloc(65536, sizeof(CProcessor::ExecuteMethodRef)));
+    m_pExecuteMethodMap = std::make_unique<ExecuteMethodRef[]>(65536);
 
     // First fill the table with references to the ExecuteUNKNOWN method, which executes TRAP 10
     RegisterMethodRef( 0000000, 0177777, &CProcessor::ExecuteUNKNOWN )
@@ -252,7 +253,7 @@ void CProcessor::Init()
 
 void CProcessor::Done()
 {
-    ::free(m_pExecuteMethodMap);  m_pExecuteMethodMap = nullptr;
+    m_pExecuteMethodMap.reset();
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -260,7 +261,7 @@ void CProcessor::Done()
 
 CProcessor::CProcessor (LPCTSTR name)
 {
-    _tcscpy(m_name, name);
+    _tcsncpy_s(m_name, name != nullptr ? name : _T(""), _TRUNCATE);
     memset(m_R, 0, sizeof(m_R));
     m_psw = m_savepsw = 0777;
     m_savepc = 0177777;
@@ -2538,17 +2539,16 @@ void CProcessor::ExecuteMARK ()  // MARK
 //   2   bytes      Reserved
 //  32   bytes      VIRQ vectors
 
-void CProcessor::SaveToImage(uint8_t* pImage) const
+void CProcessor::SaveToImage(std::span<uint8_t, 64> image) const
 {
     // Processor data                               // Offset Size
-    uint16_t* pwImage = (uint16_t*) pImage;         //    0    --
-    *pwImage++ = m_psw;                             //    0     2   PSW
-    memcpy(pwImage, m_R, 2 * 8);  pwImage += 8;     //    2    16   Registers R0-R7
-    *pwImage++ = m_savepc;                          //   18     2   PC'
-    *pwImage++ = m_savepsw;                         //   20     2   PSW'
-    *pwImage++ = (m_okStopped ? 1 : 0);             //   22     2   Stopped
-    *pwImage++ = m_internalTick;                    //   24     2   Internal tick count
-    uint8_t* pbImage = (uint8_t*) pwImage;
+    image::Writer writer(image);
+    writer.word(m_psw);
+    for (auto reg : m_R) writer.word(reg);
+    writer.word(m_savepc);
+    writer.word(m_savepsw);
+    writer.word(m_okStopped ? 1 : 0);
+    writer.word(m_internalTick);
     uint8_t flags0 = 0;
     flags0 |= (m_stepmode ?   1 : 0);
     flags0 |= (m_buserror ?   2 : 0);
@@ -2556,7 +2556,7 @@ void CProcessor::SaveToImage(uint8_t* pImage) const
     flags0 |= (m_DCLOpin  ?   8 : 0);
     flags0 |= (m_ACLOpin  ?  16 : 0);
     flags0 |= (m_waitmode ?  32 : 0);
-    *pbImage++ = flags0;                            //   26     1   Flags
+    writer.byte(flags0);                            //   26     1   Flags
     uint8_t flags1 = 0;
     flags1 |= (m_STRTrq ?   1 : 0);
     flags1 |= (m_RPLYrq ?   2 : 0);
@@ -2566,7 +2566,7 @@ void CProcessor::SaveToImage(uint8_t* pImage) const
     flags1 |= (m_ACLOrq ?  32 : 0);
     flags1 |= (m_HALTrq ?  64 : 0);
     flags1 |= (m_EVNTrq ? 128 : 0);
-    *pbImage++ = flags1;                            //   27     1   Flags
+    writer.byte(flags1);                            //   27     1   Flags
     uint8_t flags2 = 0;
     flags2 |= (m_FIS_rq ?   1 : 0);
     flags2 |= (m_BPT_rq ?   2 : 0);
@@ -2575,30 +2575,30 @@ void CProcessor::SaveToImage(uint8_t* pImage) const
     flags2 |= (m_TRAPrq ?  16 : 0);
     flags2 |= (m_ACLOreset ? 32 : 0);
     flags2 |= (m_EVNTreset ? 64 : 0);
-    *pbImage++ = flags2;                            //   28     1   Flags
-    *pbImage++ = m_VIRQreset;                       //   29     1   VIRQ reset request
+    writer.byte(flags2);                            //   28     1   Flags
+    writer.byte(m_VIRQreset);                       //   29     1   VIRQ reset request
     //                                              //   30     2   Reserved
-    memcpy(pImage + 32, m_virq, 2 * 16);            //   32    32   VIRQ vectors
+    writer.skip(2);
+    for (auto vector : m_virq) writer.word(vector);
 }
 
-void CProcessor::LoadFromImage(const uint8_t* pImage)
+void CProcessor::LoadFromImage(std::span<const uint8_t, 64> image)
 {
-    const uint16_t* pwImage = (const uint16_t*) pImage;  //    0    --
-    m_psw = *pwImage++;                             //    0     2   PSW
-    memcpy(m_R, pwImage, 2 * 8);  pwImage += 8;     //    2    16   Registers R0-R7
-    m_savepc    = *pwImage++;                       //   18     2   PC'
-    m_savepsw   = *pwImage++;                       //   20     2   PSW'
-    m_okStopped = (*pwImage++ != 0);                //   22     2   Stopped
-    m_internalTick = *pwImage++;                    //   24     2   Internal tick count
-    const uint8_t* pbImage = (const uint8_t*) pwImage;
-    uint8_t flags0 = *pbImage++;                    //   26     1   Flags
+    image::Reader reader(image);
+    m_psw = reader.word();
+    for (auto& reg : m_R) reg = reader.word();
+    m_savepc = reader.word();
+    m_savepsw = reader.word();
+    m_okStopped = reader.word() != 0;
+    m_internalTick = reader.word();
+    uint8_t flags0 = reader.byte();                 //   26     1   Flags
     m_stepmode  = ((flags0 &  1) != 0);
     m_buserror  = ((flags0 &  2) != 0);
     m_haltpin   = ((flags0 &  4) != 0);
     m_DCLOpin   = ((flags0 &  8) != 0);
     m_ACLOpin   = ((flags0 & 16) != 0);
     m_waitmode  = ((flags0 & 32) != 0);
-    uint8_t flags1 = *pbImage++;                    //   27     1   Flags
+    uint8_t flags1 = reader.byte();                 //   27     1   Flags
     m_STRTrq    = ((flags1 &   1) != 0);
     m_RPLYrq    = ((flags1 &   2) != 0);
     m_ILLGrq    = ((flags1 &   4) != 0);
@@ -2607,7 +2607,7 @@ void CProcessor::LoadFromImage(const uint8_t* pImage)
     m_ACLOrq    = ((flags1 &  32) != 0);
     m_HALTrq    = ((flags1 &  64) != 0);
     m_EVNTrq    = ((flags1 & 128) != 0);
-    uint8_t flags2 = *pbImage++;                    //   28     1   Flags
+    uint8_t flags2 = reader.byte();                 //   28     1   Flags
     m_FIS_rq    = ((flags2 &  1) != 0);
     m_BPT_rq    = ((flags2 &  2) != 0);
     m_IOT_rq    = ((flags2 &  4) != 0);
@@ -2615,9 +2615,10 @@ void CProcessor::LoadFromImage(const uint8_t* pImage)
     m_TRAPrq    = ((flags2 & 16) != 0);
     m_ACLOreset = ((flags2 & 32) != 0);
     m_EVNTreset = ((flags2 & 64) != 0);
-    m_VIRQreset = *pbImage++;                       //   29     1   VIRQ reset request
+    m_VIRQreset = reader.byte();                    //   29     1   VIRQ reset request
     //                                              //   30     2   Reserved
-    memcpy(m_virq, pImage + 32, 2 * 16);            //   32    32   VIRQ vectors
+    reader.skip(2);
+    for (auto& vector : m_virq) vector = reader.word();
 }
 
 uint16_t CProcessor::GetWordAddr (uint8_t meth, uint8_t reg)

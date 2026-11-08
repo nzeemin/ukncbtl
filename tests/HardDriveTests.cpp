@@ -580,12 +580,7 @@ public:
         Eq(0, status & STATUS_DRQ, _T("no data request after the last sector"));
     }
 
-    // Known bug: AttachHardImage() creates the drive object before it knows that the image is good,
-    // and keeps it when the attach fails, so the slot looks occupied (and the old drive of the slot leaks).
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hdd_FailedAttachLeavesTheSlotEmpty_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hdd_FailedAttachLeavesTheSlotEmpty_KnownBug)
+    TEST_METHOD(Hdd_FailedAttachLeavesTheSlotEmpty)
     {
         TempFile file(_T(".img"));  // the file does not exist
         TestBoard tb;

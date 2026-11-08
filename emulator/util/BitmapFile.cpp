@@ -15,6 +15,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include <wincodec.h>
 #include <wincodecsdk.h>
+#include <vector>
+#include <memory>
+
+template <typename T> struct ComRelease
+{
+    void operator()(T* value) const { if (value != nullptr) value->Release(); }
+};
 #pragma comment(lib, "WindowsCodecs.lib")
 
 
@@ -36,8 +43,11 @@ void BitmapFile_Init()
 
 void BitmapFile_Done()
 {
-    BitmapFile_pIWICFactory->Release();
-    BitmapFile_pIWICFactory = NULL;
+    if (BitmapFile_pIWICFactory != nullptr)
+    {
+        BitmapFile_pIWICFactory->Release();
+        BitmapFile_pIWICFactory = nullptr;
+    }
 }
 
 
@@ -49,7 +59,8 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
     // get image attributes and check for valid image
     UINT width = 0;
     UINT height = 0;
-    if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0)
+    if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0 ||
+        width > LONG_MAX || height > LONG_MAX || static_cast<uint64_t>(width) * height * 4 > UINT_MAX)
         return NULL;
 
     // prepare structure giving bitmap information (negative height indicates a top-down DIB)
@@ -88,6 +99,8 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
 {
     IWICImagingFactory * piFactory = BitmapFile_pIWICFactory;
     ASSERT(piFactory != NULL);
+    if (piFactory == nullptr)
+        return NULL;
 
     HRESULT hr = NULL;
 
@@ -107,8 +120,9 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
     if (pvSourceResourceData == NULL)
         return NULL;
 
-    IWICStream *pIWICStream = NULL;
-    hr = piFactory->CreateStream(&pIWICStream);
+    IWICStream* rawStream = nullptr;
+    hr = piFactory->CreateStream(&rawStream);
+    std::unique_ptr<IWICStream, ComRelease<IWICStream>> pIWICStream(rawStream);
     if (hr != S_OK)
         return NULL;
 
@@ -116,13 +130,15 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
     if (hr != S_OK)
         return NULL;
 
-    IWICBitmapDecoder *pIDecoder = NULL;
-    hr = piFactory->CreateDecoderFromStream(pIWICStream, NULL, WICDecodeMetadataCacheOnLoad, &pIDecoder);
+    IWICBitmapDecoder* rawDecoder = nullptr;
+    hr = piFactory->CreateDecoderFromStream(pIWICStream.get(), NULL, WICDecodeMetadataCacheOnLoad, &rawDecoder);
+    std::unique_ptr<IWICBitmapDecoder, ComRelease<IWICBitmapDecoder>> pIDecoder(rawDecoder);
     if (hr != S_OK)
         return NULL;
 
-    IWICBitmapFrameDecode *pIDecoderFrame = NULL;
-    hr = pIDecoder->GetFrame(0, &pIDecoderFrame);
+    IWICBitmapFrameDecode* rawFrame = nullptr;
+    hr = pIDecoder->GetFrame(0, &rawFrame);
+    std::unique_ptr<IWICBitmapFrameDecode, ComRelease<IWICBitmapFrameDecode>> pIDecoderFrame(rawFrame);
     ::FreeResource(hglbImage);
     if (hr != S_OK)
         return NULL;
@@ -130,19 +146,17 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
     // convert the image to 32bpp BGRA format with pre-multiplied alpha
     //   (it may not be stored in that format natively in the PNG resource,
     //   but we need this format to create the DIB to use on-screen)
-    IWICBitmapSource * ipBitmap = NULL;
-    hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppPBGRA, pIDecoderFrame, &ipBitmap);
-    pIDecoderFrame->Release();
+    IWICBitmapSource* rawBitmap = nullptr;
+    hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppPBGRA, pIDecoderFrame.get(), &rawBitmap);
+    std::unique_ptr<IWICBitmapSource, ComRelease<IWICBitmapSource>> ipBitmap(rawBitmap);
     if (hr != S_OK)
         return NULL;
 
     // create a HBITMAP containing the image
-    HBITMAP hbmp = CreateHBITMAP(ipBitmap);
-    ipBitmap->Release();
+    HBITMAP hbmp = CreateHBITMAP(ipBitmap.get());
     if (hbmp == NULL)
         return NULL;
 
-    pIWICStream->Release();
     return hbmp;
 }
 
@@ -160,6 +174,9 @@ bool BitmapFile_SaveImageFile(
 
     IWICImagingFactory * piFactory = BitmapFile_pIWICFactory;
     ASSERT(piFactory != NULL);
+    if (piFactory == nullptr || pBits == nullptr || sFileName == nullptr || width <= 0 || height <= 0 ||
+        static_cast<uint64_t>(width) * height * 4 > UINT_MAX)
+        return false;
 
     GUID containerFormatGuid = GUID_ContainerFormatPng;
     switch (format)
@@ -208,13 +225,14 @@ bool BitmapFile_SaveImageFile(
     if (hr != S_OK) goto Cleanup;
 
     // Convert upside-down 32bpp bitmap to normal 24bpp bitmap
-    UINT cbStride = (width * 24 + 7) / 8;
-    UINT cbBufferSize = height * cbStride;
-    BYTE *pbBuffer = new BYTE[cbBufferSize];
+    {
+    UINT cbStride = static_cast<UINT>(width) * 3;
+    UINT cbBufferSize = static_cast<UINT>(height) * cbStride;
+    std::vector<BYTE> pixelBuffer(cbBufferSize);
     for (int line = 0; line < height; line++)
     {
-        const BYTE* pSrc = ((const BYTE*)pBits) + (height - line - 1) * width * 4;
-        BYTE* pDst = pbBuffer + line * width * 3;
+        const BYTE* pSrc = reinterpret_cast<const BYTE*>(pBits) + static_cast<size_t>(height - line - 1) * width * 4;
+        BYTE* pDst = pixelBuffer.data() + static_cast<size_t>(line) * cbStride;
         for (int x = 0; x < width; x++)
         {
             *pDst++ = *pSrc++;
@@ -224,9 +242,9 @@ bool BitmapFile_SaveImageFile(
         }
     }
 
-    hr = piBitmapFrame->WritePixels(height, cbStride, cbBufferSize, pbBuffer);
-    delete[] pbBuffer;
+    hr = piBitmapFrame->WritePixels(height, cbStride, cbBufferSize, pixelBuffer.data());
     if (hr != S_OK) goto Cleanup;
+    }
 
     hr = piBitmapFrame->Commit();
     if (hr != S_OK) goto Cleanup;

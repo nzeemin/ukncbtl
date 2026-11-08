@@ -11,6 +11,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ScreenView.cpp
 
 #include "stdafx.h"
+#include <vector>
+#include <memory>
 #include <windowsx.h>
 #include "Main.h"
 #include "Views.h"
@@ -24,6 +26,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 HWND g_hwndScreen = NULL;  // Screen View window handle
 
 DWORD * m_bits = NULL;
+static std::unique_ptr<DWORD[]> m_screenBitsOwner;
 int m_cxScreenWidth = UKNC_SCREEN_WIDTH;
 int m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
 int m_xScreenOffset = 0;
@@ -57,7 +60,7 @@ BOOL bEntPressed = FALSE;
 
 void ScreenView_OnDraw(HDC hdc);
 
-typedef void (CALLBACK* PREPARE_SCREENSHOT_CALLBACK)(const void * pSrcBits, void * pDestBits);
+using PREPARE_SCREENSHOT_CALLBACK = void (CALLBACK*)(const void * pSrcBits, void * pDestBits);
 
 void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei);
 PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode);
@@ -151,7 +154,7 @@ const DWORD ScreenView_GrayColors[16 * 8] =
 //////////////////////////////////////////////////////////////////////
 
 //Prototype of the screen conversion function
-typedef void (CALLBACK* PREPARE_SCREEN_CALLBACK)(void* pImageBits);
+using PREPARE_SCREEN_CALLBACK = void (CALLBACK*)(void* pImageBits);
 
 struct ScreenModeStruct
 {
@@ -197,18 +200,16 @@ void ScreenView_RegisterClass()
 
 void ScreenView_Init()
 {
-    m_bits = static_cast<DWORD*>(::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT * 4, 1));
+    m_screenBitsOwner = std::make_unique<DWORD[]>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
+    m_bits = m_screenBitsOwner.get();
 
     ::GetCursorPos(&m_LastMousePos);
 }
 
 void ScreenView_Done()
 {
-    if (m_bits != NULL)
-    {
-        ::free(m_bits);
-        m_bits = NULL;
-    }
+    m_screenBitsOwner.reset();
+    m_bits = nullptr;
 }
 
 ScreenViewMode ScreenView_GetMode()
@@ -699,51 +700,44 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 {
     ASSERT(sFileName != NULL);
 
-    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
     const DWORD* palette = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)palette);
+    Emulator_PrepareScreenRGB32(bits.data(), (const uint32_t*)palette);
 
     int scrwidth, scrheight;
     ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
     PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
 
-    void* pScrBits = ::calloc(scrwidth * scrheight, 4);
-    callback(pBits, pScrBits);
-    ::free(pBits);
+    if (scrwidth <= 0 || scrheight <= 0 || callback == nullptr)
+        return FALSE;
+    std::vector<uint32_t> scrBits(static_cast<size_t>(scrwidth) * scrheight);
+    callback(bits.data(), scrBits.data());
 
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
     BitmapFileFormat imageFormat = BitmapFileFormatPng;
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".bmp")) == 0)
         imageFormat = BitmapFileFormatBmp;
     BOOL result = BitmapFile_SaveImageFile(
-            (const uint32_t *)pScrBits, sFileName, imageFormat, scrwidth, scrheight);
-
-    ::free(pScrBits);
+            scrBits.data(), sFileName, imageFormat, scrwidth, scrheight);
 
     return result;
 }
 
 HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
 {
-    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
-    if (pBits == nullptr)
-        return NULL;
+    std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
 
     const DWORD* palette = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(pBits, (const uint32_t*)palette);
+    Emulator_PrepareScreenRGB32(bits.data(), (const uint32_t*)palette);
 
     int scrwidth, scrheight;
     ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
     PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
 
-    void* pScrBits = ::calloc(scrwidth * scrheight, 4);
-    if (pScrBits == nullptr)
-    {
-        ::free(pBits);
+    if (scrwidth <= 0 || scrheight <= 0 || callback == nullptr)
         return NULL;
-    }
-    callback(pBits, pScrBits);
-    ::free(pBits);
+    std::vector<uint32_t> scrBits(static_cast<size_t>(scrwidth) * scrheight);
+    callback(bits.data(), scrBits.data());
 
     BITMAPINFOHEADER bi;
     ::ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
@@ -758,22 +752,24 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     HGLOBAL hDIB = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(BITMAPINFOHEADER) + bi.biSizeImage);
     if (hDIB == NULL)
     {
-        ::free(pScrBits);
         return NULL;
     }
 
     LPBYTE p = (LPBYTE) ::GlobalLock(hDIB);
+    if (p == nullptr)
+    {
+        ::GlobalFree(hDIB);
+        return NULL;
+    }
     ::CopyMemory(p, &bi, sizeof(BITMAPINFOHEADER));
     p += sizeof(BITMAPINFOHEADER);
     for (int line = 0; line < scrheight; line++)
     {
-        LPBYTE psrc = (LPBYTE)pScrBits + (scrheight - line - 1) * scrwidth * 4;
+        const BYTE* psrc = reinterpret_cast<const BYTE*>(scrBits.data()) + (scrheight - line - 1) * scrwidth * 4;
         ::CopyMemory(p, psrc, scrwidth * 4);
         p += scrwidth * 4;
     }
     ::GlobalUnlock(hDIB);
-
-    ::free(pScrBits);
 
     return hDIB;
 }
@@ -827,9 +823,9 @@ static BYTE RecognizeCharacter(const uint8_t* fontcur, const uint8_t* fontstd, c
 BOOL ScreenView_ScreenToText(uint8_t* buffer)
 {
     // Get screenshot
-    void* pBits = ::calloc(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT, 4);
+    std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
     const uint32_t* colors = (const uint32_t*)ScreenView_GrayColors;
-    Emulator_PrepareScreenToText(pBits, colors);
+    Emulator_PrepareScreenToText(bits.data(), colors);
 
     // Prepare font, get current font data from PPU memory
     CMemoryController* pPpuMemCtl = g_pBoard->GetPPUMemoryController();
@@ -862,7 +858,7 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
     int y = 0;
     while (y <= 288 - 11)
     {
-        uint32_t * pCharBits = ((uint32_t*)pBits) + y * 640;
+        const uint32_t* pCharBits = bits.data() + y * 640;
 
         for (int x = 0; x < 640; x += 8)
         {
@@ -877,8 +873,6 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
         if (y == 11) y++;  // Extra line after upper indicator lines
         if (y == 276) y++;  // Extra line before lower indicator lines
     }
-
-    ::free(pBits);
 
     return TRUE;
 }

@@ -8,6 +8,9 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
   message(FATAL_ERROR "UKNCBTL requires a 32-bit (Win32) build")
 endif()
 
+# Track the newest language mode provided by the installed MSVC toolset.
+add_compile_options($<$<COMPILE_LANGUAGE:CXX>:/std:c++latest>)
+
 add_executable(UKNCBTL WIN32
   emulator/Common.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
   emulator/Dialogs.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
@@ -35,3 +38,20 @@ target_link_libraries(RenderVfw PRIVATE vfw32)
 set_property(TARGET RenderVfw PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 add_dependencies(UKNCBTL RenderVfw)
 install(TARGETS UKNCBTL RenderVfw RUNTIME DESTINATION .)
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(WavPcmFileTests tests/WavPcmFileTests.cpp emulator/util/WavPcmFile.cpp)
+  target_include_directories(WavPcmFileTests PRIVATE emulator)
+  target_compile_definitions(WavPcmFileTests PRIVATE UNICODE _UNICODE)
+  target_precompile_headers(WavPcmFileTests PRIVATE emulator/stdafx.h)
+  add_test(NAME WavPcmFileTests COMMAND WavPcmFileTests)
+
+  add_executable(CoreSmokeTests tests/CoreSmokeTests.cpp
+    emulator/emubase/Board.cpp emulator/emubase/Disasm.cpp emulator/emubase/Floppy.cpp emulator/emubase/Hard.cpp
+    emulator/emubase/Memory.cpp emulator/emubase/Processor.cpp emulator/emubase/SoundAY.cpp)
+  target_include_directories(CoreSmokeTests PRIVATE emulator)
+  target_compile_definitions(CoreSmokeTests PRIVATE UNICODE _UNICODE)
+  target_precompile_headers(CoreSmokeTests PRIVATE emulator/stdafx.h)
+  add_test(NAME CoreSmokeTests COMMAND CoreSmokeTests)
+endif()
