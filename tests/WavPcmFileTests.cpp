@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include <gtest/gtest.h>
 #include "util/WavPcmFile.h"
 #include <array>
 #include <cstdio>
@@ -39,12 +40,12 @@ bool Write(const TCHAR* path, const std::vector<uint8_t>& bytes)
 }
 bool Check(bool condition, const char* message)
 {
-    if (!condition) std::fprintf(stderr, "%s\n", message);
+    EXPECT_TRUE(condition) << message;
     return condition;
 }
 }
 
-int main()
+static int RunRegressionChecks()
 {
     TCHAR directory[MAX_PATH] = {}, path[MAX_PATH] = {};
     if (!GetTempPath(MAX_PATH, directory) || !GetTempFileName(directory, _T("wav"), 0, path)) return 1;
@@ -134,4 +135,9 @@ int main()
     }
     DeleteFile(path);
     return ok ? 0 : 1;
+}
+
+TEST(WavPcmFileTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }

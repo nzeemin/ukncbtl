@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ScreenView.cpp
 
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include <vector>
 #include <memory>
 #include <windowsx.h>
@@ -458,6 +459,7 @@ void ScreenView_SetRenderMode(int newRenderMode)
 
 void ScreenView_OnDraw(HDC hdc)
 {
+    UKNC_PROFILE_SCOPE("Screen draw");
     if (RenderDrawProc != NULL)
     {
         RenderDrawProc(m_bits, hdc);
@@ -494,6 +496,7 @@ std::span<const uint32_t, 16 * 8> ScreenView_GetPalette()
 
 void ScreenView_PrepareScreen()
 {
+    UKNC_PROFILE_SCOPE("Prepare screen");
     if (m_bits == NULL) return;
 
     Emulator_PrepareScreenRGB32(std::span{m_bits, static_cast<size_t>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT)},

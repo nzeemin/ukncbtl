@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Emulator.cpp
 
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include <cstdio>
 #include <array>
 #include <format>
@@ -861,6 +862,7 @@ void Emulator_SetParallel(bool parallelOnOff)
 
 bool Emulator_SystemFrame()
 {
+    UKNC_PROFILE_SCOPE("Emulator frame");
     SoundGen_SetVolume(Settings_GetSoundVolume());
 
     ScreenView_ScanKeyboard();
@@ -1019,6 +1021,7 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 
 void Emulator_PrepareScreenRGB32(std::span<uint32_t> pixels, std::span<const uint32_t> colors)
 {
+    UKNC_PROFILE_SCOPE("Video decode");
     if (pixels.size() < UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT || colors.size() < 16 * 8) return;
     if (!g_okEmulatorInitialized) return;
 

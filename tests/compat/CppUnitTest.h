@@ -1,40 +1,61 @@
 /* This file is part of UKNCBTL, distributed under the GNU LGPL v3 or later. */
 #pragma once
 
-// Minimal adapter for running the existing Microsoft C++ unit tests under CTest.
+// Preserve the existing Microsoft test cases while GoogleTest runs them.
 // Only the assertions and attributes used by this repository are provided.
 #include <cwchar>
 #include <exception>
 #include <string>
 #include <type_traits>
+#include <source_location>
+#include <utility>
+#include <gtest/gtest.h>
 
 namespace Microsoft::VisualStudio::CppUnitTestFramework {
 class AssertionFailure : public std::exception
 {
 public:
-    explicit AssertionFailure(const wchar_t* message) : message_(message ? message : L"assertion failed") {}
-    const char* what() const noexcept override { return "assertion failed"; }
-    const std::wstring& message() const { return message_; }
+    AssertionFailure(std::string message, std::source_location location)
+        : message_(std::move(message)), location_(location) {}
+    const char* what() const noexcept override { return message_.c_str(); }
+    const std::source_location& location() const { return location_; }
 private:
-    std::wstring message_;
+    std::string message_;
+    std::source_location location_;
 };
 
 struct Assert
 {
-    [[noreturn]] static void Fail(const wchar_t* message = nullptr) { throw AssertionFailure(message); }
-    static void IsTrue(bool value, const wchar_t* message = nullptr) { if (!value) Fail(message); }
-    static void IsFalse(bool value, const wchar_t* message = nullptr) { if (value) Fail(message); }
-    template<class T> static void IsNotNull(T* value, const wchar_t* message = nullptr) { if (!value) Fail(message); }
-    static void AreEqual(const wchar_t* expected, const wchar_t* actual, const wchar_t* message = nullptr)
+    [[noreturn]] static void Fail(const wchar_t* message = nullptr,
+        std::source_location location = std::source_location::current())
     {
-        if (!expected || !actual || std::wcscmp(expected, actual) != 0) Fail(message);
+        throw AssertionFailure(message ? testing::PrintToString(message) : "assertion failed", location);
     }
-    template<class A, class B> static void AreEqual(const A& expected, const B& actual, const wchar_t* message = nullptr)
+    static void IsTrue(bool value, const wchar_t* message = nullptr,
+        std::source_location location = std::source_location::current())
+    { if (!value) Fail(message, location); }
+    static void IsFalse(bool value, const wchar_t* message = nullptr,
+        std::source_location location = std::source_location::current())
+    { if (value) Fail(message, location); }
+    template<class T> static void IsNotNull(T* value, const wchar_t* message = nullptr,
+        std::source_location location = std::source_location::current())
+    { if (!value) Fail(message, location); }
+    template<class A, class B> static void AreEqual(const A& expected, const B& actual,
+        const wchar_t* message = nullptr, std::source_location location = std::source_location::current())
     {
+        bool equal;
         if constexpr (std::is_convertible_v<A, const wchar_t*> && std::is_convertible_v<B, const wchar_t*>)
-            AreEqual(static_cast<const wchar_t*>(expected), static_cast<const wchar_t*>(actual), message);
-        else if (!(expected == actual))
-            Fail(message);
+        {
+            const wchar_t* lhs = expected;
+            const wchar_t* rhs = actual;
+            equal = lhs && rhs && std::wcscmp(lhs, rhs) == 0;
+        }
+        else
+            equal = expected == actual;
+        if (!equal)
+            throw AssertionFailure("Expected: " + testing::PrintToString(expected) +
+                "\nActual: " + testing::PrintToString(actual) + "\n" +
+                (message ? testing::PrintToString(message) : ""), location);
     }
 };
 }

@@ -1,5 +1,6 @@
 /* This file is part of UKNCBTL, distributed under the GNU LGPL v3 or later. */
 #include "stdafx.h"
+#include <gtest/gtest.h>
 #include "emubase/Emubase.h"
 #include <array>
 #include <cstdint>
@@ -84,7 +85,7 @@ static uint64_t HintHash()
     }
     return hash;
 }
-int main()
+static int RunRegressionChecks()
 {
     CProcessor::Init();
     const auto hash = DisassemblyHash();
@@ -102,4 +103,9 @@ int main()
         return 1;
     }
     return 0;
+}
+
+TEST(DisasmCorpusTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }

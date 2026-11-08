@@ -1,3 +1,4 @@
+#include <gtest/gtest.h>
 #include <cstdint>
 #include <cstdio>
 
@@ -22,7 +23,7 @@ static bool check(unsigned a, unsigned b, unsigned bits)
     return true;
 }
 
-int main()
+static int RunRegressionChecks()
 {
     for (unsigned a = 0; a < 256; ++a)
         for (unsigned b = 0; b < 256; ++b)
@@ -39,4 +40,9 @@ int main()
         if (!check(a, state >> 16, 16)) return 1;
     }
     return 0;
+}
+
+TEST(CpuOverflowTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }

@@ -30,9 +30,16 @@ Run the CMake test suite after building the corresponding configuration:
 ctest --test-dir build -C Release --output-on-failure
 ```
 
-The suite includes the existing core tests, exhaustive disassembly and hint
-checks, and screenshot, WAV, and bitmap tests. Configure with
-`-DBUILD_TESTING=OFF` to omit the test targets.
+The suite uses GoogleTest and CTest, including the existing core tests, exhaustive
+disassembly and hint checks, and screenshot, WAV, and bitmap tests. Each legacy
+core case is registered separately through a compatibility adapter, preserving
+the Microsoft test sources and their abort-on-failure behavior. New cases can use
+GoogleTest directly. Configure with `-DBUILD_TESTING=OFF` to omit the test targets.
+
+GoogleTest, Google Benchmark and Tracy use pinned release commits fetched by
+CMake only when their corresponding options are enabled. The first configure
+needs Git and access to GitHub. See [testing and performance](docs/performance.md)
+for offline builds, benchmarks and profiling.
 
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Build status](https://ci.appveyor.com/api/projects/status/xicur65lusd5c3ab?svg=true)](https://ci.appveyor.com/project/nzeemin/ukncbtl)
