@@ -23,7 +23,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 HWND g_hwndDebug = (HWND)INVALID_HANDLE_VALUE;  // Debug View window handle
-WNDPROC m_wndprocDebugToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocDebugToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndDebugToolbar = (HWND)INVALID_HANDLE_VALUE;
 HWND m_hwndDebugProcViewer = (HWND)INVALID_HANDLE_VALUE;
@@ -86,11 +86,11 @@ void DebugView_RegisterClasses()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = NULL;
-    wcex.hIconSm        = NULL;
+    wcex.lpszMenuName   = nullptr;
+    wcex.hIconSm        = nullptr;
 
     wcex.lpszClassName = CLASSNAME_DEBUGPROCVIEW;
     wcex.lpfnWndProc = DebugProcViewViewerWndProc;
@@ -127,13 +127,13 @@ void DebugView_Init()
 
 void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     g_hwndDebug = CreateWindow(
-            CLASSNAME_TOOLWINDOW, NULL,
+            CLASSNAME_TOOLWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
     DebugView_UpdateWindowText();
 
     // ToolWindow subclassing
@@ -143,44 +143,44 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     m_hwndDebugProcViewer = CreateWindowEx(
             0,
-            CLASSNAME_DEBUGPROCVIEW, NULL,
+            CLASSNAME_DEBUGPROCVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDebug, NULL, g_hInst, NULL);
+            g_hwndDebug, nullptr, g_hInst, nullptr);
 
     m_hwndDebugStackViewer = CreateWindowEx(
             0,
-            CLASSNAME_DEBUGSTACKVIEW, NULL,
+            CLASSNAME_DEBUGSTACKVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDebug, NULL, g_hInst, NULL);
+            g_hwndDebug, nullptr, g_hInst, nullptr);
 
     m_hwndDebugPortsViewer = CreateWindowEx(
             0,
-            CLASSNAME_DEBUGPORTSVIEW, NULL,
+            CLASSNAME_DEBUGPORTSVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDebug, NULL, g_hInst, NULL);
+            g_hwndDebug, nullptr, g_hInst, nullptr);
 
     m_hwndDebugBreaksViewer = CreateWindowEx(
             0,
-            CLASSNAME_DEBUGBREAKSVIEW, NULL,
+            CLASSNAME_DEBUGBREAKSVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDebug, NULL, g_hInst, NULL);
+            g_hwndDebug, nullptr, g_hInst, nullptr);
 
     m_hwndDebugMemoryViewer = CreateWindowEx(
             0,
-            CLASSNAME_DEBUGMEMORYVIEW, NULL,
+            CLASSNAME_DEBUGMEMORYVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDebug, NULL, g_hInst, NULL);
+            g_hwndDebug, nullptr, g_hInst, nullptr);
 
-    m_hwndDebugToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
+    m_hwndDebugToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, nullptr,
             WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_VERT,
             4, 4, 32, rcClient.bottom, m_hwndDebugProcViewer,
             (HMENU)102,
-            g_hInst, NULL);
+            g_hInst, nullptr);
 
     TBADDBITMAP addbitmap;
     addbitmap.hInst = g_hInst;
@@ -216,7 +216,7 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
 
 void DebugView_Redraw()
 {
-    RedrawWindow(g_hwndDebug, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+    RedrawWindow(g_hwndDebug, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 // Adjust position of client windows
@@ -242,19 +242,19 @@ void DebugView_AdjustWindowLayout()
 
     int xDebug = 0;
     if (m_hwndDebugProcViewer != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDebugProcViewer, NULL, xDebug, 0, cxDebug, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDebugProcViewer, nullptr, xDebug, 0, cxDebug, rc.bottom, SWP_NOZORDER);
     int xStack = xDebug + cxDebug + 4;
     if (m_hwndDebugStackViewer != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDebugStackViewer, NULL, xStack, 0, cxStack, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDebugStackViewer, nullptr, xStack, 0, cxStack, rc.bottom, SWP_NOZORDER);
     int xPorts = xStack + cxStack + 4;
     if (m_hwndDebugPortsViewer != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDebugPortsViewer, NULL, xPorts, 0, cxPorts, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDebugPortsViewer, nullptr, xPorts, 0, cxPorts, rc.bottom, SWP_NOZORDER);
     int xBreaks = xPorts + cxPorts + 4;
     if (m_hwndDebugBreaksViewer != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDebugBreaksViewer, NULL, xBreaks, 0, cxBreaks, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDebugBreaksViewer, nullptr, xBreaks, 0, cxBreaks, rc.bottom, SWP_NOZORDER);
     int xMemory = xBreaks + cxBreaks + 4;
     if (m_hwndDebugMemoryViewer != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDebugMemoryViewer, NULL, xMemory, 0, cxMemory, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDebugMemoryViewer, nullptr, xMemory, 0, cxMemory, rc.bottom, SWP_NOZORDER);
 }
 
 LRESULT CALLBACK DebugViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -295,18 +295,18 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 void DebugView_UpdateWindowText()
 {
     CProcessor* pDebugPU = (m_okDebugProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
-    ASSERT(pDebugPU != NULL);
+    ASSERT(pDebugPU != nullptr);
     LPCTSTR sProcName = pDebugPU->GetName();
 
     TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Debug - %s"), sProcName);
+    FormatBuffer(buffer, _T("Debug - {}"), sProcName);
     ::SetWindowText(g_hwndDebug, buffer);
 }
 
 void DebugView_SwitchCpuPpu()
 {
     m_okDebugProcessor = ! m_okDebugProcessor;
-    InvalidateRect(m_hwndDebugProcViewer, NULL, TRUE);
+    InvalidateRect(m_hwndDebugProcViewer, nullptr, TRUE);
     DebugView_UpdateWindowText();
 
     DisasmView_SetCurrentProc(m_okDebugProcessor);
@@ -341,7 +341,7 @@ void DebugView_OnUpdate()
     m_wDebugCpuR[10] = cpswCPU;
 
     CProcessor* pPPU = g_pBoard->GetPPU();
-    ASSERT(pPPU != NULL);
+    ASSERT(pPPU != nullptr);
 
     // Get new register values and set change flags
     m_wDebugPpuR6Old = m_wDebugPpuR[6];
@@ -366,7 +366,7 @@ void DebugView_OnUpdate()
 void DebugView_SetCurrentProc(BOOL okCPU)
 {
     m_okDebugProcessor = okCPU;
-    InvalidateRect(m_hwndDebugProcViewer, NULL, TRUE);
+    InvalidateRect(m_hwndDebugProcViewer, nullptr, TRUE);
     DebugView_UpdateWindowText();
 
     Settings_SetDebugCpuPpu(m_okDebugProcessor);
@@ -454,7 +454,7 @@ LRESULT CALLBACK DebugProcViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPar
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -472,17 +472,17 @@ void DebugProcView_OnRButtonDown(int mousex, int mousey)
     if (hit.isValid)
     {
         TCHAR buffer[20];
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06ho"), hit.value);
+        FormatBuffer(buffer, _T("Copy Value: {:06o}"), hit.value);
         ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %04hx"), hit.value);
+        FormatBuffer(buffer, _T("Copy Value: {:04x}"), hit.value);
         ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE_HEX, buffer);
-        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
         pt.y = m_cyDebugLine / 2 + (hit.line + 1) * m_cyDebugLine;
     }
     ::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
 
     ::ClientToScreen(m_hwndDebugProcViewer, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugProcViewer, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugProcViewer, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -649,7 +649,7 @@ LRESULT CALLBACK DebugStackViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPa
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -753,7 +753,7 @@ LRESULT CALLBACK DebugPortsViewViewerWndProc(HWND hWnd, UINT message, WPARAM wPa
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -841,47 +841,47 @@ void DebugView_DrawChannels(HDC hdc, int x, int y)
 
     tmpstc = g_pBoard->GetChannelStruct(0, 0, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    _sntprintf(buffer, buffersize - 1, _T("PPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("PPU CH:0 RX D:{} RDY:{} IRQ:{}"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 1 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    _sntprintf(buffer, buffersize - 1, _T("PPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("PPU CH:1 RX D:{} RDY:{} IRQ:{}"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 2 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 2, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    _sntprintf(buffer, buffersize - 1, _T("PPU CH:2 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("PPU CH:2 RX D:{} RDY:{} IRQ:{}"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 3 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 0, 1);
-    _sntprintf(buffer, buffersize - 1, _T("PPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("PPU CH:0 TX       RDY:{} IRQ:{}"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 4 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(0, 1, 1);
-    _sntprintf(buffer, buffersize - 1, _T("PPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("PPU CH:1 TX       RDY:{} IRQ:{}"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 5 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 0, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    _sntprintf(buffer, buffersize - 1, _T("CPU CH:0 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("CPU CH:0 RX D:{} RDY:{} IRQ:{}"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 6 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 1, 0);
     PrintOctalValue(bufData, tmpstc.data);
-    _sntprintf(buffer, buffersize - 1, _T("CPU CH:1 RX D:%s RDY:%d IRQ:%d"), bufData + 3, tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("CPU CH:1 RX D:{} RDY:{} IRQ:{}"), bufData + 3, tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 7 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 0, 1);
-    _sntprintf(buffer, buffersize - 1, _T("CPU CH:0 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("CPU CH:0 TX       RDY:{} IRQ:{}"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 8 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 1, 1);
-    _sntprintf(buffer, buffersize - 1, _T("CPU CH:1 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("CPU CH:1 TX       RDY:{} IRQ:{}"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 9 * cyLine, buffer, lstrlen(buffer));
 
     tmpstc = g_pBoard->GetChannelStruct(1, 2, 1);
-    _sntprintf(buffer, buffersize - 1, _T("CPU CH:2 TX       RDY:%d IRQ:%d"), tmpstc.ready, tmpstc.irq);
+    FormatBuffer(buffer, _T("CPU CH:2 TX       RDY:{} IRQ:{}"), tmpstc.ready, tmpstc.irq);
     TextOut(hdc, x, y + 10 * cyLine, buffer, lstrlen(buffer));
 }
 
@@ -917,7 +917,7 @@ LRESULT CALLBACK DebugBreaksViewViewerWndProc(HWND hWnd, UINT message, WPARAM wP
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -965,12 +965,12 @@ void DebugBreaksView_OnRButtonDown(int mousex, int mousey)
 {
     HMENU hMenu = ::CreatePopupMenu();
     //::AppendMenu(hMenu, 0, ID_DEBUG_CPUPPU, m_okDebugProcessor ? _T("Swith to PPU") : _T("Swith to CPU"));
-    //::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+    //::AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
     ::AppendMenu(hMenu, 0, ID_DEBUG_DELETEALLBREAKPTS, _T("Delete All Breakpoints"));
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(m_hwndDebugBreaksViewer, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugBreaksViewer, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDebugBreaksViewer, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -1007,7 +1007,7 @@ LRESULT CALLBACK DebugMemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wP
         return (LRESULT)DebugView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -1146,7 +1146,7 @@ void DebugView_DrawPPUMemoryMap(HDC hdc, int x, int y, const CProcessor* pDebugP
         int bank = (value177054 & 6) >> 1;
         const size_t buffersize = 10;
         TCHAR buffer[10];
-        _sntprintf(buffer, buffersize - 1, _T("Cart %d/%d"), slot, bank);
+        FormatBuffer(buffer, _T("Cart {}/{}"), slot, bank);
         TextOut(hdc, xtype, ybase - cyLine * 9, buffer, _tcsnlen(buffer, buffersize));
     }
 

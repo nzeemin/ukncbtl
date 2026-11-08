@@ -168,8 +168,8 @@ protected:  // Devices
     std::unique_ptr<CMemoryController> m_pFirstMemCtl;  ///< CPU memory control
     std::unique_ptr<CMemoryController> m_pSecondMemCtl;  ///< PPU memory control
     std::unique_ptr<CFloppyController> m_pFloppyCtl;  ///< FDD control
-    std::unique_ptr<CHardDrive> m_pHardDrives[2];  ///< HDD control
-    std::unique_ptr<CSoundAY> m_pSoundAY[3];
+    std::array<std::unique_ptr<CHardDrive>, 2> m_pHardDrives;  ///< HDD control
+    std::array<std::unique_ptr<CSoundAY>, 3> m_pSoundAY;
 
 public:  // Getting devices
     CProcessor*     GetCPU() { return m_pCPU.get(); }  ///< Getter for m_pCPU
@@ -187,9 +187,9 @@ public:
     std::span<const CBusDevice* const> GetPPUBusDevices() const { return m_pPpuDevices; }
 
 protected:  // Memory
-    std::unique_ptr<uint8_t[]> m_pRAM[3];  ///< RAM, three planes, 64 KB each
+    std::array<std::unique_ptr<uint8_t[]>, 3> m_pRAM;  ///< RAM, three planes, 64 KB each
     std::unique_ptr<uint8_t[]> m_pROM;     ///< System ROM, 32 KB
-    std::unique_ptr<uint8_t[]> m_pROMCart[2];  ///< ROM cartridges #1 and #2, 24 KB each
+    std::array<std::unique_ptr<uint8_t[]>, 2> m_pROMCart;  ///< ROM cartridges #1 and #2, 24 KB each
 public:  // Memory access
     uint16_t    GetRAMWord(int plan, uint16_t offset) const;
     uint8_t     GetRAMByte(int plan, uint16_t offset) const;
@@ -201,8 +201,8 @@ public:  // Memory access
     uint8_t     GetROMCartByte(int cartno, uint16_t offset) const;
 public:  // Debug
     void        DebugTicks();  ///< One Debug PPU tick -- use for debug step or debug breakpoint
-    void        SetCPUBreakpoints(const uint16_t* bps) { m_CPUbps = bps; } ///< Set CPU breakpoint list
-    void        SetPPUBreakpoints(const uint16_t* bps) { m_PPUbps = bps; } ///< Set PPU breakpoint list
+    void        SetCPUBreakpoints(std::span<const uint16_t> bps) { m_CPUbps = bps; } ///< Set CPU breakpoint list
+    void        SetPPUBreakpoints(std::span<const uint16_t> bps) { m_PPUbps = bps; } ///< Set PPU breakpoint list
     uint32_t    GetTrace() const { return m_dwTrace; }
     void        SetTrace(uint32_t dwTrace);
     chan_stc    GetChannelStruct(unsigned char cpu, unsigned char chan, unsigned char tx)
@@ -226,9 +226,9 @@ public:  // Debug
 
 public:  // System control
     void        Reset();  ///< Reset computer
-    void        LoadROM(const uint8_t* pBuffer);  ///< Load 32 KB ROM image from the biffer
-    void        LoadROMCartridge(int cartno, const uint8_t* pBuffer);  ///< Load 24 KB ROM cartridge image
-    void        LoadRAM(int plan, const uint8_t* pBuffer);  ///< Load 32 KB RAM image from the biffer
+    void        LoadROM(std::span<const uint8_t, 32768> buffer);  ///< Load 32 KB ROM image from the buffer
+    void        LoadROMCartridge(int cartno, std::span<const uint8_t, 24 * 1024> buffer);  ///< Load 24 KB ROM cartridge image
+    void        LoadRAM(int plan, std::span<const uint8_t, 32768> buffer);  ///< Load 32 KB RAM image from the buffer
     void        SetNetStation(uint16_t station);  // Network station number
     void        Tick8000();  ///< Tick 8.00 MHz
     void        Tick6250();  ///< Tick 6.25 MHz
@@ -331,15 +331,15 @@ public:  // Saving/loading emulator status
     void        SetMouse(bool onoff);
 private: // Timing
     uint16_t    m_multiply;
-    uint16_t    freq_per[6];
-    uint16_t    freq_out[6];
-    uint16_t    freq_enable[6];
+    std::array<uint16_t, 6> freq_per{};
+    std::array<uint16_t, 6> freq_out{};
+    std::array<uint16_t, 6> freq_enable{};
     int         m_pputicks;
     int         m_cputicks;
     unsigned int m_lineticks;
 private:
-    const uint16_t* m_CPUbps;  ///< CPU breakpoint list, ends with 177777 value
-    const uint16_t* m_PPUbps;  ///< PPU breakpoint list, ends with 177777 value
+    std::span<const uint16_t> m_CPUbps{};  ///< Non-owning breakpoint list
+    std::span<const uint16_t> m_PPUbps{};  ///< Non-owning breakpoint list
     uint32_t    m_dwTrace;  ///< Trace flags
 
     uint16_t    m_timer;
@@ -347,18 +347,18 @@ private:
     uint16_t    m_timerflags;
     uint16_t    m_timerdivider;
 
-    chan_stc    m_chancputx[3];
-    chan_stc    m_chancpurx[2];
-    chan_stc    m_chanpputx[2];
-    chan_stc    m_chanppurx[3];
+    std::array<chan_stc, 3> m_chancputx{};
+    std::array<chan_stc, 2> m_chancpurx{};
+    std::array<chan_stc, 2> m_chanpputx{};
+    std::array<chan_stc, 3> m_chanppurx{};
     uint8_t     m_chan0disabled;
     uint8_t     m_irq_cpureset;
 
     uint8_t     m_scanned_key;
-    kbd_row     m_kbd_matrix[16];
+    std::array<kbd_row, 16> m_kbd_matrix{};
 
     bool        m_okSoundAY;
-    uint8_t     m_nSoundAYReg[3];  ///< AY current register
+    std::array<uint8_t, 3> m_nSoundAYReg{};  ///< AY current register
     bool        m_okSoundCovox;
 
 private:

@@ -40,7 +40,7 @@ WavPcmFile::~WavPcmFile()
 std::expected<WavPcmFile, WavError> WavPcmFile::Create(LPCTSTR filename, int sampleRate)
 {
     if (!filename || sampleRate <= 0) return std::unexpected(WavError::invalid_argument);
-    File file(::_tfsopen(filename, _T("w+b"), _SH_DENYWR), &std::fclose);
+    File file(::_tfsopen(filename, _T("w+b"), _SH_DENYWR));
     if (!file) return std::unexpected(WavError::open_failed);
 
     constexpr uint16_t channels = 1, bits = 8, alignment = 1;
@@ -68,7 +68,7 @@ std::expected<WavPcmFile, WavError> WavPcmFile::Create(LPCTSTR filename, int sam
 std::expected<WavPcmFile, WavError> WavPcmFile::Open(LPCTSTR filename)
 {
     if (!filename) return std::unexpected(WavError::invalid_argument);
-    File file(::_tfsopen(filename, _T("rb"), _SH_DENYWR), &std::fclose);
+    File file(::_tfsopen(filename, _T("rb"), _SH_DENYWR));
     if (!file) return std::unexpected(WavError::open_failed);
     if (std::fseek(file.get(), 0, SEEK_END) != 0) return std::unexpected(WavError::io_error);
     const long fileLength = std::ftell(file.get());

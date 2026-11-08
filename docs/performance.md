@@ -11,6 +11,7 @@ and MSVC. Commands below run from the repository root in Developer PowerShell.
 | `BUILD_TESTING` | `ON` | GoogleTest executables registered with CTest |
 | `UKNCBTL_BUILD_BENCHMARKS` | `OFF` | Headless `EmulatorBenchmarks` executable |
 | `UKNCBTL_ENABLE_TRACY` | `OFF` | Tracy instrumentation in the app and shared core/scaler |
+| `UKNCBTL_ENABLE_ASAN` | `OFF` | MSVC AddressSanitizer for the application, renderer, tests and benchmarks |
 
 CMake fetches GoogleTest 1.17.0, Google Benchmark 1.9.4 and Tracy 0.12.2 by
 pinned commit, as needed. GoogleTest and Benchmark are linked only into their
@@ -44,6 +45,21 @@ CTest executes an individual case. The original standalone regression workloads
 also run under GoogleTest; exhaustive corpus checks remain grouped to avoid
 launching a process per opcode. Keep expected results independent of optimized
 code, and preserve exact flags, memory effects, timing and pixel rounding.
+
+## Memory-safety checks
+
+For memory-safety checks, install the MSVC AddressSanitizer component and run
+from Developer PowerShell so the sanitizer runtime DLL is on `PATH`:
+
+```powershell
+cmake -S . -B build-asan -G "Visual Studio 18 2026" -A x64 -DUKNCBTL_ENABLE_ASAN=ON
+cmake --build build-asan --config RelWithDebInfo
+ctest --test-dir build-asan -C RelWithDebInfo --output-on-failure
+```
+
+The sanitizer option disables incompatible MSVC runtime-check and incremental
+linker settings. MSVC does not provide UBSan. Keep sanitizers off for performance
+measurements.
 
 ## Speed measurements
 

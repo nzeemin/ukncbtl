@@ -26,8 +26,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 TCHAR g_szTitle[MAX_LOADSTRING];            // The title bar text
 TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name
 
-HWND m_hwndToolbar = NULL;
-HWND m_hwndStatusbar = NULL;
+HWND m_hwndToolbar = nullptr;
+HWND m_hwndStatusbar = nullptr;
 HWND m_hwndSplitter = (HWND)INVALID_HANDLE_VALUE;
 
 const int DISASMVIEW_HEIGHT = 306;  // Initial height of Disasm and Instr History views
@@ -102,7 +102,7 @@ void MainWindow_RegisterClass()
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
     wcex.hIcon          = LoadIcon(g_hInst, MAKEINTRESOURCE(IDI_APPICON));
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
     wcex.lpszMenuName   = MAKEINTRESOURCE(IDC_APPLICATION);
     wcex.lpszClassName  = g_szWindowClass;
@@ -134,7 +134,7 @@ BOOL CreateMainWindow()
             g_szWindowClass, g_szTitle,
             WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_CLIPCHILDREN | WS_CLIPSIBLINGS,
             0, 0, 0, 0,
-            NULL, NULL, g_hInst, NULL);
+            nullptr, nullptr, g_hInst, nullptr);
     if (!g_hwnd)
         return FALSE;
 
@@ -187,11 +187,11 @@ BOOL CreateMainWindow()
 
 BOOL MainWindow_InitToolbar()
 {
-    m_hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
+    m_hwndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, nullptr,
             WS_CHILD | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_LIST | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
             4, 4, 0, 0, g_hwnd,
             (HMENU) 102,
-            g_hInst, NULL);
+            g_hInst, nullptr);
     if (! m_hwndToolbar)
         return FALSE;
 
@@ -282,11 +282,11 @@ BOOL MainWindow_InitStatusbar()
 {
     TCHAR welcomeTemplate[100];
     LoadString(g_hInst, IDS_WELCOME, welcomeTemplate, 100);
-    TCHAR buffer[100];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, welcomeTemplate, _T(APP_VERSION_STRING));
+    const auto version = _T(APP_VERSION_STRING);
+    const auto welcome = std::vformat(welcomeTemplate, std::make_wformat_args(version));
     m_hwndStatusbar = CreateStatusWindow(
             WS_CHILD | WS_VISIBLE | SBT_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER,
-            buffer,
+            welcome.c_str(),
             g_hwnd, 101);
     if (! m_hwndStatusbar)
         return FALSE;
@@ -322,7 +322,7 @@ void MainWindow_RestoreSettings()
         if (buf[0] != _T('\0'))
         {
             if (! g_pBoard->AttachFloppyImage(slot, buf))
-                Settings_SetFloppyFilePath(slot, NULL);
+                Settings_SetFloppyFilePath(slot, nullptr);
         }
     }
 
@@ -335,8 +335,8 @@ void MainWindow_RestoreSettings()
         {
             if (!Emulator_LoadROMCartridge(slot, buf))
             {
-                Settings_SetCartridgeFilePath(slot, NULL);
-                Settings_SetHardFilePath(slot, NULL);
+                Settings_SetCartridgeFilePath(slot, nullptr);
+                Settings_SetHardFilePath(slot, nullptr);
             }
 
             Settings_GetHardFilePath(slot, buf);
@@ -344,7 +344,7 @@ void MainWindow_RestoreSettings()
             {
                 if (!g_pBoard->AttachHardImage(slot, buf))
                 {
-                    Settings_SetHardFilePath(slot, NULL);
+                    Settings_SetHardFilePath(slot, nullptr);
                 }
             }
         }
@@ -404,9 +404,9 @@ void MainWindow_RestorePositionAndShow()
     if (Settings_GetWindowRect(&rc))
     {
         HMONITOR hmonitor = MonitorFromRect(&rc, MONITOR_DEFAULTTONULL);
-        if (hmonitor != NULL)
+        if (hmonitor != nullptr)
         {
-            ::SetWindowPos(g_hwnd, NULL, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
+            ::SetWindowPos(g_hwnd, nullptr, rc.left, rc.top, rc.right - rc.left, rc.bottom - rc.top,
                     SWP_NOACTIVATE | SWP_NOZORDER);
         }
     }
@@ -426,7 +426,7 @@ void MainWindow_UpdateWindowTitle()
 {
     LPCTSTR emustate = g_okEmulatorRunning ? _T("run") : _T("stop");
     TCHAR buffer[100];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s [%s]"), g_szTitle, emustate);
+    FormatBuffer(buffer, _T("{} [{}]"), g_szTitle, emustate);
     SetWindowText(g_hwnd, buffer);
 }
 
@@ -572,7 +572,7 @@ void MainWindow_AdjustWindowSize()
             cyHeight += cyTape + 4;
     }
 
-    SetWindowPos(g_hwnd, NULL, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
+    SetWindowPos(g_hwnd, nullptr, xLeft, yTop, cxWidth, cyHeight, SWP_NOZORDER | SWP_NOMOVE);
 }
 
 void MainWindow_AdjustWindowLayout()
@@ -628,11 +628,11 @@ void MainWindow_AdjustWindowLayout()
         if (Settings_GetKeyboard())
         {
             int xKeyboard = (cxScreen - cxKeyboard) / 2;
-            SetWindowPos(g_hwndKeyboard, NULL, xKeyboard, yKeyboard, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
+            SetWindowPos(g_hwndKeyboard, nullptr, xKeyboard, yKeyboard, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
         }
         if (Settings_GetTape())
         {
-            SetWindowPos(g_hwndTape, NULL, 0, yTape, cxScreen, cyTape, SWP_NOZORDER);
+            SetWindowPos(g_hwndTape, nullptr, 0, yTape, cxScreen, cyTape, SWP_NOZORDER);
         }
     }
     if (Settings_GetDebug())  // Debug views shown -- keyboard/tape snapped to top
@@ -650,7 +650,7 @@ void MainWindow_AdjustWindowLayout()
             int cxKeyboard = rcKeyboard.right - rcKeyboard.left;
             int cyKeyboard = rcKeyboard.bottom - rcKeyboard.top;
             int xKeyboard = (cxScreen - cxKeyboard) / 2;
-            SetWindowPos(g_hwndKeyboard, NULL, xKeyboard, yKeyboard, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
+            SetWindowPos(g_hwndKeyboard, nullptr, xKeyboard, yKeyboard, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOCOPYBITS);
             yTape += cyKeyboard + 4;
             yConsole += cyKeyboard + 4;
         }
@@ -658,17 +658,17 @@ void MainWindow_AdjustWindowLayout()
         {
             RECT rcTape;  GetWindowRect(g_hwndTape, &rcTape);
             int cyTape = rcTape.bottom - rcTape.top;
-            SetWindowPos(g_hwndTape, NULL, 0, yTape, cxScreen, cyTape, SWP_NOZORDER);
+            SetWindowPos(g_hwndTape, nullptr, 0, yTape, cxScreen, cyTape, SWP_NOZORDER);
             yConsole += cyTape + 4;
         }
 
         int cyConsole = rc.bottom - cyStatus - yConsole - 4;
-        SetWindowPos(g_hwndConsole, NULL, 0, yConsole, cxScreen, cyConsole, SWP_NOZORDER);
+        SetWindowPos(g_hwndConsole, nullptr, 0, yConsole, cxScreen, cyConsole, SWP_NOZORDER);
 
         RECT rcDebug;  GetWindowRect(g_hwndDebug, &rcDebug);
         int cxDebug = rc.right - cxScreen - 4;
         int cyDebug = rcDebug.bottom - rcDebug.top;
-        SetWindowPos(g_hwndDebug, NULL, cxScreen + 4, 0, cxDebug, cyDebug, SWP_NOZORDER);
+        SetWindowPos(g_hwndDebug, nullptr, cxScreen + 4, 0, cxDebug, cyDebug, SWP_NOZORDER);
 
         // With Instr History shown, Disasm has fixed width and Instr History is to the right of it with the same height
         RECT rcDisasm;  GetWindowRect(g_hwndDisasm, &rcDisasm);
@@ -681,28 +681,28 @@ void MainWindow_AdjustWindowLayout()
             cxDisasm = DisasmView_GetWidth();
             if (cxDisasm > cxDebug) cxDisasm = cxDebug;
         }
-        SetWindowPos(g_hwndDisasm, NULL, cxScreen + 4, yDebug, cxDisasm, cyDisasm, SWP_NOZORDER);
+        SetWindowPos(g_hwndDisasm, nullptr, cxScreen + 4, yDebug, cxDisasm, cyDisasm, SWP_NOZORDER);
         if (okHistory)
         {
             int xHistory = cxScreen + 4 + cxDisasm + 4;
             int cxHistory = cxDebug - cxDisasm - 4;
             if (cxHistory < 0) cxHistory = 0;
-            SetWindowPos(g_hwndInstrHistory, NULL, xHistory, yDebug, cxHistory, cyDisasm, SWP_NOZORDER);
+            SetWindowPos(g_hwndInstrHistory, nullptr, xHistory, yDebug, cxHistory, cyDisasm, SWP_NOZORDER);
         }
 
         int yMemory = cyDebug + 4 + cyDisasm + 4;
         int cyMemory = rc.bottom - yMemory;
-        SetWindowPos(g_hwndMemory, NULL, cxScreen + 4, yMemory, cxDebug, cyMemory, SWP_NOZORDER);
+        SetWindowPos(g_hwndMemory, nullptr, cxScreen + 4, yMemory, cxDebug, cyMemory, SWP_NOZORDER);
 
-        SetWindowPos(m_hwndSplitter, NULL, cxScreen + 4, yMemory - 4, cxDebug, 4, SWP_NOZORDER);
+        SetWindowPos(m_hwndSplitter, nullptr, cxScreen + 4, yMemory - 4, cxDebug, 4, SWP_NOZORDER);
     }
 
-    SetWindowPos(m_hwndToolbar, NULL, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
+    SetWindowPos(m_hwndToolbar, nullptr, 4, 4, cxScreen, cyToolbar, SWP_NOZORDER);
 
-    SetWindowPos(g_hwndScreen, NULL, 0, yScreen, cxScreen, cyScreen, SWP_NOZORDER /*| SWP_NOCOPYBITS*/);
+    SetWindowPos(g_hwndScreen, nullptr, 0, yScreen, cxScreen, cyScreen, SWP_NOZORDER /*| SWP_NOCOPYBITS*/);
 
     int cyStatusReal = rcStatus.bottom - rcStatus.top;
-    SetWindowPos(m_hwndStatusbar, NULL, 0, rc.bottom - cyStatusReal, cxScreen, cyStatusReal,
+    SetWindowPos(m_hwndStatusbar, nullptr, 0, rc.bottom - cyStatusReal, cxScreen, cyStatusReal,
             SWP_NOZORDER | (m_MainWindow_Fullscreen ? SWP_HIDEWINDOW : SWP_SHOWWINDOW));
 }
 
@@ -1016,14 +1016,14 @@ void MainWindow_UpdateRenderModeMenu()
         UINT cmd = i + ID_VIEW_RENDERMODE;
         if (i == 0)
         {
-            if (cmddesc == NULL)
+            if (cmddesc == nullptr)
                 ::ModifyMenu(hMenuRender, i, MF_BYPOSITION | MF_GRAYED, cmd, _T("No Render Modes"));
             else
                 ::ModifyMenu(hMenuRender, i, MF_BYPOSITION, cmd, cmddesc);
         }
         else
         {
-            if (cmddesc != NULL)
+            if (cmddesc != nullptr)
                 ::AppendMenu(hMenuRender, MF_BYPOSITION, (UINT_PTR)cmd, cmddesc);
         }
     }
@@ -1315,7 +1315,7 @@ void MainWindow_DoViewFullscreen()
 
         m_MainWindow_FullscreenOldStyle = ::GetWindowLong(g_hwnd, GWL_STYLE);
         ::SetWindowLong(g_hwnd, GWL_STYLE, m_MainWindow_FullscreenOldStyle & ~(WS_CAPTION | WS_THICKFRAME));
-        ::SetWindowPos(g_hwnd, NULL, rcnew.left, rcnew.top, rcnew.right - rcnew.left, rcnew.bottom - rcnew.top,
+        ::SetWindowPos(g_hwnd, nullptr, rcnew.left, rcnew.top, rcnew.right - rcnew.left, rcnew.bottom - rcnew.top,
                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     }
     else
@@ -1323,7 +1323,7 @@ void MainWindow_DoViewFullscreen()
         // Restore saved window position
         RECT rcnew = m_MainWindow_FullscreenOldRect;
         ::SetWindowLong(g_hwnd, GWL_STYLE, m_MainWindow_FullscreenOldStyle);
-        ::SetWindowPos(g_hwnd, NULL, rcnew.left, rcnew.top, rcnew.right - rcnew.left, rcnew.bottom - rcnew.top,
+        ::SetWindowPos(g_hwnd, nullptr, rcnew.left, rcnew.top, rcnew.right - rcnew.left, rcnew.bottom - rcnew.top,
                 SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         if (m_MainWindow_FullscreenOldMaximized)
             ::SendMessage(g_hwnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0);
@@ -1409,7 +1409,7 @@ void MainWindow_DoEmulatorSerial()
     }
     else
     {
-        Emulator_SetSerial(FALSE, NULL);
+        Emulator_SetSerial(FALSE, nullptr);
         Settings_SetSerial(FALSE);
     }
 
@@ -1428,7 +1428,7 @@ void MainWindow_DoEmulatorNetwork()
     }
     else
     {
-        Emulator_SetNetwork(FALSE, NULL);
+        Emulator_SetNetwork(FALSE, nullptr);
         Settings_SetNetwork(FALSE);
     }
 
@@ -1490,8 +1490,7 @@ void MainWindow_DoFileScreenshot()
     TCHAR bufFileName[MAX_PATH];
     SYSTEMTIME st;
     ::GetSystemTime(&st);
-    _sntprintf(bufFileName, sizeof(bufFileName) / sizeof(TCHAR) - 1,
-            _T("%04d%02d%02d%02d%02d%02d%03d.png"),
+    FormatBuffer(bufFileName, _T("{:04}{:02}{:02}{:02}{:02}{:02}{:03}.png"),
             st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
 
     int screenshotMode = Settings_GetScreenshotMode();
@@ -1562,7 +1561,7 @@ void MainWindow_DoFileSettingsColors()
 {
     if (ShowSettingsColorsDialog())
     {
-        RedrawWindow(g_hwnd, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+        RedrawWindow(g_hwnd, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
     }
 }
 
@@ -1572,7 +1571,7 @@ void MainWindow_DoEmulatorFloppy(int slot)
     if (okImageAttached)
     {
         g_pBoard->DetachFloppyImage(slot);
-        Settings_SetFloppyFilePath(slot, NULL);
+        Settings_SetFloppyFilePath(slot, nullptr);
     }
     else
     {
@@ -1601,7 +1600,7 @@ void MainWindow_DoEmulatorCartridge(int slot)
     if (okLoaded)
     {
         g_pBoard->UnloadROMCartridge(slot);
-        Settings_SetCartridgeFilePath(slot, NULL);
+        Settings_SetCartridgeFilePath(slot, nullptr);
     }
     else
     {
@@ -1631,7 +1630,7 @@ void MainWindow_DoEmulatorHardDrive(int slot)
     if (okLoaded)
     {
         g_pBoard->DetachHardImage(slot);
-        Settings_SetHardFilePath(slot, NULL);
+        Settings_SetHardFilePath(slot, nullptr);
     }
     else
     {
@@ -1761,7 +1760,7 @@ void MainWindow_OnStatusbarDrawItem(LPDRAWITEMSTRUCT lpDrawItem)
         HICON hicon = ::LoadIcon(g_hInst, MAKEINTRESOURCE(resourceId));
         int left = lpDrawItem->rcItem.right - 16 - 2; // lpDrawItem->rcItem.left + (lpDrawItem->rcItem.right - lpDrawItem->rcItem.left - 16) / 2;
         int top = lpDrawItem->rcItem.top + (lpDrawItem->rcItem.bottom - lpDrawItem->rcItem.top - 16) / 2;
-        ::DrawIconEx(hdc, left, top, hicon, 16, 16, 0, NULL, DI_NORMAL);
+        ::DrawIconEx(hdc, left, top, hicon, 16, 16, 0, nullptr, DI_NORMAL);
         VERIFY(::DestroyIcon(hicon));
     }
 }
@@ -1775,7 +1774,7 @@ void MainWindow_UpdateAllViews()
     InstrHistoryView_OnUpdate();
 
     // Update screen
-    InvalidateRect(g_hwndScreen, NULL, TRUE);
+    InvalidateRect(g_hwndScreen, nullptr, TRUE);
 
     // Update debug windows
     MainWindow_UpdateDebugViews();
@@ -1783,16 +1782,16 @@ void MainWindow_UpdateAllViews()
 
 void MainWindow_UpdateDebugViews()
 {
-    if (g_hwndDebug != NULL)
-        InvalidateRect(g_hwndDebug, NULL, TRUE);
-    if (g_hwndDisasm != NULL)
-        InvalidateRect(g_hwndDisasm, NULL, TRUE);
-    if (g_hwndInstrHistory != NULL)
-        InvalidateRect(g_hwndInstrHistory, NULL, TRUE);
-    if (g_hwndMemory != NULL)
-        InvalidateRect(g_hwndMemory, NULL, TRUE);
-    if (g_hwndSprite != NULL)
-        InvalidateRect(g_hwndSprite, NULL, TRUE);
+    if (g_hwndDebug != nullptr)
+        InvalidateRect(g_hwndDebug, nullptr, TRUE);
+    if (g_hwndDisasm != nullptr)
+        InvalidateRect(g_hwndDisasm, nullptr, TRUE);
+    if (g_hwndInstrHistory != nullptr)
+        InvalidateRect(g_hwndInstrHistory, nullptr, TRUE);
+    if (g_hwndMemory != nullptr)
+        InvalidateRect(g_hwndMemory, nullptr, TRUE);
+    if (g_hwndSprite != nullptr)
+        InvalidateRect(g_hwndSprite, nullptr, TRUE);
 }
 
 void MainWindow_SetToolbarImage(int commandId, int imageIndex)

@@ -146,25 +146,25 @@ void KeyboardView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_KEYBOARDVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
 
 void KeyboardView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     g_hwndKeyboard = CreateWindow(
-            CLASSNAME_KEYBOARDVIEW, NULL,
+            CLASSNAME_KEYBOARDVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
 }
 
 LRESULT CALLBACK KeyboardViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -188,7 +188,7 @@ LRESULT CALLBACK KeyboardViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPA
             ::ScreenToClient(g_hwndKeyboard, &ptCursor);
             BYTE keyscan = KeyboardView_GetKeyByPoint(ptCursor.x, ptCursor.y);
             LPCTSTR cursor = (keyscan == 0) ? IDC_ARROW : IDC_HAND;
-            ::SetCursor(::LoadCursor(NULL, cursor));
+            ::SetCursor(::LoadCursor(nullptr, cursor));
         }
         return (LRESULT)TRUE;
     case WM_LBUTTONDOWN:

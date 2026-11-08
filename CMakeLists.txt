@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(UKNCBTL LANGUAGES CXX RC)
 
+# Use the same language contract for the application, renderer, tests and tools.
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(NOT WIN32 OR NOT MSVC)
   message(FATAL_ERROR "UKNCBTL requires Windows and the Microsoft C++ compiler")
 endif()
@@ -16,10 +21,25 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 include(CTest)
 option(UKNCBTL_BUILD_BENCHMARKS "Build headless Google Benchmark workloads" OFF)
 option(UKNCBTL_ENABLE_TRACY "Instrument the emulator with Tracy" OFF)
+option(UKNCBTL_ENABLE_ASAN "Instrument C++ targets and dependencies with AddressSanitizer" OFF)
+if(UKNCBTL_ENABLE_ASAN)
+  # MSVC's runtime checks and edit-and-continue conflict with AddressSanitizer.
+  string(REGEX REPLACE "/RTC[1su]+" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  string(REPLACE "/ZI" "/Zi" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  # MSVC STL container annotations must agree in every linked object, including
+  # GoogleTest, Benchmark and Tracy. Apply these before fetching dependencies.
+  add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:/fsanitize=address;/Zi>")
+  add_link_options(/INCREMENTAL:NO)
+endif()
 include(cmake/Dependencies.cmake)
 
+function(ukncbtl_toolchain target)
+  target_compile_features(${target} PUBLIC cxx_std_23)
+  target_compile_options(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:/permissive-;/Zc:__cplusplus;/GS>")
+endfunction()
+
 function(ukncbtl_target target)
-  target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:/std:c++latest>)
+  ukncbtl_toolchain(${target})
   target_include_directories(${target} PRIVATE "${PROJECT_SOURCE_DIR}/emulator")
   target_compile_definitions(${target} PRIVATE UNICODE _UNICODE NOMINMAX)
   target_precompile_headers(${target} PRIVATE "${PROJECT_SOURCE_DIR}/emulator/stdafx.h")
@@ -59,6 +79,7 @@ target_link_options(UKNCBTL PRIVATE "LINKER:/MANIFESTDEPENDENCY:type='win32' nam
 # The default renderer is loaded dynamically, so it must be built alongside the
 # executable even when only the UKNCBTL target is requested.
 add_library(RenderVfw SHARED third_party/RenderVfw/RenderVfw.cpp third_party/RenderVfw/RenderVfw.def)
+ukncbtl_toolchain(RenderVfw)
 target_compile_definitions(RenderVfw PRIVATE UNICODE _UNICODE)
 target_link_libraries(RenderVfw PRIVATE vfw32)
 add_dependencies(UKNCBTL RenderVfw)
@@ -75,6 +96,7 @@ if(BUILD_TESTING)
 
   ukncbtl_test(CpuOverflowTests tests/CpuOverflowTests.cpp)
   target_link_libraries(CpuOverflowTests PRIVATE CpuOverflow)
+  ukncbtl_test(TextFormatTests tests/TextFormatTests.cpp)
   ukncbtl_test(ScreenScaleTests tests/ScreenScaleTests.cpp)
   target_link_libraries(ScreenScaleTests PRIVATE ScreenScale)
   ukncbtl_test(BitmapFileTests tests/BitmapFileTests.cpp emulator/util/BitmapFile.cpp)

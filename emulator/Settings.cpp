@@ -36,7 +36,7 @@ int Option_AutoBoot = 0;
 void Settings_Init()
 {
     // Prepare m_Settings_IniPath: get .exe file path and change extension to .ini
-    ::GetModuleFileName(GetModuleHandle(NULL), m_Settings_IniPath, MAX_PATH);
+    ::GetModuleFileName(GetModuleHandle(nullptr), m_Settings_IniPath, MAX_PATH);
     TCHAR* pExt = m_Settings_IniPath + _tcslen(m_Settings_IniPath) - 3;
     *pExt++ = _T('i');
     *pExt++ = _T('n');
@@ -93,7 +93,7 @@ BOOL Settings_SaveStringValue(LPCTSTR sName, LPCTSTR sValue)
 BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthChars)
 {
     DWORD result = GetPrivateProfileString(
-            m_Settings_IniAppName, sName, NULL, sBuffer, nBufferLengthChars, m_Settings_IniPath);
+            m_Settings_IniAppName, sName, nullptr, sBuffer, nBufferLengthChars, m_Settings_IniPath);
     if (result > 0)
         return TRUE;
 
@@ -104,7 +104,7 @@ BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthCh
 BOOL Settings_SaveDwordValue(LPCTSTR sName, DWORD dwValue)
 {
     TCHAR buffer[12];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%lu"), dwValue);
+    FormatBuffer(buffer, _T("{}"), dwValue);
 
     return Settings_SaveStringValue(sName, buffer);
 }
@@ -127,7 +127,7 @@ BOOL Settings_SaveColorValue(LPCTSTR sName, COLORREF color)
     DWORD dwValue = ((color & 0x0000ff) << 16) | (color & 0x00ff00) | ((color & 0xff0000) >> 16);
 
     TCHAR buffer[12];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%06lX"), dwValue);
+    FormatBuffer(buffer, _T("{:06X}"), dwValue);
 
     return Settings_SaveStringValue(sName, buffer);
 }
@@ -159,7 +159,7 @@ BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
     for (int i = 0; i < size; i++)
     {
         int a = *p;
-        _sntprintf(buf, 3, _T("%02X"), a);
+        FormatBuffer(std::span{buf, size_t{3}}, _T("{:02X}"), a);
         p++;
         buf += 2;
     }
@@ -344,7 +344,7 @@ void Settings_SetDebugBreakpoint(int bpno, BOOL okCpuPpu, WORD address)
     bufValueName[12] = okCpuPpu ? _T('C') : _T('P');
     bufValueName[15] = bpno < 10 ? _T('0') + (TCHAR)bpno : _T('A') + (TCHAR)(bpno - 10);
     if (address == 0177777)
-        Settings_SaveStringValue(bufValueName, NULL);  // delete value
+        Settings_SaveStringValue(bufValueName, nullptr);  // delete value
     else
         Settings_SaveDwordValue(bufValueName, address);
 }

@@ -14,6 +14,11 @@ cmake --build build --config Release
 
 The executable is `build/Release/UKNCBTL.exe`. Use `--config Debug` for a
 debug build, or open the CMake project in Visual Studio.
+All C++ targets require C++23, including the renderer, tests and benchmarks.
+CMake selects the compiler's corresponding standard mode (MSVC may spell this
+`/std:c++latest`). Use a current MSVC toolset with `std::expected`, `std::print`
+and C++23 ranges support. The checked-in historical VS2015 projects are not the
+supported build entry point; configure and build through CMake.
 The emulator requires the x64 target. CMake also supports older
 installed Visual Studio generators; select the matching generator explicitly.
 The build also produces `RenderVfw.dll` beside the executable; keep both files

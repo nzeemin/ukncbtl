@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \file Processor.cpp  KM1801VM2 processor class implementation
 
 #include "stdafx.h"
+#include <algorithm>
 #include "ImageSerialization.h"
 #include "Processor.h"
 #include "Emubase.h"
@@ -18,8 +19,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 // Timings ///////////////////////////////////////////////////////////
 
-uint16_t MOV_TIMING[8][8] =
-{
+static constexpr std::array<std::array<uint16_t, 8>, 8> MOV_TIMING =
+{{
     {0x000B, 0x0022, 0x0022, 0x0033, 0x0022, 0x0037, 0x0033, 0x0043},
     {0x0020, 0x0031, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0054},
     {0x0020, 0x0037, 0x0037, 0x0043, 0x003B, 0x0047, 0x0043, 0x0053},
@@ -28,10 +29,10 @@ uint16_t MOV_TIMING[8][8] =
     {0x0025, 0x0043, 0x0043, 0x004F, 0x0047, 0x0054, 0x004F, 0x0060},
     {0x0029, 0x0039, 0x003F, 0x004C, 0x003F, 0x004C, 0x004B, 0x005C},
     {0x0035, 0x0045, 0x004C, 0x0057, 0x004C, 0x0057, 0x0057, 0x0068}
-};
+}};
 
-uint16_t MOVB_TIMING[8][8] =
-{
+static constexpr std::array<std::array<uint16_t, 8>, 8> MOVB_TIMING =
+{{
     {0x000B, 0x0025, 0x002B, 0x0037, 0x002F, 0x003B, 0x003B, 0x0047},
     {0x0018, 0x0035, 0x003B, 0x0047, 0x003F, 0x004C, 0x004B, 0x0057},
     {0x0019, 0x003B, 0x003B, 0x0047, 0x0040, 0x004B, 0x004C, 0x0057},
@@ -40,10 +41,10 @@ uint16_t MOVB_TIMING[8][8] =
     {0x0025, 0x0047, 0x0047, 0x0054, 0x004B, 0x0057, 0x0057, 0x0063},
     {0x0029, 0x003D, 0x0043, 0x004F, 0x0043, 0x004F, 0x0054, 0x005F},
     {0x0035, 0x0049, 0x004F, 0x005B, 0x004F, 0x005B, 0x005F, 0x006C}
-};
+}};
 
-uint16_t CMP_TIMING[8][8] =
-{
+static constexpr std::array<std::array<uint16_t, 8>, 8> CMP_TIMING =
+{{
     {0x000B, 0x001C, 0x001D, 0x0029, 0x0021, 0x002D, 0x0035, 0x0041},
     {0x0018, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051},
     {0x0019, 0x002D, 0x002D, 0x0039, 0x0031, 0x003D, 0x0045, 0x0051},
@@ -52,76 +53,76 @@ uint16_t CMP_TIMING[8][8] =
     {0x0025, 0x0039, 0x0039, 0x0045, 0x003D, 0x0049, 0x0051, 0x005E},
     {0x0029, 0x0035, 0x0035, 0x0041, 0x0035, 0x0041, 0x004D, 0x005A},
     {0x0035, 0x0041, 0x0041, 0x004E, 0x0041, 0x004E, 0x005A, 0x0065}
-};
+}};
 
-uint16_t CLR_TIMING[8] =
+static constexpr std::array<uint16_t, 8> CLR_TIMING =
 {
     0x000B, 0x001C, 0x0023, 0x002F, 0x0023, 0x002F, 0x002F, 0x003F
 };
 
-uint16_t CLRB_TIMING[8] =
+static constexpr std::array<uint16_t, 8> CLRB_TIMING =
 {
     0x000B, 0x0021, 0x0027, 0x0033, 0x0027, 0x0033, 0x0037, 0x0043
 };
 
-uint16_t TST_TIMING[8] =
+static constexpr std::array<uint16_t, 8> TST_TIMING =
 {
     0x000B, 0x0018, 0x0019, 0x0025, 0x0019, 0x0025, 0x0031, 0x003D
 };
 
-uint16_t MTPS_TIMING[8] =
+static constexpr std::array<uint16_t, 8> MTPS_TIMING =
 {
     0x0018, 0x0029, 0x0029, 0x0035, 0x0029, 0x0035, 0x0041, 0x004D
 };
 
-uint16_t XOR_TIMING[8] =
+static constexpr std::array<uint16_t, 8> XOR_TIMING =
 {
     0x000B, 0x0025, 0x002B, 0x0037, 0x002F, 0x003B, 0x003B, 0x0047
 };
 
-uint16_t ASH_TIMING[8] =
+static constexpr std::array<uint16_t, 8> ASH_TIMING =
 {
     0x0029, 0x003D, 0x003D, 0x0049, 0x0041, 0x004D, 0x0055, 0x0062
 };
-uint16_t ASH_S_TIMING = 0x0008;
+static constexpr uint16_t ASH_S_TIMING = 0x0008;
 
-uint16_t ASHC_TIMING[8] =
+static constexpr std::array<uint16_t, 8> ASHC_TIMING =
 {
     0x0039, 0x004E, 0x004D, 0x005A, 0x0051, 0x005D, 0x0066, 0x0072
 };
-uint16_t ASHC_S_TIMING = 0x0008;
+static constexpr uint16_t ASHC_S_TIMING = 0x0008;
 
-uint16_t MUL_TIMING[8] =
+static constexpr std::array<uint16_t, 8> MUL_TIMING =
 {
     0x0060, 0x00C7, 0x00C7, 0x00D4, 0x00CA, 0x00D8, 0x00E1, 0x00EC
 };
 
-uint16_t DIV_TIMING[8] =
+static constexpr std::array<uint16_t, 8> DIV_TIMING =
 {
     0x0080, 0x00E8, 0x00E7, 0x00F4, 0x00EB, 0x00F8, 0x0100, 0x010D
 };
 
-uint16_t JMP_TIMING[7] =
+static constexpr std::array<uint16_t, 7> JMP_TIMING =
 {
     0x002D, 0x002D, 0x003D, 0x002D, 0x003D, 0x0031, 0x0041
 };
-uint16_t JSR_TIMING[7] =
+static constexpr std::array<uint16_t, 7> JSR_TIMING =
 {
     0x0045, 0x0045, 0x0056, 0x0045, 0x0056, 0x0049, 0x0059
 };
 
-uint16_t BRANCH_TRUE_TIMING = 0x0025;
-uint16_t BRANCH_FALSE_TIMING = 0x0010;
-uint16_t BPT_TIMING = 0x0094;
-uint16_t EMT_TIMING = 0x009C;
-uint16_t RTI_TIMING = 0x0059;
-uint16_t RTS_TIMING = 0x0031;
-uint16_t NOP_TIMING = 0x0010;
-uint16_t SOB_TIMING = 0x002D;
-uint16_t SOB_LAST_TIMING = 0x0019; //last iteration of SOB
-uint16_t BR_TIMING = 0x0025;
-uint16_t MARK_TIMING = 0x0041;
-uint16_t RESET_TIMING = 105 + 968;  // Technical description of KM1801VM2, p. 134
+static constexpr uint16_t BRANCH_TRUE_TIMING = 0x0025;
+static constexpr uint16_t BRANCH_FALSE_TIMING = 0x0010;
+static constexpr uint16_t BPT_TIMING = 0x0094;
+static constexpr uint16_t EMT_TIMING = 0x009C;
+static constexpr uint16_t RTI_TIMING = 0x0059;
+static constexpr uint16_t RTS_TIMING = 0x0031;
+static constexpr uint16_t NOP_TIMING = 0x0010;
+static constexpr uint16_t SOB_TIMING = 0x002D;
+static constexpr uint16_t SOB_LAST_TIMING = 0x0019; //last iteration of SOB
+static constexpr uint16_t BR_TIMING = 0x0025;
+static constexpr uint16_t MARK_TIMING = 0x0041;
+static constexpr uint16_t RESET_TIMING = 105 + 968;  // Technical description of KM1801VM2, p. 134
 
 
 //////////////////////////////////////////////////////////////////////
@@ -129,126 +130,126 @@ uint16_t RESET_TIMING = 105 + 968;  // Technical description of KM1801VM2, p. 13
 
 std::unique_ptr<CProcessor::ExecuteMethodRef[]> CProcessor::m_pExecuteMethodMap;
 
-#define RegisterMethodOpc(/*uint16_t*/ opcode, /*CProcessor::ExecuteMethodRef*/ methodref) \
-    { m_pExecuteMethodMap[opcode] = (methodref); }
-
-#define RegisterMethodRef(/*uint16_t*/ opstart, /*uint16_t*/ opend, /*CProcessor::ExecuteMethodRef*/ methodref) \
-    { \
-        for (uint32_t opcode = (opstart); opcode <= (opend); opcode++) \
-            m_pExecuteMethodMap[opcode] = (methodref); \
-    }
-
 void CProcessor::Init()
 {
     ASSERT(m_pExecuteMethodMap == nullptr);
     m_pExecuteMethodMap = std::make_unique<ExecuteMethodRef[]>(65536);
+    const auto RegisterMethodOpc = [](uint16_t opcode, ExecuteMethodRef method)
+    {
+        m_pExecuteMethodMap[opcode] = method;
+    };
+    const auto RegisterMethodRef = [](uint16_t first, uint16_t last, ExecuteMethodRef method)
+    {
+        std::ranges::fill(std::span{m_pExecuteMethodMap.get(), size_t{65536}}.subspan(
+            first, static_cast<size_t>(last) - first + 1), method);
+    };
 
     // First fill the table with references to the ExecuteUNKNOWN method, which executes TRAP 10
-    RegisterMethodRef( 0000000, 0177777, &CProcessor::ExecuteUNKNOWN )
+    RegisterMethodRef( 0000000, 0177777, &CProcessor::ExecuteUNKNOWN );
 
-    RegisterMethodOpc( 0000000, &CProcessor::ExecuteHALT )
-    RegisterMethodOpc( 0000001, &CProcessor::ExecuteWAIT )
-    RegisterMethodOpc( 0000002, &CProcessor::ExecuteRTI )
-    RegisterMethodOpc( 0000003, &CProcessor::ExecuteBPT )
-    RegisterMethodOpc( 0000004, &CProcessor::ExecuteIOT )
-    RegisterMethodOpc( 0000005, &CProcessor::ExecuteRESET )
-    RegisterMethodOpc( 0000006, &CProcessor::ExecuteRTT )
+    RegisterMethodOpc( 0000000, &CProcessor::ExecuteHALT );
+    RegisterMethodOpc( 0000001, &CProcessor::ExecuteWAIT );
+    RegisterMethodOpc( 0000002, &CProcessor::ExecuteRTI );
+    RegisterMethodOpc( 0000003, &CProcessor::ExecuteBPT );
+    RegisterMethodOpc( 0000004, &CProcessor::ExecuteIOT );
+    RegisterMethodOpc( 0000005, &CProcessor::ExecuteRESET );
+    RegisterMethodOpc( 0000006, &CProcessor::ExecuteRTT );
 
-    RegisterMethodRef( 0000010, 0000013, &CProcessor::ExecuteRUN )
-    RegisterMethodRef( 0000014, 0000017, &CProcessor::ExecuteSTEP )
-    RegisterMethodOpc( 0000020,          &CProcessor::ExecuteRSEL)
-    RegisterMethodOpc( 0000021,          &CProcessor::ExecuteMFUS)
-    RegisterMethodRef( 0000022, 0000023, &CProcessor::ExecuteRCPC)
-    RegisterMethodRef( 0000024, 0000027, &CProcessor::ExecuteRCPS)
-    RegisterMethodOpc( 0000030,          &CProcessor::Execute000030)
-    RegisterMethodOpc( 0000031,          &CProcessor::ExecuteMTUS)
-    RegisterMethodRef( 0000032, 0000033, &CProcessor::ExecuteWCPC)
-    RegisterMethodRef( 0000034, 0000037, &CProcessor::ExecuteWCPS)
+    RegisterMethodRef( 0000010, 0000013, &CProcessor::ExecuteRUN );
+    RegisterMethodRef( 0000014, 0000017, &CProcessor::ExecuteSTEP );
+    RegisterMethodOpc( 0000020,          &CProcessor::ExecuteRSEL);
+    RegisterMethodOpc( 0000021,          &CProcessor::ExecuteMFUS);
+    RegisterMethodRef( 0000022, 0000023, &CProcessor::ExecuteRCPC);
+    RegisterMethodRef( 0000024, 0000027, &CProcessor::ExecuteRCPS);
+    RegisterMethodOpc( 0000030,          &CProcessor::Execute000030);
+    RegisterMethodOpc( 0000031,          &CProcessor::ExecuteMTUS);
+    RegisterMethodRef( 0000032, 0000033, &CProcessor::ExecuteWCPC);
+    RegisterMethodRef( 0000034, 0000037, &CProcessor::ExecuteWCPS);
 
-    RegisterMethodRef( 0000100, 0000177, &CProcessor::ExecuteJMP)
-    RegisterMethodRef( 0000200, 0000207, &CProcessor::ExecuteRTS)  // RTS / RETURN
+    RegisterMethodRef( 0000100, 0000177, &CProcessor::ExecuteJMP);
+    RegisterMethodRef( 0000200, 0000207, &CProcessor::ExecuteRTS);  // RTS / RETURN
 
-    RegisterMethodRef( 0000240, 0000257, &CProcessor::ExecuteCCC)
+    RegisterMethodRef( 0000240, 0000257, &CProcessor::ExecuteCCC);
 
-    RegisterMethodRef( 0000260, 0000277, &CProcessor::ExecuteSCC)
+    RegisterMethodRef( 0000260, 0000277, &CProcessor::ExecuteSCC);
 
-    RegisterMethodRef( 0000300, 0000377, &CProcessor::ExecuteSWAB)
+    RegisterMethodRef( 0000300, 0000377, &CProcessor::ExecuteSWAB);
 
-    RegisterMethodRef( 0000400, 0000777, &CProcessor::ExecuteBR)
-    RegisterMethodRef( 0001000, 0001377, &CProcessor::ExecuteBNE)
-    RegisterMethodRef( 0001400, 0001777, &CProcessor::ExecuteBEQ)
-    RegisterMethodRef( 0002000, 0002377, &CProcessor::ExecuteBGE)
-    RegisterMethodRef( 0002400, 0002777, &CProcessor::ExecuteBLT)
-    RegisterMethodRef( 0003000, 0003377, &CProcessor::ExecuteBGT)
-    RegisterMethodRef( 0003400, 0003777, &CProcessor::ExecuteBLE)
+    RegisterMethodRef( 0000400, 0000777, &CProcessor::ExecuteBR);
+    RegisterMethodRef( 0001000, 0001377, &CProcessor::ExecuteBNE);
+    RegisterMethodRef( 0001400, 0001777, &CProcessor::ExecuteBEQ);
+    RegisterMethodRef( 0002000, 0002377, &CProcessor::ExecuteBGE);
+    RegisterMethodRef( 0002400, 0002777, &CProcessor::ExecuteBLT);
+    RegisterMethodRef( 0003000, 0003377, &CProcessor::ExecuteBGT);
+    RegisterMethodRef( 0003400, 0003777, &CProcessor::ExecuteBLE);
 
-    RegisterMethodRef( 0004000, 0004777, &CProcessor::ExecuteJSR)  // JSR / CALL
+    RegisterMethodRef( 0004000, 0004777, &CProcessor::ExecuteJSR);  // JSR / CALL
 
-    RegisterMethodRef( 0005000, 0005077, &CProcessor::ExecuteCLR)
-    RegisterMethodRef( 0005100, 0005177, &CProcessor::ExecuteCOM)
-    RegisterMethodRef( 0005200, 0005277, &CProcessor::ExecuteINC)
-    RegisterMethodRef( 0005300, 0005377, &CProcessor::ExecuteDEC)
-    RegisterMethodRef( 0005400, 0005477, &CProcessor::ExecuteNEG)
-    RegisterMethodRef( 0005500, 0005577, &CProcessor::ExecuteADC)
-    RegisterMethodRef( 0005600, 0005677, &CProcessor::ExecuteSBC)
-    RegisterMethodRef( 0005700, 0005777, &CProcessor::ExecuteTST)
-    RegisterMethodRef( 0006000, 0006077, &CProcessor::ExecuteROR)
-    RegisterMethodRef( 0006100, 0006177, &CProcessor::ExecuteROL)
-    RegisterMethodRef( 0006200, 0006277, &CProcessor::ExecuteASR)
-    RegisterMethodRef( 0006300, 0006377, &CProcessor::ExecuteASL)
+    RegisterMethodRef( 0005000, 0005077, &CProcessor::ExecuteCLR);
+    RegisterMethodRef( 0005100, 0005177, &CProcessor::ExecuteCOM);
+    RegisterMethodRef( 0005200, 0005277, &CProcessor::ExecuteINC);
+    RegisterMethodRef( 0005300, 0005377, &CProcessor::ExecuteDEC);
+    RegisterMethodRef( 0005400, 0005477, &CProcessor::ExecuteNEG);
+    RegisterMethodRef( 0005500, 0005577, &CProcessor::ExecuteADC);
+    RegisterMethodRef( 0005600, 0005677, &CProcessor::ExecuteSBC);
+    RegisterMethodRef( 0005700, 0005777, &CProcessor::ExecuteTST);
+    RegisterMethodRef( 0006000, 0006077, &CProcessor::ExecuteROR);
+    RegisterMethodRef( 0006100, 0006177, &CProcessor::ExecuteROL);
+    RegisterMethodRef( 0006200, 0006277, &CProcessor::ExecuteASR);
+    RegisterMethodRef( 0006300, 0006377, &CProcessor::ExecuteASL);
 
-    RegisterMethodRef( 0006400, 0006477, &CProcessor::ExecuteMARK)
-    RegisterMethodRef( 0006700, 0006777, &CProcessor::ExecuteSXT)
+    RegisterMethodRef( 0006400, 0006477, &CProcessor::ExecuteMARK);
+    RegisterMethodRef( 0006700, 0006777, &CProcessor::ExecuteSXT);
 
-    RegisterMethodRef( 0010000, 0017777, &CProcessor::ExecuteMOV)
-    RegisterMethodRef( 0020000, 0027777, &CProcessor::ExecuteCMP)
-    RegisterMethodRef( 0030000, 0037777, &CProcessor::ExecuteBIT)
-    RegisterMethodRef( 0040000, 0047777, &CProcessor::ExecuteBIC)
-    RegisterMethodRef( 0050000, 0057777, &CProcessor::ExecuteBIS)
-    RegisterMethodRef( 0060000, 0067777, &CProcessor::ExecuteADD)
+    RegisterMethodRef( 0010000, 0017777, &CProcessor::ExecuteMOV);
+    RegisterMethodRef( 0020000, 0027777, &CProcessor::ExecuteCMP);
+    RegisterMethodRef( 0030000, 0037777, &CProcessor::ExecuteBIT);
+    RegisterMethodRef( 0040000, 0047777, &CProcessor::ExecuteBIC);
+    RegisterMethodRef( 0050000, 0057777, &CProcessor::ExecuteBIS);
+    RegisterMethodRef( 0060000, 0067777, &CProcessor::ExecuteADD);
 
-    RegisterMethodRef( 0070000, 0070777, &CProcessor::ExecuteMUL)
-    RegisterMethodRef( 0071000, 0071777, &CProcessor::ExecuteDIV)
-    RegisterMethodRef( 0072000, 0072777, &CProcessor::ExecuteASH)
-    RegisterMethodRef( 0073000, 0073777, &CProcessor::ExecuteASHC)
-    RegisterMethodRef( 0074000, 0074777, &CProcessor::ExecuteXOR)
-    RegisterMethodRef( 0075000, 0075037, &CProcessor::ExecuteFIS)
-    RegisterMethodRef( 0077000, 0077777, &CProcessor::ExecuteSOB)
+    RegisterMethodRef( 0070000, 0070777, &CProcessor::ExecuteMUL);
+    RegisterMethodRef( 0071000, 0071777, &CProcessor::ExecuteDIV);
+    RegisterMethodRef( 0072000, 0072777, &CProcessor::ExecuteASH);
+    RegisterMethodRef( 0073000, 0073777, &CProcessor::ExecuteASHC);
+    RegisterMethodRef( 0074000, 0074777, &CProcessor::ExecuteXOR);
+    RegisterMethodRef( 0075000, 0075037, &CProcessor::ExecuteFIS);
+    RegisterMethodRef( 0077000, 0077777, &CProcessor::ExecuteSOB);
 
-    RegisterMethodRef( 0100000, 0100377, &CProcessor::ExecuteBPL)
-    RegisterMethodRef( 0100400, 0100777, &CProcessor::ExecuteBMI)
-    RegisterMethodRef( 0101000, 0101377, &CProcessor::ExecuteBHI)
-    RegisterMethodRef( 0101400, 0101777, &CProcessor::ExecuteBLOS)
-    RegisterMethodRef( 0102000, 0102377, &CProcessor::ExecuteBVC)
-    RegisterMethodRef( 0102400, 0102777, &CProcessor::ExecuteBVS)
-    RegisterMethodRef( 0103000, 0103377, &CProcessor::ExecuteBHIS)  // BCC
-    RegisterMethodRef( 0103400, 0103777, &CProcessor::ExecuteBLO)   // BCS
+    RegisterMethodRef( 0100000, 0100377, &CProcessor::ExecuteBPL);
+    RegisterMethodRef( 0100400, 0100777, &CProcessor::ExecuteBMI);
+    RegisterMethodRef( 0101000, 0101377, &CProcessor::ExecuteBHI);
+    RegisterMethodRef( 0101400, 0101777, &CProcessor::ExecuteBLOS);
+    RegisterMethodRef( 0102000, 0102377, &CProcessor::ExecuteBVC);
+    RegisterMethodRef( 0102400, 0102777, &CProcessor::ExecuteBVS);
+    RegisterMethodRef( 0103000, 0103377, &CProcessor::ExecuteBHIS);  // BCC
+    RegisterMethodRef( 0103400, 0103777, &CProcessor::ExecuteBLO);   // BCS
 
-    RegisterMethodRef( 0104000, 0104377, &CProcessor::ExecuteEMT)
-    RegisterMethodRef( 0104400, 0104777, &CProcessor::ExecuteTRAP)
+    RegisterMethodRef( 0104000, 0104377, &CProcessor::ExecuteEMT);
+    RegisterMethodRef( 0104400, 0104777, &CProcessor::ExecuteTRAP);
 
-    RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLRB)
-    RegisterMethodRef( 0105100, 0105177, &CProcessor::ExecuteCOMB)
-    RegisterMethodRef( 0105200, 0105277, &CProcessor::ExecuteINCB)
-    RegisterMethodRef( 0105300, 0105377, &CProcessor::ExecuteDECB)
-    RegisterMethodRef( 0105400, 0105477, &CProcessor::ExecuteNEGB)
-    RegisterMethodRef( 0105500, 0105577, &CProcessor::ExecuteADCB)
-    RegisterMethodRef( 0105600, 0105677, &CProcessor::ExecuteSBCB)
-    RegisterMethodRef( 0105700, 0105777, &CProcessor::ExecuteTSTB)
-    RegisterMethodRef( 0106000, 0106077, &CProcessor::ExecuteRORB)
-    RegisterMethodRef( 0106100, 0106177, &CProcessor::ExecuteROLB)
-    RegisterMethodRef( 0106200, 0106277, &CProcessor::ExecuteASRB)
-    RegisterMethodRef( 0106300, 0106377, &CProcessor::ExecuteASLB)
+    RegisterMethodRef( 0105000, 0105077, &CProcessor::ExecuteCLRB);
+    RegisterMethodRef( 0105100, 0105177, &CProcessor::ExecuteCOMB);
+    RegisterMethodRef( 0105200, 0105277, &CProcessor::ExecuteINCB);
+    RegisterMethodRef( 0105300, 0105377, &CProcessor::ExecuteDECB);
+    RegisterMethodRef( 0105400, 0105477, &CProcessor::ExecuteNEGB);
+    RegisterMethodRef( 0105500, 0105577, &CProcessor::ExecuteADCB);
+    RegisterMethodRef( 0105600, 0105677, &CProcessor::ExecuteSBCB);
+    RegisterMethodRef( 0105700, 0105777, &CProcessor::ExecuteTSTB);
+    RegisterMethodRef( 0106000, 0106077, &CProcessor::ExecuteRORB);
+    RegisterMethodRef( 0106100, 0106177, &CProcessor::ExecuteROLB);
+    RegisterMethodRef( 0106200, 0106277, &CProcessor::ExecuteASRB);
+    RegisterMethodRef( 0106300, 0106377, &CProcessor::ExecuteASLB);
 
-    RegisterMethodRef( 0106400, 0106477, &CProcessor::ExecuteMTPS)
-    RegisterMethodRef( 0106700, 0106777, &CProcessor::ExecuteMFPS)
+    RegisterMethodRef( 0106400, 0106477, &CProcessor::ExecuteMTPS);
+    RegisterMethodRef( 0106700, 0106777, &CProcessor::ExecuteMFPS);
 
-    RegisterMethodRef( 0110000, 0117777, &CProcessor::ExecuteMOVB)
-    RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMPB)
-    RegisterMethodRef( 0130000, 0137777, &CProcessor::ExecuteBITB)
-    RegisterMethodRef( 0140000, 0147777, &CProcessor::ExecuteBICB)
-    RegisterMethodRef( 0150000, 0157777, &CProcessor::ExecuteBISB)
-    RegisterMethodRef( 0160000, 0167777, &CProcessor::ExecuteSUB)
+    RegisterMethodRef( 0110000, 0117777, &CProcessor::ExecuteMOVB);
+    RegisterMethodRef( 0120000, 0127777, &CProcessor::ExecuteCMPB);
+    RegisterMethodRef( 0130000, 0137777, &CProcessor::ExecuteBITB);
+    RegisterMethodRef( 0140000, 0147777, &CProcessor::ExecuteBICB);
+    RegisterMethodRef( 0150000, 0157777, &CProcessor::ExecuteBISB);
+    RegisterMethodRef( 0160000, 0167777, &CProcessor::ExecuteSUB);
 }
 
 void CProcessor::Done()
@@ -261,8 +262,8 @@ void CProcessor::Done()
 
 CProcessor::CProcessor (LPCTSTR name)
 {
-    _tcsncpy_s(m_name, name != nullptr ? name : _T(""), _TRUNCATE);
-    memset(m_R, 0, sizeof(m_R));
+    _tcsncpy_s(m_name.data(), m_name.size(), name != nullptr ? name : _T(""), _TRUNCATE);
+    m_R.fill({});
     m_psw = m_savepsw = 0777;
     m_savepc = 0177777;
     m_okStopped = true;
@@ -283,7 +284,7 @@ CProcessor::CProcessor (LPCTSTR name)
     m_regsrc = m_methsrc = 0;
     m_regdest = m_methdest = 0;
     m_addrsrc = m_addrdest = 0;
-    memset(m_virq, 0, sizeof(m_virq));
+    m_virq.fill({});
 }
 
 void CProcessor::Execute()
@@ -506,7 +507,7 @@ void CProcessor::SetDCLOPin(bool value)
         m_internalTick = 0;
         m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = false;
         m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = false;
-        memset(m_virq, 0, sizeof(m_virq));
+        m_virq.fill({});
         m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
         m_pMemoryController->DCLO_Signal();
         m_pMemoryController->ResetDevices();
@@ -525,7 +526,7 @@ void CProcessor::SetACLOPin(bool value)
         m_buserror = false;
         m_RPLYrq = m_RSVDrq = m_TBITrq = m_ACLOrq = m_HALTrq = m_EVNTrq = false;
         m_ILLGrq = m_FIS_rq = m_BPT_rq = m_IOT_rq = m_EMT_rq = m_TRAPrq = false;
-        memset(m_virq, 0, sizeof(m_virq));
+        m_virq.fill({});
         m_ACLOreset = m_EVNTreset = false; m_VIRQreset = 0;
 
         // "Turn On" interrupt processing
@@ -574,7 +575,7 @@ void CProcessor::TranslateInstruction()
 
 void CProcessor::ExecuteUNKNOWN ()  // No such instruction -- just call TRAP 10
 {
-//    DebugPrintFormat(_T(">>Invalid OPCODE = %06o @ %06o\r\n"), m_instruction, GetPC()-2);
+//    DebugPrintFormat(_T(">>Invalid OPCODE = {:06o} @ {:06o}\r\n"), m_instruction, GetPC()-2);
 
     m_RSVDrq = true;
 }

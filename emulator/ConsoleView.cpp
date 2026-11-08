@@ -11,6 +11,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // ConsoleView.cpp
 
 #include "stdafx.h"
+#include <print>
+#include <system_error>
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
@@ -24,15 +26,15 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 COLORREF COLOR_COMMANDFOCUS = RGB(255, 242, 157);
 
 HWND g_hwndConsole = (HWND)INVALID_HANDLE_VALUE;  // Console View window handle
-WNDPROC m_wndprocConsoleToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocConsoleToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndConsoleLog = (HWND)INVALID_HANDLE_VALUE;  // Console log window - read-only edit control
 HWND m_hwndConsoleEdit = (HWND)INVALID_HANDLE_VALUE;  // Console line - edit control
 HWND m_hwndConsolePrompt = (HWND)INVALID_HANDLE_VALUE;  // Console prompt - static control
-HFONT m_hfontConsole = NULL;
-WNDPROC m_wndprocConsoleEdit = NULL;  // Old window proc address of the console prompt
+HFONT m_hfontConsole = nullptr;
+WNDPROC m_wndprocConsoleEdit = nullptr;  // Old window proc address of the console prompt
 bool m_okCurrentProc = false;  // Current processor: TRUE - CPU, FALSE - PPU
-HBRUSH m_hbrConsoleFocused = NULL;
+HBRUSH m_hbrConsoleFocused = nullptr;
 
 const size_t CONSOLE_HISTORY_SIZE = 32;  // Commands kept
 std::vector<TcharString> m_ConsoleHistory;  // Oldest first, the newest command is the last element
@@ -70,12 +72,12 @@ void ConsoleView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_CONSOLEVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -83,15 +85,15 @@ void ConsoleView_RegisterClass()
 // Create Console View as child of Main Window
 void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     m_okCurrentProc = Settings_GetDebugCpuPpu() != 0;
 
     g_hwndConsole = CreateWindow(
-            CLASSNAME_TOOLWINDOW, NULL,
+            CLASSNAME_TOOLWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
     SetWindowText(g_hwndConsole, _T("Debug Console"));
 
     // ToolWindow subclassing
@@ -101,25 +103,25 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     m_hwndConsoleEdit = CreateWindowEx(
             WS_EX_CLIENTEDGE,
-            _T("EDIT"), NULL,
+            _T("EDIT"), nullptr,
             WS_CHILD | WS_VISIBLE,
             90, rcConsole.bottom - 20,
             rcConsole.right - 90, 20,
-            g_hwndConsole, NULL, g_hInst, NULL);
+            g_hwndConsole, nullptr, g_hInst, nullptr);
     m_hwndConsoleLog = CreateWindowEx(
             WS_EX_CLIENTEDGE,
-            _T("EDIT"), NULL,
+            _T("EDIT"), nullptr,
             WS_CHILD | WS_VSCROLL | WS_VISIBLE | ES_READONLY | ES_MULTILINE,
             0, 0,
             rcConsole.right, rcConsole.bottom - 20,
-            g_hwndConsole, NULL, g_hInst, NULL);
+            g_hwndConsole, nullptr, g_hInst, nullptr);
     m_hwndConsolePrompt = CreateWindowEx(
             0,
-            _T("STATIC"), NULL,
+            _T("STATIC"), nullptr,
             WS_CHILD | WS_VISIBLE | SS_CENTERIMAGE | SS_CENTER | SS_NOPREFIX,
             0, rcConsole.bottom - 20,
             90, 20,
-            g_hwndConsole, NULL, g_hInst, NULL);
+            g_hwndConsole, nullptr, g_hInst, nullptr);
 
     m_hfontConsole = CreateMonospacedFont();
     SendMessage(m_hwndConsolePrompt, WM_SETFONT, (WPARAM)m_hfontConsole, 0);
@@ -144,11 +146,11 @@ void ConsoleView_AdjustWindowLayout()
     int promptWidth = 90;
 
     if (m_hwndConsolePrompt != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndConsolePrompt, NULL, 0, rc.bottom - 20, promptWidth, 20, SWP_NOZORDER);
+        SetWindowPos(m_hwndConsolePrompt, nullptr, 0, rc.bottom - 20, promptWidth, 20, SWP_NOZORDER);
     if (m_hwndConsoleEdit != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndConsoleEdit, NULL, promptWidth, rc.bottom - 20, rc.right - promptWidth, 20, SWP_NOZORDER);
+        SetWindowPos(m_hwndConsoleEdit, nullptr, promptWidth, rc.bottom - 20, rc.right - promptWidth, 20, SWP_NOZORDER);
     if (m_hwndConsoleLog != (HWND)INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndConsoleLog, NULL, 0, 0, rc.right, rc.bottom - 24, SWP_NOZORDER);
+        SetWindowPos(m_hwndConsoleLog, nullptr, 0, 0, rc.right, rc.bottom - 24, SWP_NOZORDER);
 }
 
 LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -170,7 +172,7 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_CTLCOLOREDIT:
         if (((HWND)lParam) == m_hwndConsoleEdit && ::GetFocus() == m_hwndConsoleEdit)
         {
-            if (m_hbrConsoleFocused == NULL)
+            if (m_hbrConsoleFocused == nullptr)
                 m_hbrConsoleFocused = ::CreateSolidBrush(COLOR_COMMANDFOCUS);
             SetBkColor((HDC)wParam, COLOR_COMMANDFOCUS);
             return (LRESULT)m_hbrConsoleFocused;
@@ -287,18 +289,6 @@ CProcessor* ConsoleView_GetCurrentProcessor()
         return g_pBoard->GetPPU();
 }
 
-void ConsoleView_PrintFormat(LPCTSTR pszFormat, ...)
-{
-    const size_t buffersize = 512;
-    TCHAR buffer[buffersize];
-
-    va_list ptr;
-    va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, buffersize, buffersize - 1, pszFormat, ptr);
-    va_end(ptr);
-
-    ConsoleView_Print(buffer);
-}
 void ConsoleView_Print(LPCTSTR message)
 {
     if (m_hwndConsoleLog == INVALID_HANDLE_VALUE) return;
@@ -324,7 +314,7 @@ void ConsoleView_PrintConsolePrompt()
     TCHAR bufferAddr[7];
     PrintOctalValue(bufferAddr, pProc->GetPC());
     TCHAR buffer[14];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s:%s>"), pProc->GetName(), bufferAddr);
+    FormatBuffer(buffer, _T("{}:{}>"), pProc->GetName(), bufferAddr);
     ::SetWindowText(m_hwndConsolePrompt, buffer);
 }
 
@@ -402,33 +392,33 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc, uint16_t addr1, uint16_t addr
         data[i - waddr1] = pMemCtl->GetWordView(i * 2, isHaltMode, false).value;
 
     TCHAR fname[20];
-    _sntprintf(fname, sizeof(fname) / sizeof(TCHAR) - 1, _T("memdump%s.bin"), pProc->GetName());
+    FormatBuffer(fname, _T("memdump{}.bin"), pProc->GetName());
     HANDLE file = ::CreateFile(fname,
-            GENERIC_WRITE, FILE_SHARE_READ, NULL,
-            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (file == INVALID_HANDLE_VALUE)
         return FALSE;
 
     DWORD dwBytesWritten = 0;
-    BOOL written = ::WriteFile(file, data.data(), static_cast<DWORD>(bsize), &dwBytesWritten, NULL);
+    BOOL written = ::WriteFile(file, data.data(), static_cast<DWORD>(bsize), &dwBytesWritten, nullptr);
     ::CloseHandle(file);
     if (!written || dwBytesWritten != bsize)
         return FALSE;
 
-    ConsoleView_PrintFormat(_T("  %s memory saved to %s\r\n"), pProc->GetName(), fname);
+    ConsoleView_PrintFormat(_T("  {} memory saved to {}\r\n"), pProc->GetName(), fname);
     return TRUE;
 }
 
-void ConsoleView_SaveDisplayListDump()
+void ConsoleView_SaveDisplayListDump() try
 {
     LPCTSTR fname = _T("displaylist.txt");
-    FILE* fpFile = ::_tfopen(fname, _T("wt"));
+    UniqueFile fpFile(::_tfopen(fname, _T("wt")));
     if (fpFile == nullptr)
     {
         ConsoleView_Print(_T("  Failed to create display list file.\r\n"));
         return;
     }
-    _ftprintf(fpFile, _T("line address  tag 1  tag 2  addr   next   \n"));
+    std::print(fpFile.get(), "line address  tag 1  tag 2  addr   next   \n");
 
     WORD address = 0000270;  // Tag sequence start address
     bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
@@ -436,7 +426,7 @@ void ConsoleView_SaveDisplayListDump()
 
     for (int yy = 0; yy < 307; yy++)
     {
-        _ftprintf(fpFile, _T("%4d  %06o  "), yy, address);
+        std::print(fpFile.get(), "{:4d}  {:06o}  ", yy, address);
 
         WORD tag2 = 0;
         if (okTagSize)  // 4-word tag
@@ -445,27 +435,27 @@ void ConsoleView_SaveDisplayListDump()
             address += 2;
             tag2 = g_pBoard->GetRAMWord(0, address);
             address += 2;
-            _ftprintf(fpFile, _T("%06o %06o "), tag1, tag2);
+            std::print(fpFile.get(), "{:06o} {:06o} ", tag1, tag2);
         }
         else
-            _ftprintf(fpFile, _T("------ ------ "));
+            std::print(fpFile.get(), "------ ------ ");
 
         WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
         address += 2;
-        _ftprintf(fpFile, _T("%06o "), addressBits);
+        std::print(fpFile.get(), "{:06o} ", addressBits);
 
         WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
-        _ftprintf(fpFile, _T("%06o  "), tagB);
+        std::print(fpFile.get(), "{:06o}  ", tagB);
 
         if (okTagSize)  // 4-word tag
         {
             if (okTagType)  // 4-word palette tag
-                _ftprintf(fpFile, _T("palette; "));
+                std::print(fpFile.get(), "palette; ");
             else
             {
                 int scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
                 scale = 1 << scale;
-                _ftprintf(fpFile, _T("scale %d; "), scale);
+                std::print(fpFile.get(), "scale {}; ", scale);
             }
         }
 
@@ -476,7 +466,7 @@ void ConsoleView_SaveDisplayListDump()
         {
             address = tagB & ~7;
             okNextTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-            _ftprintf(fpFile, _T("next: 4-word at %06o"), address);
+            std::print(fpFile.get(), "next: 4-word at {:06o}", address);
         }
         else
             address = tagB & ~3;
@@ -484,18 +474,23 @@ void ConsoleView_SaveDisplayListDump()
         okTagSize = okNextTagSize;
         okTagType = okNextTagType;
 
-        _ftprintf(fpFile, _T("\n"));
+        std::print(fpFile.get(), "\n");
     }
 
-    const bool writeFailed = std::ferror(fpFile) != 0;
-    const bool closeFailed = std::fclose(fpFile) != 0;
+    const bool writeFailed = std::ferror(fpFile.get()) != 0;
+    const bool closeFailed = std::fclose(fpFile.release()) != 0;
     if (writeFailed || closeFailed)
     {
         ConsoleView_Print(_T("  Failed to write display list file.\r\n"));
         return;
     }
 
-    ConsoleView_PrintFormat(_T("  Display list saved to %s\r\n"), fname);
+    ConsoleView_PrintFormat(_T("  Display list saved to {}\r\n"), fname);
+}
+
+catch (const std::system_error&)
+{
+    ConsoleView_Print(_T("  Failed to write display list file.\r\n"));
 }
 
 // Print memory dump
@@ -576,7 +571,7 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
         {
             if (!okShort)
             {
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %s\r\n"), bufaddr, bufvalue);
+                FormatBuffer(buffer, _T("  {}  {}\r\n"), bufaddr, bufvalue);
                 ConsoleView_Print(buffer);
             }
         }
@@ -592,9 +587,9 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
             if (index + length > nWindowSize)
                 break;
             if (okShort)
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %-7s %s\r\n"), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
+                FormatBuffer(buffer, _T("  {}  {:<7} {}\r\n"), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
             else
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %s  %-7s %s\r\n"), bufaddr, bufvalue, decoded->mnemonic.c_str(), decoded->argument.c_str());
+                FormatBuffer(buffer, _T("  {}  {}  {:<7} {}\r\n"), bufaddr, bufvalue, decoded->mnemonic.c_str(), decoded->argument.c_str());
             ConsoleView_Print(buffer);
         }
         length--;
@@ -610,7 +605,7 @@ void ConsoleView_TraceLog(DWORD value)
 {
     Emulator_SetTrace(value);
     if (value != TRACE_NONE)
-        ConsoleView_PrintFormat(_T("  Trace ON, trace flags %06o\r\n"), (uint16_t)g_pBoard->GetTrace());
+        ConsoleView_PrintFormat(_T("  Trace ON, trace flags {:06o}\r\n"), (uint16_t)g_pBoard->GetTrace());
     else
     {
         ConsoleView_Print(_T("  Trace OFF.\r\n"));
@@ -762,7 +757,7 @@ void ConsoleView_CmdSwitchCpuPpu(const ConsoleCommandParams& /*params*/)
     DisasmView_SetCurrentProc(m_okCurrentProc);   // Switch DisasmView to current processor
 
     LPCTSTR procName = ConsoleView_GetCurrentProcessor()->GetName();
-    ConsoleView_PrintFormat(_T("  Switched to %s\r\n"), procName);
+    ConsoleView_PrintFormat(_T("  Switched to {}\r\n"), procName);
 }
 
 void ConsoleView_CmdPrintAllRegisters(const ConsoleCommandParams& /*params*/)
@@ -842,7 +837,7 @@ void ConsoleView_CmdPrintAllBreakpoints(const ConsoleCommandParams& /*params*/)
     {
         while (*pbps != 0177777)
         {
-            ConsoleView_PrintFormat(_T("  %06ho\r\n"), *pbps);
+            ConsoleView_PrintFormat(_T("  {:06o}\r\n"), *pbps);
             pbps++;
         }
     }
@@ -911,13 +906,13 @@ void ConsoleView_CmdCalculateFloatNumber(const ConsoleCommandParams& params)
     short exp = (O1 >> 7) & 0xFF;
     if (exp == 0)  // zero exponent means real zero (0.0)
     {
-        ConsoleView_PrintFormat(_T("exp: 0, mant: 0x%lx\r\n0\r\n"), mant);
+        ConsoleView_PrintFormat(_T("exp: 0, mant: 0x{:x}\r\n0\r\n"), mant);
         return;
     }
     exp -= 128;
-    ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
+    ConsoleView_PrintFormat(_T("exp: {}, mant: 0x{:x}\r\n"), exp, mant);
     const auto value = Disasm_FloatToString(O1, O2);
-    ConsoleView_PrintFormat(_T("%s\r\n"), value.c_str());
+    ConsoleView_PrintFormat(_T("{}\r\n"), value.c_str());
 }
 
 #if !defined(PRODUCT)
@@ -1013,7 +1008,7 @@ void ConsoleView_DoConsoleCommand()
     TCHAR buffer[36];
     ::GetWindowText(m_hwndConsolePrompt, buffer, 14);
     ConsoleView_Print(buffer);
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T(" %s\r\n"), command);
+    FormatBuffer(buffer, _T(" {}\r\n"), command);
     ConsoleView_Print(buffer);
 
     ConsoleCommandParams params;

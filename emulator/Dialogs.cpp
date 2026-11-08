@@ -32,8 +32,8 @@ INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
 void Dialogs_DoCreateDisk(int tracks);
 BOOL InputBoxValidate(HWND hDlg);
 
-LPCTSTR m_strInputBoxTitle = NULL;
-WORD* m_pInputBoxValueOctal = NULL;
+LPCTSTR m_strInputBoxTitle = nullptr;
+WORD* m_pInputBoxValueOctal = nullptr;
 
 // Show the standard Choose Color dialog box
 BOOL ShowColorDialog(COLORREF& color);
@@ -42,7 +42,7 @@ COLORREF m_DialogSettings_acrCustClr[16];  // array of custom colors to use in C
 
 DCB m_DialogSettings_SerialConfig;
 DCB m_DialogSettings_NetComConfig;
-DCB* m_pDcbEditorData = NULL;
+DCB* m_pDcbEditorData = nullptr;
 
 
 //////////////////////////////////////////////////////////////////////
@@ -62,9 +62,9 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         {
             const size_t buffersize = 64;
             TCHAR buffer[buffersize];
-            _sntprintf(buffer, buffersize - 1, _T("UKNCBTL version %s revision %d"), _T(APP_VERSION_STRING), APP_REVISION);
+            FormatBuffer(buffer, _T("UKNCBTL version {} revision {}"), _T(APP_VERSION_STRING), APP_REVISION);
             ::SetDlgItemText(hDlg, IDC_VERSION, buffer);
-            _sntprintf(buffer, buffersize - 1, _T("Build date: %S %S"), __DATE__, __TIME__);
+            FormatBuffer(buffer, _T("Build date: {} {}"), _T(__DATE__), _T(__TIME__));
             ::SetDlgItemText(hDlg, IDC_BUILDDATE, buffer);
             return (INT_PTR)TRUE;
         }
@@ -79,7 +79,7 @@ INT_PTR CALLBACK AboutBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         if (wParam == IDC_SYSLINK1 &&
             ((LPNMHDR)lParam)->code == NM_CLICK || ((LPNMHDR)lParam)->code == NM_RETURN)
         {
-            ::ShellExecute(NULL, _T("open"), _T("https://github.com/nzeemin/ukncbtl"), NULL, NULL, SW_SHOW);
+            ::ShellExecute(nullptr, _T("open"), _T("https://github.com/nzeemin/ukncbtl"), nullptr, nullptr, SW_SHOW);
             break;
         }
         break;
@@ -146,7 +146,7 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
             HWND hEdit = GetDlgItem(hDlg, IDC_EDIT1);
 
             TCHAR buffer[8];
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%06ho"), *m_pInputBoxValueOctal);
+            FormatBuffer(buffer, _T("{:06o}"), *m_pInputBoxValueOctal);
             SetWindowText(hEdit, buffer);
             SendMessage(hEdit, EM_SETSEL, 0, -1);
 
@@ -167,7 +167,7 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
                     WORD otherValue;
                     if (_sntscanf_s(buffer, buffersize, _T("%hx"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
                     {
-                        _sntprintf(buffer, buffersize - 1, _T("%04hx"), *m_pInputBoxValueOctal);
+                        FormatBuffer(buffer, _T("{:04x}"), *m_pInputBoxValueOctal);
                         SetDlgItemText(hDlg, IDC_EDIT2, buffer);
                     }
                 }
@@ -184,7 +184,7 @@ INT_PTR CALLBACK InputBoxProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*l
                     WORD otherValue;
                     if (_sntscanf_s(buffer, buffersize, _T("%ho"), &otherValue) <= 0 || *m_pInputBoxValueOctal != otherValue)
                     {
-                        _sntprintf(buffer, buffersize - 1, _T("%06ho"), *m_pInputBoxValueOctal);
+                        FormatBuffer(buffer, _T("{:06o}"), *m_pInputBoxValueOctal);
                         SetDlgItemText(hDlg, IDC_EDIT1, buffer);
                     }
                 }
@@ -215,7 +215,7 @@ BOOL InputBoxValidate(HWND hDlg)
     const auto value = ParseOctalValue(buffer);
     if (!value)
     {
-        MessageBox(NULL, _T("Please enter correct octal value."), _T("Input Box Validation"),
+        MessageBox(nullptr, _T("Please enter correct octal value."), _T("Input Box Validation"),
                 MB_OK | MB_ICONEXCLAMATION | MB_TASKMODAL);
         return FALSE;
     }
@@ -341,23 +341,23 @@ void Dialogs_DoCreateDisk(int tracks)
     // Create the file
     LONG fileSize = tracks * 10240;
     HANDLE hFile = ::CreateFile(bufFileName,
-            GENERIC_WRITE, FILE_SHARE_READ, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+            GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hFile == INVALID_HANDLE_VALUE)
     {
         DWORD dwError = ::GetLastError();
-        AlertWarningFormat(_T("Failed to create a file for the new disk (0x%08lx)."), dwError);
+        AlertWarningFormat(_T("Failed to create a file for the new disk (0x{:08x})."), dwError);
         return;
     }
 
     // Zero-fill the file
-    BOOL success = ::SetFilePointer(hFile, fileSize, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+    BOOL success = ::SetFilePointer(hFile, fileSize, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
                    ::SetEndOfFile(hFile);
 
     // Prepare disk the same way as INIT does
     auto writeBlock = [hFile](LONG offset, const void* data, DWORD size) {
         DWORD written = 0;
-        return ::SetFilePointer(hFile, offset, NULL, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-            ::WriteFile(hFile, data, size, &written, NULL) && written == size;
+        return ::SetFilePointer(hFile, offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
+            ::WriteFile(hFile, data, size, &written, nullptr) && written == size;
     };
     success = success && writeBlock(0, DiskInitBlockAt0000, sizeof(DiskInitBlockAt0000));
     success = success && writeBlock(0x03D2, DiskInitBlockAt03D2, sizeof(DiskInitBlockAt03D2));
@@ -404,7 +404,7 @@ void ShowSettingsDialog()
 void FillRenderCombo(HWND hRender)
 {
     TCHAR searchPath[MAX_PATH];
-    DWORD length = ::GetModuleFileName(GetModuleHandle(NULL), searchPath, MAX_PATH);
+    DWORD length = ::GetModuleFileName(GetModuleHandle(nullptr), searchPath, MAX_PATH);
     if (length == 0 || length >= MAX_PATH)
         return;
     TCHAR* separator = _tcsrchr(searchPath, _T('\\'));
@@ -439,7 +439,7 @@ void FillScreenshotModeCombo(HWND hScreenshotMode)
     for (;;)
     {
         LPCTSTR sModeName = ScreenView_GetScreenshotModeName(screenshotMode);
-        if (sModeName == NULL)
+        if (sModeName == nullptr)
             break;
         ::SendMessage(hScreenshotMode, CB_ADDSTRING, 0, (LPARAM)sModeName);
         screenshotMode++;
@@ -569,9 +569,9 @@ void SettingsDialog_FillDebugFontCombo(HWND hCombo)
     logfont.lfWeight = FW_NORMAL;
     logfont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
 
-    HDC hdc = ::GetDC(NULL);
+    HDC hdc = ::GetDC(nullptr);
     EnumFontFamiliesEx(hdc, &logfont, (FONTENUMPROC)SettingsDialog_EnumFontProc, (LPARAM)hCombo, 0);
-    VERIFY(::ReleaseDC(NULL, hdc));
+    VERIFY(::ReleaseDC(nullptr, hdc));
 
     Settings_GetDebugFontName(logfont.lfFaceName);
     ::SendMessage(hCombo, CB_SELECTSTRING, 0, (LPARAM)logfont.lfFaceName);
@@ -640,7 +640,7 @@ void SettingsDialog_OnChooseColor(HWND hDlg)
     if (ShowColorDialog(color, hDlg))
     {
         ::SendMessage(hList, LB_SETITEMDATA, itemIndex, (LPARAM)color);
-        ::InvalidateRect(hList, NULL, TRUE);
+        ::InvalidateRect(hList, nullptr, TRUE);
     }
 }
 
@@ -651,7 +651,7 @@ void SettingsDialog_OnResetColor(HWND hDlg)
     COLORREF color = Settings_GetDefaultColor((ColorIndices)itemIndex);
 
     ::SendMessage(hList, LB_SETITEMDATA, itemIndex, color);
-    ::InvalidateRect(hList, NULL, TRUE);
+    ::InvalidateRect(hList, nullptr, TRUE);
 }
 
 void SettingsDialog_SaveFontsAndColors(HWND hDlg)
@@ -732,7 +732,7 @@ INT_PTR CALLBACK DcbEditorProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /*
             int selindex = 5;  // 9600 by default
             for (int i = 0; i < sizeof(BaudrateValues) / sizeof(DWORD); i++)
             {
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%lu"), BaudrateValues[i]);
+                FormatBuffer(buffer, _T("{}"), BaudrateValues[i]);
                 SendMessage(hBaudrate, LB_ADDSTRING, 0, (LPARAM)buffer);
                 if (pDCB->BaudRate == BaudrateValues[i])
                     selindex = i;

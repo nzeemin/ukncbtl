@@ -63,7 +63,7 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
     UINT height = 0;
     if (FAILED(ipBitmap->GetSize(&width, &height)) || width == 0 || height == 0 ||
         width > LONG_MAX || height > LONG_MAX || static_cast<uint64_t>(width) * height * 4 > UINT_MAX)
-        return NULL;
+        return nullptr;
 
     // prepare structure giving bitmap information (negative height indicates a top-down DIB)
     BITMAPINFO bminfo;
@@ -76,22 +76,22 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
     bminfo.bmiHeader.biCompression = BI_RGB;
 
     // create a DIB section that can hold the image
-    void * pvImageBits = NULL;
-    HDC hdcScreen = ::GetDC(NULL);
-    HBITMAP hbmp = ::CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, NULL, 0);
-    ReleaseDC(NULL, hdcScreen);
-    if (hbmp == NULL)
-        return NULL;
+    void * pvImageBits = nullptr;
+    HDC hdcScreen = ::GetDC(nullptr);
+    HBITMAP hbmp = ::CreateDIBSection(hdcScreen, &bminfo, DIB_RGB_COLORS, &pvImageBits, nullptr, 0);
+    ReleaseDC(nullptr, hdcScreen);
+    if (hbmp == nullptr)
+        return nullptr;
 
     // extract the image into the HBITMAP
 
     const UINT cbStride = width * 4;
     const UINT cbImage = cbStride * height;
-    if (FAILED(ipBitmap->CopyPixels(NULL, cbStride, cbImage, static_cast<BYTE *>(pvImageBits))))
+    if (FAILED(ipBitmap->CopyPixels(nullptr, cbStride, cbImage, static_cast<BYTE *>(pvImageBits))))
     {
         // couldn't extract image; delete HBITMAP
         ::DeleteObject(hbmp);
-        return NULL;
+        return nullptr;
     }
 
     return hbmp;
@@ -100,50 +100,50 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
 HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
 {
     IWICImagingFactory * piFactory = BitmapFile_factory.get();
-    ASSERT(piFactory != NULL);
+    ASSERT(piFactory != nullptr);
     if (piFactory == nullptr)
-        return NULL;
+        return nullptr;
 
-    HRESULT hr = NULL;
+    HRESULT hr = S_OK;
 
     // find the resource
-    HRSRC hrsrc = FindResource(NULL, lpName, _T("IMAGE"));
-    if (hrsrc == NULL)
-        return NULL;
+    HRSRC hrsrc = FindResource(nullptr, lpName, _T("IMAGE"));
+    if (hrsrc == nullptr)
+        return nullptr;
 
     // load the resource
-    DWORD dwResourceSize = ::SizeofResource(NULL, hrsrc);
-    HGLOBAL hglbImage = ::LoadResource(NULL, hrsrc);
-    if (hglbImage == NULL)
-        return NULL;
+    DWORD dwResourceSize = ::SizeofResource(nullptr, hrsrc);
+    HGLOBAL hglbImage = ::LoadResource(nullptr, hrsrc);
+    if (hglbImage == nullptr)
+        return nullptr;
 
     // lock the resource, getting a pointer to its data
     LPVOID pvSourceResourceData = ::LockResource(hglbImage);
-    if (pvSourceResourceData == NULL)
-        return NULL;
+    if (pvSourceResourceData == nullptr)
+        return nullptr;
 
     IWICStream* rawStream = nullptr;
     hr = piFactory->CreateStream(&rawStream);
     std::unique_ptr<IWICStream, ComRelease<IWICStream>> pIWICStream(rawStream);
     if (hr != S_OK)
-        return NULL;
+        return nullptr;
 
     hr = pIWICStream->InitializeFromMemory(reinterpret_cast<BYTE*>(pvSourceResourceData), dwResourceSize);
     if (hr != S_OK)
-        return NULL;
+        return nullptr;
 
     IWICBitmapDecoder* rawDecoder = nullptr;
-    hr = piFactory->CreateDecoderFromStream(pIWICStream.get(), NULL, WICDecodeMetadataCacheOnLoad, &rawDecoder);
+    hr = piFactory->CreateDecoderFromStream(pIWICStream.get(), nullptr, WICDecodeMetadataCacheOnLoad, &rawDecoder);
     std::unique_ptr<IWICBitmapDecoder, ComRelease<IWICBitmapDecoder>> pIDecoder(rawDecoder);
     if (hr != S_OK)
-        return NULL;
+        return nullptr;
 
     IWICBitmapFrameDecode* rawFrame = nullptr;
     hr = pIDecoder->GetFrame(0, &rawFrame);
     std::unique_ptr<IWICBitmapFrameDecode, ComRelease<IWICBitmapFrameDecode>> pIDecoderFrame(rawFrame);
     ::FreeResource(hglbImage);
     if (hr != S_OK)
-        return NULL;
+        return nullptr;
 
     // convert the image to 32bpp BGRA format with pre-multiplied alpha
     //   (it may not be stored in that format natively in the PNG resource,
@@ -152,12 +152,12 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
     hr = WICConvertBitmapSource(GUID_WICPixelFormat32bppPBGRA, pIDecoderFrame.get(), &rawBitmap);
     std::unique_ptr<IWICBitmapSource, ComRelease<IWICBitmapSource>> ipBitmap(rawBitmap);
     if (hr != S_OK)
-        return NULL;
+        return nullptr;
 
     // create a HBITMAP containing the image
     HBITMAP hbmp = CreateHBITMAP(ipBitmap.get());
-    if (hbmp == NULL)
-        return NULL;
+    if (hbmp == nullptr)
+        return nullptr;
 
     return hbmp;
 }
@@ -171,10 +171,10 @@ bool BitmapFile_SaveImageFile(
     LPCTSTR sFileName, BitmapFileFormat format,
     int width, int height)
 {
-    ASSERT(sFileName != NULL);
+    ASSERT(sFileName != nullptr);
 
     IWICImagingFactory * piFactory = BitmapFile_factory.get();
-    ASSERT(piFactory != NULL);
+    ASSERT(piFactory != nullptr);
     if (piFactory == nullptr || sFileName == nullptr || width <= 0 || height <= 0 ||
         static_cast<uint64_t>(width) * height * 4 > UINT_MAX ||
         static_cast<uint64_t>(width) * height > pixels.size())

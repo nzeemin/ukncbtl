@@ -28,12 +28,12 @@ void ToolWindow_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_TOOLWINDOW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -53,7 +53,7 @@ LRESULT CALLBACK ToolWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
         {
             RECT rcClient;  ::GetClientRect(hWnd, &rcClient);
             RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
-            MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
+            MapWindowPoints(nullptr, hWnd, (LPPOINT)&rcWindow, 2);
 
             rcClient.left -= rcWindow.left;  rcClient.top -= rcWindow.top;
             rcClient.right -= rcWindow.left;  rcClient.bottom -= rcWindow.top;
@@ -97,8 +97,8 @@ LRESULT CALLBACK ToolWindow_WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
             // Invalidate non-client area
             RECT rcWindow;  ::GetWindowRect(hWnd, &rcWindow);
-            MapWindowPoints(NULL, hWnd, (LPPOINT)&rcWindow, 2);
-            ::RedrawWindow(hWnd, &rcWindow, NULL, RDW_FRAME | RDW_INVALIDATE);
+            MapWindowPoints(nullptr, hWnd, (LPPOINT)&rcWindow, 2);
+            ::RedrawWindow(hWnd, &rcWindow, nullptr, RDW_FRAME | RDW_INVALIDATE);
 
             return lResult;
         }
@@ -122,12 +122,12 @@ void OverlappedWindow_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_OVERLAPPEDWINDOW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -150,27 +150,27 @@ void SplitterWindow_RegisterClass()
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 2 * sizeof(LONG_PTR);
     wcex.hInstance = g_hInst;
-    wcex.hIcon = NULL;
-    wcex.hCursor = LoadCursor(NULL, IDC_SIZENS);
+    wcex.hIcon = nullptr;
+    wcex.hCursor = LoadCursor(nullptr, IDC_SIZENS);
     wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName = NULL;
+    wcex.lpszMenuName = nullptr;
     wcex.lpszClassName = CLASSNAME_SPLITTERWINDOW;
-    wcex.hIconSm = NULL;
+    wcex.hIconSm = nullptr;
 
     RegisterClassEx(&wcex);
 }
 
 HWND SplitterWindow_Create(HWND hwndParent, HWND hwndTop, HWND hwndBottom)
 {
-    ASSERT(hwndParent != NULL);
-    ASSERT(hwndTop != NULL);
-    ASSERT(hwndBottom != NULL);
+    ASSERT(hwndParent != nullptr);
+    ASSERT(hwndTop != nullptr);
+    ASSERT(hwndBottom != nullptr);
 
     HWND hwnd = CreateWindow(
-            CLASSNAME_SPLITTERWINDOW, NULL,
+            CLASSNAME_SPLITTERWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, 100, 4,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
 
     SetWindowLongPtr(hwnd, 0, (LONG_PTR)hwndTop);
     SetWindowLongPtr(hwnd, sizeof(LONG_PTR), (LONG_PTR)hwndBottom);
@@ -200,9 +200,9 @@ void SplitterWindow_MoveWindows(HWND hwndSplitter, int deltaY)
     if (deltaY > 0 && rcBottom.bottom - rcBottom.top - deltaY < SPLITTERWINDOW_MINWINDOWHEIGHT)
         deltaY = (rcBottom.bottom - rcBottom.top) - SPLITTERWINDOW_MINWINDOWHEIGHT;
 
-    SetWindowPos(hwndTop, NULL, rcTop.left, rcTop.top, rcTop.right - rcTop.left, rcTop.bottom - rcTop.top + deltaY, SWP_NOZORDER);
-    SetWindowPos(hwndBottom, NULL, rcBottom.left, rcBottom.top + deltaY, rcBottom.right - rcBottom.left, rcBottom.bottom - rcBottom.top - deltaY, SWP_NOZORDER);
-    SetWindowPos(hwndSplitter, NULL, rcBottom.left, rcBottom.top + deltaY - 4, rcBottom.right - rcBottom.left, 4, SWP_NOZORDER);
+    SetWindowPos(hwndTop, nullptr, rcTop.left, rcTop.top, rcTop.right - rcTop.left, rcTop.bottom - rcTop.top + deltaY, SWP_NOZORDER);
+    SetWindowPos(hwndBottom, nullptr, rcBottom.left, rcBottom.top + deltaY, rcBottom.right - rcBottom.left, rcBottom.bottom - rcBottom.top - deltaY, SWP_NOZORDER);
+    SetWindowPos(hwndSplitter, nullptr, rcBottom.left, rcBottom.top + deltaY - 4, rcBottom.right - rcBottom.left, 4, SWP_NOZORDER);
 
     // Let the main window re-layout the views that follow the top window height, like Instr History
     MainWindow_AdjustWindowLayout();

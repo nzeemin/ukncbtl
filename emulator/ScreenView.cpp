@@ -25,7 +25,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-HWND g_hwndScreen = NULL;  // Screen View window handle
+HWND g_hwndScreen = nullptr;  // Screen View window handle
 
 uint32_t* m_bits = nullptr;
 static std::unique_ptr<uint32_t[]> m_screenBitsOwner;
@@ -36,14 +36,14 @@ int m_yScreenOffset = 0;
 ScreenViewMode m_ScreenMode = RGBScreen;
 int m_ScreenHeightMode = 0;  // Render mode
 
-HMODULE g_hModuleRender = NULL;
+HMODULE g_hModuleRender = nullptr;
 static bool g_renderInitialized = false;
-RENDER_INIT_CALLBACK RenderInitProc = NULL;
-RENDER_DONE_CALLBACK RenderDoneProc = NULL;
-RENDER_DRAW_CALLBACK RenderDrawProc = NULL;
-RENDER_ENUM_MODES_CALLBACK RenderEnumModesProc = NULL;
-RENDER_SELECT_MODE_CALLBACK RenderSelectModeProc = NULL;
-HMENU g_hScreenModeMenu = NULL;
+RENDER_INIT_CALLBACK RenderInitProc = nullptr;
+RENDER_DONE_CALLBACK RenderDoneProc = nullptr;
+RENDER_DRAW_CALLBACK RenderDrawProc = nullptr;
+RENDER_ENUM_MODES_CALLBACK RenderEnumModesProc = nullptr;
+RENDER_SELECT_MODE_CALLBACK RenderSelectModeProc = nullptr;
+HMENU g_hScreenModeMenu = nullptr;
 int g_nScreenModeIndex = 0;
 
 BYTE m_ScreenKeyState[256];
@@ -167,9 +167,9 @@ static ScreenModeReference[32];
 LPCTSTR ScreenView_GetRenderModeDescription(int renderMode)
 {
     if (renderMode < 0 || renderMode >= 32)
-        return NULL;
+        return nullptr;
     LPCTSTR modedesc = ScreenModeReference[renderMode].description;
-    if (*modedesc == 0) return NULL;  // Empty string
+    if (*modedesc == 0) return nullptr;  // Empty string
     return modedesc;
 }
 
@@ -187,12 +187,12 @@ void ScreenView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground  = NULL; //(HBRUSH)(COLOR_WINDOW+1);
-    wcex.lpszMenuName   = NULL;
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
+    wcex.hbrBackground  = nullptr; //(HBRUSH)(COLOR_WINDOW+1);
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_SCREENVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -237,45 +237,45 @@ void CALLBACK ScreenView_EnumModesProc(int modeNum, LPCTSTR modeDesc, int modeWi
 BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
 {
     g_hModuleRender = ::LoadLibrary(szRenderLibraryName);
-    if (g_hModuleRender == NULL)
+    if (g_hModuleRender == nullptr)
     {
-        AlertWarningFormat(_T("Failed to load render library \"%s\" (0x%08lx)."),
+        AlertWarningFormat(_T("Failed to load render library \"{}\" (0x{:08x})."),
                 szRenderLibraryName, ::GetLastError());
         return FALSE;
     }
 
     RenderInitProc = (RENDER_INIT_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderInit");
-    if (RenderInitProc == NULL)
+    if (RenderInitProc == nullptr)
     {
-        AlertWarningFormat(_T("Failed to retrieve RenderInit address (0x%08lx)."), ::GetLastError());
+        AlertWarningFormat(_T("Failed to retrieve RenderInit address (0x{:08x})."), ::GetLastError());
         ScreenView_DoneRender();
         return FALSE;
     }
     RenderDoneProc = (RENDER_DONE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDone");
-    if (RenderDoneProc == NULL)
+    if (RenderDoneProc == nullptr)
     {
-        AlertWarningFormat(_T("Failed to retrieve RenderDone address (0x%08lx)."), ::GetLastError());
+        AlertWarningFormat(_T("Failed to retrieve RenderDone address (0x{:08x})."), ::GetLastError());
         ScreenView_DoneRender();
         return FALSE;
     }
     RenderDrawProc = (RENDER_DRAW_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDraw");
-    if (RenderDrawProc == NULL)
+    if (RenderDrawProc == nullptr)
     {
-        AlertWarningFormat(_T("Failed to retrieve RenderDraw address (0x%08lx)."), ::GetLastError());
+        AlertWarningFormat(_T("Failed to retrieve RenderDraw address (0x{:08x})."), ::GetLastError());
         ScreenView_DoneRender();
         return FALSE;
     }
     RenderEnumModesProc = (RENDER_ENUM_MODES_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderEnumModes");
-    if (RenderEnumModesProc == NULL)
+    if (RenderEnumModesProc == nullptr)
     {
-        AlertWarningFormat(_T("Failed to retrieve RenderEnumModes address (0x%08lx)."), ::GetLastError());
+        AlertWarningFormat(_T("Failed to retrieve RenderEnumModes address (0x{:08x})."), ::GetLastError());
         ScreenView_DoneRender();
         return FALSE;
     }
     RenderSelectModeProc = (RENDER_SELECT_MODE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderSelectMode");
-    if (RenderSelectModeProc == NULL)
+    if (RenderSelectModeProc == nullptr)
     {
-        AlertWarningFormat(_T("Failed to retrieve RenderSelectMode address (0x%08lx)."), ::GetLastError());
+        AlertWarningFormat(_T("Failed to retrieve RenderSelectMode address (0x{:08x})."), ::GetLastError());
         ScreenView_DoneRender();
         return FALSE;
     }
@@ -284,7 +284,7 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     memset(ScreenModeReference, 0, sizeof(ScreenModeReference));
     g_nScreenModeIndex = 0;
     RenderEnumModesProc(ScreenView_EnumModesProc);
-    g_hScreenModeMenu = NULL;
+    g_hScreenModeMenu = nullptr;
 
     // Fill Render Mode menu
     MainWindow_UpdateRenderModeMenu();
@@ -304,20 +304,20 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
 
 void ScreenView_DoneRender()
 {
-    if (g_hModuleRender != NULL)
+    if (g_hModuleRender != nullptr)
     {
-        if (g_renderInitialized && RenderDoneProc != NULL)
+        if (g_renderInitialized && RenderDoneProc != nullptr)
             RenderDoneProc();
         g_renderInitialized = false;
 
-        RenderInitProc = NULL;
-        RenderDoneProc = NULL;
-        RenderDrawProc = NULL;
-        RenderEnumModesProc = NULL;
-        RenderSelectModeProc = NULL;
+        RenderInitProc = nullptr;
+        RenderDoneProc = nullptr;
+        RenderDrawProc = nullptr;
+        RenderEnumModesProc = nullptr;
+        RenderSelectModeProc = nullptr;
 
         ::FreeLibrary(g_hModuleRender);
-        g_hModuleRender = NULL;
+        g_hModuleRender = nullptr;
 
         //DestroyScreen();
     }
@@ -328,7 +328,7 @@ void ScreenView_DoneRender()
 // Create Screen View as child of Main Window
 void ScreenView_Create(HWND hwndParent, int x, int y)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     int xLeft = x;
     int yTop = y;
@@ -337,10 +337,10 @@ void ScreenView_Create(HWND hwndParent, int x, int y)
     int cyHeight = cyScreenHeight;
 
     g_hwndScreen = CreateWindow(
-            CLASSNAME_SCREENVIEW, NULL,
+            CLASSNAME_SCREENVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             xLeft, yTop, cxWidth, cyHeight,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
 
     // Initialize m_ScreenKeyState
     VERIFY(::GetKeyboardState(m_ScreenKeyState));
@@ -394,7 +394,7 @@ LRESULT CALLBACK ScreenViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARA
     case WM_SETCURSOR:
         if (::GetFocus() == g_hwndScreen)
         {
-            SetCursor(::LoadCursor(NULL, MAKEINTRESOURCE(IDC_IBEAM)));
+            SetCursor(::LoadCursor(nullptr, MAKEINTRESOURCE(IDC_IBEAM)));
             return (LRESULT) TRUE;
         }
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -417,13 +417,13 @@ void ScreenView_OnRButtonDown(int mousex, int mousey)
     ::AppendMenu(hMenu, 0, ID_FILE_SCREENTOCLIPBOARD, _T("Screen Text to Clipboard"));
     if (MainWindow_IsFullscreen())
     {
-        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
         ::AppendMenu(hMenu, 0, ID_VIEW_FULLSCREEN, _T("Exit Fullscreen"));
     }
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(g_hwndScreen, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, g_hwndScreen, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, g_hwndScreen, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -436,7 +436,7 @@ void ScreenView_SetRenderMode(int newRenderMode)
 {
     if (m_ScreenHeightMode == newRenderMode) return;
 
-    if (RenderSelectModeProc == NULL)
+    if (RenderSelectModeProc == nullptr)
         return;
 
     ScreenModeStruct* pmode = ScreenModeReference + newRenderMode;
@@ -453,14 +453,14 @@ void ScreenView_SetRenderMode(int newRenderMode)
     //    int cyScreen = pmode->height;
     //    int cyBorder = ::GetSystemMetrics(SM_CYBORDER);
     //    int cyHeight = cyScreen + cyBorder * 2;
-    //    ::SetWindowPos(g_hwndScreen, NULL, 0,0, cxScreen, cyScreen, SWP_NOZORDER | SWP_NOMOVE);
+    //    ::SetWindowPos(g_hwndScreen, nullptr, 0,0, cxScreen, cyScreen, SWP_NOZORDER | SWP_NOMOVE);
     //}
 }
 
 void ScreenView_OnDraw(HDC hdc)
 {
     UKNC_PROFILE_SCOPE("Screen draw");
-    if (RenderDrawProc != NULL)
+    if (RenderDrawProc != nullptr)
     {
         RenderDrawProc(m_bits, hdc);
     }
@@ -497,7 +497,7 @@ std::span<const uint32_t, 16 * 8> ScreenView_GetPalette()
 void ScreenView_PrepareScreen()
 {
     UKNC_PROFILE_SCOPE("Prepare screen");
-    if (m_bits == NULL) return;
+    if (m_bits == nullptr) return;
 
     Emulator_PrepareScreenRGB32(std::span{m_bits, static_cast<size_t>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT)},
         ScreenView_GetPalette());
@@ -660,7 +660,7 @@ void ScreenView_UpdateMouse()
     int dy = (short)(mousepos.y - m_LastMousePos.y);
 
     RECT rcScreen = { m_xScreenOffset, m_yScreenOffset, m_xScreenOffset + m_cxScreenWidth, m_yScreenOffset + m_cyScreenHeight };
-    ::MapWindowPoints(g_hwndScreen, NULL, (LPPOINT)&rcScreen, 2);
+    ::MapWindowPoints(g_hwndScreen, nullptr, (LPPOINT)&rcScreen, 2);
     if (dx != 0 && mousepos.x < rcScreen.left)
         dx -= (rcScreen.left - mousepos.x) / 2;
     if (dx != 0 && mousepos.x > rcScreen.right)
@@ -698,7 +698,7 @@ void ScreenView_UpdateMouse()
 
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 {
-    ASSERT(sFileName != NULL);
+    ASSERT(sFileName != nullptr);
 
     std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
     Emulator_PrepareScreenRGB32(bits, ScreenView_GetPalette());
@@ -710,7 +710,7 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
 
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
     BitmapFileFormat imageFormat = BitmapFileFormatPng;
-    if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".bmp")) == 0)
+    if (sFileNameExt != nullptr && _tcsicmp(sFileNameExt, _T(".bmp")) == 0)
         imageFormat = BitmapFileFormatBmp;
     BOOL result = BitmapFile_SaveImageFile(
             scrBits, sFileName, imageFormat, scrwidth, scrheight);
@@ -727,7 +727,7 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     const auto [scrwidth, scrheight, description] = screen_scale::GetMode(screenshotMode);
     std::vector<uint32_t> scrBits(static_cast<size_t>(scrwidth) * scrheight);
     if (!screen_scale::Apply(screenshotMode, bits, scrBits))
-        return NULL;
+        return nullptr;
 
     BITMAPINFOHEADER bi;
     ::ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
@@ -740,16 +740,16 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     bi.biSizeImage = bi.biWidth * bi.biHeight * 4;
 
     HGLOBAL hDIB = ::GlobalAlloc(GMEM_MOVEABLE, sizeof(BITMAPINFOHEADER) + bi.biSizeImage);
-    if (hDIB == NULL)
+    if (hDIB == nullptr)
     {
-        return NULL;
+        return nullptr;
     }
 
     LPBYTE p = (LPBYTE) ::GlobalLock(hDIB);
     if (p == nullptr)
     {
         ::GlobalFree(hDIB);
-        return NULL;
+        return nullptr;
     }
     ::CopyMemory(p, &bi, sizeof(BITMAPINFOHEADER));
     p += sizeof(BITMAPINFOHEADER);

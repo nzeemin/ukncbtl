@@ -12,10 +12,14 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
+#include <array>
+#include "util/File.h"
+
 #include "Board.h"
 #include "Processor.h"
 #include "Memory.h"
 #include <optional>
+#include <expected>
 #include <span>
 #include <string>
 
@@ -106,14 +110,14 @@ inline constexpr auto FLOPPY_STATUS_CHECKSUMOK = 040000;  ///< Checksum verified
 inline constexpr auto FLOPPY_STATUS_INDEXMARK = 0100000;  ///< Index flag, indicates the beginning of track
 
 inline constexpr auto FLOPPY_RAWTRACKSIZE = 6250;     ///< Raw track size, bytes
-#define FLOPPY_RAWMARKERSIZE            (FLOPPY_RAWTRACKSIZE / 2)
+inline constexpr auto FLOPPY_RAWMARKERSIZE = FLOPPY_RAWTRACKSIZE / 2;
 inline constexpr auto FLOPPY_INDEXLENGTH = 150;      ///< Length of index hole, in bytes of raw track image
 
 /// \brief Floppy drive (one of four drives in the floppy controller)
 /// \sa CFloppyController
 struct CFloppyDrive
 {
-    FILE* fpFile;       ///< File pointer of the disk image file
+    UniqueFile fpFile;       ///< File pointer of the disk image file
     bool okNetRT11Image;  ///< true - .rtd image, false - .dsk image
     bool okReadOnly;    ///< Write protection flag
     uint16_t track;         ///< Track number: from 0 to 79
@@ -121,8 +125,8 @@ struct CFloppyDrive
     uint16_t dataptr;       ///< Data offset within m_data - "head" position
     uint16_t datatrack;     ///< Track number of data in m_data array
     uint16_t dataside;      ///< Disk side of data in m_data array
-    uint8_t data[FLOPPY_RAWTRACKSIZE];  ///< Raw track image for the current track
-    uint8_t marker[FLOPPY_RAWMARKERSIZE];  ///< Marker positions
+    std::array<uint8_t, FLOPPY_RAWTRACKSIZE> data{};  ///< Raw track image for the current track
+    std::array<uint8_t, FLOPPY_RAWMARKERSIZE> marker{};  ///< Marker positions
 
 public:
     CFloppyDrive();
@@ -134,7 +138,7 @@ public:
 class CFloppyController
 {
 protected:
-    CFloppyDrive m_drivedata[4];  ///< Floppy drives
+    std::array<CFloppyDrive, 4> m_drivedata{};  ///< Floppy drives
     CFloppyDrive* m_pDrive;  ///< Current drive
     uint16_t m_drive;       ///< Current drive number: from 0 to 3
     uint16_t m_track;       ///< Track number: from 0 to 79
@@ -191,7 +195,7 @@ inline constexpr auto IDE_DISK_SECTOR_SIZE = 512;
 class CHardDrive
 {
 protected:
-    FILE*   m_fpFile;           ///< File pointer for the attached HDD image
+    UniqueFile m_fpFile;           ///< File pointer for the attached HDD image
     bool    m_okReadOnly;       ///< Flag indicating that the HDD image file is read-only
     bool    m_okInverted;       ///< Flag indicating that the HDD image has inverted bits
     uint8_t m_status;           ///< IDE status register, see IDE_STATUS_XXX constants
@@ -205,10 +209,11 @@ protected:
     int     m_cursector;        ///< Current sector number
     int     m_curheadreg;       ///< Current head number
     int     m_sectorcount;      ///< Sector counter for read/write operations
-    uint8_t m_buffer[IDE_DISK_SECTOR_SIZE];  ///< Sector data buffer
+    std::array<uint8_t, IDE_DISK_SECTOR_SIZE> m_buffer{};  ///< Sector data buffer
     int     m_bufferoffset;     ///< Current offset within sector: 0..511
     int     m_timeoutcount;     ///< Timeout counter to wait for the next event
-    int     m_timeoutevent;     ///< Current stage of operation, see TimeoutEvent enum
+    enum class TimeoutEvent { none, reset_done, read_sector_done, write_sector_done };
+    TimeoutEvent m_timeoutevent = TimeoutEvent::none;
 
 public:
     CHardDrive();
@@ -231,7 +236,8 @@ public:
     void Periodic();
 
 private:
-    bool CalculateOffset(long& offset) const;  ///< Validate CHS and calculate the image offset
+    enum class AddressError { invalid_geometry, offset_overflow };
+    [[nodiscard]] std::expected<long, AddressError> CalculateOffset() const;  ///< Validate CHS and calculate the image offset
     void HandleCommand(uint8_t command);  ///< Handle the IDE command
     void ReadNextSector();
     void ReadSectorDone();
@@ -250,7 +256,7 @@ class CSoundAY
 protected:
     int index;
     int ready;
-    unsigned Regs[16];
+    std::array<unsigned, 16> Regs{};
     int32_t lastEnable;
     int32_t PeriodA, PeriodB, PeriodC, PeriodN, PeriodE;
     int32_t CountA, CountB, CountC, CountN, CountE;
@@ -261,7 +267,7 @@ protected:
     uint8_t Hold, Alternate, Attack, Holding;
     int32_t RNG;
 protected:
-    static unsigned int VolTable[32];
+    static std::array<unsigned int, 32> VolTable;
 
 public:
     CSoundAY();

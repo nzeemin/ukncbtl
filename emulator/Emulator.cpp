@@ -56,7 +56,7 @@ bool m_okEmulatorSerial = false;
 HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
 
 bool m_okEmulatorParallel = false;
-std::unique_ptr<FILE, decltype(&std::fclose)> m_parallelOutput(nullptr, &std::fclose);
+UniqueFile m_parallelOutput;
 
 long m_nFrameCount = 0;
 uint32_t m_dwTickCount = 0;
@@ -88,11 +88,11 @@ bool Emulator_LoadUkncRom()
 {
     std::array<uint8_t, 32768> data{};
 
-    FILE* fpFile = ::_tfsopen(FILE_NAME_UKNC_ROM, _T("rb"), _SH_DENYWR);
+    UniqueFile fpFile(::_tfsopen(FILE_NAME_UKNC_ROM, _T("rb"), _SH_DENYWR));
     if (fpFile != nullptr)
     {
-        size_t dwBytesRead = ::fread(data.data(), 1, 32256, fpFile);
-        ::fclose(fpFile);
+        size_t dwBytesRead = ::fread(data.data(), 1, 32256, fpFile.get());
+        fpFile.reset();
         if (dwBytesRead != 32256)
         {
             return false;
@@ -100,21 +100,21 @@ bool Emulator_LoadUkncRom()
     }
     else  // uknc_rom.bin not found, use ROM image from resources
     {
-        HRSRC hRes = NULL;
+        HRSRC hRes = nullptr;
         DWORD dwDataSize = 0;
-        HGLOBAL hResLoaded = NULL;
+        HGLOBAL hResLoaded = nullptr;
         void * pResData = nullptr;
-        if ((hRes = ::FindResource(NULL, MAKEINTRESOURCE(IDR_UKNC_ROM), _T("BIN"))) == NULL ||
-            (dwDataSize = ::SizeofResource(NULL, hRes)) < 32256 ||
-            (hResLoaded = ::LoadResource(NULL, hRes)) == NULL ||
-            (pResData = ::LockResource(hResLoaded)) == NULL)
+        if ((hRes = ::FindResource(nullptr, MAKEINTRESOURCE(IDR_UKNC_ROM), _T("BIN"))) == nullptr ||
+            (dwDataSize = ::SizeofResource(nullptr, hRes)) < 32256 ||
+            (hResLoaded = ::LoadResource(nullptr, hRes)) == nullptr ||
+            (pResData = ::LockResource(hResLoaded)) == nullptr)
         {
             return false;
         }
         ::memcpy(data.data(), pResData, 32256);
     }
 
-    g_pBoard->LoadROM(data.data());
+    g_pBoard->LoadROM(data);
 
     return true;
 }
@@ -598,7 +598,7 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     const auto decoded = DisassembleInstruction(memory, address);
     if (!decoded) return;
     TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
+    FormatBuffer(buffer, _T("{}\t{}\t{}\t{}\r\n"), pProc->GetName(), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
 
     DebugLog(buffer);
 #endif // !PRODUCT
@@ -631,7 +631,7 @@ void CALLBACK Emulator_Interrupt_Callback(const CProcessor* pProc, uint16_t oldP
     PrintOctalValue(bufnewpc, pProc->GetPC());
 
     TCHAR buffer[80];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\tINT\t%s\t%s\t%s\r\n"),
+    FormatBuffer(buffer, _T("{}\t{}\tINT\t{}\t{}\t{}\r\n"),
             pProc->GetName(), bufaddr, bufvector, Emulator_GetInterruptName(vector), bufnewpc);
 
     DebugLog(buffer);
@@ -653,7 +653,7 @@ bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
     BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, nullptr);
 
     if (result && (dwBytesRead == 1))
-        DebugLogFormat(_T("Net IN %02x\r\n"), (int)(*pByte));
+        DebugLogFormat(_T("Net IN {:02x}\r\n"), (int)(*pByte));
 
     return result && (dwBytesRead == 1);
 }
@@ -663,7 +663,7 @@ bool CALLBACK Emulator_NetworkOut_Callback(uint8_t byte)
     DWORD dwBytesWritten = 0;
     const BOOL result = ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, nullptr);
 
-    DebugLogFormat(_T("Net OUT %02x\r\n"), byte);
+    DebugLogFormat(_T("Net OUT {:02x}\r\n"), byte);
 
     return result && dwBytesWritten == 1;
 }
@@ -688,7 +688,7 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
             if (m_hEmulatorNetPort == INVALID_HANDLE_VALUE)
             {
                 DWORD dwError = ::GetLastError();
-                AlertWarningFormat(_T("Failed to open network COM port (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to open network COM port (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -700,7 +700,7 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to configure the Network COM port (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to configure the Network COM port (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -716,7 +716,7 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to set the Network COM port timeouts (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to set the Network COM port timeouts (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -775,7 +775,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
             if (m_hEmulatorComPort == INVALID_HANDLE_VALUE)
             {
                 DWORD dwError = ::GetLastError();
-                AlertWarningFormat(_T("Failed to open COM port (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to open COM port (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -787,7 +787,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to configure the COM port (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to configure the COM port (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -803,7 +803,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
                 DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorComPort);
                 m_hEmulatorComPort = INVALID_HANDLE_VALUE;
-                AlertWarningFormat(_T("Failed to set the COM port timeouts (0x%08lx)."), dwError);
+                AlertWarningFormat(_T("Failed to set the COM port timeouts (0x{:08x})."), dwError);
                 return false;
             }
 
@@ -869,8 +869,8 @@ bool Emulator_SystemFrame()
     if (Settings_GetMouse())
         ScreenView_UpdateMouse();
 
-    g_pBoard->SetCPUBreakpoints(m_wEmulatorCPUBpsCount > 0 ? m_EmulatorCPUBps : nullptr);
-    g_pBoard->SetPPUBreakpoints(m_wEmulatorPPUBpsCount > 0 ? m_EmulatorPPUBps : nullptr);
+    g_pBoard->SetCPUBreakpoints(std::span{m_EmulatorCPUBps}.first(m_wEmulatorCPUBpsCount));
+    g_pBoard->SetPPUBreakpoints(std::span{m_EmulatorPPUBps}.first(m_wEmulatorPPUBpsCount));
 
     if (!g_pBoard->SystemFrame())  // Breakpoint hit
     {
@@ -888,7 +888,7 @@ bool Emulator_SystemFrame()
         double dFramesPerSecond = m_nFrameCount * 1000.0 / nTicksElapsed;
         double dSpeed = dFramesPerSecond / FRAMERATE * 100;
         TCHAR buffer[16];
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%03.f%%"), dSpeed);
+        FormatBuffer(buffer, _T("{:03.0f}%"), dSpeed);
         MainWindow_SetStatusbarText(StatusbarPartFPS, buffer);
 
         bool floppyEngine = g_pBoard->IsFloppyEngineOn();
@@ -910,7 +910,7 @@ bool Emulator_SystemFrame()
         int hours   = (int) (m_dwEmulatorUptime / 3600 % 60);
 
         TCHAR buffer[20];
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Uptime: %02d:%02d:%02d"), hours, minutes, seconds);
+        FormatBuffer(buffer, _T("Uptime: {:02}:{:02}:{:02}"), hours, minutes, seconds);
         MainWindow_SetStatusbarText(StatusbarPartUptime, buffer);
     }
 
@@ -1001,7 +1001,7 @@ uint16_t Emulator_GetChangeRamStatus(int addrtype, uint16_t address)
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 {
     // Open file
-    std::unique_ptr<FILE, decltype(&::fclose)> fpFile(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR), &::fclose);
+    UniqueFile fpFile(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR));
     if (!fpFile)
     {
         AlertWarning(_T("Failed to load ROM cartridge image."));
@@ -1012,7 +1012,7 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     std::array<BYTE, 24 * 1024> image{};
     if (::fread(image.data(), 1, image.size(), fpFile.get()) != image.size())
         return false;
-    g_pBoard->LoadROMCartridge(slot, image.data());
+    g_pBoard->LoadROMCartridge(slot, std::span<const uint8_t, 24 * 1024>{image});
 
     //TODO: Save the file name for a future SaveImage() call
 
@@ -1066,7 +1066,7 @@ void Emulator_PrepareScreenRGB32(std::span<uint32_t> pixels, std::span<const uin
             {
                 BYTE valueYRGB = (BYTE) (palette >> (c << 2)) & 15;
                 palettecurrent[c] = colors[pbpgpr | valueYRGB];
-                //if (pbpgpr != 0) DebugLogFormat(_T("pbpgpr %02x\r\n"), pbpgpr | valueYRGB);
+                //if (pbpgpr != 0) DebugLogFormat(_T("pbpgpr {:02x}\r\n"), pbpgpr | valueYRGB);
             }
         }
 
@@ -1274,17 +1274,17 @@ bool Emulator_SaveImage(LPCTSTR sFilePath)
     header.dword(m_dwEmulatorUptime);
     g_pBoard->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
 
-    FILE* fpFile = ::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR);
+    UniqueFile fpFile(::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR));
     if (fpFile == nullptr)
         return false;
-    const size_t bytesWritten = ::fwrite(image.data(), 1, image.size(), fpFile);
-    const int closeResult = ::fclose(fpFile);
+    const size_t bytesWritten = ::fwrite(image.data(), 1, image.size(), fpFile.get());
+    const int closeResult = ::fclose(fpFile.release());
     return bytesWritten == image.size() && closeResult == 0;
 }
 
 bool Emulator_LoadImage(LPCTSTR sFilePath)
 {
-    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR), &::fclose);
+    UniqueFile file(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR));
     if (!file)
         return false;
     std::vector<uint8_t> image(UKNCIMAGE_SIZE);

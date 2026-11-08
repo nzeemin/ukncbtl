@@ -32,7 +32,7 @@ LPCTSTR g_sRecord = _T("Record");
 LPCTSTR g_sStop = _T("Stop");
 
 HWND g_hwndTape = (HWND) INVALID_HANDLE_VALUE;  // Tape View window handle
-WNDPROC m_wndprocTapeToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocTapeToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndTapeFile = (HWND) INVALID_HANDLE_VALUE;  // Tape file name - read-only edit control
 HWND m_hwndTapeTotal = (HWND) INVALID_HANDLE_VALUE;  // Tape total time - static control
@@ -43,7 +43,7 @@ HWND m_hwndTapeOpen = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeSave = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeGraph = (HWND) INVALID_HANDLE_VALUE;
 
-HFONT m_hfontTape = NULL;
+HFONT m_hfontTape = nullptr;
 BOOL m_okTapeInserted = FALSE;
 BOOL m_okTapeRecording = FALSE;
 TCHAR m_szTapeFile[MAX_PATH];
@@ -70,7 +70,7 @@ void TapeView_DoRewind();
 bool CALLBACK TapeView_TapeReadCallback(UINT samples);
 void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples);
 
-#define TAPE_BUFFER_SIZE 624
+inline constexpr auto TAPE_BUFFER_SIZE = 624;
 BYTE m_TapeBuffer[TAPE_BUFFER_SIZE];
 
 
@@ -87,12 +87,12 @@ void TapeView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_BTNFACE + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_TAPEVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -109,13 +109,13 @@ void TapeView_Done()
 
 void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     g_hwndTape = CreateWindow(
-            CLASSNAME_TOOLWINDOW, NULL,
+            CLASSNAME_TOOLWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
     SetWindowText(g_hwndTape, _T("Tape"));
 
     // ToolWindow subclassing
@@ -124,45 +124,45 @@ void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
     RECT rcClient;  GetClientRect(g_hwndTape, &rcClient);
 
     m_hwndTapeFile = CreateWindow(
-            _T("STATIC"), NULL,
+            _T("STATIC"), nullptr,
             WS_CHILD | WS_VISIBLE | SS_PATHELLIPSIS,
             8, 4, 500, 18,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeCurrent = CreateWindow(
-            _T("STATIC"), NULL,
+            _T("STATIC"), nullptr,
             WS_CHILD | WS_VISIBLE,
             8, 62, 100, 18,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeTotal = CreateWindow(
-            _T("STATIC"), NULL,
+            _T("STATIC"), nullptr,
             WS_CHILD | WS_VISIBLE | SS_RIGHT,
             500 + 8 + 4, 4, rcClient.right - 8 * 2 - 500 - 4, 18,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeGraph = CreateWindow(
-            _T("STATIC"), NULL,
+            _T("STATIC"), nullptr,
             WS_CHILD | WS_VISIBLE | SS_OWNERDRAW,
             8, 22, TAPE_BUFFER_SIZE, 32,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapePlay = CreateWindow(
             _T("BUTTON"), g_sPlay,
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
             8 + 100 + 16, 60, 96, 22,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeRewind = CreateWindow(
             _T("BUTTON"), _T("<< Rewind"),
             WS_CHILD | WS_VISIBLE | WS_DISABLED,
             8 + 100 + 16 + 4 + 96, 60, 96, 22,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeOpen = CreateWindow(
             _T("BUTTON"), g_sOpenWav,
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 4 - 96 - 8, 60, 96, 22,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
     m_hwndTapeSave = CreateWindow(
             _T("BUTTON"), g_sSaveWav,
             WS_CHILD | WS_VISIBLE,
             rcClient.right - 96 - 8, 60, 96, 22,
-            g_hwndTape, NULL, g_hInst, NULL);
+            g_hwndTape, nullptr, g_hInst, nullptr);
 
     m_hfontTape = CreateDialogFont();
     SendMessage(m_hwndTapeCurrent, WM_SETFONT, (WPARAM) m_hfontTape, 0);
@@ -214,7 +214,7 @@ void TapeView_ClearGraph()
 
     if (m_hwndTapeGraph != INVALID_HANDLE_VALUE)
     {
-        InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
+        InvalidateRect(m_hwndTapeGraph, nullptr, FALSE);
     }
 }
 void TapeView_DrawGraph(LPDRAWITEMSTRUCT lpdis)
@@ -336,9 +336,9 @@ void TapeView_StopTape()
     if (!m_okTapePlaying) return;
 
     if (m_okTapeRecording)
-        g_pBoard->SetTapeWriteCallback(NULL, 0);
+        g_pBoard->SetTapeWriteCallback(nullptr, 0);
     else
-        g_pBoard->SetTapeReadCallback(NULL, 0);
+        g_pBoard->SetTapeReadCallback(nullptr, 0);
 
     m_okTapePlaying = FALSE;
 
@@ -450,7 +450,7 @@ bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
     }
     bool result = readSample && value >= 0x80000000u;
 
-    InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
+    InvalidateRect(m_hwndTapeGraph, nullptr, FALSE);
 
     DWORD wavLength = m_tapeFile->Length();
     DWORD wavPos = m_tapeFile->Position();
@@ -463,7 +463,7 @@ bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
         TapeView_UpdatePosition();
     }
 
-//    DebugPrintFormat(_T("Tape: %d\r\n"), result);
+//    DebugPrintFormat(_T("Tape: {}\r\n"), result);
 
     return result;
 }
@@ -492,7 +492,7 @@ void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples)
                 static_cast<BYTE>(static_cast<uint32_t>(value) >> 24);
     }
 
-    InvalidateRect(m_hwndTapeGraph, NULL, FALSE);
+    InvalidateRect(m_hwndTapeGraph, nullptr, FALSE);
 
     DWORD wavPos = m_tapeFile->Position();
     int wavFreq = m_tapeFile->Frequency();

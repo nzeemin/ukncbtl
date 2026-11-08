@@ -9,6 +9,8 @@ See the GNU Lesser General Public License for more details.
 UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
+
+#include "File.h"
 #include <cstdint>
 #include <cstdio>
 #include <expected>
@@ -49,11 +51,11 @@ public:
     [[nodiscard]] std::expected<void, WavError> Close();
 
 private:
-    using File = std::unique_ptr<FILE, decltype(&std::fclose)>;
+    using File = UniqueFile;
     WavPcmFile(File file, int sampleFrequency, int bitsPerSample, int blockAlign,
                uint32_t dataOffset, uint32_t dataSize, bool writing);
 
-    File file_{nullptr, &std::fclose};
+    File file_;
     int sampleFrequency_ = 0;
     int bitsPerSample_ = 0;
     int blockAlign_ = 0;

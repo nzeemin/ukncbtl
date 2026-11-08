@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include <algorithm>
+#include <filesystem>
 #include "Main.h"
 #include "Views.h"
 
@@ -20,12 +21,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
 {
-    TCHAR buffer[360];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1,
-            _T("ASSERTION FAILED\n\nFile: %S\nLine: %d\n\n")
+    const auto message = std::format(
+            _T("ASSERTION FAILED\n\nFile: {}\nLine: {}\n\n")
             _T("Press Abort to stop the program, Retry to break to the debugger, or Ignore to continue execution."),
-            lpszFileName, nLine);
-    int result = MessageBox(NULL, buffer, _T("ASSERT"), MB_ICONSTOP | MB_ABORTRETRYIGNORE);
+            std::filesystem::path(lpszFileName).wstring(), nLine);
+    int result = MessageBox(nullptr, message.c_str(), _T("ASSERT"), MB_ICONSTOP | MB_ABORTRETRYIGNORE);
 
     switch (result)
     {
@@ -41,27 +41,15 @@ BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
 
 void AlertInfo(LPCTSTR sMessage)
 {
-    ::MessageBox(NULL, sMessage, g_szTitle, MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
+    ::MessageBox(nullptr, sMessage, g_szTitle, MB_OK | MB_ICONINFORMATION | MB_TOPMOST);
 }
 void AlertWarning(LPCTSTR sMessage)
 {
-    ::MessageBox(NULL, sMessage, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
-}
-void AlertWarningFormat(LPCTSTR sFormat, ...)
-{
-    const size_t buffersize = 512;
-    TCHAR buffer[buffersize];
-
-    va_list ptr;
-    va_start(ptr, sFormat);
-    _vsntprintf_s(buffer, buffersize, buffersize - 1, sFormat, ptr);
-    va_end(ptr);
-
-    ::MessageBox(NULL, buffer, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
+    ::MessageBox(nullptr, sMessage, g_szTitle, MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST);
 }
 BOOL AlertOkCancel(LPCTSTR sMessage)
 {
-    int result = ::MessageBox(NULL, sMessage, g_szTitle, MB_OKCANCEL | MB_ICONQUESTION | MB_TOPMOST);
+    int result = ::MessageBox(nullptr, sMessage, g_szTitle, MB_OKCANCEL | MB_ICONQUESTION | MB_TOPMOST);
     return (result == IDOK);
 }
 
@@ -72,64 +60,51 @@ BOOL AlertOkCancel(LPCTSTR sMessage)
 #if defined(PRODUCT)
 
 void DebugPrint(LPCTSTR) {}
-void DebugPrintFormat(LPCTSTR, ...) {}
 void DebugLogClear() {}
 void DebugLogCloseFile() {}
 void DebugLog(LPCTSTR) {}
-void DebugLogFormat(LPCTSTR, ...) {}
 
 #else
 
 void DebugPrint(LPCTSTR message)
 {
-    if (g_hwndConsole == NULL)
+    if (g_hwndConsole == nullptr)
         return;
 
     ConsoleView_Print(message);
 }
 
-void DebugPrintFormat(LPCTSTR pszFormat, ...)
-{
-    const size_t buffersize = 512;
-    TCHAR buffer[buffersize];
-
-    va_list ptr;
-    va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, buffersize, buffersize - 1, pszFormat, ptr);
-    va_end(ptr);
-
-    DebugPrint(buffer);
-}
 
 const LPCTSTR TRACELOG_FILE_NAME = _T("trace.log");
-const LPCTSTR TRACELOG_NEWLINE = _T("\r\n");
 
-HANDLE Common_LogFile = NULL;
+HANDLE Common_LogFile = nullptr;
 
 void DebugLogCreateFile()
 {
-    if (Common_LogFile == NULL)
+    if (Common_LogFile == nullptr)
     {
         Common_LogFile = ::CreateFile(TRACELOG_FILE_NAME,
-                GENERIC_WRITE, FILE_SHARE_READ, NULL,
-                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+                GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+                CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+        if (Common_LogFile == INVALID_HANDLE_VALUE)
+            Common_LogFile = nullptr;
     }
 }
 
 void DebugLogCloseFile()
 {
-    if (Common_LogFile == NULL)
+    if (Common_LogFile == nullptr)
         return;
 
     ::CloseHandle(Common_LogFile);
-    Common_LogFile = NULL;
+    Common_LogFile = nullptr;
 }
 
 void DebugLogClear()
 {
     DebugLogCreateFile();
 
-    if (Common_LogFile != NULL)
+    if (Common_LogFile != nullptr)
     {
         // Truncate to zero length
         ::SetFilePointer(Common_LogFile, 0, 0, 0);
@@ -140,34 +115,20 @@ void DebugLogClear()
 void DebugLog(LPCTSTR message)
 {
     DebugLogCreateFile();
+    if (!Common_LogFile || !message) return;
 
-    SetFilePointer(Common_LogFile, 0, NULL, FILE_END);
+    // Size the conversion in characters, including the terminator. Formatting
+    // has no fixed buffer limit, so the output sink must not truncate it either.
+    const int length = WideCharToMultiByte(CP_ACP, 0, message, -1, nullptr, 0, nullptr, nullptr);
+    if (length <= 1) return;
+    std::string text(static_cast<size_t>(length), '\0');
+    if (!WideCharToMultiByte(CP_ACP, 0, message, -1, text.data(), length, nullptr, nullptr)) return;
 
-    DWORD dwLength = lstrlen(message) * sizeof(TCHAR);
-
-    char ascii[256];  *ascii = 0;
-    WideCharToMultiByte(CP_ACP, 0, message, dwLength, ascii, 256, NULL, NULL);
-
-    DWORD dwBytesWritten = 0;
-    //WriteFile(Common_LogFile, message, dwLength, &dwBytesWritten, NULL);
-    WriteFile(Common_LogFile, ascii, strlen(ascii), &dwBytesWritten, NULL);
-
-    //dwLength = lstrlen(TRACELOG_NEWLINE) * sizeof(TCHAR);
-    //WriteFile(Common_LogFile, TRACELOG_NEWLINE, dwLength, &dwBytesWritten, NULL);
+    SetFilePointer(Common_LogFile, 0, nullptr, FILE_END);
+    DWORD written = 0;
+    WriteFile(Common_LogFile, text.data(), static_cast<DWORD>(length - 1), &written, nullptr);
 }
 
-void DebugLogFormat(LPCTSTR pszFormat, ...)
-{
-    const size_t buffersize = 512;
-    TCHAR buffer[buffersize];
-
-    va_list ptr;
-    va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, buffersize, buffersize - 1, pszFormat, ptr);
-    va_end(ptr);
-
-    DebugLog(buffer);
-}
 
 #endif // !defined(PRODUCT)
 
@@ -193,20 +154,20 @@ HFONT CreateMonospacedFont()
 
     Settings_GetDebugFontName(logfont.lfFaceName);
     font = CreateFontIndirect(&logfont);
-    if (font != NULL)
+    if (font != nullptr)
         return font;
 
     _tcscpy_s(logfont.lfFaceName, 32, _T("Lucida Console"));
     font = CreateFontIndirect(&logfont);
-    if (font != NULL)
+    if (font != nullptr)
         return font;
 
     _tcscpy_s(logfont.lfFaceName, 32, _T("Courier"));
     font = CreateFontIndirect(&logfont);
-    if (font != NULL)
+    if (font != nullptr)
         return font;
 
-    return NULL;
+    return nullptr;
 }
 
 HFONT CreateDialogFont()
@@ -225,9 +186,9 @@ void GetFontWidthAndHeight(HDC hdc, int* pWidth, int* pHeight)
 {
     TEXTMETRIC tm;
     GetTextMetrics(hdc, &tm);
-    if (pWidth != NULL)
+    if (pWidth != nullptr)
         *pWidth = tm.tmAveCharWidth;
-    if (pHeight != NULL)
+    if (pHeight != nullptr)
         *pHeight = tm.tmHeight;
 }
 
@@ -386,7 +347,7 @@ void DrawCharKOI8R(HDC hdc, int x, int y, uint8_t ch)
 LPCTSTR GetFileNameFromFilePath(LPCTSTR lpfilepath)
 {
     LPCTSTR lpfilename = _tcsrchr(lpfilepath, _T('\\'));
-    if (lpfilename == NULL)
+    if (lpfilename == nullptr)
         return lpfilepath;
     else
         return lpfilename + 1;

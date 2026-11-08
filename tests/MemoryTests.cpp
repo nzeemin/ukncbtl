@@ -278,7 +278,7 @@ public:
         std::vector<uint8_t> rom(32768);
         for (size_t i = 0; i < rom.size(); i++)
             rom[i] = (uint8_t) (i * 7 + 3);
-        tb.Board()->LoadROM(&rom[0]);
+        tb.Board()->LoadROM(std::span<const uint8_t, 32768>{rom});
 
         Eq(rom[0] | (rom[1] << 8), tb.GetPpuWord(0100000), _T("first ROM word"));
         Eq(rom[0x1234] | (rom[0x1235] << 8), tb.GetPpuWord(0100000 + 0x1234), _T("ROM word 1234"));
@@ -290,7 +290,7 @@ public:
     {
         TestBoard tb;
         std::vector<uint8_t> rom(32768, 0x5A);
-        tb.Board()->LoadROM(&rom[0]);
+        tb.Board()->LoadROM(std::span<const uint8_t, 32768>{rom});
 
         tb.SetPpuWord(0100000, 0x1234);
 
@@ -343,7 +343,7 @@ public:
         std::vector<uint8_t> cart(24 * 1024);
         for (size_t i = 0; i < cart.size(); i++)
             cart[i] = (uint8_t) (i ^ (i >> 8));
-        tb.Board()->LoadROMCartridge(1, &cart[0]);
+        tb.Board()->LoadROMCartridge(1, std::span<const uint8_t, 24 * 1024>{cart});
 
         Eq(ADDRTYPE_ROMCART1, PpuAddrType(tb, 0100000, false, &offset), _T("bank 1"));
         Eq(0, offset, _T("bank 1 starts at the cartridge start"));
@@ -364,7 +364,7 @@ public:
         TestBoard tb;
         uint16_t offset;
         std::vector<uint8_t> cart(24 * 1024, 0x11);
-        tb.Board()->LoadROMCartridge(2, &cart[0]);
+        tb.Board()->LoadROMCartridge(2, std::span<const uint8_t, 24 * 1024>{cart});
         tb.SetPpuWord(0177054, 012);  // bit 3 = slot 2, bank 1
 
         Eq(ADDRTYPE_ROMCART2, PpuAddrType(tb, 0100000, false, &offset), _T("slot 2"));

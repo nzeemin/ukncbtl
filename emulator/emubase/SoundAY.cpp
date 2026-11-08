@@ -25,26 +25,26 @@ static constexpr auto STEP3 = 1;
 static constexpr auto STEP = 2;
 
 /* register id's */
-#define AY_AFINE    (0)
-#define AY_ACOARSE  (1)
-#define AY_BFINE    (2)
-#define AY_BCOARSE  (3)
-#define AY_CFINE    (4)
-#define AY_CCOARSE  (5)
-#define AY_NOISEPER (6)
-#define AY_ENABLE   (7)
-#define AY_AVOL     (8)
-#define AY_BVOL     (9)
-#define AY_CVOL     (10)
-#define AY_EFINE    (11)
-#define AY_ECOARSE  (12)
-#define AY_ESHAPE   (13)
+static constexpr auto AY_AFINE = 0;
+static constexpr auto AY_ACOARSE = 1;
+static constexpr auto AY_BFINE = 2;
+static constexpr auto AY_BCOARSE = 3;
+static constexpr auto AY_CFINE = 4;
+static constexpr auto AY_CCOARSE = 5;
+static constexpr auto AY_NOISEPER = 6;
+static constexpr auto AY_ENABLE = 7;
+static constexpr auto AY_AVOL = 8;
+static constexpr auto AY_BVOL = 9;
+static constexpr auto AY_CVOL = 10;
+static constexpr auto AY_EFINE = 11;
+static constexpr auto AY_ECOARSE = 12;
+static constexpr auto AY_ESHAPE = 13;
 
-#define AY_PORTA    (14)
-#define AY_PORTB    (15)
+static constexpr auto AY_PORTA = 14;
+static constexpr auto AY_PORTB = 15;
 
 
-unsigned int CSoundAY::VolTable[32];
+std::array<unsigned int, 32> CSoundAY::VolTable{};
 
 
 CSoundAY::CSoundAY()
@@ -55,7 +55,7 @@ CSoundAY::CSoundAY()
 void CSoundAY::Reset()
 {
     index = 0;
-    memset(Regs, 0, sizeof(Regs));
+    Regs.fill({});
     lastEnable = 0;
     PeriodA = PeriodB = PeriodC = PeriodN = PeriodE = STEP3;
     CountA = CountB = CountC = CountN = CountE = 0;
