@@ -64,8 +64,8 @@ uint32_t Emulator_GetUptime();  // UKNC uptime, in seconds
 bool Emulator_IsSound();  // Did sound produced within the last frame?
 void Emulator_SetSpeed(uint16_t realspeed);
 
-void Emulator_PrepareScreenRGB32(void* pBits, const uint32_t* colors);
-void Emulator_PrepareScreenToText(void* pBits, const uint32_t* colors);
+void Emulator_PrepareScreenRGB32(std::span<uint32_t> pixels, std::span<const uint32_t> colors);
+void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const uint32_t> colors);
 
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 

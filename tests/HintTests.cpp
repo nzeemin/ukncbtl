@@ -91,7 +91,7 @@ void CompareHint(const DisasmHint& hint, const TCHAR* name, uint16_t opcode, int
     for (int i = 0; i < 3; i++)
     {
         _stprintf_s(msg, _T("%s, opcode %06o: line %d"), name, (unsigned int) opcode, i + 1);
-        Assert::AreEqual(expected[i] != nullptr ? expected[i] : _T(""), hint.lines[i], msg);
+        Assert::AreEqual(expected[i] != nullptr ? expected[i] : _T(""), hint.lines[i].c_str(), msg);
     }
 }
 
@@ -100,8 +100,7 @@ void CheckHint(const HintCase& c)
     TestBoard tb;
     Prepare(tb, c.words, 3, c.regs, c.mem, c.psw, c.cpc, c.cpsw);
 
-    DisasmHint hint;
-    Disasm_GetHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+    const auto hint = Disasm_GetHint(c.words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
     CompareHint(hint, c.name, c.words[0], c.lines, c.line1, c.line2, c.line3);
 }
 void CheckHints(const HintCase* cases, size_t count)
@@ -115,14 +114,13 @@ void CheckJumpHint(const JumpHintCase& c)
     TestBoard tb;
     Prepare(tb, c.words, 2, c.regs, c.mem, c.psw, 0, 0);
 
-    TCHAR text[64] = _T("not set");
-    bool predict = Disasm_GetJumpConditionHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), text);
+    const auto hint = Disasm_GetJumpConditionHint(c.words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
 
     TCHAR msg[100];
     _stprintf_s(msg, _T("%s, opcode %06o: text"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.text, text, msg);
+    Assert::AreEqual(c.text, hint.text.c_str(), msg);
     _stprintf_s(msg, _T("%s, opcode %06o: prediction"), c.name, (unsigned int) c.words[0]);
-    Assert::AreEqual(c.predict, predict, msg);
+    Assert::AreEqual(c.predict, hint.predict, msg);
 }
 
 void CheckJumpHints(const JumpHintCase* cases, size_t count)
@@ -150,8 +148,7 @@ void CheckHint3(const HintCase3& c)
     TestBoard tb;
     Prepare(tb, c.words, 3, c.regs, c.mem, c.psw, 0, 0);
 
-    DisasmHint hint;
-    Disasm_GetHint(c.words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+    const auto hint = Disasm_GetHint(c.words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
     CompareHint(hint, c.name, c.words[0], c.lines, c.line1, c.line2, c.line3);
 }
 void CheckHints3(const HintCase3* cases, size_t count)
@@ -398,31 +395,28 @@ public:
         CheckHints(cases, sizeof(cases) / sizeof(cases[0]));
     }
 
-    TEST_METHOD(Hint_OldInterfaceWrappers)
+    TEST_METHOD(Hint_StandaloneHintFunctions)
     {
-        // Disasm_GetInstructionHint (two lines, a regular instruction) and Disasm_GetJumpConditionHint (the first
-        // line of the jump hint) are wrappers for the callers of the old interface
+        // The standalone functions return the regular and jump hints by value.
         {
             TestBoard tb;
             const uint16_t words[3] = { 0012122, 0, 0 };  // MOV (R1)+,(R2)+
             const uint16_t regs[7] = { 0, 0200, 0300, 0, 0, 0, STACK };
             const MemWord mem[MAX_MEM] = { { 0200, 0111 }, { 0300, 0222 } };
             Prepare(tb, words, 3, regs, mem, 0, 0, 0);
-            TCHAR line1[64] = _T("x"), line2[64] = _T("x");
-            int lines = Disasm_GetInstructionHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), line1, line2);
-            Assert::AreEqual(2, lines);
-            Assert::AreEqual(_T("R1=000200, R2=000300"), line1);
-            Assert::AreEqual(_T("(R1)=000111, (R2)=000222"), line2);
+            const auto hint = Disasm_GetInstructionHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
+            Assert::AreEqual(2, hint.count);
+            Assert::AreEqual(_T("R1=000200, R2=000300"), hint.lines[0].c_str());
+            Assert::AreEqual(_T("(R1)=000111, (R2)=000222"), hint.lines[1].c_str());
         }
         {
             TestBoard tb;
             const uint16_t words[3] = { 0001002, 0, 0 };  // BNE
             const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
             Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
-            TCHAR text[64] = _T("x");
-            bool predict = Disasm_GetJumpConditionHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), text);
-            Assert::IsTrue(predict);  // Z=0: BNE jumps
-            Assert::AreEqual(_T("Z=0"), text);
+            const auto hint = Disasm_GetJumpConditionHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
+            Assert::IsTrue(hint.predict);  // Z=0: BNE jumps
+            Assert::AreEqual(_T("Z=0"), hint.text.c_str());
         }
     }
 
@@ -739,8 +733,7 @@ public:
                 const uint16_t words[3] = { list[i], 0, 0 };
                 const uint16_t regs[7] = { 0, 0200, 0, 0, 0, 010, STACK };
                 Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
-                DisasmHint hint;
-                Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+                const auto hint = Disasm_GetHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
                 TCHAR msg[40];
                 _stprintf_s(msg, _T("opcode %06o"), (unsigned int) list[i]);
                 Assert::AreEqual(kind == 0, hint.isJump, msg);
@@ -820,32 +813,29 @@ public:
             const uint16_t words[3] = { 0001002, 0, 0 };  // BNE
             const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
             Prepare(tb, words, 3, regs, NO_MEM_ARRAY, TF_Z, 0, 0);
-            DisasmHint hint;
-            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            const auto hint = Disasm_GetHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
             Assert::AreEqual(1, hint.count, _T("BNE: lines"));
             Assert::IsTrue(hint.isJump, _T("BNE: isJump"));
             Assert::IsFalse(hint.jumpPredict, _T("BNE with Z set: the jump is not taken"));
-            Assert::AreEqual(_T("Z=1"), hint.lines[0], _T("BNE: text"));
+            Assert::AreEqual(_T("Z=1"), hint.lines[0].c_str(), _T("BNE: text"));
         }
         {
             TestBoard tb;
             const uint16_t words[3] = { 0010102, 0, 0 };  // MOV R1,R2
             const uint16_t regs[7] = { 0, 1, 2, 0, 0, 0, STACK };
             Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
-            DisasmHint hint;
-            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            const auto hint = Disasm_GetHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
             Assert::AreEqual(1, hint.count, _T("MOV: lines"));
             Assert::IsFalse(hint.isJump, _T("MOV: isJump"));
-            Assert::AreEqual(_T("R1=000001, R2=000002"), hint.lines[0], _T("MOV: text"));
-            Assert::AreEqual(_T(""), hint.lines[1], _T("MOV: the unused line is empty"));
+            Assert::AreEqual(_T("R1=000001, R2=000002"), hint.lines[0].c_str(), _T("MOV: text"));
+            Assert::AreEqual(_T(""), hint.lines[1].c_str(), _T("MOV: the unused line is empty"));
         }
         {
             TestBoard tb;
             const uint16_t words[3] = { 0000240, 0, 0 };  // NOP
             const uint16_t regs[7] = { 0, 0, 0, 0, 0, 0, STACK };
             Prepare(tb, words, 3, regs, NO_MEM_ARRAY, 0, 0, 0);
-            DisasmHint hint;
-            Disasm_GetHint(words, tb.CPU(), tb.CPU()->GetMemoryControllerConst(), &hint);
+            const auto hint = Disasm_GetHint(words, *tb.CPU(), *tb.CPU()->GetMemoryControllerConst());
             Assert::AreEqual(0, hint.count, _T("NOP: no hint"));
         }
     }

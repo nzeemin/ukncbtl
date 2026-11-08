@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Common.cpp
 
 #include "stdafx.h"
+#include <algorithm>
 #include "Main.h"
 #include "Views.h"
 
@@ -285,22 +286,40 @@ void DrawBinaryValue(HDC hdc, int x, int y, WORD value)
     TextOut(hdc, x, y, buffer, 16);
 }
 
-void CopyTextToClipboard(LPCTSTR text)
+bool SetGlobalClipboardData(UINT format, HGLOBAL memory)
 {
-    ASSERT(text != nullptr);
-    size_t bufferLength = (_tcslen(text) + 1) * sizeof(TCHAR);
-
-    // Prepare global memory object for the text
-    HGLOBAL hglbCopy = ::GlobalAlloc(GMEM_MOVEABLE, bufferLength);
-    LPTSTR lptstrCopy = (LPTSTR)::GlobalLock(hglbCopy);
-    memcpy(lptstrCopy, text, bufferLength);
-    ::GlobalUnlock(hglbCopy);
-
-    // Send the text to the Clipboard
-    ::OpenClipboard(g_hwnd);
-    ::EmptyClipboard();
-    ::SetClipboardData(CF_UNICODETEXT, hglbCopy);
+    if (!memory) return false;
+    if (!::OpenClipboard(g_hwnd))
+    {
+        ::GlobalFree(memory);
+        return false;
+    }
+    const bool transferred = ::EmptyClipboard() && ::SetClipboardData(format, memory) != nullptr;
     ::CloseClipboard();
+    if (!transferred) ::GlobalFree(memory);
+    return transferred;
+}
+
+void CopyTextToClipboard(std::basic_string_view<TCHAR> text)
+{
+    HGLOBAL memory = ::GlobalAlloc(GMEM_MOVEABLE, (text.size() + 1) * sizeof(TCHAR));
+    if (memory == nullptr)
+    {
+        AlertWarning(_T("Failed to copy text to the clipboard."));
+        return;
+    }
+    auto* destination = static_cast<TCHAR*>(::GlobalLock(memory));
+    if (destination == nullptr)
+    {
+        ::GlobalFree(memory);
+        AlertWarning(_T("Failed to copy text to the clipboard."));
+        return;
+    }
+    std::ranges::copy(text, destination);
+    destination[text.size()] = 0;
+    ::GlobalUnlock(memory);
+    if (!SetGlobalClipboardData(CF_UNICODETEXT, memory))
+        AlertWarning(_T("Failed to copy text to the clipboard."));
 }
 void CopyOctalValueToClipboard(WORD value)
 {

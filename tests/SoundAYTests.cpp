@@ -36,12 +36,12 @@ const int ENVELOPE = 0x10;      // volume register bit: use the envelope
 const int ALL_OFF = 0x3F;       // enable register: tones and noises are disabled
 const int TONE_A_ONLY = 0x3E;   // enable register: only the tone A is on
 const int NOISE_A_ONLY = 0x37;  // enable register: only the noise on the channel A
-const int LONG_PERIOD = 0xFFF;  // tone period for the channels with the tone disabled, see SoundAY_DisabledToneAndNoise_KnownBug
+const int LONG_PERIOD = 0xFFF;  // tone period for channels with the tone disabled
 
 std::vector<uint8_t> Render(CSoundAY& ay, int samples)
 {
     std::vector<uint8_t> buffer(samples);
-    ay.Callback(&buffer[0], samples);
+    ay.Callback(buffer);
     return buffer;
 }
 
@@ -284,14 +284,8 @@ public:
             Assert::AreEqual((int) samples[0], (int) samples[i], _T("constant"));
     }
 
-    // Known bug: the channel with the tone and noise disabled must output the constant maximal level for
-    // any tone period. The emulator lets the tone counter expire, because it extends the counter by half
-    // of the time a callback consumes, and then the level is halved for a small period (the reset value 1).
-    // The board calls Callback() with 2 samples at each tick and uses the second one.
-    BEGIN_TEST_METHOD_ATTRIBUTE(SoundAY_DisabledToneAndNoise_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(SoundAY_DisabledToneAndNoise_KnownBug)
+    // The board renders two samples at each tick and uses the second one.
+    TEST_METHOD(SoundAY_DisabledToneAndNoiseAtShortPeriods)
     {
         CSoundAY ay;
         ay.SetReg(AY_ENABLE, ALL_OFF);
@@ -300,7 +294,7 @@ public:
         for (int i = 0; i < 100; i++)
         {
             uint8_t buffer[2];
-            ay.Callback(buffer, 2);
+            ay.Callback(buffer);
             Eq(expected, buffer[1], _T("constant level"));
         }
     }

@@ -15,431 +15,265 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Defines.h"
 #include "Emubase.h"
+#include <bit>
+#include <format>
+#include <tuple>
 
 
-// Display formats for the addressing modes
-const LPCTSTR ADDRESS_MODE_FORMAT[] =
+namespace {
+struct OperandText
 {
-    _T("%s"), _T("(%s)"), _T("(%s)+"), _T("@(%s)+"), _T("-(%s)"), _T("@-(%s)"), _T("%06o(%s)"), _T("@%06o(%s)")
+    TcharString text;
+    uint16_t extraWords;
 };
-// Display formats for the addressing modes of the PC register
-const LPCTSTR ADDRESS_MODE_PC_FORMAT[] =
+
+// addr is the address of the operand word, if one is present.
+OperandText FormatOperand(uint8_t reg, uint8_t mode, uint16_t addr, uint16_t word)
 {
-    _T("PC"), _T("(PC)"), _T("#%06o"), _T("@#%06o"), _T("-(PC)"), _T("@-(PC)"), _T("%06o"), _T("@%06o")
-};
-
-//   word   - the extra word of the operand; used only if the addressing mode has one
-//   strSrc - at least 24 characters
-uint16_t ConvertSrcToString(uint16_t instr, uint16_t addr, TCHAR* strSrc, uint16_t word)
-{
-    const size_t strSrcSize = 24;
-
-    uint8_t reg = GetDigit(instr, 2);
-    uint8_t param = GetDigit(instr, 3);
-
-    LPCTSTR pszReg = REGISTER_NAME[reg];
-
+    const auto name = REGISTER_NAME[reg];
     if (reg != 7)
     {
-        LPCTSTR format = ADDRESS_MODE_FORMAT[param];
-
-        if (param == 6 || param == 7)
+        switch (mode)
         {
-            _sntprintf(strSrc, strSrcSize - 1, format, word, pszReg);
-            return 1;
+        case 0: return {name, 0};
+        case 1: return {std::format(_T("({})"), name), 0};
+        case 2: return {std::format(_T("({})+"), name), 0};
+        case 3: return {std::format(_T("@({})+"), name), 0};
+        case 4: return {std::format(_T("-({})"), name), 0};
+        case 5: return {std::format(_T("@-({})"), name), 0};
+        case 6: return {std::format(_T("{:06o}({})"), word, name), 1};
+        case 7: return {std::format(_T("@{:06o}({})"), word, name), 1};
         }
-        else
-            _sntprintf(strSrc, strSrcSize - 1, format, pszReg);
     }
     else
     {
-        LPCTSTR format = ADDRESS_MODE_PC_FORMAT[param];
-
-        if (param == 2 || param == 3)
+        switch (mode)
         {
-            _sntprintf(strSrc, strSrcSize - 1, format, word);
-            return 1;
+        case 0: return {_T("PC"), 0};
+        case 1: return {_T("(PC)"), 0};
+        case 2: return {std::format(_T("#{:06o}"), word), 1};
+        case 3: return {std::format(_T("@#{:06o}"), word), 1};
+        case 4: return {_T("-(PC)"), 0};
+        case 5: return {_T("@-(PC)"), 0};
+        case 6: return {std::format(_T("{:06o}"), static_cast<uint16_t>(addr + word + 2)), 1};
+        case 7: return {std::format(_T("@{:06o}"), static_cast<uint16_t>(addr + word + 2)), 1};
         }
-        else if (param == 6 || param == 7)
-        {
-            _sntprintf(strSrc, strSrcSize - 1, format, static_cast<uint16_t>(addr + word + 2));
-            return 1;
-        }
-        else
-            _sntprintf(strSrc, strSrcSize - 1, format, pszReg);
     }
-
-    return 0;
+    return {}; // mode comes from a three-bit instruction field.
+}
 }
 
-//   strDst - at least 24 characters
-uint16_t ConvertDstToString (uint16_t instr, uint16_t addr, TCHAR* strDst, uint16_t word)
+std::optional<DisassembledInstruction> DisassembleInstruction(std::span<const uint16_t> memory, uint16_t addr)
 {
-    const size_t strDstSize = 24;
-
-    uint8_t reg = GetDigit(instr, 0);
-    uint8_t param = GetDigit(instr, 1);
-
-    LPCTSTR pszReg = REGISTER_NAME[reg];
-
-    if (reg != 7)
-    {
-        LPCTSTR format = ADDRESS_MODE_FORMAT[param];
-
-        if (param == 6 || param == 7)
-        {
-            _sntprintf(strDst, strDstSize - 1, format, word, pszReg);
-            return 1;
-        }
-        else
-            _sntprintf(strDst, strDstSize - 1, format, pszReg);
-    }
-    else
-    {
-        LPCTSTR format = ADDRESS_MODE_PC_FORMAT[param];
-
-        if (param == 2 || param == 3)
-        {
-            _sntprintf(strDst, strDstSize - 1, format, word);
-            return 1;
-        }
-        else if (param == 6 || param == 7)
-        {
-            _sntprintf(strDst, strDstSize - 1, format, static_cast<uint16_t>(addr + word + 2));
-            return 1;
-        }
-        else
-            _sntprintf(strDst, strDstSize - 1, format, pszReg);
-    }
-
-    return 0;
-}
-
-// Disassemble one instruction
-//   pMemory - memory image (we read only words of the instruction)
-//   strInstr - instruction mnemonics buffer, at least 8 characters
-//   strArg   - instruction arguments buffer, at least 32 characters
-//   Return value: number of words in the instruction
-uint16_t DisassembleInstruction(std::span<const uint16_t> memory, uint16_t addr,
-                               std::span<TCHAR> instruction, std::span<TCHAR> argument)
-{
-    if (memory.empty() || instruction.size() < 8 || argument.size() < 32)
-        return 0;
-    // Missing extension words are zero-filled, so even truncated input is safe to inspect.
+    if (memory.empty()) return std::nullopt;
     std::array<uint16_t, 3> words{};
     std::ranges::copy(memory.first((std::min)(memory.size(), words.size())), words.begin());
-    const uint16_t* pMemory = words.data();
-    TCHAR* strInstr = instruction.data();
-    TCHAR* strArg = argument.data();
-    const size_t strArgSize = argument.size();
+    const uint16_t instr = words[0];
+    const auto make = [](TcharString mnemonic, TcharString argument = {}, uint16_t length = 1) {
+        return DisassembledInstruction{std::move(mnemonic), std::move(argument), length};
+    };
 
-    *strInstr = 0;
-    *strArg = 0;
-
-    uint16_t instr = *pMemory;
-    uint16_t length = 1;
-    LPCTSTR strReg = nullptr;
-
-    const size_t strSrcSize = 24;
-    TCHAR strSrc[strSrcSize];
-    const size_t strDstSize = 24;
-    TCHAR strDst[strDstSize];
-
-    bool okByte;
-
-    // No fields
     switch (instr)
     {
-    case PI_HALT:   _tcscpy_s(strInstr, instruction.size(), _T("HALT"));   return 1;
-    case PI_WAIT:   _tcscpy_s(strInstr, instruction.size(), _T("WAIT"));   return 1;
-    case PI_RTI:    _tcscpy_s(strInstr, instruction.size(), _T("RTI"));    return 1;
-    case PI_BPT:    _tcscpy_s(strInstr, instruction.size(), _T("BPT"));    return 1;
-    case PI_IOT:    _tcscpy_s(strInstr, instruction.size(), _T("IOT"));    return 1;
-    case PI_RESET:  _tcscpy_s(strInstr, instruction.size(), _T("RESET"));  return 1;
-    case PI_RTT:    _tcscpy_s(strInstr, instruction.size(), _T("RTT"));    return 1;
-    case PI_NOP:    _tcscpy_s(strInstr, instruction.size(), _T("NOP"));    return 1;
-    case PI_CLC:    _tcscpy_s(strInstr, instruction.size(), _T("CLC"));    return 1;
-    case PI_CLV:    _tcscpy_s(strInstr, instruction.size(), _T("CLV"));    return 1;
-    case PI_CLVC:   _tcscpy_s(strInstr, instruction.size(), _T("CLVC"));   return 1;
-    case PI_CLZ:    _tcscpy_s(strInstr, instruction.size(), _T("CLZ"));    return 1;
-    case PI_CLZC:   _tcscpy_s(strInstr, instruction.size(), _T("CLZC"));   return 1;
-    case PI_CLZV:   _tcscpy_s(strInstr, instruction.size(), _T("CLZV"));   return 1;
-    case PI_CLZVC:  _tcscpy_s(strInstr, instruction.size(), _T("CLZVC"));  return 1;
-    case PI_CLN:    _tcscpy_s(strInstr, instruction.size(), _T("CLN"));    return 1;
-    case PI_CLNC:   _tcscpy_s(strInstr, instruction.size(), _T("CLNC"));   return 1;
-    case PI_CLNV:   _tcscpy_s(strInstr, instruction.size(), _T("CLNV"));   return 1;
-    case PI_CLNVC:  _tcscpy_s(strInstr, instruction.size(), _T("CLNVC"));  return 1;
-    case PI_CLNZ:   _tcscpy_s(strInstr, instruction.size(), _T("CLNZ"));   return 1;
-    case PI_CLNZC:  _tcscpy_s(strInstr, instruction.size(), _T("CLNZC"));  return 1;
-    case PI_CLNZV:  _tcscpy_s(strInstr, instruction.size(), _T("CLNZV"));  return 1;
-    case PI_CCC:    _tcscpy_s(strInstr, instruction.size(), _T("CCC"));    return 1;
-    case PI_NOP260: _tcscpy_s(strInstr, instruction.size(), _T("NOP260")); return 1;
-    case PI_SEC:    _tcscpy_s(strInstr, instruction.size(), _T("SEC"));    return 1;
-    case PI_SEV:    _tcscpy_s(strInstr, instruction.size(), _T("SEV"));    return 1;
-    case PI_SEVC:   _tcscpy_s(strInstr, instruction.size(), _T("SEVC"));   return 1;
-    case PI_SEZ:    _tcscpy_s(strInstr, instruction.size(), _T("SEZ"));    return 1;
-    case PI_SEZC:   _tcscpy_s(strInstr, instruction.size(), _T("SEZC"));   return 1;
-    case PI_SEZV:   _tcscpy_s(strInstr, instruction.size(), _T("SEZV"));   return 1;
-    case PI_SEZVC:  _tcscpy_s(strInstr, instruction.size(), _T("SEZVC"));  return 1;
-    case PI_SEN:    _tcscpy_s(strInstr, instruction.size(), _T("SEN"));    return 1;
-    case PI_SENC:   _tcscpy_s(strInstr, instruction.size(), _T("SENC"));   return 1;
-    case PI_SENV:   _tcscpy_s(strInstr, instruction.size(), _T("SENV"));   return 1;
-    case PI_SENVC:  _tcscpy_s(strInstr, instruction.size(), _T("SENVC"));  return 1;
-    case PI_SENZ:   _tcscpy_s(strInstr, instruction.size(), _T("SENZ"));   return 1;
-    case PI_SENZC:  _tcscpy_s(strInstr, instruction.size(), _T("SENZC"));  return 1;
-    case PI_SENZV:  _tcscpy_s(strInstr, instruction.size(), _T("SENZV"));  return 1;
-    case PI_SCC:    _tcscpy_s(strInstr, instruction.size(), _T("SCC"));    return 1;
-
-        // Special commands of the VM2 HALT mode
-    case PI_START:  _tcscpy_s(strInstr, instruction.size(), _T("START"));  return 1;
-    case PI_STEP:   _tcscpy_s(strInstr, instruction.size(), _T("STEP"));   return 1;
-    case PI_RSEL:   _tcscpy_s(strInstr, instruction.size(), _T("RSEL"));   return 1;
-    case PI_MFUS:   _tcscpy_s(strInstr, instruction.size(), _T("MFUS"));   return 1;
-    case PI_RCPC:   _tcscpy_s(strInstr, instruction.size(), _T("RCPC"));   return 1;
-    case PI_RCPS:   _tcscpy_s(strInstr, instruction.size(), _T("RCPS"));   return 1;
-    case PI_MTUS:   _tcscpy_s(strInstr, instruction.size(), _T("MTUS"));   return 1;
-    case PI_WCPC:   _tcscpy_s(strInstr, instruction.size(), _T("WCPC"));   return 1;
-    case PI_WCPS:   _tcscpy_s(strInstr, instruction.size(), _T("WCPS"));   return 1;
+    case PI_HALT: return make(_T("HALT"));
+    case PI_WAIT: return make(_T("WAIT"));
+    case PI_RTI: return make(_T("RTI"));
+    case PI_BPT: return make(_T("BPT"));
+    case PI_IOT: return make(_T("IOT"));
+    case PI_RESET: return make(_T("RESET"));
+    case PI_RTT: return make(_T("RTT"));
+    case PI_NOP: return make(_T("NOP"));
+    case PI_CLC: return make(_T("CLC"));
+    case PI_CLV: return make(_T("CLV"));
+    case PI_CLVC: return make(_T("CLVC"));
+    case PI_CLZ: return make(_T("CLZ"));
+    case PI_CLZC: return make(_T("CLZC"));
+    case PI_CLZV: return make(_T("CLZV"));
+    case PI_CLZVC: return make(_T("CLZVC"));
+    case PI_CLN: return make(_T("CLN"));
+    case PI_CLNC: return make(_T("CLNC"));
+    case PI_CLNV: return make(_T("CLNV"));
+    case PI_CLNVC: return make(_T("CLNVC"));
+    case PI_CLNZ: return make(_T("CLNZ"));
+    case PI_CLNZC: return make(_T("CLNZC"));
+    case PI_CLNZV: return make(_T("CLNZV"));
+    case PI_CCC: return make(_T("CCC"));
+    case PI_NOP260: return make(_T("NOP260"));
+    case PI_SEC: return make(_T("SEC"));
+    case PI_SEV: return make(_T("SEV"));
+    case PI_SEVC: return make(_T("SEVC"));
+    case PI_SEZ: return make(_T("SEZ"));
+    case PI_SEZC: return make(_T("SEZC"));
+    case PI_SEZV: return make(_T("SEZV"));
+    case PI_SEZVC: return make(_T("SEZVC"));
+    case PI_SEN: return make(_T("SEN"));
+    case PI_SENC: return make(_T("SENC"));
+    case PI_SENV: return make(_T("SENV"));
+    case PI_SENVC: return make(_T("SENVC"));
+    case PI_SENZ: return make(_T("SENZ"));
+    case PI_SENZC: return make(_T("SENZC"));
+    case PI_SENZV: return make(_T("SENZV"));
+    case PI_SCC: return make(_T("SCC"));
+    case PI_START: return make(_T("START"));
+    case PI_STEP: return make(_T("STEP"));
+    case PI_RSEL: return make(_T("RSEL"));
+    case PI_MFUS: return make(_T("MFUS"));
+    case PI_RCPC: return make(_T("RCPC"));
+    case PI_RCPS: return make(_T("RCPS"));
+    case PI_MTUS: return make(_T("MTUS"));
+    case PI_WCPC: return make(_T("WCPC"));
+    case PI_WCPS: return make(_T("WCPS"));
     }
 
-    // One field
     if ((instr & ~static_cast<uint16_t>(7)) == PI_RTS)
-    {
-        if (GetDigit(instr, 0) == 7)
-        {
-            _tcscpy_s(strInstr, instruction.size(), _T("RETURN"));
-            return 1;
-        }
+        return GetDigit(instr, 0) == 7 ? make(_T("RETURN")) : make(_T("RTS"), REGISTER_NAME[GetDigit(instr, 0)]);
 
-        _tcscpy_s(strInstr, instruction.size(), _T("RTS"));
-        _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);
-        return 1;
-    }
-
-    // FIS
     switch (instr & ~static_cast<uint16_t>(7))
     {
-    case PI_FADD:  _tcscpy_s(strInstr, instruction.size(), _T("FADD"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FSUB:  _tcscpy_s(strInstr, instruction.size(), _T("FSUB"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FMUL:  _tcscpy_s(strInstr, instruction.size(), _T("FMUL"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
-    case PI_FDIV:  _tcscpy_s(strInstr, instruction.size(), _T("FDIV"));  _tcscpy_s(strArg, argument.size(), REGISTER_NAME[GetDigit(instr, 0)]);  return 1;
+    case PI_FADD: return make(_T("FADD"), REGISTER_NAME[GetDigit(instr, 0)]);
+    case PI_FSUB: return make(_T("FSUB"), REGISTER_NAME[GetDigit(instr, 0)]);
+    case PI_FMUL: return make(_T("FMUL"), REGISTER_NAME[GetDigit(instr, 0)]);
+    case PI_FDIV: return make(_T("FDIV"), REGISTER_NAME[GetDigit(instr, 0)]);
     }
-
-    // MARK has a 6-bit constant instead of an operand, the instruction is one word long
     if ((instr & ~static_cast<uint16_t>(077)) == PI_MARK)
-    {
-        _tcscpy_s(strInstr, instruction.size(), _T("MARK"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%o"), static_cast<unsigned int>(instr & 077));
-        return 1;
-    }
+        return make(_T("MARK"), std::format(_T("{:o}"), instr & 077));
 
-    // Two fields
-    length += ConvertDstToString(instr, addr + 2, strDst, pMemory[1]);
-
+    const auto destination = FormatOperand(GetDigit(instr, 0), GetDigit(instr, 1), static_cast<uint16_t>(addr + 2), words[1]);
+    const auto oneOperand = [&](TcharString mnemonic) {
+        return make(std::move(mnemonic), destination.text, static_cast<uint16_t>(1 + destination.extraWords));
+    };
     switch (instr & ~static_cast<uint16_t>(077))
     {
-    case PI_JMP:    _tcscpy_s(strInstr, instruction.size(), _T("JMP"));   _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_SWAB:   _tcscpy_s(strInstr, instruction.size(), _T("SWAB"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_SXT:    _tcscpy_s(strInstr, instruction.size(), _T("SXT"));   _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_MTPS:   _tcscpy_s(strInstr, instruction.size(), _T("MTPS"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_MFPS:   _tcscpy_s(strInstr, instruction.size(), _T("MFPS"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_JMP: return oneOperand(_T("JMP"));
+    case PI_SWAB: return oneOperand(_T("SWAB"));
+    case PI_SXT: return oneOperand(_T("SXT"));
+    case PI_MTPS: return oneOperand(_T("MTPS"));
+    case PI_MFPS: return oneOperand(_T("MFPS"));
     }
-
-    okByte = (instr & 0100000) != 0;
-
+    const bool byte = (instr & 0100000) != 0;
     switch (instr & ~static_cast<uint16_t>(0100077))
     {
-    case PI_CLR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("CLRB") : _T("CLR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_COM:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("COMB") : _T("COM"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_INC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("INCB") : _T("INC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_DEC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("DECB") : _T("DEC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_NEG:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("NEGB") : _T("NEG"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_ADC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ADCB") : _T("ADC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_SBC:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("SBCB") : _T("SBC"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_TST:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("TSTB") : _T("TST"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_ROR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("RORB") : _T("ROR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_ROL:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ROLB") : _T("ROL"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_ASR:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ASRB") : _T("ASR"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
-    case PI_ASL:  _tcscpy_s(strInstr, instruction.size(), okByte ? _T("ASLB") : _T("ASL"));  _tcscpy_s(strArg, argument.size(), strDst);  return length;
+    case PI_CLR: return oneOperand(byte ? _T("CLRB") : _T("CLR"));
+    case PI_COM: return oneOperand(byte ? _T("COMB") : _T("COM"));
+    case PI_INC: return oneOperand(byte ? _T("INCB") : _T("INC"));
+    case PI_DEC: return oneOperand(byte ? _T("DECB") : _T("DEC"));
+    case PI_NEG: return oneOperand(byte ? _T("NEGB") : _T("NEG"));
+    case PI_ADC: return oneOperand(byte ? _T("ADCB") : _T("ADC"));
+    case PI_SBC: return oneOperand(byte ? _T("SBCB") : _T("SBC"));
+    case PI_TST: return oneOperand(byte ? _T("TSTB") : _T("TST"));
+    case PI_ROR: return oneOperand(byte ? _T("RORB") : _T("ROR"));
+    case PI_ROL: return oneOperand(byte ? _T("ROLB") : _T("ROL"));
+    case PI_ASR: return oneOperand(byte ? _T("ASRB") : _T("ASR"));
+    case PI_ASL: return oneOperand(byte ? _T("ASLB") : _T("ASL"));
     }
 
-    length = 1;
-    _sntprintf(strDst, strDstSize - 1, _T("%06ho"), static_cast<uint16_t>(addr + (static_cast<short>(static_cast<char>(static_cast<uint8_t>(instr & 0xff))) * 2) + 2));
-
-    // Branches & interrupts
+    const auto branchTarget = static_cast<uint16_t>(addr + static_cast<int8_t>(instr & 0xff) * 2 + 2);
+    const auto branch = [&](TcharString mnemonic) {
+        return make(std::move(mnemonic), std::format(_T("{:06o}"), branchTarget));
+    };
     switch (instr & ~static_cast<uint16_t>(0377))
     {
-    case PI_BR:   _tcscpy_s(strInstr, instruction.size(), _T("BR"));   _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BNE:  _tcscpy_s(strInstr, instruction.size(), _T("BNE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BEQ:  _tcscpy_s(strInstr, instruction.size(), _T("BEQ"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BGE:  _tcscpy_s(strInstr, instruction.size(), _T("BGE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BLT:  _tcscpy_s(strInstr, instruction.size(), _T("BLT"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BGT:  _tcscpy_s(strInstr, instruction.size(), _T("BGT"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BLE:  _tcscpy_s(strInstr, instruction.size(), _T("BLE"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BPL:  _tcscpy_s(strInstr, instruction.size(), _T("BPL"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BMI:  _tcscpy_s(strInstr, instruction.size(), _T("BMI"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BHI:  _tcscpy_s(strInstr, instruction.size(), _T("BHI"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BLOS:  _tcscpy_s(strInstr, instruction.size(), _T("BLOS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BVC:  _tcscpy_s(strInstr, instruction.size(), _T("BVC"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BVS:  _tcscpy_s(strInstr, instruction.size(), _T("BVS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BHIS:  _tcscpy_s(strInstr, instruction.size(), _T("BHIS"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
-    case PI_BLO:  _tcscpy_s(strInstr, instruction.size(), _T("BLO"));  _tcscpy_s(strArg, argument.size(), strDst);  return 1;
+    case PI_BR: return branch(_T("BR"));
+    case PI_BNE: return branch(_T("BNE"));
+    case PI_BEQ: return branch(_T("BEQ"));
+    case PI_BGE: return branch(_T("BGE"));
+    case PI_BLT: return branch(_T("BLT"));
+    case PI_BGT: return branch(_T("BGT"));
+    case PI_BLE: return branch(_T("BLE"));
+    case PI_BPL: return branch(_T("BPL"));
+    case PI_BMI: return branch(_T("BMI"));
+    case PI_BHI: return branch(_T("BHI"));
+    case PI_BLOS: return branch(_T("BLOS"));
+    case PI_BVC: return branch(_T("BVC"));
+    case PI_BVS: return branch(_T("BVS"));
+    case PI_BHIS: return branch(_T("BHIS"));
+    case PI_BLO: return branch(_T("BLO"));
+    case PI_EMT: return make(_T("EMT"), std::format(_T("{:03o}"), instr & 0xff));
+    case PI_TRAP: return make(_T("TRAP"), std::format(_T("{:03o}"), instr & 0xff));
     }
 
-    _sntprintf(strDst, strDstSize - 1, _T("%06o"), static_cast<uint8_t>(instr & 0xff));
-
-    switch (instr & ~static_cast<uint16_t>(0377))
-    {
-    case PI_EMT:   _tcscpy_s(strInstr, instruction.size(), _T("EMT"));   _tcscpy_s(strArg, argument.size(), strDst + 3);  return 1;
-    case PI_TRAP:  _tcscpy_s(strInstr, instruction.size(), _T("TRAP"));  _tcscpy_s(strArg, argument.size(), strDst + 3);  return 1;
-    }
-
-    // Three fields
+    const auto reg = REGISTER_NAME[GetDigit(instr, 2)];
+    const auto arithmetic = [&](TcharString mnemonic, bool registerFirst) {
+        return make(std::move(mnemonic), registerFirst ? std::format(_T("{}, {}"), reg, destination.text)
+                    : std::format(_T("{}, {}"), destination.text, reg), static_cast<uint16_t>(1 + destination.extraWords));
+    };
     switch (instr & ~static_cast<uint16_t>(0777))
     {
     case PI_JSR:
-        if (GetDigit(instr, 2) == 7)
-        {
-            _tcscpy_s(strInstr, instruction.size(), _T("CALL"));
-            length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s"), strDst);  // strArg = strDst;
-        }
-        else
-        {
-            _tcscpy_s(strInstr, instruction.size(), _T("JSR"));
-            strReg = REGISTER_NAME[GetDigit(instr, 2)];
-            length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-            _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
-        }
-        return length;
-    case PI_MUL:
-        _tcscpy_s(strInstr, instruction.size(), _T("MUL"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
-        return length;
-    case PI_DIV:
-        _tcscpy_s(strInstr, instruction.size(), _T("DIV"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
-        return length;
-    case PI_ASH:
-        _tcscpy_s(strInstr, instruction.size(), _T("ASH"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
-        return length;
-    case PI_ASHC:
-        _tcscpy_s(strInstr, instruction.size(), _T("ASHC"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strDst, strReg);  // strArg = strDst + ", " + strReg;
-        return length;
-    case PI_XOR:
-        _tcscpy_s(strInstr, instruction.size(), _T("XOR"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        length += ConvertDstToString (instr, addr + 2, strDst, pMemory[1]);
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
-        return length;
+        return GetDigit(instr, 2) == 7 ? oneOperand(_T("CALL")) : arithmetic(_T("JSR"), true);
+    case PI_MUL: return arithmetic(_T("MUL"), false);
+    case PI_DIV: return arithmetic(_T("DIV"), false);
+    case PI_ASH: return arithmetic(_T("ASH"), false);
+    case PI_ASHC: return arithmetic(_T("ASHC"), false);
+    case PI_XOR: return arithmetic(_T("XOR"), true);
     case PI_SOB:
-        _tcscpy_s(strInstr, instruction.size(), _T("SOB"));
-        strReg = REGISTER_NAME[GetDigit(instr, 2)];
-        _sntprintf(strDst, strDstSize - 1, _T("%06o"), static_cast<uint16_t>(addr - (GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) * 2 + 2));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strReg, strDst);  // strArg = strReg + ", " + strDst;
-        return 1;
+        return make(_T("SOB"), std::format(_T("{}, {:06o}"), reg,
+            static_cast<uint16_t>(addr - (GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) * 2 + 2)));
     }
 
-    // Four fields
-
-    okByte = (instr & 0100000) != 0;
-
-    length += ConvertSrcToString(instr, addr + 2, strSrc, pMemory[1]);
-    length += ConvertDstToString(instr, static_cast<uint16_t>(addr + 2 + (length - 1) * 2), strDst, pMemory[length]);
-
+    const auto source = FormatOperand(GetDigit(instr, 2), GetDigit(instr, 3), static_cast<uint16_t>(addr + 2), words[1]);
+    const auto target = FormatOperand(GetDigit(instr, 0), GetDigit(instr, 1),
+        static_cast<uint16_t>(addr + 2 + source.extraWords * 2), words[1 + source.extraWords]);
+    const auto twoOperands = [&](TcharString mnemonic) {
+        return make(std::move(mnemonic), std::format(_T("{}, {}"), source.text, target.text),
+                    static_cast<uint16_t>(1 + source.extraWords + target.extraWords));
+    };
     switch (instr & ~static_cast<uint16_t>(0107777))
     {
-    case PI_MOV:
-        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("MOVB") : _T("MOV"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
-    case PI_CMP:
-        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("CMPB") : _T("CMP"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
-    case PI_BIT:
-        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BITB") : _T("BIT"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
-    case PI_BIC:
-        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BICB") : _T("BIC"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
-    case PI_BIS:
-        _tcscpy_s(strInstr, instruction.size(), okByte ? _T("BISB") : _T("BIS"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
+    case PI_MOV: return twoOperands(byte ? _T("MOVB") : _T("MOV"));
+    case PI_CMP: return twoOperands(byte ? _T("CMPB") : _T("CMP"));
+    case PI_BIT: return twoOperands(byte ? _T("BITB") : _T("BIT"));
+    case PI_BIC: return twoOperands(byte ? _T("BICB") : _T("BIC"));
+    case PI_BIS: return twoOperands(byte ? _T("BISB") : _T("BIS"));
     }
-
     switch (instr & ~static_cast<uint16_t>(0007777))
     {
-    case PI_ADD:
-        _tcscpy_s(strInstr, instruction.size(), _T("ADD"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
-    case PI_SUB:
-        _tcscpy_s(strInstr, instruction.size(), _T("SUB"));
-        _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%s, %s"), strSrc, strDst);  // strArg = strSrc + ", " + strDst;
-        return length;
+    case PI_ADD: return twoOperands(_T("ADD"));
+    case PI_SUB: return twoOperands(_T("SUB"));
     }
-
-    _tcscpy_s(strInstr, instruction.size(), _T("unknown"));
-    _sntprintf_s(strArg, strArgSize, _TRUNCATE, _T("%06o"), instr);
-    return 1;
+    return make(_T("unknown"), std::format(_T("{:06o}"), instr));
 }
 
-bool Disasm_CheckForJump(const uint16_t* memory, uint16_t address, int* pDelta)
+std::optional<int> Disasm_CheckForJump(std::span<const uint16_t> memory, uint16_t address)
 {
-    uint16_t instr = *memory;
+    if (memory.empty()) return std::nullopt;
+    const uint16_t instr = memory.front();
 
     // BR, BNE, BEQ, BGE, BLT, BGT, BLE
     // BPL, BMI, BHI, BLOS, BVC, BVS, BHIS, BLO
     if ((instr & 0177400) >= 0000400 && (instr & 0177400) < 0004000 ||
         (instr & 0177400) >= 0100000 && (instr & 0177400) < 0104000)
     {
-        *pDelta = (static_cast<int>(static_cast<int8_t>(instr & 0xff))) + 1;
-        return true;
+        return static_cast<int>(static_cast<int8_t>(instr & 0xff)) + 1;
     }
 
     // SOB
     if ((instr & ~static_cast<uint16_t>(0777)) == PI_SOB)
     {
-        *pDelta = -(GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) + 1;
-        return true;
+        return -(GetDigit(instr, 1) * 8 + GetDigit(instr, 0)) + 1;
     }
 
     // JMP and JSR (with any link register, CALL is JSR PC) with a target that is known without the registers:
     // the relative X(PC) and the absolute @#addr addressing; the word after the instruction is the offset or the address
     if ((instr & ~static_cast<uint16_t>(077)) == PI_JMP || (instr & ~static_cast<uint16_t>(0777)) == PI_JSR)
     {
+        if (memory.size() < 2) return std::nullopt;
         if ((instr & 077) == 067)  // X(PC): the target is the address after the offset word plus the offset
         {
             if ((memory[1] & 1) != 0)
-                return false;  // the instruction address is even, so an odd offset gives an odd target, not a jump
-            *pDelta = (static_cast<short>(memory[1]) + 4) / 2;
-            return true;
+                return std::nullopt;  // an odd offset gives an odd target
+            return (static_cast<int16_t>(memory[1]) + 4) / 2;
         }
         if ((instr & 077) == 037)  // @#addr
         {
             uint16_t target = memory[1];
             if ((target & 1) != 0)
-                return false;  // an odd address is not a target of a jump
-            *pDelta = static_cast<int>(static_cast<int16_t>(static_cast<uint16_t>(target - address))) / 2;
-            return true;
+                return std::nullopt;  // an odd address is not a target of a jump
+            return static_cast<int>(static_cast<int16_t>(static_cast<uint16_t>(target - address))) / 2;
         }
     }
 
-    return false;
+    return std::nullopt;
 }
 
 // Register values as the operand being decoded sees them. The source operand changes its register
@@ -449,6 +283,16 @@ struct HintRegs
 {
     uint16_t r[8];
 };
+
+namespace {
+std::array<uint16_t, 3> PadHintWords(std::span<const uint16_t> memory)
+{
+    std::array<uint16_t, 3> words{};
+    std::ranges::copy(memory.first((std::min)(memory.size(), words.size())), words.begin());
+    return words;
+}
+
+}
 
 // Does the operand with the register and the addressing mode have an extra word after the instruction
 static bool Disasm_HasExtraWord(int regnum, int regmod)
@@ -475,72 +319,53 @@ static void Disasm_ApplySideEffect(HintRegs& regs, int regnum, int regmod, bool 
         regs.r[regnum] = static_cast<uint16_t>(regs.r[regnum] - step);
 }
 
-// Read the value at the address (in HALT or in USER mode) for a hint and print it: the number (6 digits for a word, 3 for a byte),
-// "I/O" for an I/O port (reading it from the view gives nothing real), "N/A" for an inaccessible address.
-// strValue has at least 8 characters. Returns true if the value is real; then *pValue is the word or the byte.
-static bool Disasm_ReadHintValue(const CMemoryController * pMemCtl, bool haltMode,
-        uint16_t address, bool byteword, uint16_t* pValue, TCHAR* strValue)
+struct HintValue
 {
-    int addrtype = 0;
-    uint16_t word = pMemCtl->GetWordView(static_cast<uint16_t>(address & ~1), haltMode, false, &addrtype);
-    *pValue = 0;
+    std::optional<uint16_t> value;
+    TcharString text;
+};
+
+// I/O and inaccessible addresses have descriptive text but no readable value.
+static HintValue Disasm_ReadHintValue(const CMemoryController& memoryController, bool haltMode,
+        uint16_t address, bool byteword)
+{
+    auto [word, addrtype] = memoryController.GetWordView(static_cast<uint16_t>(address & ~1), haltMode, false);
     // The types: memory is below ADDRTYPE_IO (64), an I/O port is 64..127 (the device number is in the low bits),
     // ADDRTYPE_NONE (128) and ADDRTYPE_DENY (255) have no value. ADDRTYPE_DENY has the I/O bit set too,
     // so everything from ADDRTYPE_NONE up is tested before the range of the I/O ports.
     if (addrtype >= ADDRTYPE_NONE)
-    {
-        _tcscpy(strValue, _T("N/A"));
-        return false;
-    }
+        return {std::nullopt, _T("N/A")};
     if (addrtype >= ADDRTYPE_IO)
-    {
-        _tcscpy(strValue, _T("I/O"));
-        return false;
-    }
+        return {std::nullopt, _T("I/O")};
     if (byteword)
     {
         word = (address & 1) ? (word >> 8) : (word & 0xff);
-        _sntprintf(strValue, 8, _T("%03o"), static_cast<unsigned int>(word));
+        return {word, std::format(_T("{:03o}"), word)};
     }
-    else
-        _sntprintf(strValue, 8, _T("%06o"), static_cast<unsigned int>(word));
-    *pValue = word;
-    return true;
+    return {word, std::format(_T("{:06o}"), word)};
 }
 
 // "(label)=value", the value is read at the address
-static bool Disasm_MemoryHint(LPTSTR hint, size_t hintsize, const CMemoryController * pMemCtl, bool haltMode,
-        LPCTSTR label, uint16_t address, bool byteword)
+static TcharString Disasm_MemoryHint(const CMemoryController& memoryController, bool haltMode,
+        std::basic_string_view<TCHAR> label, uint16_t address, bool byteword)
 {
-    uint16_t value;
-    TCHAR strValue[8];
-    bool okValue = Disasm_ReadHintValue(pMemCtl, haltMode, address, byteword, &value, strValue);
-    _sntprintf(hint, hintsize - 1, _T("%s=%s"), label, strValue);
-    return okValue;
+    const auto value = Disasm_ReadHintValue(memoryController, haltMode, address, byteword);
+    return std::format(_T("{}={}"), label, value.text);
 }
 
 // "(label)=HHHHHH:LLLLLL = value": a 32-bit FIS value, two words at the address and at address + 2.
 // An odd address cannot be read as a word pair (bus error); a pair that is not readable shows N/A or I/O.
-static void Disasm_PairHint(LPTSTR hint, size_t hintsize, const CMemoryController * pMemCtl, bool haltMode,
-        LPCTSTR label, uint16_t address)
+static TcharString Disasm_PairHint(const CMemoryController& memoryController, bool haltMode,
+        std::basic_string_view<TCHAR> label, uint16_t address)
 {
-    uint16_t high, low;
-    TCHAR strHigh[8], strLow[8];
     if (address & 1)
-    {
-        _sntprintf(hint, hintsize - 1, _T("%s=N/A"), label);
-        return;
-    }
-    bool okHigh = Disasm_ReadHintValue(pMemCtl, haltMode, address, false, &high, strHigh);
-    bool okLow = Disasm_ReadHintValue(pMemCtl, haltMode, static_cast<uint16_t>(address + 2), false, &low, strLow);
-    if (okHigh && okLow)
-    {
-        TCHAR strValue[32];
-        Disasm_FloatToString(high, low, strValue, sizeof(strValue) / sizeof(strValue[0]));
-        _sntprintf(hint, hintsize - 1, _T("%s=%s:%s = %s"), label, strHigh, strLow, strValue);  // "(RN)=HHHHHH:LLLLLL = value"
-    }
-    else
-        _sntprintf(hint, hintsize - 1, _T("%s=%s"), label, okHigh ? strLow : strHigh);  // "(RN)=N/A" or "(RN)=I/O"
+        return std::format(_T("{}=N/A"), label);
+    const auto high = Disasm_ReadHintValue(memoryController, haltMode, address, false);
+    const auto low = Disasm_ReadHintValue(memoryController, haltMode, static_cast<uint16_t>(address + 2), false);
+    if (high.value && low.value)
+        return std::format(_T("{}={}:{} = {}"), label, high.text, low.text,
+            Disasm_FloatToString(*high.value, *low.value));
+    return std::format(_T("{}={}"), label, high.value ? low.text : high.text);
 }
 
 // Is the instruction a jump or a return, so that its hint has the color of the jump hints
@@ -562,101 +387,115 @@ static bool Disasm_IsJumpInstruction(uint16_t instr)
     return false;
 }
 
-// Prepare the "Jump Hint" of the instruction: the line 1 and, for RTI, RTT and the traps, the line 2;
-// both are empty if the instruction has no jump hint. Also calculates the condition for a conditional jump.
-// Returns: jump prediction flag: true = will jump, false = will not jump
-static bool Disasm_JumpHintLines(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl,
-        LPTSTR buffer, LPTSTR buffer2)
+struct JumpHintLines
 {
-    *buffer = 0;  *buffer2 = 0;
-    uint16_t instr = *memory;
-    uint16_t psw = pProc->GetPSW();
+    TcharString first;
+    TcharString second;
+    bool predict = true;
+};
+
+// Prepare the jump hint lines and the prediction for a conditional jump.
+static JumpHintLines Disasm_JumpHintLines(std::span<const uint16_t, 3> memory,
+        const CProcessor& processor, const CMemoryController& memoryController)
+{
+    JumpHintLines result;
+    auto& buffer = result.first;
+    auto& buffer2 = result.second;
+    uint16_t instr = memory.front();
+    uint16_t psw = processor.GetPSW();
 
     if (instr >= 0001000 && instr <= 0001777)  // BNE, BEQ
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("Z=%c"), (psw & PSW_Z) ? '1' : '0');
+        buffer = std::format(_T("Z={}"), (psw & PSW_Z) ? _T('1') : _T('0'));
         // BNE: IF (Z == 0)
         // BEQ: IF (Z == 1)
         bool value = ((psw & PSW_Z) != 0);
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0002000 && instr <= 0002777)  // BGE, BLT
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("N=%c, V=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0');
+        buffer = std::format(_T("N={}, V={}"), (psw & PSW_N) ? _T('1') : _T('0'), (psw & PSW_V) ? _T('1') : _T('0'));
         // BGE: IF ((N xor V) == 0)
         // BLT: IF ((N xor V) == 1)
         bool value = (((psw & PSW_N) != 0) != ((psw & PSW_V) != 0));
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0003000 && instr <= 0003777)  // BGT, BLE
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("N=%c, V=%c, Z=%c"), (psw & PSW_N) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        buffer = std::format(_T("N={}, V={}, Z={}"), (psw & PSW_N) ? _T('1') : _T('0'), (psw & PSW_V) ? _T('1') : _T('0'), (psw & PSW_Z) ? _T('1') : _T('0'));
         // BGT: IF (((N xor V) or Z) == 0)
         // BLE: IF (((N xor V) or Z) == 1)
         bool value = ((((psw & PSW_N) != 0) != ((psw & PSW_V) != 0)) || ((psw & PSW_Z) != 0));
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0100000 && instr <= 0100777)  // BPL, BMI
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("N=%c"), (psw & PSW_N) ? '1' : '0');
+        buffer = std::format(_T("N={}"), (psw & PSW_N) ? _T('1') : _T('0'));
         // BPL: IF (N == 0)
         // BMI: IF (N == 1)
         bool value = ((psw & PSW_N) != 0);
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0101000 && instr <= 0101777)  // BHI, BLOS
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("C=%c, Z=%c"), (psw & PSW_C) ? '1' : '0', (psw & PSW_Z) ? '1' : '0');
+        buffer = std::format(_T("C={}, Z={}"), (psw & PSW_C) ? _T('1') : _T('0'), (psw & PSW_Z) ? _T('1') : _T('0'));
         // BHI:  IF ((C or Z) == 0)
         // BLOS: IF ((C or Z) == 1)
         bool value = (((psw & PSW_C) != 0) || ((psw & PSW_Z) != 0));
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0102000 && instr <= 0102777)  // BVC, BVS
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("V=%c"), (psw & PSW_V) ? '1' : '0');
+        buffer = std::format(_T("V={}"), (psw & PSW_V) ? _T('1') : _T('0'));
         // BVC: IF (V == 0)
         // BVS: IF (V == 1)
         bool value = ((psw & PSW_V) != 0);
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0103000 && instr <= 0103777)  // BCC/BHIS, BCS/BLO
     {
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("C=%c"), (psw & PSW_C) ? '1' : '0');
+        buffer = std::format(_T("C={}"), (psw & PSW_C) ? _T('1') : _T('0'));
         // BCC/BHIS: IF (C == 0)
         // BCS/BLO:  IF (C == 1)
         bool value = ((psw & PSW_C) != 0);
-        return ((instr & 0400) == 0) ? !value : value;
+        result.predict = ((instr & 0400) == 0) ? !value : value;
+        return result;
     }
     if (instr >= 0077000 && instr <= 0077777)  // SOB
     {
         int reg = (instr >> 6) & 7;
-        uint16_t regvalue = pProc->GetReg(reg);
-        _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("%s=%06o"), REGISTER_NAME[reg], regvalue);  // "RN=XXXXXX"
-        return (regvalue != 1);
+        uint16_t regvalue = processor.GetReg(reg);
+        buffer = std::format(_T("{}={:06o}"), REGISTER_NAME[reg], regvalue);
+        result.predict = regvalue != 1;
+        return result;
     }
 
     // JSR has no jump hint: its link register and its destination are shown by the instruction hint
     if (instr >= 000200 && instr <= 000207)  // RTS / RETURN
     {
-        TCHAR hintSp[DISASM_HINT_PIECE_SIZE];
-        Disasm_MemoryHint(hintSp, DISASM_HINT_PIECE_SIZE, pMemCtl, pProc->IsHaltMode(), _T("(SP)"), pProc->GetSP(), false);
+        const auto hintSp = Disasm_MemoryHint(memoryController, processor.IsHaltMode(), _T("(SP)"), processor.GetSP(), false);
         if (instr == 000207)  // RETURN
-            _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("%s"), hintSp);  // "(SP)=XXXXXX"
+            buffer = hintSp;
         else  // RTS
         {
             int reg = instr & 7;
-            _sntprintf(buffer, DISASM_HINT_SIZE - 1, _T("%s=%06o, %s"), REGISTER_NAME[reg], pProc->GetReg(reg), hintSp);  // "RN=XXXXXX, (SP)=XXXXXX"
+            buffer = std::format(_T("{}={:06o}, {}"), REGISTER_NAME[reg], processor.GetReg(reg), hintSp);
         }
-        return true;
+        return result;
     }
 
     if (instr == 000002 || instr == 000006)  // RTI, RTT: the new PC and the new PSW from the stack
     {
-        uint16_t sp = pProc->GetSP();
-        Disasm_MemoryHint(buffer, DISASM_HINT_SIZE, pMemCtl, pProc->IsHaltMode(), _T("(SP)"), sp, false);  // "(SP)=XXXXXX"
-        Disasm_MemoryHint(buffer2, DISASM_HINT_SIZE, pMemCtl, pProc->IsHaltMode(), _T("(SP+2)"), static_cast<uint16_t>(sp + 2), false);
-        return true;
+        uint16_t sp = processor.GetSP();
+        buffer = Disasm_MemoryHint(memoryController, processor.IsHaltMode(), _T("(SP)"), sp, false);
+        buffer2 = Disasm_MemoryHint(memoryController, processor.IsHaltMode(), _T("(SP+2)"), static_cast<uint16_t>(sp + 2), false);
+        return result;
     }
     if (instr == 000003 || instr == 000004 ||  // IOT, BPT
         (instr >= 0104000 && instr <= 0104777))  // TRAP, EMT
@@ -668,169 +507,139 @@ static bool Disasm_JumpHintLines(const uint16_t* memory, const CProcessor * pPro
         else intvec = 000034;
 
         // The trap is a USER mode interrupt: the new PC and PSW are read from the vector in USER mode
-        TCHAR label[16];
-        _sntprintf(label, 15, _T("(%06o)"), intvec);  // "(VVVVVV)=XXXXXX"
-        Disasm_MemoryHint(buffer, DISASM_HINT_SIZE, pMemCtl, false, label, intvec, false);
-        _sntprintf(label, 15, _T("(%06o)"), static_cast<unsigned int>(intvec + 2));
-        Disasm_MemoryHint(buffer2, DISASM_HINT_SIZE, pMemCtl, false, label, static_cast<uint16_t>(intvec + 2), false);
-        return true;
+        buffer = Disasm_MemoryHint(memoryController, false, std::format(_T("({:06o})"), intvec), intvec, false);
+        buffer2 = Disasm_MemoryHint(memoryController, false, std::format(_T("({:06o})"), intvec + 2), static_cast<uint16_t>(intvec + 2), false);
+        return result;
     }
 
-    return true;  // All other jumps are non-conditional
+    return result;  // All other jumps are non-conditional
 }
 
-// A wrapper over Disasm_JumpHintLines() for the callers of the old interface; the application uses Disasm_GetHint() instead.
-// Prepares the first line of the "Jump Hint" (32 characters at most) and calculates the condition for a conditional jump
-// Returns: jump prediction flag: true = will jump, false = will not jump
-bool Disasm_GetJumpConditionHint(
-    const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer)
+DisasmJumpHint Disasm_GetJumpConditionHint(std::span<const uint16_t> memory,
+    const CProcessor& processor, const CMemoryController& memoryController)
 {
-    TCHAR line1[DISASM_HINT_SIZE], line2[DISASM_HINT_SIZE];
-    bool okPredict = Disasm_JumpHintLines(memory, pProc, pMemCtl, line1, line2);
-    _tcsncpy_s(buffer, 32, line1, _TRUNCATE);  // the first line only, 32 characters, as it always was
-    return okPredict;
+    if (memory.empty()) return {};
+    const auto words = PadHintWords(memory);
+    auto hint = Disasm_JumpHintLines(words, processor, memoryController);
+    return {std::move(hint.first), hint.predict};
 }
 
-// A deferred operand: the word at pointerAddress is the pointer, the operand is at the pointer.
-// pointerHint gets "(label)=pointer"; operandHint gets "(pointer)=operand", but only if the pointer is real:
-// when the pointer is "N/A" or "I/O", nothing that depends on it is shown.
-static void Disasm_PointerHint(LPTSTR pointerHint, LPTSTR operandHint, size_t hintsize,
-        const CProcessor * pProc, const CMemoryController * pMemCtl,
-        LPCTSTR label, uint16_t pointerAddress, bool byteword)
+using OperandHints = std::array<TcharString, DISASM_HINT_LINES>;
+
+// A deferred operand shows both the pointer and, when readable, its target.
+static std::pair<TcharString, TcharString> Disasm_PointerHint(
+        const CProcessor& processor, const CMemoryController& memoryController,
+        std::basic_string_view<TCHAR> label, uint16_t pointerAddress, bool byteword)
 {
-    uint16_t pointer;
-    TCHAR strValue[8];
-    bool okPointer = Disasm_ReadHintValue(pMemCtl, pProc->IsHaltMode(), pointerAddress, false, &pointer, strValue);  // the pointer is a word
-    _sntprintf(pointerHint, hintsize - 1, _T("%s=%s"), label, strValue);
-    if (okPointer)
-    {
-        TCHAR operandLabel[16];
-        _sntprintf(operandLabel, 15, _T("(%06o)"), pointer);  // "(NNNNNN)=XXXXXX" or "(NNNNNN)=XXX"
-        Disasm_MemoryHint(operandHint, hintsize, pMemCtl, pProc->IsHaltMode(), operandLabel, pointer, byteword);
-    }
+    const auto pointer = Disasm_ReadHintValue(memoryController, processor.IsHaltMode(), pointerAddress, false);
+    auto pointerHint = std::format(_T("{}={}"), label, pointer.text);
+    TcharString operandHint;
+    if (pointer.value)
+        operandHint = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+            std::format(_T("({:06o})"), *pointer.value), *pointer.value, byteword);
+    return {std::move(pointerHint), std::move(operandHint)};
 }
 
-void Disasm_RegisterHint(const CProcessor * pProc, const CMemoryController * pMemCtl, const HintRegs& regs,
-        LPTSTR hint1, LPTSTR hint2, LPTSTR hint3,
-        int regnum, int regmod, bool byteword, uint16_t indexval)
+static OperandHints Disasm_RegisterHint(const CProcessor& processor, const CMemoryController& memoryController,
+        const HintRegs& regs, int regnum, int regmod, bool byteword, uint16_t indexval)
 {
-    const size_t hintsize = DISASM_HINT_PIECE_SIZE;
-    uint16_t regval = regs.r[regnum];
-    LPCTSTR regname = REGISTER_NAME[regnum];
-    TCHAR label[16];
+    OperandHints hints;
+    const uint16_t regval = regs.r[regnum];
+    const auto regname = REGISTER_NAME[regnum];
+    hints[0] = std::format(_T("{}={:06o}"), regname, regval);
 
-    _sntprintf(hint1, hintsize - 1, _T("%s=%06o"), regname, regval);  // "RN=XXXXXX"
     switch (regmod)
     {
     case 1:
     case 2:
-        _sntprintf(label, 15, _T("(%s)"), regname);  // "(RN)=XXXXXX" or "(RN)=XXX"
-        Disasm_MemoryHint(hint2, hintsize, pMemCtl, pProc->IsHaltMode(), label, regval, byteword);
+        hints[1] = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+            std::format(_T("({})"), regname), regval, byteword);
         break;
     case 3:
-        _sntprintf(label, 15, _T("(%s)"), regname);  // line 2: the pointer, line 3: the operand
-        Disasm_PointerHint(hint2, hint3, hintsize, pProc, pMemCtl, label, regval, byteword);
+        std::tie(hints[1], hints[2]) = Disasm_PointerHint(processor, memoryController,
+            std::format(_T("({})"), regname), regval, byteword);
         break;
     case 4:
         {
-            int step = Disasm_GetStep(regnum, regmod, byteword);
-            _sntprintf(label, 15, _T("(%s-%d)"), regname, step);  // "(RN-2)=XXXXXX", "(RN-1)=XXX"
-            Disasm_MemoryHint(hint2, hintsize, pMemCtl, pProc->IsHaltMode(), label, static_cast<uint16_t>(regval - step), byteword);
+            const int step = Disasm_GetStep(regnum, regmod, byteword);
+            hints[1] = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+                std::format(_T("({}-{})"), regname, step), static_cast<uint16_t>(regval - step), byteword);
         }
         break;
     case 5:
-        _sntprintf(label, 15, _T("(%s-2)"), regname);  // line 2: the pointer, line 3: the operand
-        Disasm_PointerHint(hint2, hint3, hintsize, pProc, pMemCtl, label, static_cast<uint16_t>(regval - 2), byteword);
+        std::tie(hints[1], hints[2]) = Disasm_PointerHint(processor, memoryController,
+            std::format(_T("({}-2)"), regname), static_cast<uint16_t>(regval - 2), byteword);
         break;
     case 6:
-        _sntprintf(label, 15, _T("(%s+%06o)"), regname, indexval);  // "(RN+NNNNNN)=XXXXXX" or "(RN+NNNNNN)=XXX"
-        Disasm_MemoryHint(hint2, hintsize, pMemCtl, pProc->IsHaltMode(), label, static_cast<uint16_t>(regval + indexval), byteword);
+        hints[1] = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+            std::format(_T("({}+{:06o})"), regname, indexval), static_cast<uint16_t>(regval + indexval), byteword);
         break;
     case 7:
-        _sntprintf(label, 15, _T("(%s+%06o)"), regname, indexval);  // line 2: the pointer, line 3: the operand
-        Disasm_PointerHint(hint2, hint3, hintsize, pProc, pMemCtl, label, static_cast<uint16_t>(regval + indexval), byteword);
+        std::tie(hints[1], hints[2]) = Disasm_PointerHint(processor, memoryController,
+            std::format(_T("({}+{:06o})"), regname, indexval), static_cast<uint16_t>(regval + indexval), byteword);
         break;
     }
+    return hints;
 }
 
-void Disasm_RegisterHintPC(const CProcessor * pProc, const CMemoryController * pMemCtl,
-        LPTSTR hint1, LPTSTR hint2,
+static OperandHints Disasm_RegisterHintPC(const CProcessor& processor, const CMemoryController& memoryController,
         int regmod, bool byteword, uint16_t curaddr, uint16_t value)
 {
-    const size_t hintsize = DISASM_HINT_PIECE_SIZE;
-    TCHAR label[16];
-
-    //TODO: else if (regmod == 2)
+    OperandHints hints;
     if (regmod == 3)  // @#addr: the value is at the address in the instruction
+        hints[0] = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+            std::format(_T("({:06o})"), value), value, byteword);
+    else if (regmod == 6)  // PC-relative, after the offset word
     {
-        _sntprintf(label, 15, _T("(%06o)"), value);  // "(NNNNNN)=XXXXXX" or "(NNNNNN)=XXX"
-        Disasm_MemoryHint(hint1, hintsize, pMemCtl, pProc->IsHaltMode(), label, value, byteword);
+        const auto address = static_cast<uint16_t>(curaddr + value);
+        hints[0] = Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+            std::format(_T("({:06o})"), address), address, byteword);
     }
-    else if (regmod == 6)  // addr: PC-relative, the PC is after the offset word
+    else if (regmod == 7)  // PC-relative pointer and operand
     {
-        uint16_t addr2 = static_cast<uint16_t>(curaddr + value);
-        _sntprintf(label, 15, _T("(%06o)"), addr2);  // "(NNNNNN)=XXXXXX" or "(NNNNNN)=XXX"
-        Disasm_MemoryHint(hint1, hintsize, pMemCtl, pProc->IsHaltMode(), label, addr2, byteword);
+        const auto address = static_cast<uint16_t>(curaddr + value);
+        std::tie(hints[0], hints[1]) = Disasm_PointerHint(processor, memoryController,
+            std::format(_T("({:06o})"), address), address, byteword);
     }
-    else if (regmod == 7)  // @addr: PC-relative pointer; line 1: the pointer, line 2: the operand
-    {
-        uint16_t addr2 = static_cast<uint16_t>(curaddr + value);
-        _sntprintf(label, 15, _T("(%06o)"), addr2);
-        Disasm_PointerHint(hint1, hint2, hintsize, pProc, pMemCtl, label, addr2, byteword);
-    }
+    return hints;
 }
 
-// Join the hint pieces of the source and of the destination operand into one line:
-// "source, destination"; a piece that is alone is the line; equal pieces are shown once.
-// dstColumn: when only the destination piece is present and the destination has a piece on line 1 too, the piece is
-// aligned to the column of that piece (the length of the source piece of line 1 plus ", "); 0 = no alignment.
-static void Disasm_JoinHints(LPTSTR line, const TCHAR* src, const TCHAR* dst, size_t dstColumn)
+// Join source and destination pieces, aligning a lone destination beneath line 1.
+static TcharString Disasm_JoinHints(std::basic_string_view<TCHAR> src,
+        std::basic_string_view<TCHAR> dst, size_t dstColumn)
 {
-    if (*src != 0 && *dst != 0)
-    {
-        if (_tcscmp(src, dst) == 0)
-            _tcscpy_s(line, DISASM_HINT_SIZE, src);
-        else
-            _sntprintf(line, DISASM_HINT_SIZE - 1, _T("%s, %s"), src, dst);
-    }
-    else if (*src != 0)
-        _tcscpy_s(line, DISASM_HINT_SIZE, src);
-    else if (*dst != 0)
-    {
-        size_t column = (dstColumn < DISASM_HINT_SIZE - 1 - _tcslen(dst)) ? dstColumn : 0;
-        for (size_t i = 0; i < column; i++) line[i] = _T(' ');
-        _tcscpy_s(line + column, DISASM_HINT_SIZE - column, dst);
-    }
+    if (!src.empty() && !dst.empty())
+        return src == dst ? TcharString(src) : std::format(_T("{}, {}"), src, dst);
+    if (!src.empty()) return TcharString(src);
+    if (dst.empty()) return {};
+    constexpr size_t alignmentLimit = 63;
+    const size_t column = dstColumn + dst.size() < alignmentLimit ? dstColumn : 0;
+    return TcharString(column, _T(' ')) + TcharString(dst);
 }
 
-void Disasm_InstructionHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl,
-        LPTSTR buffer, LPTSTR buffer2, LPTSTR buffer3,
-        int srcreg, int srcmod, int dstreg, int dstmod, bool byteword)
+static OperandHints Disasm_InstructionHint(std::span<const uint16_t, 3> memory, const CProcessor& processor,
+        const CMemoryController& memoryController, int srcreg, int srcmod, int dstreg, int dstmod, bool byteword)
 {
-    const size_t hintsize = DISASM_HINT_PIECE_SIZE;
-    TCHAR srchint1[hintsize] = { 0 }, dsthint1[hintsize] = { 0 };
-    TCHAR srchint2[hintsize] = { 0 }, dsthint2[hintsize] = { 0 };
-    TCHAR srchint3[hintsize] = { 0 }, dsthint3[hintsize] = { 0 };
+    OperandHints source, destination;
     HintRegs regs;
-    for (int i = 0; i < 8; i++)
-        regs.r[i] = pProc->GetReg(i);
-    const uint16_t* curmemory = memory + 1;
-    uint16_t curaddr = pProc->GetPC() + 2;
+    for (int i = 0; i < 8; ++i)
+        regs.r[i] = processor.GetReg(i);
+    size_t nextWord = 1;
+    uint16_t curaddr = processor.GetPC() + 2;
 
     if (srcreg >= 0)
     {
         uint16_t extraWord = 0;
         if (Disasm_HasExtraWord(srcreg, srcmod))
         {
-            extraWord = *(curmemory++);
+            extraWord = memory[nextWord++];
             curaddr += 2;
         }
         if (srcreg == 7)
-            Disasm_RegisterHintPC(pProc, pMemCtl, srchint1, srchint2, srcmod, byteword, curaddr, extraWord);
+            source = Disasm_RegisterHintPC(processor, memoryController, srcmod, byteword, curaddr, extraWord);
         else
         {
-            Disasm_RegisterHint(pProc, pMemCtl, regs, srchint1, srchint2, srchint3, srcreg, srcmod, byteword, extraWord);
-            // The destination is decoded after the autoincrement / autodecrement of the source
+            source = Disasm_RegisterHint(processor, memoryController, regs, srcreg, srcmod, byteword, extraWord);
             Disasm_ApplySideEffect(regs, srcreg, srcmod, byteword);
         }
     }
@@ -839,36 +648,30 @@ void Disasm_InstructionHint(const uint16_t* memory, const CProcessor * pProc, co
         uint16_t extraWord = 0;
         if (Disasm_HasExtraWord(dstreg, dstmod))
         {
-            extraWord = *(curmemory++);
+            extraWord = memory[nextWord++];
             curaddr += 2;
         }
         if (dstreg == 7)
-            Disasm_RegisterHintPC(pProc, pMemCtl, dsthint1, dsthint2, dstmod, byteword, curaddr, extraWord);
+            destination = Disasm_RegisterHintPC(processor, memoryController, dstmod, byteword, curaddr, extraWord);
         else
-            Disasm_RegisterHint(pProc, pMemCtl, regs, dsthint1, dsthint2, dsthint3, dstreg, dstmod, byteword, extraWord);
+            destination = Disasm_RegisterHint(processor, memoryController, regs, dstreg, dstmod, byteword, extraWord);
     }
 
-    // The 1st line; equal pieces are shown once, and then the destination has no piece on the line
-    Disasm_JoinHints(buffer, srchint1, dsthint1, 0);
-    size_t dstColumn = 0;
-    if (*srchint1 != 0 && *dsthint1 != 0 && _tcscmp(srchint1, dsthint1) != 0)
-        dstColumn = _tcslen(srchint1) + 2;
-    // The 2nd and the 3rd lines; a lone destination piece is aligned under the destination piece of the 1st line
-    Disasm_JoinHints(buffer2, srchint2, dsthint2, dstColumn);
-    Disasm_JoinHints(buffer3, srchint3, dsthint3, dstColumn);
+    const size_t dstColumn = !source[0].empty() && !destination[0].empty() && source[0] != destination[0]
+        ? source[0].size() + 2 : 0;
+    return {Disasm_JoinHints(source[0], destination[0], 0),
+            Disasm_JoinHints(source[1], destination[1], dstColumn),
+            Disasm_JoinHints(source[2], destination[2], dstColumn)};
 }
-
-// Prepare the lines of the "Instruction Hint" for a regular instruction (not a branch/jump one)
-// Returns: number of hint lines, 0..3; 0 = no hints
-static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor * pProc,
-        const CMemoryController * pMemCtl, DisasmHint* pHint)
+// Prepare the lines of the instruction hint for a regular instruction.
+static DisasmHint Disasm_InstructionHintLines(std::span<const uint16_t, 3> memory, const CProcessor& processor,
+        const CMemoryController& memoryController)
 {
-    LPTSTR buffer = pHint->lines[0];
-    LPTSTR buffer2 = pHint->lines[1];
-    LPTSTR buffer3 = pHint->lines[2];
-    const size_t buffersize = DISASM_HINT_SIZE;
-    *buffer = 0;  *buffer2 = 0;  *buffer3 = 0;
-    uint16_t instr = *memory;
+    DisasmHint hint;
+    auto& buffer = hint.lines[0];
+    auto& buffer2 = hint.lines[1];
+    auto& buffer3 = hint.lines[2];
+    uint16_t instr = memory.front();
 
     // Source and Destination
     if ((instr & ~static_cast<uint16_t>(0107777)) == PI_MOV || (instr & ~static_cast<uint16_t>(0107777)) == PI_CMP ||
@@ -881,7 +684,7 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
         int dstmod = (instr >> 3) & 7;
         // The bit 15 is the byte flag, except for SUB (0160000), which is a word operation
         bool okByte = (instr & 0100000) != 0 && (instr & ~static_cast<uint16_t>(0007777)) != PI_SUB;
-        Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3, srcreg, srcmod, dstreg, dstmod, okByte);
+        hint.lines = Disasm_InstructionHint(memory, processor, memoryController, srcreg, srcmod, dstreg, dstmod, okByte);
     }
 
     // Register and Destination
@@ -898,18 +701,17 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
             // DIV and ASHC use the register pair Rn:Rn|1, so they show both; for an odd Rn the pair is Rn itself.
             // A register that the operand piece already shows is not repeated.
             bool okPair = (instr & ~static_cast<uint16_t>(0777)) == PI_DIV || (instr & ~static_cast<uint16_t>(0777)) == PI_ASHC;
-            Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3, -1, -1, dstreg, dstmod, false);
+            hint.lines = Disasm_InstructionHint(memory, processor, memoryController, -1, -1, dstreg, dstmod, false);
             for (int reg = srcreg; reg <= (okPair ? (srcreg | 1) : srcreg); reg++)
             {
                 if (reg == dstreg && dstmod == 0)
                     continue;
-                size_t length = _tcslen(buffer);
-                _sntprintf(buffer + length, buffersize - 1 - length, _T("%s%s=%06o"),
-                        length > 0 ? _T(", ") : _T(""), REGISTER_NAME[reg], pProc->GetReg(reg));  // "RN=XXXXXX, RM=XXXXXX"
+                buffer += std::format(_T("{}{}={:06o}"),
+                    buffer.empty() ? _T("") : _T(", "), REGISTER_NAME[reg], processor.GetReg(reg));
             }
         }
         else  // XOR is written "register, operand"
-            Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3, srcreg, 0, dstreg, dstmod, false);
+            hint.lines = Disasm_InstructionHint(memory, processor, memoryController, srcreg, 0, dstreg, dstmod, false);
     }
 
     // Destination only
@@ -923,19 +725,16 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
         int dstreg = instr & 7;
         int dstmod = (instr >> 3) & 7;
         // The bit 15 is the byte flag: CLRB...ASLB, MTPS and MFPS are byte operations, SWAB and SXT are not
-        Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3, -1, -1, dstreg, dstmod, (instr & 0100000) != 0);
+        hint.lines = Disasm_InstructionHint(memory, processor, memoryController, -1, -1, dstreg, dstmod, (instr & 0100000) != 0);
 
         // MFPS, MTPS: also the low byte of the PSW; SXT: also the N flag, the value of the result is -N
-        TCHAR extra[16] = { 0 };
+        TcharString extra;
         if ((instr & ~static_cast<uint16_t>(077)) == PI_MFPS || (instr & ~static_cast<uint16_t>(077)) == PI_MTPS)
-            _sntprintf(extra, 15, _T("PS=%03o"), static_cast<unsigned int>(pProc->GetPSW() & 0377));  // "PS=XXX"
+            extra = std::format(_T("PS={:03o}"), processor.GetPSW() & 0377);
         else if ((instr & ~static_cast<uint16_t>(077)) == PI_SXT)
-            _sntprintf(extra, 15, _T("N=%c"), (pProc->GetPSW() & PSW_N) ? '1' : '0');  // "N=X"
-        if (extra[0] != 0)
-        {
-            size_t length = _tcslen(buffer);
-            _sntprintf(buffer + length, buffersize - 1 - length, _T("%s%s"), length > 0 ? _T(", ") : _T(""), extra);
-        }
+            extra = std::format(_T("N={}"), (processor.GetPSW() & PSW_N) ? _T('1') : _T('0'));
+        if (!extra.empty())
+            buffer += (buffer.empty() ? _T("") : _T(", ")) + extra;
     }
 
     // ADC, SBC, ROR, ROL: destination only, and also show C flag
@@ -944,18 +743,18 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
     {
         int dstreg = instr & 7;
         int dstmod = (instr >> 3) & 7;
-        Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3, -1, -1, dstreg, dstmod, (instr & 0100000) != 0);
-        uint16_t psw = pProc->GetPSW();
-        size_t length = _tcslen(buffer);  // 0 for a PC destination without a hint: then "C=X" alone
-        _sntprintf(buffer + length, buffersize - 1 - length, _T("%sC=%c"), length > 0 ? _T(", ") : _T(""), (psw & PSW_C) ? '1' : '0');  // "..., C=X"
+        hint.lines = Disasm_InstructionHint(memory, processor, memoryController, -1, -1, dstreg, dstmod, (instr & 0100000) != 0);
+        uint16_t psw = processor.GetPSW();
+        buffer += std::format(_T("{}C={}"), buffer.empty() ? _T("") : _T(", "), (psw & PSW_C) ? _T('1') : _T('0'));
     }
 
     // CLC..CCC, SEC..SCC -- show flags
     if (instr >= 0000241 && instr <= 0000257 || instr >= 0000261 && instr <= 0000277)
     {
-        uint16_t psw = pProc->GetPSW();
-        _sntprintf(buffer, buffersize - 1, _T("C=%c, V=%c, Z=%c, N=%c"),
-                (psw & PSW_C) ? '1' : '0', (psw & PSW_V) ? '1' : '0', (psw & PSW_Z) ? '1' : '0', (psw & PSW_N) ? '1' : '0');
+        uint16_t psw = processor.GetPSW();
+        buffer = std::format(_T("C={}, V={}, Z={}, N={}"),
+            (psw & PSW_C) ? _T('1') : _T('0'), (psw & PSW_V) ? _T('1') : _T('0'),
+            (psw & PSW_Z) ? _T('1') : _T('0'), (psw & PSW_N) ? _T('1') : _T('0'));
     }
 
     // JSR, JMP: the destination, except the relative and the absolute addressing, which have the arrow;
@@ -970,48 +769,40 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
         int dstreg = okTrivial ? -1 : (instr & 7);
         int dstmod = okTrivial ? -1 : ((instr >> 3) & 7);
         if (linkreg >= 0 || dstreg >= 0)
-            Disasm_InstructionHint(memory, pProc, pMemCtl, buffer, buffer2, buffer3,
+            hint.lines = Disasm_InstructionHint(memory, processor, memoryController,
                     linkreg, (linkreg >= 0) ? 0 : -1, dstreg, dstmod, false);
         // The word at the jump target is the next instruction, not data, so it is never shown. What is shown is how
         // the target is calculated, in the form "expression=address": R1-2=XXXXXX, R1+N=XXXXXX. For (Rn) and (Rn)+
         // the target is Rn, which line 1 shows already. For a deferred mode the address is the one of the pointer, and
         // the next line shows the pointer, which is the target: (XXXXXX)=XXXXXX; @(Rn)+ has it as (Rn)=XXXXXX.
         // The lines are aligned under the destination piece of line 1 (after the JSR link register).
-        *buffer3 = 0;
+        buffer3.clear();
         if (dstreg == 7)
-            *buffer2 = 0;
+            buffer2.clear();
         else if (dstreg >= 0 && (dstmod == 1 || dstmod == 2))
-            *buffer2 = 0;
+            buffer2.clear();
         else if (dstreg >= 0 && dstmod >= 4)
         {
             size_t column = 0;
-            while (buffer2[column] == _T(' '))
+            while (column < buffer2.size() && buffer2[column] == _T(' '))
                 column++;
-            TCHAR expr[16];
-            uint16_t address = pProc->GetReg(dstreg);
+            TcharString expr;
+            uint16_t address = processor.GetReg(dstreg);
             if (dstmod == 4 || dstmod == 5)
             {
                 address -= 2;
-                _sntprintf(expr, 15, _T("%s-2"), REGISTER_NAME[dstreg]);  // "RN-2"
+                expr = std::format(_T("{}-2"), REGISTER_NAME[dstreg]);
             }
             else
             {
                 address += memory[1];  // the index word follows the instruction
-                _sntprintf(expr, 15, _T("%s+%o"), REGISTER_NAME[dstreg], static_cast<unsigned int>(memory[1]));  // "RN+N"
+                expr = std::format(_T("{}+{:o}"), REGISTER_NAME[dstreg], memory[1]);
             }
-            LPTSTR lines[2] = { buffer2, buffer3 };
-            for (int i = 0; i < 2; i++)
-                for (size_t k = 0; k < column; k++)
-                    lines[i][k] = _T(' ');
-            _sntprintf(buffer2 + column, buffersize - 1 - column, _T("%s=%06o"), expr, address);  // "RN-2=XXXXXX"
+            const TcharString indent(column, _T(' '));
+            buffer2 = indent + std::format(_T("{}={:06o}"), expr, address);
             if (dstmod == 5 || dstmod == 7)  // the pointer is the target
-            {
-                TCHAR label[16];
-                _sntprintf(label, 15, _T("(%06o)"), address);  // "(XXXXXX)=XXXXXX"
-                Disasm_MemoryHint(buffer3 + column, buffersize - column, pMemCtl, pProc->IsHaltMode(), label, address, false);
-            }
-            else
-                *buffer3 = 0;
+                buffer3 = indent + Disasm_MemoryHint(memoryController, processor.IsHaltMode(),
+                    std::format(_T("({:06o})"), address), address, false);
         }
     }
 
@@ -1021,107 +812,94 @@ static int Disasm_InstructionHintLines(const uint16_t* memory, const CProcessor 
         (instr & ~static_cast<uint16_t>(7)) == PI_FMUL || (instr & ~static_cast<uint16_t>(7)) == PI_FDIV)
     {
         int reg = instr & 7;
-        uint16_t regval = pProc->GetReg(reg);
-        _sntprintf(buffer, buffersize - 1, _T("%s=%06o"), REGISTER_NAME[reg], regval);  // "RN=XXXXXX"
-        TCHAR label[16];
-        _sntprintf(label, 15, _T("(%s)"), REGISTER_NAME[reg]);
-        Disasm_PairHint(buffer2, buffersize, pMemCtl, pProc->IsHaltMode(), label, regval);  // "(RN)=HHHHHH:LLLLLL = value"
-        _sntprintf(label, 15, _T("(%s+4)"), REGISTER_NAME[reg]);
-        Disasm_PairHint(buffer3, buffersize, pMemCtl, pProc->IsHaltMode(), label, static_cast<uint16_t>(regval + 4));  // "(RN+4)=..."
+        uint16_t regval = processor.GetReg(reg);
+        buffer = std::format(_T("{}={:06o}"), REGISTER_NAME[reg], regval);
+        buffer2 = Disasm_PairHint(memoryController, processor.IsHaltMode(), std::format(_T("({})"), REGISTER_NAME[reg]), regval);
+        buffer3 = Disasm_PairHint(memoryController, processor.IsHaltMode(), std::format(_T("({}+4)"), REGISTER_NAME[reg]), static_cast<uint16_t>(regval + 4));
     }
 
     // HALT mode commands (000010..000037): in USER mode they trap as a reserved instruction, so the hint is only the mode
-    if (instr >= 0000010 && instr <= 0000037 && !pProc->IsHaltMode())
+    if (instr >= 0000010 && instr <= 0000037 && !processor.IsHaltMode())
     {
-        _tcscpy_s(buffer, buffersize, _T("USER mode"));
+        buffer = _T("USER mode");
     }
     else if (instr >= 0000010 && instr <= 0000017)  // RUN / START, STEP: PC and PSW are taken from the copies
     {
-        _sntprintf(buffer, buffersize - 1, _T("PC'=%06o, PS'=%06o"), pProc->GetCPC(), pProc->GetCPSW());  // "PC'=XXXXXX, PS'=XXXXXX"
+        buffer = std::format(_T("PC'={:06o}, PS'={:06o}"), processor.GetCPC(), processor.GetCPSW());
     }
     else if (instr == 0000032 || instr == 0000033)  // WCPC: CPC <- R0
     {
-        _sntprintf(buffer, buffersize - 1, _T("R0=%06o, PC'=%06o"), pProc->GetReg(0), pProc->GetCPC());  // "R0=XXXXXX, PC'=XXXXXX"
+        buffer = std::format(_T("R0={:06o}, PC'={:06o}"), processor.GetReg(0), processor.GetCPC());
     }
     else if (instr >= 0000034 && instr <= 0000037)  // WCPS: CPSW <- R0
     {
-        _sntprintf(buffer, buffersize - 1, _T("R0=%06o, PS'=%06o"), pProc->GetReg(0), pProc->GetCPSW());  // "R0=XXXXXX, PS'=XXXXXX"
+        buffer = std::format(_T("R0={:06o}, PS'={:06o}"), processor.GetReg(0), processor.GetCPSW());
     }
     else if (instr == PI_MFUS)
     {
-        _sntprintf(buffer, buffersize - 1, _T("R5=%06o, R0=%06o"), pProc->GetReg(5), pProc->GetReg(0));  // "R5=XXXXXX, R0=XXXXXX"
+        buffer = std::format(_T("R5={:06o}, R0={:06o}"), processor.GetReg(5), processor.GetReg(0));
         // the word that becomes R0, read from the USER mode memory map
-        Disasm_MemoryHint(buffer2, buffersize, pMemCtl, false, _T("(R5)"), pProc->GetReg(5), false);  // "(R5)=XXXXXX"
+        buffer2 = Disasm_MemoryHint(memoryController, false, _T("(R5)"), processor.GetReg(5), false);
     }
     else if (instr == PI_MTUS)
     {
-        _sntprintf(buffer, buffersize - 1, _T("R0=%06o, R5=%06o"), pProc->GetReg(0), pProc->GetReg(5));  // "R0=XXXXXX, R5=XXXXXX"
+        buffer = std::format(_T("R0={:06o}, R5={:06o}"), processor.GetReg(0), processor.GetReg(5));
         // the word that will be overwritten, in the USER mode memory map
-        Disasm_MemoryHint(buffer2, buffersize, pMemCtl, false, _T("(R5-2)"), static_cast<uint16_t>(pProc->GetReg(5) - 2), false);  // "(R5-2)=XXXXXX"
+        buffer2 = Disasm_MemoryHint(memoryController, false, _T("(R5-2)"), static_cast<uint16_t>(processor.GetReg(5) - 2), false);
     }
     else if (instr == 0000022 || instr == 0000023)  // RCPC / MFPC
     {
-        _sntprintf(buffer, buffersize - 1, _T("PC'=%06o, R0=%06o"), pProc->GetCPC(), pProc->GetReg(0));  // "PC'=XXXXXX, R0=XXXXXX"
+        buffer = std::format(_T("PC'={:06o}, R0={:06o}"), processor.GetCPC(), processor.GetReg(0));
     }
     else if (instr >= 0000024 && instr <= 0000027)  // RCPS / MFPS
     {
-        _sntprintf(buffer, buffersize - 1, _T("PS'=%06o, R0=%06o"), pProc->GetCPSW(), pProc->GetReg(0));  // "PS'=XXXXXX, R0=XXXXXX"
+        buffer = std::format(_T("PS'={:06o}, R0={:06o}"), processor.GetCPSW(), processor.GetReg(0));
     }
     else if (instr == PI_RSEL)
     {
-        _sntprintf(buffer, buffersize - 1, _T("SEL=%06o, R0=%06o"), pMemCtl->GetSelRegister(), pProc->GetReg(0));  // "SEL=XXXXXX, R0=XXXXXX"
+        buffer = std::format(_T("SEL={:06o}, R0={:06o}"), memoryController.GetSelRegister(), processor.GetReg(0));
     }
 
     if ((instr & ~static_cast<uint16_t>(077)) == PI_MARK)
     {
         // MARK nn: SP = PC + 2*nn, PC = R5, R5 = (SP)+; here PC is the address of MARK, the instruction is one word long
-        uint16_t spnew = static_cast<uint16_t>(pProc->GetPC() + 2 + 2 * (instr & 077));
-        _sntprintf(buffer, buffersize - 1, _T("R5=%06o"), pProc->GetReg(5));  // "R5=XXXXXX": the new PC
-        TCHAR label[16];
-        _sntprintf(label, 15, _T("(%06o)"), static_cast<unsigned int>(spnew));  // "(AAAAAA)=XXXXXX": the new R5
-        Disasm_MemoryHint(buffer2, buffersize, pMemCtl, pProc->IsHaltMode(), label, spnew, false);
+        uint16_t spnew = static_cast<uint16_t>(processor.GetPC() + 2 + 2 * (instr & 077));
+        buffer = std::format(_T("R5={:06o}"), processor.GetReg(5));
+        buffer2 = Disasm_MemoryHint(memoryController, processor.IsHaltMode(), std::format(_T("({:06o})"), spnew), spnew, false);
     }
 
-    int result = 0;
-    if (*buffer != 0)
-        result = 1;
-    if (*buffer2 != 0)
-        result = 2;
-    if (*buffer3 != 0)
-        result = 3;
-    return result;
+    if (!buffer.empty()) hint.count = 1;
+    if (!buffer2.empty()) hint.count = 2;
+    if (!buffer3.empty()) hint.count = 3;
+    return hint;
 }
 
-// A wrapper for the callers of the old interface; the application uses Disasm_GetHint() instead.
-// Prepares the two lines of the "Instruction Hint" of a regular instruction (not a branch/jump one):
-// the lines are copied to the buffers, 42 characters at most, the third line is not given
-// Returns: number of hint lines, at most 2; 0 = no hints
-int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
-        const CMemoryController * pMemCtl,
-        LPTSTR buffer, LPTSTR buffer2)
+DisasmHint Disasm_GetInstructionHint(std::span<const uint16_t> memory,
+    const CProcessor& processor, const CMemoryController& memoryController)
 {
+    if (memory.empty()) return {};
+    const auto words = PadHintWords(memory);
+    return Disasm_InstructionHintLines(words, processor, memoryController);
+}
+
+DisasmHint Disasm_GetHint(std::span<const uint16_t> memory,
+    const CProcessor& processor, const CMemoryController& memoryController)
+{
+    if (memory.empty()) return {};
+    const auto words = PadHintWords(memory);
+    auto jump = Disasm_JumpHintLines(words, processor, memoryController);
     DisasmHint hint;
-    int count = Disasm_InstructionHintLines(memory, pProc, pMemCtl, &hint);
-    _tcsncpy_s(buffer, 42, hint.lines[0], _TRUNCATE);
-    _tcsncpy_s(buffer2, 42, hint.lines[1], _TRUNCATE);
-    return (count > 2) ? 2 : count;
-}
-
-void Disasm_GetHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, DisasmHint* pHint)
-{
-    for (int i = 0; i < DISASM_HINT_LINES; i++)
-        pHint->lines[i][0] = 0;
-    pHint->count = 0;
-    pHint->isJump = Disasm_IsJumpInstruction(*memory);
-
-    // The jump hint (also gives the prediction); if the instruction has none, the instruction hint
-    pHint->jumpPredict = Disasm_JumpHintLines(memory, pProc, pMemCtl, pHint->lines[0], pHint->lines[1]);
-    if (pHint->lines[0][0] != 0)
+    if (!jump.first.empty())
     {
-        pHint->count = (pHint->lines[1][0] != 0) ? 2 : 1;
-        return;
+        hint.lines[0] = std::move(jump.first);
+        hint.lines[1] = std::move(jump.second);
+        hint.count = hint.lines[1].empty() ? 1 : 2;
     }
-    pHint->count = Disasm_InstructionHintLines(memory, pProc, pMemCtl, pHint);
+    else
+        hint = Disasm_InstructionHintLines(words, processor, memoryController);
+    hint.isJump = Disasm_IsJumpInstruction(words[0]);
+    hint.jumpPredict = jump.predict;
+    return hint;
 }
 
 // Round the absolute value to the 24-bit mantissa of the FIS number
@@ -1132,7 +910,7 @@ static double Disasm_RoundMantissa24(double value)
     return ldexp(floor(m * 16777216.0 + 0.5), e - 24);
 }
 
-void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t bufferSize)
+TcharString Disasm_FloatToString(uint16_t high, uint16_t low)
 {
     int exp = (high >> 7) & 0xFF;
     double res;
@@ -1144,8 +922,7 @@ void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t buf
         // (bias 128 and mantissa 0.1m vs bias 127 and 1.m), so subtract 1 from the high 7 bits of exponent
         uint32_t bits = (static_cast<uint32_t>(high) << 16) | low;
         bits = (bits & 0x80FFFFFF) | (((((bits >> 24) & 0x7F) - 1) & 0x7F) << 24);
-        float fvalue;  memcpy(&fvalue, &bits, sizeof(fvalue));
-        res = fvalue;
+        res = std::bit_cast<float>(bits);
     }
     else  // the result would be denormal in IEEE single
     {
@@ -1163,11 +940,9 @@ void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t buf
     }
     for (; digits < 9; digits++)
     {
-        _sntprintf(buffer, bufferSize - 1, _T("%.*g"), digits, res);
-        buffer[bufferSize - 1] = 0;
-        if (Disasm_RoundMantissa24(_tcstod(buffer, NULL)) == Disasm_RoundMantissa24(res))
-            return;
+        const auto text = std::format(_T("{:.{}g}"), res, digits);
+        if (Disasm_RoundMantissa24(_tcstod(text.c_str(), nullptr)) == Disasm_RoundMantissa24(res))
+            return text;
     }
-    _sntprintf(buffer, bufferSize - 1, _T("%.9g"), res);
-    buffer[bufferSize - 1] = 0;
+    return std::format(_T("{:.9g}"), res);
 }

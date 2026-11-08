@@ -15,6 +15,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Board.h"
 #include "Processor.h"
 #include "Memory.h"
+#include <optional>
+#include <span>
+#include <string>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -23,60 +26,60 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \brief Disassemble one instruction of KM1801VM2 processor
 /// \param[in]  memory Instruction words; missing extension words are treated as zero
 /// \param[in]  addr    Address of the instruction
-/// \param[out] instruction Instruction mnemonics buffer - at least 8 characters
-/// \param[out] argument Instruction arguments buffer - at least 32 characters
-/// \return Number of words in the instruction, or zero for an empty input or undersized output
-uint16_t DisassembleInstruction(std::span<const uint16_t> memory, uint16_t addr,
-                               std::span<TCHAR> instruction, std::span<TCHAR> argument);
+struct DisassembledInstruction
+{
+    std::basic_string<TCHAR> mnemonic;
+    std::basic_string<TCHAR> argument;
+    uint16_t length = 0;
+};
+
+/// \return The decoded instruction, or no value when memory is empty
+[[nodiscard]] std::optional<DisassembledInstruction> DisassembleInstruction(
+    std::span<const uint16_t> memory, uint16_t addr);
 
 /// \brief Check if the instruction is a jump with a known target, for the jump arrow
 /// \param[in]  memory   Memory image: the instruction and the word after it (the offset or the address of the target)
 /// \param[in]  address  Address of the instruction
-/// \param[out] pDelta   Distance in words from the instruction to the target, negative = back
-/// \return  true if the instruction is a jump with a known target
-bool Disasm_CheckForJump(const uint16_t* memory, uint16_t address, int* pDelta);
+/// \return Distance in words to the known target, or no value
+[[nodiscard]] std::optional<int> Disasm_CheckForJump(std::span<const uint16_t> memory, uint16_t address);
 
 // Hints of the current instruction: up to three lines of text and the jump prediction
 inline constexpr auto DISASM_HINT_LINES = 3;
-inline constexpr auto DISASM_HINT_SIZE = 64;   ///< Size of a hint line, in characters, including the terminator
-inline constexpr auto DISASM_HINT_PIECE_SIZE = 24;   ///< Size of a hint of one operand, a line joins the hints of the source and the destination
 
 struct DisasmHint
 {
-    TCHAR lines[DISASM_HINT_LINES][DISASM_HINT_SIZE];  ///< The lines; the unused ones are empty
-    int   count;        ///< Number of the lines used, 0..3; 0 = no hints
-    bool  isJump;       ///< The text is a jump hint
-    bool  jumpPredict;  ///< Jump prediction flag: true = will jump, false = will not jump
+    std::array<TcharString, DISASM_HINT_LINES> lines{};
+    int count = 0;
+    bool isJump = false;
+    bool jumpPredict = false;
 };
 
 /// \brief Prepare the hints of the instruction at PC
 /// \param[in]  memory   Memory image: the instruction and the two words after it
-/// \param[in]  pProc    Processor, the instruction is at its PC
-/// \param[in]  pMemCtl  Memory controller of the processor
-/// \param[out] pHint    The lines of the hint, their number and the jump prediction
-void Disasm_GetHint(const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, DisasmHint* pHint);
+/// \param[in]  processor Processor, the instruction is at its PC
+/// \param[in]  memoryController Memory controller of the processor
+/// \return The hint text and jump prediction
+[[nodiscard]] DisasmHint Disasm_GetHint(std::span<const uint16_t> memory, const CProcessor& processor,
+                                        const CMemoryController& memoryController);
 
-// A wrapper for the callers of the old interface; the application uses Disasm_GetHint() instead.
-// Prepare "Instruction Hint" for a regular instruction (not a branch/jump one), the first two lines
-// buffer, buffer2 - buffers for 1st and 2nd lines of the instruction hint, min size 42
-// Returns: number of hint lines, at most 2; 0 = no hints
-int Disasm_GetInstructionHint(const uint16_t* memory, const CProcessor * pProc,
-        const CMemoryController * pMemCtl,
-        LPTSTR buffer, LPTSTR buffer2);
+/// Prepare the regular instruction hint independently of the jump hint.
+[[nodiscard]] DisasmHint Disasm_GetInstructionHint(std::span<const uint16_t> memory,
+    const CProcessor& processor, const CMemoryController& memoryController);
 
-// A wrapper over the jump hint code of Disasm_GetHint(), kept for the callers that use the old interface: the application
-// itself calls Disasm_GetHint(). Gives the first line of the jump hint only (a string buffer of at
-// least 32 characters; empty if the instruction has no jump hint) and calculates the condition for a conditional jump
-// Returns: jump prediction flag: true = will jump, false = will not jump
-bool Disasm_GetJumpConditionHint(
-    const uint16_t* memory, const CProcessor * pProc, const CMemoryController * pMemCtl, LPTSTR buffer);
+struct DisasmJumpHint
+{
+    TcharString text;
+    bool predict = false;
+};
+/// Prepare the jump condition and its prediction.
+[[nodiscard]] DisasmJumpHint Disasm_GetJumpConditionHint(std::span<const uint16_t> memory,
+    const CProcessor& processor, const CMemoryController& memoryController);
 
 /// \brief Convert two words of a FIS floating point number (DEC single precision) to a string
 /// \param[in]  high        High word: sign, 8-bit exponent (bias 128), high 7 bits of the mantissa
 /// \param[in]  low         Low word: low 16 bits of the mantissa
-/// \param[out] buffer      Result string buffer, "%g" format with the shortest number of digits (at most 9) that keeps the 24-bit mantissa; "0" if the exponent is zero (real zero)
-/// \param[in]  bufferSize  Size of the buffer in characters, including the terminator
-void Disasm_FloatToString(uint16_t high, uint16_t low, TCHAR* buffer, size_t bufferSize);
+/// \return Shortest representation (up to nine digits) preserving the 24-bit mantissa
+[[nodiscard]] TcharString Disasm_FloatToString(uint16_t high, uint16_t low);
 
 
 //////////////////////////////////////////////////////////////////////
@@ -266,10 +269,11 @@ public:
 
 public:
     void SetReg(int r, int v);
-    void Callback(uint8_t* stream, int length);
+    void Callback(std::span<uint8_t> stream);
 
 protected:
     static void BuildMixerTable();
+    void RenderChunk(std::span<uint8_t> stream);
 };
 
 

@@ -33,16 +33,16 @@ int main()
     try { image::Reader reader(tiny); (void)reader.word(); ok = false; }
     catch (const std::out_of_range&) {}
     const std::array<uint16_t, 3> instruction{0012761, 0000001, 0000002};
-    std::array<TCHAR, 8> mnemonic{};
-    std::array<TCHAR, 32> argument{};
-    ok &= DisassembleInstruction(instruction, 01000, mnemonic, argument) == 3;
-    ok &= _tcscmp(mnemonic.data(), _T("MOV")) == 0;
-    ok &= _tcscmp(argument.data(), _T("#000001, 000002(R1)")) == 0;
-    std::array<TCHAR, 7> smallMnemonic{};
-    ok &= DisassembleInstruction(instruction, 01000, smallMnemonic, argument) == 0;
-    ok &= DisassembleInstruction(std::span<const uint16_t>{}, 01000, mnemonic, argument) == 0;
-    ok &= DisassembleInstruction(std::span{instruction}.first<1>(), 01000, mnemonic, argument) == 3;
-    ok &= _tcscmp(argument.data(), _T("#000000, 000000(R1)")) == 0;
+    const auto decoded = DisassembleInstruction(instruction, 01000);
+    ok &= decoded && decoded->length == 3 && decoded->mnemonic == _T("MOV") &&
+          decoded->argument == _T("#000001, 000002(R1)");
+    ok &= !DisassembleInstruction(std::span<const uint16_t>{}, 01000);
+    const auto truncated = DisassembleInstruction(std::span{instruction}.first<1>(), 01000);
+    ok &= truncated && truncated->length == 3 && truncated->argument == _T("#000000, 000000(R1)");
+    const std::array<uint16_t, 1> jumpWithoutAddress{0000137};
+    ok &= !Disasm_CheckForJump(jumpWithoutAddress, 01000);
+    const std::array<uint16_t, 2> jumpToSelf{0000137, 01000};
+    ok &= Disasm_CheckForJump(jumpToSelf, 01000) == 0;
     {
         CMotherboard board;
         board.Reset();
@@ -72,11 +72,11 @@ int main()
         ok &= savedAgain == snapshot;
         ok &= !board.AttachHardImage(1, _T("?:\\invalid-ukncbtl-image"));
         ok &= !board.IsHardImageAttached(1);
-        const CBusDevice** cpu = board.GetCPUBusDevices();
-        const CBusDevice** ppu = board.GetPPUBusDevices();
-        for (int i = 0; i < 5; ++i) ok &= cpu[i] != nullptr;
-        for (int i = 0; i < 7; ++i) ok &= ppu[i] != nullptr;
-        ok &= cpu[5] == nullptr && ppu[7] == nullptr;
+        const auto cpu = board.GetCPUBusDevices();
+        const auto ppu = board.GetPPUBusDevices();
+        ok &= cpu.size() == 5 && ppu.size() == 7;
+        for (const auto* device : cpu) ok &= device != nullptr;
+        for (const auto* device : ppu) ok &= device != nullptr;
         TCHAR directory[MAX_PATH] = {}, path[MAX_PATH] = {};
         if (GetTempPath(MAX_PATH, directory) && GetTempFileName(directory, _T("hdd"), 0, path))
         {
@@ -120,8 +120,8 @@ int main()
                     floppy.WriteData(0x1234);
                     floppy.Periodic();
                     floppy.DetachImage(0);
-                    if (!floppy.IsAttached(0)) fprintf(stderr, "failed floppy write did not preserve attachment\n");
-                    ok &= floppy.IsAttached(0);
+                    if (floppy.IsAttached(0)) fprintf(stderr, "write-protected floppy failed to detach\n");
+                    ok &= !floppy.IsAttached(0);
                     ok &= (floppy.GetState() & FLOPPY_STATUS_WRITEPROTECT) != 0;
                 }
                 SetFileAttributes(path, FILE_ATTRIBUTE_NORMAL);

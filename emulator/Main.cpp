@@ -233,6 +233,7 @@ void DoneInstance()
 {
     ScreenView_Done();
     DisasmView_Done();
+    TapeView_Done();
 
     Emulator_Done();
 

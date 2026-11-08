@@ -13,6 +13,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include <cstdio>
 #include <array>
+#include <format>
 #include <memory>
 #include <vector>
 #include <share.h>
@@ -54,7 +55,7 @@ bool m_okEmulatorSerial = false;
 HANDLE m_hEmulatorComPort = INVALID_HANDLE_VALUE;
 
 bool m_okEmulatorParallel = false;
-FILE* m_fpEmulatorParallelOut = nullptr;
+std::unique_ptr<FILE, decltype(&std::fclose)> m_parallelOutput(nullptr, &std::fclose);
 
 long m_nFrameCount = 0;
 uint32_t m_dwTickCount = 0;
@@ -212,6 +213,10 @@ void Emulator_Done()
         m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
     }
 
+    g_pBoard->SetParallelOutCallback(nullptr);
+    m_parallelOutput.reset();
+    m_okEmulatorParallel = false;
+
     g_boardOwner.reset();
     g_pBoard = nullptr;
 
@@ -252,8 +257,8 @@ void Emulator_Stop()
     Emulator_SetTempCPUBreakpoint(0177777);
     Emulator_SetTempPPUBreakpoint(0177777);
 
-    if (m_fpEmulatorParallelOut != nullptr)
-        ::fflush(m_fpEmulatorParallelOut);
+    if (m_parallelOutput)
+        std::fflush(m_parallelOutput.get());
 
     // Reset title bar message
     MainWindow_UpdateWindowTitle();
@@ -567,10 +572,9 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     const CMemoryController* pMemCtl = pProc->GetMemoryControllerConst();
     bool okHaltMode = pProc->IsHaltMode();
     uint16_t memory[3];
-    int addrtype = 0;
     memory[0] = opcode;
-    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true, &addrtype);
-    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true, &addrtype);
+    memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true).value;
+    memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true).value;
 
     // Put the instruction into the history ring
     InstructionRecord& record = Emulator_AddHistoryRecord(okCpu);
@@ -590,11 +594,10 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     TCHAR bufaddr[7];
     PrintOctalValue(bufaddr, address);
 
-    TCHAR instr[8];
-    TCHAR args[32];
-    DisassembleInstruction(memory, address, instr, args);
+    const auto decoded = DisassembleInstruction(memory, address);
+    if (!decoded) return;
     TCHAR buffer[64];
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, instr, args);
+    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%s\t%s\t%s\t%s\r\n"), pProc->GetName(), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
 
     DebugLog(buffer);
 #endif // !PRODUCT
@@ -645,7 +648,7 @@ void Emulator_SetTrace(uint32_t dwTrace)
 
 bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 {
-    DWORD dwBytesRead;
+    DWORD dwBytesRead = 0;
     BOOL result = ::ReadFile(m_hEmulatorNetPort, pByte, 1, &dwBytesRead, nullptr);
 
     if (result && (dwBytesRead == 1))
@@ -656,12 +659,12 @@ bool CALLBACK Emulator_NetworkIn_Callback(uint8_t* pByte)
 
 bool CALLBACK Emulator_NetworkOut_Callback(uint8_t byte)
 {
-    DWORD dwBytesWritten;
-    ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, nullptr);
+    DWORD dwBytesWritten = 0;
+    const BOOL result = ::WriteFile(m_hEmulatorNetPort, &byte, 1, &dwBytesWritten, nullptr);
 
     DebugLogFormat(_T("Net OUT %02x\r\n"), byte);
 
-    return (dwBytesWritten == 1);
+    return result && dwBytesWritten == 1;
 }
 
 bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
@@ -676,11 +679,11 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
         if (networkOnOff)
         {
             // Prepare port name
-            TCHAR port[15];
-            _sntprintf(port, sizeof(port) / sizeof(TCHAR) - 1, _T("\\\\.\\%s"), networkPort);
+            if (networkPort == nullptr) return false;
+            const auto port = std::format(_T("\\\\.\\{}"), networkPort);
 
             // Open port
-            m_hEmulatorNetPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+            m_hEmulatorNetPort = ::CreateFile(port.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (m_hEmulatorNetPort == INVALID_HANDLE_VALUE)
             {
                 DWORD dwError = ::GetLastError();
@@ -709,9 +712,9 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
             timeouts.WriteTotalTimeoutConstant = 100;
             if (!::SetCommTimeouts(m_hEmulatorNetPort, &timeouts))
             {
+                DWORD dwError = ::GetLastError();
                 ::CloseHandle(m_hEmulatorNetPort);
                 m_hEmulatorNetPort = INVALID_HANDLE_VALUE;
-                DWORD dwError = ::GetLastError();
                 AlertWarningFormat(_T("Failed to set the Network COM port timeouts (0x%08lx)."), dwError);
                 return false;
             }
@@ -742,7 +745,7 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
 
 bool CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
 {
-    DWORD dwBytesRead;
+    DWORD dwBytesRead = 0;
     BOOL result = ::ReadFile(m_hEmulatorComPort, pByte, 1, &dwBytesRead, nullptr);
 
     return result && (dwBytesRead == 1);
@@ -750,10 +753,10 @@ bool CALLBACK Emulator_SerialIn_Callback(BYTE* pByte)
 
 bool CALLBACK Emulator_SerialOut_Callback(BYTE byte)
 {
-    DWORD dwBytesWritten;
-    ::WriteFile(m_hEmulatorComPort, &byte, 1, &dwBytesWritten, nullptr);
+    DWORD dwBytesWritten = 0;
+    const BOOL result = ::WriteFile(m_hEmulatorComPort, &byte, 1, &dwBytesWritten, nullptr);
 
-    return (dwBytesWritten == 1);
+    return result && dwBytesWritten == 1;
 }
 
 bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
@@ -763,11 +766,11 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
         if (serialOnOff)
         {
             // Prepare port name
-            TCHAR port[15];
-            _sntprintf(port, sizeof(port) / sizeof(TCHAR) - 1, _T("\\\\.\\%s"), serialPort);
+            if (serialPort == nullptr) return false;
+            const auto port = std::format(_T("\\\\.\\{}"), serialPort);
 
             // Open port
-            m_hEmulatorComPort = ::CreateFile(port, GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+            m_hEmulatorComPort = ::CreateFile(port.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
             if (m_hEmulatorComPort == INVALID_HANDLE_VALUE)
             {
                 DWORD dwError = ::GetLastError();
@@ -829,12 +832,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
 
 bool CALLBACK Emulator_ParallelOut_Callback(BYTE byte)
 {
-    if (m_fpEmulatorParallelOut != nullptr)
-    {
-        ::fwrite(&byte, 1, 1, m_fpEmulatorParallelOut);
-    }
-
-    return true;
+    return m_parallelOutput && std::fwrite(&byte, 1, 1, m_parallelOutput.get()) == 1;
 }
 
 void Emulator_SetParallel(bool parallelOnOff)
@@ -845,13 +843,17 @@ void Emulator_SetParallel(bool parallelOnOff)
     if (!parallelOnOff)
     {
         g_pBoard->SetParallelOutCallback(nullptr);
-        if (m_fpEmulatorParallelOut != nullptr)
-            ::fclose(m_fpEmulatorParallelOut);
+        m_parallelOutput.reset();
     }
     else
     {
+        m_parallelOutput.reset(::_tfopen(_T("printer.log"), _T("wb")));
+        if (!m_parallelOutput)
+        {
+            AlertWarning(_T("Failed to open the printer output file."));
+            return;
+        }
         g_pBoard->SetParallelOutCallback(Emulator_ParallelOut_Callback);
-        m_fpEmulatorParallelOut = ::_tfopen(_T("printer.log"), _T("wb"));
     }
 
     m_okEmulatorParallel = parallelOnOff;
@@ -1015,9 +1017,9 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
     return true;
 }
 
-void Emulator_PrepareScreenRGB32(void* pImageBits, const uint32_t* colors)
+void Emulator_PrepareScreenRGB32(std::span<uint32_t> pixels, std::span<const uint32_t> colors)
 {
-    if (pImageBits == nullptr) return;
+    if (pixels.size() < UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT || colors.size() < 16 * 8) return;
     if (!g_okEmulatorInitialized) return;
 
     // Tag parsing loop
@@ -1094,7 +1096,7 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const uint32_t* colors)
 
         int xr = 640;
         int y = yy - 19;
-        uint32_t* pBits = ((uint32_t*)pImageBits) + y * 640;
+        uint32_t* pBits = pixels.data() + y * 640;
         int pos = 0;
         for (;;)
         {
@@ -1155,9 +1157,9 @@ void Emulator_PrepareScreenRGB32(void* pImageBits, const uint32_t* colors)
     }
 }
 
-void Emulator_PrepareScreenToText(void* pImageBits, const uint32_t* colors)
+void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const uint32_t> colors)
 {
-    if (pImageBits == nullptr) return;
+    if (pixels.size() < UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT || colors.size() < 8) return;
     if (!g_okEmulatorInitialized) return;
 
     // Tag parsing loop
@@ -1206,7 +1208,7 @@ void Emulator_PrepareScreenToText(void* pImageBits, const uint32_t* colors)
         // Loop thru bits from addressBits, planes 0,1,2
         int xr = 640;
         int y = yy - 19;
-        uint32_t* pBits = ((uint32_t*)pImageBits) + y * 640;
+        uint32_t* pBits = pixels.data() + y * 640;
         int pos = 0;
         for (;;)
         {

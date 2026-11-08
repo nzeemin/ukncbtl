@@ -11,6 +11,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // BitmapFile.h
 
 #pragma once
+#include <cstdint>
+#include <span>
 
 //////////////////////////////////////////////////////////////////////
 
@@ -29,7 +31,7 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName);
 
 // Save the image as .PNG file
 bool BitmapFile_SaveImageFile(
-    const uint32_t* pBits,
+    std::span<const uint32_t> pixels,
     LPCTSTR sFileName, BitmapFileFormat format,
     int screenWidth, int screenHeight);
 

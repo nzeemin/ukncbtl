@@ -37,16 +37,14 @@ void CheckCases(const DisasmCase* cases, size_t count)
     {
         const DisasmCase& c = cases[i];
 
-        TCHAR sInstr[16];
-        TCHAR sArg[40];
         TCHAR msg[80];
         _stprintf_s(msg, _T("opcode %06o at %06o"), (unsigned int) c.words[0], (unsigned int) c.addr);
 
-        unsigned int length = DisassembleInstruction(c.words, c.addr, sInstr, sArg);
-
-        Assert::AreEqual(c.instr, sInstr, msg);
-        Assert::AreEqual(c.arg, sArg, msg);
-        Assert::AreEqual(c.length, length, msg);
+        const auto decoded = DisassembleInstruction(c.words, c.addr);
+        Assert::IsTrue(decoded.has_value(), msg);
+        Assert::AreEqual(c.instr, decoded->mnemonic.c_str(), msg);
+        Assert::AreEqual(c.arg, decoded->argument.c_str(), msg);
+        Assert::AreEqual(c.length, static_cast<unsigned int>(decoded->length), msg);
     }
 }
 
@@ -62,9 +60,9 @@ void CheckJumpCases(const JumpCase* cases, size_t count)
     {
         TCHAR msg[40];
         _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i].words[0]);
-        int delta = 12345;
-        Assert::IsTrue(Disasm_CheckForJump(cases[i].words, 01000, &delta), msg);  // the address does not matter here
-        Assert::AreEqual(cases[i].delta, delta, msg);
+        const auto delta = Disasm_CheckForJump(cases[i].words, 01000);  // address does not matter here
+        Assert::IsTrue(delta.has_value(), msg);
+        Assert::AreEqual(cases[i].delta, *delta, msg);
     }
 }
 
@@ -81,9 +79,9 @@ void CheckAbsoluteJumpCases(const AbsoluteJumpCase* cases, size_t count)
     {
         TCHAR msg[60];
         _stprintf_s(msg, _T("opcode %06o at %06o"), (unsigned int) cases[i].words[0], (unsigned int) cases[i].addr);
-        int delta = 12345;
-        Assert::IsTrue(Disasm_CheckForJump(cases[i].words, cases[i].addr, &delta), msg);
-        Assert::AreEqual(cases[i].delta, delta, msg);
+        const auto delta = Disasm_CheckForJump(cases[i].words, cases[i].addr);
+        Assert::IsTrue(delta.has_value(), msg);
+        Assert::AreEqual(cases[i].delta, *delta, msg);
     }
 }
 
@@ -138,9 +136,9 @@ public:
 
                 TCHAR msg[40];
                 _stprintf_s(msg, _T("opcode %06o"), (unsigned int) memory[0]);
-                TCHAR sInstr[16], sArg[40];
-                DisassembleInstruction(memory, 01000, sInstr, sArg);
-                Assert::AreEqual((const TCHAR*) expected, (const TCHAR*) sInstr, msg);
+                const auto decoded = DisassembleInstruction(memory, 01000);
+                Assert::IsTrue(decoded.has_value(), msg);
+                Assert::AreEqual((const TCHAR*) expected, decoded->mnemonic.c_str(), msg);
             }
         }
     }
@@ -493,9 +491,9 @@ public:
             TCHAR msg[40];
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) opcodes[i]);
             uint16_t memory[2] = { opcodes[i], 0 };
-            int delta = 12345;
-            Assert::IsTrue(Disasm_CheckForJump(memory, 01000, &delta), msg);
-            Assert::AreEqual(4, delta, msg);
+            const auto delta = Disasm_CheckForJump(memory, 01000);
+            Assert::IsTrue(delta.has_value(), msg);
+            Assert::AreEqual(4, *delta, msg);
         }
     }
 
@@ -551,8 +549,7 @@ public:
         {
             TCHAR msg[40];
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i][0]);
-            int delta = 12345;
-            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000, &delta), msg);
+            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000).has_value(), msg);
         }
     }
 
@@ -569,8 +566,7 @@ public:
         {
             TCHAR msg[40];
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i][0]);
-            int delta = 12345;
-            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000, &delta), msg);
+            Assert::IsFalse(Disasm_CheckForJump(cases[i], 01000).has_value(), msg);
         }
     }
 
@@ -594,8 +590,7 @@ public:
             TCHAR msg[40];
             _stprintf_s(msg, _T("opcode %06o"), (unsigned int) cases[i]);
             uint16_t memory[2] = { cases[i], 0 };
-            int delta = 12345;
-            Assert::IsFalse(Disasm_CheckForJump(memory, 01000, &delta), msg);
+            Assert::IsFalse(Disasm_CheckForJump(memory, 01000).has_value(), msg);
         }
     }
 
@@ -626,9 +621,8 @@ public:
         {
             TCHAR msg[40];
             _stprintf_s(msg, _T("float %06o %06o"), (unsigned int) cases[i].high, (unsigned int) cases[i].low);
-            TCHAR buffer[32];
-            Disasm_FloatToString(cases[i].high, cases[i].low, buffer, sizeof(buffer) / sizeof(TCHAR));
-            Assert::AreEqual(cases[i].expected, buffer, msg);
+            const auto value = Disasm_FloatToString(cases[i].high, cases[i].low);
+            Assert::AreEqual(cases[i].expected, value.c_str(), msg);
         }
     }
 
@@ -641,20 +635,19 @@ public:
             { 0141020, 0000000, _T("-9") },           // sign bit
             { 0100000, 0000000, _T("0") },            // zero exponent is real zero whatever the sign and mantissa
             { 0000177, 0177777, _T("0") },
-            { 0000200, 0000000, _T("2.938736e-039") },  // the smallest number
-            { 0100200, 0000000, _T("-2.938736e-039") },
-            { 0000600, 0000000, _T("1.1754944e-038") },  // exponent 3, the smallest one the bit trick handles
-            { 0000400, 0000000, _T("5.877472e-039") },  // exponent 2, IEEE denormal
-            { 0077777, 0177777, _T("1.7014117e+038") },  // the largest number
-            { 0177777, 0177777, _T("-1.7014117e+038") },
+            { 0000200, 0000000, _T("2.938736e-39") },  // the smallest number
+            { 0100200, 0000000, _T("-2.938736e-39") },
+            { 0000600, 0000000, _T("1.1754944e-38") },  // exponent 3, the smallest one the bit trick handles
+            { 0000400, 0000000, _T("5.877472e-39") },  // exponent 2, IEEE denormal
+            { 0077777, 0177777, _T("1.7014117e+38") },  // the largest number
+            { 0177777, 0177777, _T("-1.7014117e+38") },
         };
         for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++)
         {
             TCHAR msg[40];
             _stprintf_s(msg, _T("float %06o %06o"), (unsigned int) cases[i].high, (unsigned int) cases[i].low);
-            TCHAR buffer[32];
-            Disasm_FloatToString(cases[i].high, cases[i].low, buffer, sizeof(buffer) / sizeof(TCHAR));
-            Assert::AreEqual(cases[i].expected, buffer, msg);
+            const auto value = Disasm_FloatToString(cases[i].high, cases[i].low);
+            Assert::AreEqual(cases[i].expected, value.c_str(), msg);
         }
     }
 };

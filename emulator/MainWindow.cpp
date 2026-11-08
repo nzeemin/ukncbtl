@@ -1506,13 +1506,8 @@ void MainWindow_DoFileScreenshotToClipboard()
     int screenshotMode = Settings_GetScreenshotMode();
 
     HGLOBAL hDIB = ScreenView_GetScreenshotAsDIB(screenshotMode);
-    if (hDIB != NULL)
-    {
-        ::OpenClipboard(g_hwnd);
-        ::EmptyClipboard();
-        ::SetClipboardData(CF_DIB, hDIB);
-        ::CloseClipboard();
-    }
+    if (!SetGlobalClipboardData(CF_DIB, hDIB))
+        AlertWarning(_T("Failed to copy the screenshot to the clipboard."));
 }
 
 void MainWindow_DoFileScreenshotSaveAs()
@@ -1543,19 +1538,14 @@ void MainWindow_DoFileScreenToClipboard()
         return;
     }
 
-    // Prepare Unicode text
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, sizeof(buffer) * sizeof(TCHAR));
-    TCHAR * pUnicodeBuffer = (TCHAR*)GlobalLock(hMem);
-    for (int i = 0; i < sizeof(buffer) - 1; i++)
-        pUnicodeBuffer[i] = Translate_KOI8R(buffer[i]);
-    pUnicodeBuffer[sizeof(buffer) - 1] = 0;
-    GlobalUnlock(hMem);
-
-    // Put text to Clipboard
-    OpenClipboard(g_hwnd);
-    EmptyClipboard();
-    SetClipboardData(CF_UNICODETEXT, hMem);
-    CloseClipboard();
+    TcharString text;
+    text.reserve(sizeof(buffer) - 1);
+    for (const auto ch : buffer)
+    {
+        if (ch == 0) break;
+        text.push_back(Translate_KOI8R(ch));
+    }
+    CopyTextToClipboard(text);
 }
 
 void MainWindow_DoFileCreateDisk()

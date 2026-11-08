@@ -19,140 +19,127 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 // Bus devices
 
-static const uint16_t ProcessorTimerAddressRanges[] =
+static constexpr BusAddressRange ProcessorTimerAddressRanges[] =
 {
-    0177710, 6,  // 177710-177715
-    0, 0
+    {0177710, 6},  // 177710-177715
 };
 class CBusDeviceProcessorTimer : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Processor timer"); }
-    virtual const uint16_t* GetAddressRanges() const { return ProcessorTimerAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return ProcessorTimerAddressRanges; }
 };
 
-static const uint16_t CpuChannelsAddressRanges[] =
+static constexpr BusAddressRange CpuChannelsAddressRanges[] =
 {
-    0176660, 16,
-    0177560, 8,
-    0, 0
+    {0176660, 16},
+    {0177560, 8},
 };
 class CBusDeviceCpuChannels : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("CPU-PPU channels"); }
-    virtual const uint16_t* GetAddressRanges() const { return CpuChannelsAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return CpuChannelsAddressRanges; }
 };
 
-static const uint16_t PpuChannelsAddressRanges[] =
+static constexpr BusAddressRange PpuChannelsAddressRanges[] =
 {
-    0177060, 16,
-    0177100, 4,
-    0, 0
+    {0177060, 16},
 };
 class CBusDevicePpuChannels : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("CPU-PPU channels"); }
-    virtual const uint16_t* GetAddressRanges() const { return PpuChannelsAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return PpuChannelsAddressRanges; }
 };
 
-static const uint16_t NetworkAdapterAddressRanges[] =
+static constexpr BusAddressRange NetworkAdapterAddressRanges[] =
 {
-    0176560, 8,
-    0, 0
+    {0176560, 8},
 };
 class CBusDeviceNetworkAdapter : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Network adapter"); }
-    virtual const uint16_t* GetAddressRanges() const { return NetworkAdapterAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return NetworkAdapterAddressRanges; }
 };
 
-static const uint16_t SerialPortAddressRanges[] =
+static constexpr BusAddressRange SerialPortAddressRanges[] =
 {
-    0176570, 8,
-    0, 0
+    {0176570, 8},
 };
 class CBusDeviceSerialPort : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Serial port"); }
-    virtual const uint16_t* GetAddressRanges() const { return SerialPortAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return SerialPortAddressRanges; }
 };
 
-static const uint16_t CpuMemoryAccessAddressRanges[] =
+static constexpr BusAddressRange CpuMemoryAccessAddressRanges[] =
 {
-    0176640, 8,
-    0176564, 4,  // Console terminal registers
-    0, 0
+    {0176640, 8},
 };
 class CBusDeviceCpuMemoryAccess : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Memory access"); }
-    virtual const uint16_t* GetAddressRanges() const { return CpuMemoryAccessAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return CpuMemoryAccessAddressRanges; }
 };
 
-static const uint16_t PpuMemoryAccessAddressRanges[] =
+static constexpr BusAddressRange PpuMemoryAccessAddressRanges[] =
 {
-    0177010, 16,
-    0177054, 2,
-    0, 0
+    {0177010, 16},
+    {0177054, 2},
 };
 class CBusDevicePpuMemoryAccess : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Memory access"); }
-    virtual const uint16_t* GetAddressRanges() const { return PpuMemoryAccessAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return PpuMemoryAccessAddressRanges; }
 };
 
-static const uint16_t ProgrammablePortAddressRanges[] =
+static constexpr BusAddressRange ProgrammablePortAddressRanges[] =
 {
-    0177100, 4,  // i8255 ports
-    0, 0
+    {0177100, 4},  // i8255 ports
 };
 class CBusDeviceProgrammablePort : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Programmable port"); }
-    virtual const uint16_t* GetAddressRanges() const { return ProgrammablePortAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return ProgrammablePortAddressRanges; }
 };
 
-static const uint16_t KeyboardAddressRanges[] =
+static constexpr BusAddressRange KeyboardAddressRanges[] =
 {
-    0177700, 6,
-    0, 0
+    {0177700, 6},
 };
 class CBusDeviceKeyboard : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Keyboard"); }
-    virtual const uint16_t* GetAddressRanges() const { return KeyboardAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return KeyboardAddressRanges; }
 };
 
-static const uint16_t FloppyControllerAddressRanges[] =
+static constexpr BusAddressRange FloppyControllerAddressRanges[] =
 {
-    0177130, 4,
-    0, 0
+    {0177130, 4},
 };
 class CBusDeviceFloppyController : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Floppy controller"); }
-    virtual const uint16_t* GetAddressRanges() const { return FloppyControllerAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return FloppyControllerAddressRanges; }
 };
 
-static const uint16_t HardDriveAddressRanges[] =
+static constexpr BusAddressRange HardDriveAddressRanges[] =
 {
-    0110000, 010000,
-    0, 0
+    {0110000, 010000},
 };
 class CBusDeviceHardDrive : public CBusDevice
 {
 public:
     virtual LPCTSTR GetName() const { return _T("Hard drive"); }
-    virtual const uint16_t* GetAddressRanges() const { return HardDriveAddressRanges; }
+    std::span<const BusAddressRange> GetAddressRanges() const override { return HardDriveAddressRanges; }
 };
 
 
@@ -229,8 +216,8 @@ CMotherboard::CMotherboard ()
     for (size_t i = 0; i < m_ppuDeviceOwners.size(); ++i)
         m_pPpuDevices[i] = m_ppuDeviceOwners[i].get();
 
-    m_pFirstMemCtl->AttachDevices(std::span{m_pCpuDevices}.first<5>());
-    m_pSecondMemCtl->AttachDevices(std::span{m_pPpuDevices}.first<7>());
+    m_pFirstMemCtl->AttachDevices(m_pCpuDevices);
+    m_pSecondMemCtl->AttachDevices(m_pPpuDevices);
 }
 
 CMotherboard::~CMotherboard () = default;
@@ -685,9 +672,7 @@ bool CMotherboard::SystemFrame()
     const int networkOutTicks = 7; // FRAMETICKS / (57600 / FRAMERATE);
     int networkTxCount = 0;
 
-    int tapeSamplesPerFrame = 1, tapeBrasErr = 0;
-    if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
-        tapeSamplesPerFrame = m_nTapeSampleRate / FRAMERATE;
+    constexpr uint64_t tapeTicksPerSecond = FRAMETICKS * FRAMERATE;
 
     do
     {
@@ -787,14 +772,14 @@ bool CMotherboard::SystemFrame()
 
         if (m_TapeReadCallback != nullptr || m_TapeWriteCallback != nullptr)
         {
-            tapeBrasErr += tapeSamplesPerFrame;
-            if (2 * tapeBrasErr >= FRAMETICKS)
+            m_tapeSamplePhase += static_cast<uint64_t>(m_nTapeSampleRate);
+            const auto samples = static_cast<unsigned int>(m_tapeSamplePhase / tapeTicksPerSecond);
+            m_tapeSamplePhase %= tapeTicksPerSecond;
+            if (samples != 0)
             {
-                tapeBrasErr -= FRAMETICKS;
-
                 if (m_TapeReadCallback != nullptr)  // Tape reading
                 {
-                    bool tapeBit = (*m_TapeReadCallback)(1);
+                    bool tapeBit = (*m_TapeReadCallback)(samples);
                     CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
                     if (pMemCtl->TapeInput(tapeBit))
                     {
@@ -805,7 +790,7 @@ bool CMotherboard::SystemFrame()
                 {
                     CSecondMemoryController* pMemCtl = static_cast<CSecondMemoryController*>(m_pSecondMemCtl.get());
                     unsigned int value = pMemCtl->TapeOutput() ? 0xffffffff : 0;
-                    (*m_TapeWriteCallback)(value, 1);
+                    (*m_TapeWriteCallback)(value, samples);
                 }
             }
         }
@@ -954,23 +939,33 @@ void CMotherboard::KeyboardEvent(uint8_t scancode, bool okPressed)
 
 void CMotherboard::SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE> image)
 {
-    static_assert(sizeof(m_chancputx) == 12 && sizeof(m_chancpurx) == 8 &&
-                  sizeof(m_chanpputx) == 8 && sizeof(m_chanppurx) == 12 && sizeof(m_kbd_matrix) == 32);
-    auto* pImage = image.data();
     image::Writer writer(image.subspan<32, 128>());
     writer.word(m_timer);
     writer.word(m_timerreload);
     writer.word(m_timerflags);
     writer.word(m_timerdivider);
-    writer.copy(m_chancputx);
-    writer.copy(m_chancpurx);
-    writer.copy(m_chanpputx);
-    writer.copy(m_chanppurx);
+    const auto writeChannels = [&writer](auto& channels) {
+        for (const auto& channel : channels)
+        {
+            writer.byte(channel.data);
+            writer.byte(channel.ready);
+            writer.byte(channel.irq);
+            writer.byte(channel.rdwr);
+        }
+    };
+    writeChannels(m_chancputx);
+    writeChannels(m_chancpurx);
+    writeChannels(m_chanpputx);
+    writeChannels(m_chanppurx);
     writer.byte(m_chan0disabled);
     writer.byte(m_irq_cpureset);
     writer.byte(0);
     writer.byte(m_scanned_key);
-    writer.copy(m_kbd_matrix);
+    for (const auto& row : m_kbd_matrix)
+    {
+        writer.byte(row.processed);
+        writer.byte(row.row_Y);
+    }
     writer.word(m_multiply);
     for (auto value : freq_per) writer.word(value);
     for (auto value : freq_out) writer.word(value);
@@ -984,36 +979,45 @@ void CMotherboard::SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE> image)
     // PPU memory/IO controller status
     m_pSecondMemCtl->SaveToImage(image.subspan<352, 64>());
 
-    // ROM
-    uint8_t* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE;
-    memcpy(pImageRom, m_pROM.get(), 32 * 1024);
-    // RAM planes 0, 1, 2
-    uint8_t* pImageRam = pImageRom + 32 * 1024;
-    memcpy(pImageRam, m_pRAM[0].get(), 64 * 1024);
-    pImageRam += 64 * 1024;
-    memcpy(pImageRam, m_pRAM[1].get(), 64 * 1024);
-    pImageRam += 64 * 1024;
-    memcpy(pImageRam, m_pRAM[2].get(), 64 * 1024);
-    pImageRam += 64 * 1024;
-    ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
+    constexpr size_t romSize = 32 * 1024;
+    constexpr size_t ramSize = 64 * 1024;
+    std::ranges::copy(std::span{m_pROM.get(), romSize}, image.subspan<UKNCIMAGE_HEADER_SIZE, romSize>().begin());
+    std::span<uint8_t> ramImage = image.subspan<UKNCIMAGE_HEADER_SIZE + romSize>();
+    for (const auto& plane : m_pRAM)
+    {
+        std::ranges::copy(std::span{plane.get(), ramSize}, ramImage.begin());
+        ramImage = ramImage.subspan(ramSize);
+    }
 }
 void CMotherboard::LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE> image)
 {
-    const auto* pImage = image.data();
     image::Reader reader(image.subspan<32, 128>());
     m_timer = reader.word();
     m_timerreload = reader.word();
     m_timerflags = reader.word();
     m_timerdivider = reader.word();
-    reader.copy(m_chancputx);
-    reader.copy(m_chancpurx);
-    reader.copy(m_chanpputx);
-    reader.copy(m_chanppurx);
+    const auto readChannels = [&reader](auto& channels) {
+        for (auto& channel : channels)
+        {
+            channel.data = reader.byte();
+            channel.ready = reader.byte();
+            channel.irq = reader.byte();
+            channel.rdwr = reader.byte();
+        }
+    };
+    readChannels(m_chancputx);
+    readChannels(m_chancpurx);
+    readChannels(m_chanpputx);
+    readChannels(m_chanppurx);
     m_chan0disabled = reader.byte();
     m_irq_cpureset = reader.byte();
     reader.skip(1);
     m_scanned_key = reader.byte();
-    reader.copy(m_kbd_matrix);
+    for (auto& row : m_kbd_matrix)
+    {
+        row.processed = reader.byte();
+        row.row_Y = reader.byte();
+    }
     m_multiply = reader.word();
     for (auto& value : freq_per) value = reader.word();
     for (auto& value : freq_out) value = reader.word();
@@ -1027,18 +1031,15 @@ void CMotherboard::LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE> image)
     // PPU memory/IO controller status
     m_pSecondMemCtl->LoadFromImage(image.subspan<352, 64>());
 
-    // ROM
-    const uint8_t* pImageRom = pImage + UKNCIMAGE_HEADER_SIZE; // 512
-    memcpy(m_pROM.get(), pImageRom, 32 * 1024);
-    // RAM planes 0, 1, 2
-    const uint8_t* pImageRam = pImageRom + 32 * 1024;
-    memcpy(m_pRAM[0].get(), pImageRam, 64 * 1024);
-    pImageRam += 64 * 1024;
-    memcpy(m_pRAM[1].get(), pImageRam, 64 * 1024);
-    pImageRam += 64 * 1024;
-    memcpy(m_pRAM[2].get(), pImageRam, 64 * 1024);
-    pImageRam += 64 * 1024;
-    ASSERT((pImageRam - pImage) == UKNCIMAGE_SIZE);
+    constexpr size_t romSize = 32 * 1024;
+    constexpr size_t ramSize = 64 * 1024;
+    std::ranges::copy(image.subspan<UKNCIMAGE_HEADER_SIZE, romSize>(), m_pROM.get());
+    std::span<const uint8_t> ramImage = image.subspan<UKNCIMAGE_HEADER_SIZE + romSize>();
+    for (const auto& plane : m_pRAM)
+    {
+        std::ranges::copy(ramImage.first(ramSize), plane.get());
+        ramImage = ramImage.subspan(ramSize);
+    }
 }
 
 void CMotherboard::ChanWriteByCPU(uint8_t chan, uint8_t data)
@@ -1471,11 +1472,11 @@ void CMotherboard::DoSound()
     {
         uint8_t bufferay[2];
         uint8_t valueay = 0;
-        m_pSoundAY[0]->Callback(bufferay, sizeof(bufferay));
+        m_pSoundAY[0]->Callback(bufferay);
         valueay |= bufferay[1];
-        m_pSoundAY[1]->Callback(bufferay, sizeof(bufferay));
+        m_pSoundAY[1]->Callback(bufferay);
         valueay |= bufferay[1];
-        m_pSoundAY[2]->Callback(bufferay, sizeof(bufferay));
+        m_pSoundAY[2]->Callback(bufferay);
         valueay |= bufferay[1];
         value ^= valueay << 7;
     }
@@ -1528,7 +1529,8 @@ void CMotherboard::SetSound(uint16_t val)
 
 void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate)
 {
-    if (callback == nullptr)  // Reset callback
+    m_tapeSamplePhase = 0;
+    if (callback == nullptr || sampleRate <= 0)  // Reset callback
     {
         m_TapeReadCallback = nullptr;
         m_nTapeSampleRate = 0;
@@ -1543,7 +1545,8 @@ void CMotherboard::SetTapeReadCallback(TAPEREADCALLBACK callback, int sampleRate
 
 void CMotherboard::SetTapeWriteCallback(TAPEWRITECALLBACK callback, int sampleRate)
 {
-    if (callback == nullptr)  // Reset callback
+    m_tapeSamplePhase = 0;
+    if (callback == nullptr || sampleRate <= 0)  // Reset callback
     {
         m_TapeWriteCallback = nullptr;
         m_nTapeSampleRate = 0;

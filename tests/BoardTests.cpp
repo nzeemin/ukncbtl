@@ -12,7 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // the timer, the 50 Hz event and the emulator image
 //
 // Expected values come from the UKNC documentation (vectors, port bits), not from the emulator
-// output. Tests of the known bugs are ignored, see the list in docs/unit-tests.md.
+// output.
 
 #include "stdafx.h"
 #include <CppUnitTest.h>
@@ -25,6 +25,13 @@ namespace
 {
 
 const uint16_t STACK = 0400;
+uint64_t tapeSampleCount = 0;
+
+bool CALLBACK CountTapeSamples(unsigned int samples)
+{
+    tapeSampleCount += samples;
+    return false;
+}
 
 // Run the timer for the given number of 2 microsecond ticks
 void TimerTicks(CMotherboard* pBoard, int count)
@@ -433,6 +440,30 @@ public:
         tb.Board()->Tick50();
         tb.CPU()->SetSP(STACK);
         Assert::IsFalse(tb.CPU()->InterruptProcessing());
+    }
+
+    TEST_METHOD(Board_TapeSamplingPreservesFractionalRates)
+    {
+        TestBoard tb;
+        for (const int sampleRate : {1, 44101})
+        {
+            tapeSampleCount = 0;
+            tb.Board()->SetTapeReadCallback(CountTapeSamples, sampleRate);
+            for (int frame = 0; frame < FRAMERATE; ++frame)
+                Assert::IsTrue(tb.Board()->SystemFrame());
+            Assert::AreEqual(static_cast<uint64_t>(sampleRate), tapeSampleCount);
+        }
+        tb.Board()->SetTapeReadCallback(nullptr, 0);
+    }
+
+    TEST_METHOD(Board_TapeSamplingBatchesHighRates)
+    {
+        TestBoard tb;
+        tapeSampleCount = 0;
+        tb.Board()->SetTapeReadCallback(CountTapeSamples, 1000000);
+        Assert::IsTrue(tb.Board()->SystemFrame());
+        Assert::AreEqual(static_cast<uint64_t>(20000), tapeSampleCount);
+        tb.Board()->SetTapeReadCallback(nullptr, 0);
     }
 
     // Emulator image

@@ -13,6 +13,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \details See defines in header file Emubase.h
 
 #include "stdafx.h"
+#include <algorithm>
+#include <array>
 #include <sys/stat.h>
 #include <share.h>
 #include "Emubase.h"
@@ -25,8 +27,11 @@ const uint16_t FLOPPY_CMD_MASKSTORED =
     FLOPPY_CMD_CORRECTION250 | FLOPPY_CMD_CORRECTION500 | FLOPPY_CMD_SIDEUP | FLOPPY_CMD_DIR | FLOPPY_CMD_SKIPSYNC |
     FLOPPY_CMD_ENGINESTART;
 
-static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker, uint16_t track, uint16_t side);
-static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest);
+static void EncodeTrackData(std::span<const uint8_t, 5120> source,
+    std::span<uint8_t, FLOPPY_RAWTRACKSIZE> data,
+    std::span<uint8_t, FLOPPY_RAWMARKERSIZE> marker, uint16_t track, uint16_t side);
+static bool DecodeTrackData(std::span<const uint8_t, FLOPPY_RAWTRACKSIZE> raw,
+    std::span<uint8_t, 5120> destination);
 
 //////////////////////////////////////////////////////////////////////
 
@@ -350,25 +355,17 @@ void CFloppyController::Periodic()
     {
         if (m_shiftflag)
         {
-            m_pDrive->data[m_pDrive->dataptr] = (uint8_t)(m_shiftreg & 0xff);
-            m_pDrive->data[m_pDrive->dataptr + 1] = (uint8_t)((m_shiftreg >> 8) & 0xff);
+            if (!(m_status & FLOPPY_STATUS_WRITEPROTECT))
+            {
+                m_pDrive->data[m_pDrive->dataptr] = static_cast<uint8_t>(m_shiftreg);
+                m_pDrive->data[m_pDrive->dataptr + 1] = static_cast<uint8_t>(m_shiftreg >> 8);
+                m_trackchanged = true;
+                m_pDrive->marker[m_pDrive->dataptr / 2] = m_shiftmarker ? 1 : 0;
+                if (m_shiftmarker)
+                    m_crccalculus = true;  // Start CRC calculation
+            }
             m_shiftflag = false;
-            m_trackchanged = true;
-
-            if (m_shiftmarker)
-            {
-//            DebugLogFormat(_T("Floppy WRITING %04x MARKER at %04hx SC %hu\r\n"), m_shiftreg, m_pDrive->dataptr, (m_pDrive->dataptr - 0x5e) / 614 + 1);
-
-                m_pDrive->marker[m_pDrive->dataptr / 2] = 1;
-                m_shiftmarker = false;
-                m_crccalculus = true;  // Start CRC calculation
-            }
-            else
-            {
-//            DebugLogFormat(_T("Floppy WRITING %04x\r\n"), m_shiftreg);
-
-                m_pDrive->marker[m_pDrive->dataptr / 2] = 0;
-            }
+            m_shiftmarker = false;
 
             if (m_writeflag)
             {
@@ -414,31 +411,29 @@ void CFloppyController::PrepareTrack()
     if (m_pDrive->okNetRT11Image) foffset += 256;  // Skip .RTD image header
     //DebugPrintFormat(_T("floppy file offset %d  for trk %d side %d\r\n"), foffset, m_track, m_side);
 
-    uint8_t data[5120];
-    memset(data, 0, 5120);
+    uint8_t data[5120]{};
 
     if (m_pDrive->fpFile != nullptr)
     {
-        ::fseek(m_pDrive->fpFile, foffset, SEEK_SET);
-        size_t count = ::fread(data, 1, 5120, m_pDrive->fpFile);
-        //TODO: Check for reading error
+        bool readFailed = ::fseek(m_pDrive->fpFile, foffset, SEEK_SET) != 0;
+        if (!readFailed)
+        {
+            (void)::fread(data, 1, sizeof(data), m_pDrive->fpFile);
+            readFailed = ::ferror(m_pDrive->fpFile) != 0;
+        }
+        if (readFailed)
+        {
+            ::clearerr(m_pDrive->fpFile);
+            m_pDrive->okReadOnly = true;
+            m_status |= FLOPPY_STATUS_WRITEPROTECT;
+            m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
+            DebugLog(_T("Floppy image read failed; the drive is write-protected.\r\n"));
+        }
     }
 
     // Fill m_data array and m_marker array with marked data
     EncodeTrackData(data, m_pDrive->data, m_pDrive->marker, m_track, m_side);
 
-    ////DEBUG: Test DecodeTrackData()
-    //uint8_t data2[5120];
-    //bool parsed = DecodeTrackData(m_pDrive->data, data2);
-    //ASSERT(parsed);
-    //bool tested = true;
-    //for (int i = 0; i < 5120; i++)
-    //    if (data[i] != data2[i])
-    //    {
-    //        tested = false;
-    //        break;
-    //    }
-    //ASSERT(tested);
 }
 
 bool CFloppyController::FlushChanges()
@@ -482,7 +477,9 @@ bool CFloppyController::FlushChanges()
     }
     else
     {
-        if (m_okTrace) DebugLog(_T("Floppy FLUSH FAILED\r\n"));
+        m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
+        DebugLog(_T("Floppy track cannot be represented in the disk image; changes retained.\r\n"));
+        return false;
     }
 
     m_trackchanged = false;
@@ -508,10 +505,12 @@ WriteError:
 
 
 // Fill data array and marker array with marked data
-static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker, uint16_t track, uint16_t side)
+static void EncodeTrackData(std::span<const uint8_t, 5120> source,
+    std::span<uint8_t, FLOPPY_RAWTRACKSIZE> data,
+    std::span<uint8_t, FLOPPY_RAWMARKERSIZE> marker, uint16_t track, uint16_t side)
 {
-    memset(data, 0, FLOPPY_RAWTRACKSIZE);
-    memset(marker, 0, FLOPPY_RAWMARKERSIZE);
+    std::ranges::fill(data, 0);
+    std::ranges::fill(marker, 0);
     uint32_t count;
     int ptr = 0;
     int gap = 34;
@@ -542,7 +541,7 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
         data[ptr++] = 0xfb;
         // data
         for (count = 0; count < 512; count++)
-            data[ptr++] = pSrc[(sect * 512) + count];
+            data[ptr++] = source[(sect * 512) + count];
         // crc
         //TODO: Calculate CRC
         data[ptr++] = 0x43;  data[ptr++] = 0x21;  // CRC stub
@@ -553,71 +552,56 @@ static void EncodeTrackData(const uint8_t* pSrc, uint8_t* data, uint8_t* marker,
     while (ptr < FLOPPY_RAWTRACKSIZE) data[ptr++] = 0x4e;
 }
 
-// Decode track data from raw data
-// pRaw is array of FLOPPY_RAWTRACKSIZE bytes
-// pDest is array of 5120 bytes
-// Returns: true - decoded, false - parse error
-static bool DecodeTrackData(const uint8_t* pRaw, uint8_t* pDest)
+// Decode a track into the sector order used by the disk image.
+static bool DecodeTrackData(std::span<const uint8_t, FLOPPY_RAWTRACKSIZE> raw,
+    std::span<uint8_t, 5120> destination)
 {
-    uint16_t dataptr = 0;  // Offset in m_data array
-    uint16_t destptr = 0;  // Offset in data array
+    constexpr size_t sectorSize = 512;
+    constexpr size_t sectorCount = 10;
+    std::array<bool, sectorCount> seen{};
+    size_t position = 0;
+    size_t decoded = 0;
+
+    const auto skip = [&raw, &position](uint8_t byte)
+    {
+        while (position < raw.size() && raw[position] == byte)
+            ++position;
+    };
+    const auto marker = [&raw, &position](uint8_t value)
+    {
+        for (int i = 0; i < 3 && position < raw.size() && raw[position] == 0xa1; ++i)
+            ++position;
+        return position < raw.size() && raw[position++] == value;
+    };
+
     for (;;)
     {
-        while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x4e) dataptr++;  // Skip GAP1 or GAP3
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) break;  // End of track or error
-        while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
+        skip(0x4e);  // GAP1 or GAP3
+        if (position == raw.size())
+            break;
+        skip(0x00);
+        if (!marker(0xfe) || raw.size() - position < 6)
+            return false;
 
-        if (pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
-        if (pRaw[dataptr++] != 0xfe)
-            return false;  // Marker not found
+        const auto sector = raw[position + 2];
+        const auto sizeCode = raw[position + 3];
+        position += 6;  // ID fields and CRC
+        if (sector == 0 || sector > sectorCount || sizeCode != 2 || seen[sector - 1])
+            return false;
 
-        uint8_t sectcyl, secthd, sectsec, sectno = 0;
-        if (dataptr < FLOPPY_RAWTRACKSIZE) sectcyl = pRaw[dataptr++];
-        if (dataptr < FLOPPY_RAWTRACKSIZE) secthd  = pRaw[dataptr++];
-        if (dataptr < FLOPPY_RAWTRACKSIZE) sectsec = pRaw[dataptr++];
-        if (dataptr < FLOPPY_RAWTRACKSIZE) sectno  = pRaw[dataptr++];
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
+        skip(0x4e);  // GAP2
+        skip(0x00);
+        if (!marker(0xfb) || raw.size() - position < sectorSize + 2)
+            return false;
 
-        int sectorsize;
-        if (sectno == 1) sectorsize = 256;
-        else if (sectno == 2) sectorsize = 512;
-        else if (sectno == 3) sectorsize = 1024;
-        else return false;  // Something wrong: unknown sector size
-        // crc
-        dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
-
-        while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x4e) dataptr++;  // Skip GAP2
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
-        while (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0x00) dataptr++;  // Skip sync
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
-
-        if (pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE && pRaw[dataptr] == 0xa1) dataptr++;
-        if (dataptr >= FLOPPY_RAWTRACKSIZE) return false;  // Something wrong
-        if (pRaw[dataptr++] != 0xfb)
-            return false;  // Marker not found
-
-        for (int count = 0; count < sectorsize; count++)  // Copy sector data
-        {
-            if (destptr >= 5120) return false;  // Track cannot fit in the image
-            pDest[destptr++] = pRaw[dataptr++];
-            if (dataptr >= FLOPPY_RAWTRACKSIZE)
-                return false;  // Something wrong
-        }
-        if (dataptr >= FLOPPY_RAWTRACKSIZE)
-            return false;  // Something wrong
-        // crc
-        dataptr++;
-        if (dataptr < FLOPPY_RAWTRACKSIZE) dataptr++;
+        std::ranges::copy_n(raw.begin() + position, sectorSize,
+            destination.begin() + (sector - 1) * sectorSize);
+        position += sectorSize + 2;  // Data and CRC
+        seen[sector - 1] = true;
+        ++decoded;
     }
 
-    return destptr == 5120;
+    return decoded == sectorCount;
 }
 
 

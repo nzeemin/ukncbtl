@@ -13,6 +13,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \details See defines in header file Emubase.h
 
 #include "stdafx.h"
+#include <algorithm>
+#include <string_view>
 #include <sys/stat.h>
 #include "Emubase.h"
 
@@ -62,11 +64,10 @@ enum TimeoutEvent
 //////////////////////////////////////////////////////////////////////
 
 // Inverts 512 bytes in the buffer
-static void InvertBuffer(void* buffer)
+static void InvertBuffer(std::span<uint8_t, IDE_DISK_SECTOR_SIZE> buffer)
 {
-    auto* p = static_cast<uint8_t*>(buffer);
-    for (int i = 0; i < IDE_DISK_SECTOR_SIZE; ++i)
-        p[i] = static_cast<uint8_t>(~p[i]);
+    for (auto& byte : buffer)
+        byte = static_cast<uint8_t>(~byte);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -398,42 +399,44 @@ void CHardDrive::HandleCommand(uint8_t command)
 }
 
 // Copy the string to the destination, swapping bytes in every word
-// For use in CHardDrive::IdentifyDrive() method.
-static void swap_strncpy(uint8_t* dst, const char* src, int words)
-{
-    int i;
-    for (i = 0; i < words * 2 && src[i] != 0; i++)
-        dst[i ^ 1] = src[i];
-    for ( ; i < words * 2; i++)
-        dst[i ^ 1] = ' ';
-}
-
 void CHardDrive::IdentifyDrive()
 {
-    uint32_t totalsectors = (uint32_t)m_numcylinders * (uint32_t)m_numheads * (uint32_t)m_numsectors;
+    const uint32_t totalSectors = static_cast<uint32_t>(m_numcylinders) * m_numheads * m_numsectors;
+    std::ranges::fill(m_buffer, 0);
+    const auto writeWord = [this](size_t index, uint16_t value)
+    {
+        m_buffer[index * 2] = static_cast<uint8_t>(value);
+        m_buffer[index * 2 + 1] = static_cast<uint8_t>(value >> 8);
+    };
+    const auto writeDword = [&writeWord](size_t index, uint32_t value)
+    {
+        writeWord(index, static_cast<uint16_t>(value));
+        writeWord(index + 1, static_cast<uint16_t>(value >> 16));
+    };
+    const auto writeText = [this](size_t index, size_t words, std::string_view text)
+    {
+        for (size_t i = 0; i < words * 2; ++i)
+            m_buffer[index * 2 + (i ^ 1)] = static_cast<uint8_t>(i < text.size() ? text[i] : ' ');
+    };
 
-    uint16_t words[IDE_DISK_SECTOR_SIZE / sizeof(uint16_t)]{};
-    uint16_t* pwBuffer = words;
-    pwBuffer[0]  = 0x045a;  // Configuration: fixed disk
-    pwBuffer[1]  = (uint16_t)m_numcylinders;
-    pwBuffer[3]  = (uint16_t)m_numheads;
-    pwBuffer[6]  = (uint16_t)m_numsectors;
-    swap_strncpy((uint8_t*)(pwBuffer + 10), "0000000000", 10);  // Serial number
-    swap_strncpy((uint8_t*)(pwBuffer + 23), "1.0", 4);  // Firmware version
-    swap_strncpy((uint8_t*)(pwBuffer + 27), "UKNCBTL Hard Disk", 18);  // Model
-    pwBuffer[47] = 0x8001;  // Read/write multiple support
-    pwBuffer[49] = 0x2f00;  // Capabilities: bit9 = LBA
-    pwBuffer[53] = 1;  // Words 54-58 are valid
-    pwBuffer[54] = (uint16_t)m_numcylinders;
-    pwBuffer[55] = (uint16_t)m_numheads;
-    pwBuffer[56] = (uint16_t)m_numsectors;
-    const uint32_t sectorsPerCylinder = static_cast<uint32_t>(m_numheads) * m_numsectors;
-    memcpy(pwBuffer + 57, &sectorsPerCylinder, sizeof(sectorsPerCylinder));
-    memcpy(pwBuffer + 60, &totalsectors, sizeof(totalsectors));
-    memcpy(pwBuffer + 100, &totalsectors, sizeof(totalsectors));
-
-    memcpy(m_buffer, words, sizeof(words));
-    InvertBuffer(m_buffer);
+    writeWord(0, 0x045a);  // Configuration: fixed disk
+    writeWord(1, static_cast<uint16_t>(m_numcylinders));
+    writeWord(3, static_cast<uint16_t>(m_numheads));
+    writeWord(6, static_cast<uint16_t>(m_numsectors));
+    writeText(10, 10, "0000000000");  // Serial number
+    writeText(23, 4, "1.0");  // Firmware version
+    writeText(27, 20, "UKNCBTL Hard Disk");  // Model
+    writeWord(47, 0x8001);  // Read/write multiple support
+    writeWord(49, 0x2f00);  // Capabilities: bit9 = LBA
+    writeWord(53, 1);  // Words 54-58 are valid
+    writeWord(54, static_cast<uint16_t>(m_numcylinders));
+    writeWord(55, static_cast<uint16_t>(m_numheads));
+    writeWord(56, static_cast<uint16_t>(m_numsectors));
+    writeDword(57, totalSectors);  // Current CHS capacity
+    writeDword(60, totalSectors);
+    writeDword(100, totalSectors);
+    if (m_okInverted)
+        InvertBuffer(m_buffer);
 }
 
 bool CHardDrive::CalculateOffset(long& offset) const
@@ -516,7 +519,7 @@ void CHardDrive::WriteSectorDone()
     }
 
     size_t dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
-    if (dwBytesWritten != IDE_DISK_SECTOR_SIZE)
+    if (dwBytesWritten != IDE_DISK_SECTOR_SIZE || ::fflush(m_fpFile) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
@@ -530,6 +533,10 @@ void CHardDrive::WriteSectorDone()
     if (m_sectorcount > 0)
     {
         NextSector();
+    }
+    else
+    {
+        m_status &= ~IDE_STATUS_BUFFER_READY;
     }
 
     m_error = IDE_ERROR_NONE;

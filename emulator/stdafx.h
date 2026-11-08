@@ -47,23 +47,10 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // C RunTime Header Files
 #include <cstdlib>
 #include <cstdio>
+#include <cstdint>
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
-
-// Define C99 stdint.h types for VS2008
-#ifdef _MSC_VER
-   typedef signed   __int8   int8_t;
-   typedef unsigned __int8   uint8_t;
-   typedef signed   __int16  int16_t;
-   typedef unsigned __int16  uint16_t;
-   typedef signed   __int32  int32_t;
-   typedef unsigned __int32  uint32_t;
-   typedef unsigned __int64  uint64_t;
-#else
-#include <stdint.h>
-#include <stdbool.h>
-#endif
 
 // TODO: reference additional headers your program requires here
 

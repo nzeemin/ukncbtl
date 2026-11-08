@@ -18,7 +18,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // (the file words are complemented, which the drive detects by the first sector). The data port
 // of the drive gives the complement of the words of a non-inverted image ("QBUS inverts the bits",
 // see the comments in Hard.cpp); an inverted image of the same disk gives the same words.
-// Tests of the known bugs are ignored, see the list in docs/unit-tests.md.
 
 #include "stdafx.h"
 #include <CppUnitTest.h>
@@ -433,6 +432,7 @@ public:
         Eq(GEO.cylinders, words[54], _T("current cylinders"));
         Eq(GEO.heads, words[55], _T("current heads"));
         Eq(GEO.sectors, words[56], _T("current sectors per track"));
+        Eq(GEO.Total(), words[57] | (words[58] << 16), _T("current CHS capacity"));
         Eq(GEO.Total(), words[60] | (words[61] << 16), _T("total sectors"));
 
         // Model number: words 27..46, the first character of a pair in the high byte
@@ -531,13 +531,7 @@ public:
         Eq(ADDRTYPE_IO, tb.PpuMem()->TranslateAddress(0117776, false, false, &offset, true), _T("the end of the port window"));
     }
 
-    // Known bug: IDENTIFY DEVICE data. The buffer is complemented in IdentifyDrive(), and the data port
-    // complements the words of a non-inverted image once more, so for such an image the host gets the
-    // data in the polarity opposite to the one of the sector data and of an inverted image.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hdd_IdentifyDoesNotDependOnTheImagePolarity_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hdd_IdentifyDoesNotDependOnTheImagePolarity_KnownBug)
+    TEST_METHOD(Hdd_IdentifyDoesNotDependOnTheImagePolarity)
     {
         std::vector<uint8_t> image = MakeHardImage(GEO);
         uint16_t normal[256], inverted[256];
@@ -561,13 +555,7 @@ public:
             Eq(normal[i], inverted[i], _T("the same IDENTIFY word for both images"));
     }
 
-    // Known bug: after the last sector of a write command the drive still requests data (DRQ stays set),
-    // WriteSectorDone() sets the "buffer ready" flag unconditionally. An ATA drive clears DRQ when the
-    // command is complete.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Hdd_WriteCompleteClearsTheDataRequest_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Hdd_WriteCompleteClearsTheDataRequest_KnownBug)
+    TEST_METHOD(Hdd_WriteCompleteClearsTheDataRequest)
     {
         TempFile file(_T(".img"));
         file.Write(MakeHardImage(GEO));

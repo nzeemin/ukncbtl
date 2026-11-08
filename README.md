@@ -22,8 +22,17 @@ together when distributing or moving the program. `cmake --install build
 is included from the upstream renderer project under `third_party/RenderVfw`.
 The ROM and other resources are embedded in the executable. This modern build
 uses the current Microsoft toolchain and Windows SDK and does not target Windows
-XP. The legacy Visual Studio projects, including the Microsoft C++ unit tests,
-remain available separately.
+XP.
+
+Run the CMake test suite after building the corresponding configuration:
+
+```powershell
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The suite includes the existing core tests, exhaustive disassembly and hint
+checks, and screenshot, WAV, and bitmap tests. Configure with
+`-DBUILD_TESTING=OFF` to omit the test targets.
 
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 [![Build status](https://ci.appveyor.com/api/projects/status/xicur65lusd5c3ab?svg=true)](https://ci.appveyor.com/project/nzeemin/ukncbtl)

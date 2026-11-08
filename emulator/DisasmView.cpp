@@ -56,8 +56,7 @@ struct DisasmLineItem
     uint16_t address;       // Line address for LINETYPE_DATA
     int      addrtype;      // Address type for LINETYPE_DATA, see ADDRTYPE_XXX constants
     uint16_t value;         // Data on the address for LINETYPE_DATA
-    TCHAR    strInstr[8];   // Disassembled instruction for LINETYPE_DISASM
-    TCHAR    strArg[32];    // Disassembled instruction arguments for LINETYPE_DISASM
+    DisassembledInstruction decoded; // Disassembled instruction for LINETYPE_INSTR
     int      jumpdelta;     // Jump delta for LINETYPE_JUMP
     const DisasmSubtitleItem* pSubItem;  // Link to subtitles item for LINETYPE_SUBTITLE
 };
@@ -603,7 +602,7 @@ void DisasmView_OnUpdate()
     m_wDisasmBaseAddr = pProc->GetPC();
 
     ASSERT(m_pDisasmLineItems != nullptr);
-    memset(m_pDisasmLineItems, 0, sizeof(DisasmLineItem) * MAX_DISASMLINECOUNT);
+    std::fill_n(m_pDisasmLineItems, MAX_DISASMLINECOUNT, DisasmLineItem{});
     m_Hint.count = 0;
     m_okDisasmJumpPredict = FALSE;
 
@@ -621,8 +620,10 @@ void DisasmView_OnUpdate()
     uint16_t windowStart = (uint16_t)(current - DISASMVIEW_ROWS_BEFORE_PC * 2);
     for (int idx = 0; idx < nWindowSize + 2; idx++)
     {
-        memory[idx] = pMemCtl->GetWordView(
-                (uint16_t)(windowStart + idx * 2), pProc->IsHaltMode(), true, addrtype + idx);
+        const auto word = pMemCtl->GetWordView(
+                static_cast<uint16_t>(windowStart + idx * 2), pProc->IsHaltMode(), true);
+        memory[idx] = word.value;
+        addrtype[idx] = word.addressType;
     }
 
     uint16_t address = windowStart;
@@ -648,9 +649,8 @@ void DisasmView_OnUpdate()
             int walkLength = 1;
             if (!okWalkData)
             {
-                TCHAR strInstr[16];
-                TCHAR strArg[40];
-                walkLength = DisassembleInstruction(std::span{memory}.subspan(walk), walkAddress, strInstr, strArg);
+                const auto decoded = DisassembleInstruction(std::span{memory}.subspan(walk), walkAddress);
+                walkLength = decoded ? decoded->length : 1;
                 if (walkLength < 1) walkLength = 1;
             }
             walk += walkLength;
@@ -717,18 +717,22 @@ void DisasmView_OnUpdate()
             else
             {
                 pLineItem->type |= LINETYPE_INSTR;
-                length = DisassembleInstruction(std::span{memory}.subspan(index), address, pLineItem->strInstr, pLineItem->strArg);
+                const auto decoded = DisassembleInstruction(std::span{memory}.subspan(index), address);
+                if (!decoded) break;
+                pLineItem->decoded = *decoded;
+                length = decoded->length;
 
                 if (!m_okDisasmSubtitles)  //NOTE: Subtitles can move lines down
                 {
-                    if (Disasm_CheckForJump(memory + index, address, &pLineItem->jumpdelta))
+                    if (const auto delta = Disasm_CheckForJump(std::span{memory}.subspan(index), address))
                     {
+                        pLineItem->jumpdelta = *delta;
                         pLineItem->type |= LINETYPE_JUMP;
                     }
 
                     if (address == proccurrent)  // For current instruction, prepare the instruction hints
                     {
-                        Disasm_GetHint(memory + index, pProc, pMemCtl, &m_Hint);
+                        m_Hint = Disasm_GetHint(std::span{memory}.subspan(index), *pProc, *pMemCtl);
                         m_okDisasmJumpPredict = m_Hint.jumpPredict;
                     }
                 }
@@ -919,8 +923,8 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
         int posAfterArgs = 30;
         if ((pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0)
         {
-            LPCTSTR strInstr = pLineItem->strInstr;
-            LPCTSTR strArg = pLineItem->strArg;
+            LPCTSTR strInstr = pLineItem->decoded.mnemonic.c_str();
+            LPCTSTR strArg = pLineItem->decoded.argument.c_str();
             ::SetTextColor(hdc, colorText);
             TextOut(hdc, x + 21 * cxChar, y, strInstr, static_cast<int>(_tcslen(strInstr)));
             TextOut(hdc, x + 29 * cxChar, y, strArg, static_cast<int>(_tcslen(strArg)));
@@ -961,7 +965,7 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
                 ::SetTextColor(hdc, hintcolor);
                 for (int i = 0; i < m_Hint.count; i++)
                 {
-                    const TCHAR* strHint = m_Hint.lines[i];
+                    const TCHAR* strHint = m_Hint.lines[i].c_str();
                     TextOut(hdc, x + 52 * cxChar, y + i * cyLine, strHint, static_cast<int>(_tcslen(strHint)));
                 }
                 ::SetTextColor(hdc, colorText);

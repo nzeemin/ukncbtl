@@ -13,6 +13,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include <string>
+#include <string_view>
 #include "util/Octal.h"
 
 using TcharString = std::basic_string<TCHAR>;
@@ -87,7 +88,9 @@ void DrawOctalValue(HDC hdc, int x, int y, WORD value);
 void DrawHexValue(HDC hdc, int x, int y, WORD value);
 void DrawBinaryValue(HDC hdc, int x, int y, WORD value);
 
-void CopyTextToClipboard(LPCTSTR text);
+// Transfers ownership of memory to the clipboard on success, and frees it on failure.
+[[nodiscard]] bool SetGlobalClipboardData(UINT format, HGLOBAL memory);
+void CopyTextToClipboard(std::basic_string_view<TCHAR> text);
 void CopyOctalValueToClipboard(WORD value);
 void CopyHexValueToClipboard(WORD value);
 

@@ -592,18 +592,26 @@ WORD MemoryView_GetWordFromMemory(WORD address, BOOL& okValid, int& addrtype, WO
         }
         break;
     case MEMMODE_CPU:
+    {
         okHalt = g_pBoard->GetCPU()->IsHaltMode();
-        word = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, FALSE, &addrtype);
+        const auto view = g_pBoard->GetCPUMemoryController()->GetWordView(address, okHalt, false);
+        word = view.value;
+        addrtype = view.addressType;
         okValid = (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY);
         wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM12, address);
         break;
+    }
     case MEMMODE_PPU:
+    {
         okHalt = g_pBoard->GetPPU()->IsHaltMode();
-        word = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, FALSE, &addrtype);
+        const auto view = g_pBoard->GetPPUMemoryController()->GetWordView(address, okHalt, false);
+        word = view.value;
+        addrtype = view.addressType;
         okValid = (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY);
         if (address < 0100000)
             wChanged = Emulator_GetChangeRamStatus(ADDRTYPE_RAM0, address);
         break;
+    }
     }
 
     return word;

@@ -14,10 +14,11 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // standard IBM/MZ one: the ID record (A1 A1 A1 FE, cylinder, head, sector, size code 2) and the
 // data record (A1 A1 A1 FB, 512 bytes). The tests read the tracks with the controller commands
 // and ports the way a disk driver does it: search sync, then read the words of the record.
-// Tests of the known bugs are ignored, see the list in docs/unit-tests.md.
 
 #include "stdafx.h"
 #include <CppUnitTest.h>
+#include <algorithm>
+#include <span>
 #include <vector>
 #include "TestHelpers.h"
 
@@ -30,6 +31,13 @@ const int SECTORS = 10;
 const int SECTOR_SIZE = 512;
 const int TRACK_SIZE = SECTORS * SECTOR_SIZE;   // one side of a track
 const int RTD_HEADER_SIZE = 256;
+
+class InspectableFloppyController : public CFloppyController
+{
+public:
+    std::span<uint8_t, FLOPPY_RAWTRACKSIZE> RawTrack() { return m_pDrive->data; }
+    void MarkTrackChanged() { m_trackchanged = true; }
+};
 
 // Disk image content: every sector byte depends on the track, side, sector, offset and the seed
 uint8_t ImageByte(int seed, int track, int side, int sector /*0..9*/, int offset)
@@ -466,6 +474,60 @@ public:
         Assert::IsTrue(same, _T("the other sectors are unchanged"));
     }
 
+    TEST_METHOD(Floppy_FlushUsesSectorNumbersInsteadOfPhysicalOrder)
+    {
+        TempFile file(_T(".dsk"));
+        const auto original = MakeDiskImage(1);
+        file.Write(original);
+        InspectableFloppyController f;
+        Assert::IsTrue(f.AttachImage(0, file.Path()));
+        auto track = f.RawTrack();
+        // Sector number fields in the first two encoded ID records.
+        Assert::AreEqual(1, static_cast<int>(track[52]));
+        Assert::AreEqual(2, static_cast<int>(track[666]));
+        std::swap(track[52], track[666]);
+        f.MarkTrackChanged();
+        f.DetachImage(0);
+        Assert::IsFalse(f.IsAttached(0));
+
+        const auto result = file.Read();
+        Assert::AreEqual(original.size(), result.size());
+        Assert::IsTrue(std::equal(result.begin(), result.begin() + SECTOR_SIZE, original.begin() + SECTOR_SIZE));
+        Assert::IsTrue(std::equal(result.begin() + SECTOR_SIZE, result.begin() + 2 * SECTOR_SIZE, original.begin()));
+        Assert::IsTrue(std::equal(result.begin() + 2 * SECTOR_SIZE, result.end(), original.begin() + 2 * SECTOR_SIZE));
+    }
+
+    TEST_METHOD(Floppy_InvalidSectorHeadersRetainChangesWithoutWritingImage)
+    {
+        TempFile file(_T(".dsk"));
+        const auto original = MakeDiskImage(1);
+        file.Write(original);
+        InspectableFloppyController f;
+        Assert::IsTrue(f.AttachImage(0, file.Path()));
+        auto track = f.RawTrack();
+        f.MarkTrackChanged();
+
+        for (const uint8_t invalidSector : {uint8_t{0}, uint8_t{1}, uint8_t{11}})
+        {
+            track[666] = invalidSector;
+            f.DetachImage(0);
+            Assert::IsTrue(f.IsAttached(0), _T("invalid sector number retains the changed track"));
+            Assert::IsTrue(file.Read() == original, _T("invalid sector number does not change the image"));
+        }
+        track[666] = 2;
+        for (const uint8_t invalidSize : {uint8_t{1}, uint8_t{3}})
+        {
+            track[667] = invalidSize;
+            f.DetachImage(0);
+            Assert::IsTrue(f.IsAttached(0), _T("unsupported sector size retains the changed track"));
+            Assert::IsTrue(file.Read() == original, _T("unsupported sector size does not change the image"));
+        }
+        track[667] = 2;
+        f.DetachImage(0);
+        Assert::IsFalse(f.IsAttached(0), _T("a repaired track can be flushed"));
+        Assert::IsTrue(file.Read() == original);
+    }
+
     TEST_METHOD(Floppy_WrittenSectorIsReadBack)
     {
         TempFile file(_T(".dsk"));
@@ -515,7 +577,12 @@ public:
                 f.Periodic();
                 f.WriteData(0x5555);
             }
+            f.GetData();
+            std::vector<uint8_t> data;
+            Assert::IsTrue(ReadSector(f, Cmd(0, 0), 1, &data));
+            Assert::IsTrue(SectorMatches(data, 1, 0, 0, 1), _T("the in-memory track is unchanged"));
             f.DetachImage(0);
+            Assert::IsFalse(f.IsAttached(0), _T("write-protected tracks do not become dirty"));
         }
         Assert::IsTrue(file.Read() == original, _T("the file is the same"));
     }
@@ -543,13 +610,7 @@ public:
         Eq(0x01, result[2 * TRACK_SIZE + 1], _T("second byte"));
     }
 
-    // Known bug: the "write protect" status flag follows the drive 0 instead of the selected drive.
-    // AttachImage() and Reset() set it from the current drive when the image is attached, and the drive
-    // selection does not update it.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Floppy_WriteProtectFollowsTheSelectedDrive_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Floppy_WriteProtectFollowsTheSelectedDrive_KnownBug)
+    TEST_METHOD(Floppy_WriteProtectFollowsTheSelectedDrive)
     {
         TempFile writable(_T(".dsk")), protectedFile(_T(".dsk"));
         writable.Write(MakeDiskImage(1));
