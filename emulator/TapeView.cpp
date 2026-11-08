@@ -119,8 +119,7 @@ void TapeView_Create(HWND hwndParent, int x, int y, int width, int height)
     SetWindowText(g_hwndTape, _T("Tape"));
 
     // ToolWindow subclassing
-    m_wndprocTapeToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
-            g_hwndTape, GWLP_WNDPROC, PtrToLong(TapeViewWndProc)) );
+    m_wndprocTapeToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndTape, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(TapeViewWndProc)));
 
     RECT rcClient;  GetClientRect(g_hwndTape, &rcClient);
 

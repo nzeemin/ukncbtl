@@ -342,103 +342,15 @@ inline void CProcessor::InterruptVIRQ(int que, uint16_t interrupt)
 }
 
 // PSW bits calculations - implementation
-inline bool CProcessor::CheckAddForOverflow (uint8_t a, uint8_t b)
-{
-#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
-    bool bOverflow = false;
-    _asm
-    {
-        pushf
-        push cx
-        mov cl, byte ptr [a]
-        add cl, byte ptr [b]
-        jno end
-        mov dword ptr [bOverflow], 1
-        end:
-        pop cx
-        popf
-    }
-    return bOverflow;
-#else
-    //uint16_t sum = a < 0200 ? (uint16_t)a + (uint16_t)b + 0200 : (uint16_t)a + (uint16_t)b - 0200;
-    //return HIBYTE (sum) != 0;
-    uint8_t sum = a + b;
-    return ((~a ^ b) & (a ^ sum)) & 0200;
-#endif
-}
-inline bool CProcessor::CheckAddForOverflow (uint16_t a, uint16_t b)
-{
-#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
-    bool bOverflow = false;
-    _asm
-    {
-        pushf
-        push cx
-        mov cx, word ptr [a]
-        add cx, word ptr [b]
-        jno end
-        mov dword ptr [bOverflow], 1
-        end:
-        pop cx
-        popf
-    }
-    return bOverflow;
-#else
-    //uint32_t sum =  a < 0100000 ? (uint32_t)a + (uint32_t)b + 0100000 : (uint32_t)a + (uint32_t)b - 0100000;
-    //return HIWORD (sum) != 0;
-    uint16_t sum = a + b;
-    return ((~a ^ b) & (a ^ sum)) & 0100000;
-#endif
-}
+extern "C" int CpuAddOverflow8(uint8_t a, uint8_t b);
+extern "C" int CpuAddOverflow16(uint16_t a, uint16_t b);
+extern "C" int CpuSubOverflow8(uint8_t a, uint8_t b);
+extern "C" int CpuSubOverflow16(uint16_t a, uint16_t b);
 
-inline bool CProcessor::CheckSubForOverflow (uint8_t a, uint8_t b)
-{
-#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
-    bool bOverflow = false;
-    _asm
-    {
-        pushf
-        push cx
-        mov cl, byte ptr [a]
-        sub cl, byte ptr [b]
-        jno end
-        mov dword ptr [bOverflow], 1
-        end:
-        pop cx
-        popf
-    }
-    return bOverflow;
-#else
-    //uint16_t sum = a < 0200 ? (uint16_t)a - (uint16_t)b + 0200 : (uint16_t)a - (uint16_t)b - 0200;
-    //return HIBYTE (sum) != 0;
-    uint8_t sum = a - b;
-    return ((a ^ b) & (~b ^ sum)) & 0200;
-#endif
-}
-inline bool CProcessor::CheckSubForOverflow (uint16_t a, uint16_t b)
-{
-#if defined(_M_IX86) && defined(_MSC_VER) && !defined(_MANAGED)
-    bool bOverflow = false;
-    _asm
-    {
-        pushf
-        push cx
-        mov cx, word ptr [a]
-        sub cx, word ptr [b]
-        jno end
-        mov dword ptr [bOverflow], 1
-        end:
-        pop cx
-        popf
-    }
-    return bOverflow;
-#else
-    //uint32_t sum =  a < 0100000 ? (uint32_t)a - (uint32_t)b + 0100000 : (uint32_t)a - (uint32_t)b - 0100000;
-    //return HIWORD (sum) != 0;
-    uint16_t sum = a - b;
-    return ((a ^ b) & (~b ^ sum)) & 0100000;
-#endif
-}
+inline bool CProcessor::CheckAddForOverflow(uint8_t a, uint8_t b) { return CpuAddOverflow8(a, b) != 0; }
+inline bool CProcessor::CheckAddForOverflow(uint16_t a, uint16_t b) { return CpuAddOverflow16(a, b) != 0; }
+inline bool CProcessor::CheckSubForOverflow(uint8_t a, uint8_t b) { return CpuSubOverflow8(a, b) != 0; }
+inline bool CProcessor::CheckSubForOverflow(uint16_t a, uint16_t b) { return CpuSubOverflow16(a, b) != 0; }
 inline bool CProcessor::CheckAddForCarry (uint8_t a, uint8_t b)
 {
     uint16_t sum = (uint16_t)a + (uint16_t)b;

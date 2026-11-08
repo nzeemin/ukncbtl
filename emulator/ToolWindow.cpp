@@ -148,7 +148,7 @@ void SplitterWindow_RegisterClass()
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = SplitterWindow_WndProc;
     wcex.cbClsExtra = 0;
-    wcex.cbWndExtra = 8 * 2;
+    wcex.cbWndExtra = 2 * sizeof(LONG_PTR);
     wcex.hInstance = g_hInst;
     wcex.hIcon = NULL;
     wcex.hCursor = LoadCursor(NULL, IDC_SIZENS);
@@ -173,7 +173,7 @@ HWND SplitterWindow_Create(HWND hwndParent, HWND hwndTop, HWND hwndBottom)
             hwndParent, NULL, g_hInst, NULL);
 
     SetWindowLongPtr(hwnd, 0, (LONG_PTR)hwndTop);
-    SetWindowLongPtr(hwnd, 8, (LONG_PTR)hwndBottom);
+    SetWindowLongPtr(hwnd, sizeof(LONG_PTR), (LONG_PTR)hwndBottom);
 
     m_SplitterWindow_IsMoving = false;
 
@@ -186,7 +186,7 @@ void SplitterWindow_MoveWindows(HWND hwndSplitter, int deltaY)
         return;
 
     HWND hwndTop = (HWND)GetWindowLongPtr(hwndSplitter, 0);
-    HWND hwndBottom = (HWND)GetWindowLongPtr(hwndSplitter, 8);
+    HWND hwndBottom = (HWND)GetWindowLongPtr(hwndSplitter, sizeof(LONG_PTR));
 
     RECT rcTop;  ::GetWindowRect(hwndTop, &rcTop);
     ::ScreenToClient(g_hwnd, (POINT*)&rcTop);

@@ -95,8 +95,7 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
     SetWindowText(g_hwndConsole, _T("Debug Console"));
 
     // ToolWindow subclassing
-    m_wndprocConsoleToolWindow = (WNDPROC)LongToPtr( SetWindowLongPtr(
-            g_hwndConsole, GWLP_WNDPROC, PtrToLong(ConsoleViewWndProc)) );
+    m_wndprocConsoleToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndConsole, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ConsoleViewWndProc)));
 
     RECT rcConsole;  GetClientRect(g_hwndConsole, &rcConsole);
 
@@ -128,8 +127,7 @@ void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndConsoleLog, WM_SETFONT, (WPARAM)m_hfontConsole, 0);
 
     // Edit box subclassing
-    m_wndprocConsoleEdit = (WNDPROC)LongToPtr( SetWindowLongPtr(
-            m_hwndConsoleEdit, GWLP_WNDPROC, PtrToLong(ConsoleEditWndProc)) );
+    m_wndprocConsoleEdit = reinterpret_cast<WNDPROC>(SetWindowLongPtr(m_hwndConsoleEdit, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(ConsoleEditWndProc)));
 
     ShowWindow(g_hwndConsole, SW_SHOW);
     UpdateWindow(g_hwndConsole);

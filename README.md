@@ -1,5 +1,5 @@
 # ukncbtl
-UKNCBTL — UKNC Back to Life! emulator, Win32 version.
+UKNCBTL — UKNC Back to Life! emulator, Windows x86-64 version.
 
 ### Building on Windows
 
@@ -8,13 +8,13 @@ Windows SDK. Use its bundled CMake (4.1 or newer for the Visual Studio 2026
 generator), for example from a Visual Studio Developer PowerShell:
 
 ```powershell
-cmake -S . -B build -G "Visual Studio 18 2026" -A Win32
+cmake -S . -B build -G "Visual Studio 18 2026" -A x64
 cmake --build build --config Release
 ```
 
 The executable is `build/Release/UKNCBTL.exe`. Use `--config Debug` for a
-debug build, or open the generated `build/UKNCBTL.sln` in Visual Studio.
-The emulator currently requires the Win32 target. CMake also supports older
+debug build, or open the CMake project in Visual Studio.
+The emulator requires the x64 target. CMake also supports older
 installed Visual Studio generators; select the matching generator explicitly.
 The build also produces `RenderVfw.dll` beside the executable; keep both files
 together when distributing or moving the program. `cmake --install build
@@ -93,7 +93,7 @@ NOT emulated yet: network card, RAM disks, joysticks.
 -----
 
 The UKNCBTL project consists of:
-* [ukncbtl](https://github.com/nzeemin/ukncbtl/) written for Win32 and works under Windows 2000/2003/2008/XP/Vista/7/8/10.
+* [ukncbtl](https://github.com/nzeemin/ukncbtl/) the Windows x86-64 version.
 * [ukncbtl-renders](https://github.com/nzeemin/ukncbtl-renders/) — renderers for UKNCBTL Win32.
 * [ukncbtl-qt](https://github.com/nzeemin/ukncbtl-qt/) is based on Qt framework and works under Windows, Linux and Mac OS X.
 * [ukncbtl-testbench](https://github.com/nzeemin/ukncbtl-testbench/) — test bench for regression and performance testing.

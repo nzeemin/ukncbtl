@@ -1,32 +1,12 @@
-
-init:
-  - git config --global core.autocrlf input
-
-clone_folder: C:\projects\ukncbtl
-shallow_clone: true
-
-branches:
-  only:
-    - master
-
-matrix:
-  fast_finish: false
+image: Visual Studio 2022
 
 configuration:
   - Debug
   - Release
-  - Product
 
-environment:
-  matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-      toolchain: msvc15
-      platform: x86
-      PROJECTFILE: UKNCBTL-VS2015.sln
-
-build:
-  project: emulator\$(PROJECTFILE)
-
+build_script:
+  - cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+  - cmake --build build --config %CONFIGURATION% --parallel
 
 test_script:
-  - if not "%CONFIGURATION%"=="Product" vstest.console.exe /Logger:Appveyor tests\%CONFIGURATION%\UKNCBTL-Tests.dll
+  - ctest --test-dir build -C %CONFIGURATION% --output-on-failure

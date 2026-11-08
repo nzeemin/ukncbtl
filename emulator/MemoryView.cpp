@@ -98,8 +98,7 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     MemoryView_UpdateWindowText();
 
     // ToolWindow subclassing
-    m_wndprocMemoryToolWindow = (WNDPROC) LongToPtr( SetWindowLongPtr(
-            g_hwndMemory, GWLP_WNDPROC, PtrToLong(MemoryViewWndProc)) );
+    m_wndprocMemoryToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndMemory, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(MemoryViewWndProc)));
 
     RECT rcClient;  GetClientRect(g_hwndMemory, &rcClient);
 
