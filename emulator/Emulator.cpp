@@ -361,59 +361,26 @@ void Emulator_SetMouse(bool mouseOnOff)
     g_pBoard->SetMouse(mouseOnOff);
 }
 
-// Instruction history: ring buffers for CPU and PPU, filled by Emulator_Instruction_Callback
-static InstructionRecord m_InstrHistory[2][INSTR_HISTORY_SIZE];  // [0] = PPU, [1] = CPU
-static int m_InstrHistoryHead[2] = { 0, 0 };    // Index of the next record to write
-static int m_InstrHistoryLength[2] = { 0, 0 };  // Number of valid records
+static InstructionHistory instructionHistory;
 
 int Emulator_GetHistoryLength(bool okCpuPpu)
 {
-    return m_InstrHistoryLength[okCpuPpu ? 1 : 0];
+    return instructionHistory.Length(okCpuPpu);
 }
 
-// Index 0 is the most recent instruction
 const InstructionRecord& Emulator_GetHistoryRecord(bool okCpuPpu, int index)
 {
-    int ring = okCpuPpu ? 1 : 0;
-    ASSERT(index >= 0 && index < m_InstrHistoryLength[ring]);
-    return m_InstrHistory[ring][(m_InstrHistoryHead[ring] - 1 - index) & (INSTR_HISTORY_SIZE - 1)];
+    return instructionHistory.Get(okCpuPpu, index);
 }
 
 void Emulator_ClearHistory()
 {
-    m_InstrHistoryHead[0] = m_InstrHistoryHead[1] = 0;
-    m_InstrHistoryLength[0] = m_InstrHistoryLength[1] = 0;
+    instructionHistory.Clear();
 }
 
-// Take the next slot of the history ring of the processor; the caller fills the record
-static InstructionRecord& Emulator_AddHistoryRecord(bool okCpu)
-{
-    int ring = okCpu ? 1 : 0;
-    InstructionRecord& record = m_InstrHistory[ring][m_InstrHistoryHead[ring]];
-    m_InstrHistoryHead[ring] = (m_InstrHistoryHead[ring] + 1) & (INSTR_HISTORY_SIZE - 1);
-    if (m_InstrHistoryLength[ring] < INSTR_HISTORY_SIZE)
-        m_InstrHistoryLength[ring]++;
-    return record;
-}
-
-// Short name of the interrupt vector; the SEL register high byte of HALT mode vectors is ignored
 LPCTSTR Emulator_GetInterruptName(uint16_t vector)
 {
-    switch (vector & 0377)
-    {
-    case 0000: return _T("START");
-    case 0004: return _T("BUS");
-    case 0010: return _T("RSVD");
-    case 0014: return _T("BPT/TBIT");
-    case 0020: return _T("IOT");
-    case 0024: return _T("ACLO");
-    case 0030: return _T("EMT");
-    case 0034: return _T("TRAP");
-    case 0100: return _T("EVNT");
-    case 0170: return _T("HALT");
-    case 0174: return _T("HALT BUS");
-    default:   return _T("VIRQ");
-    }
+    return InstructionHistory::InterruptName(vector);
 }
 
 // Called by CPU/PPU before each instruction is executed; installed always, records history and writes trace
@@ -424,19 +391,12 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     // Instruction is at most 3 words long
     const CMemoryController* pMemCtl = pProc->GetMemoryControllerConst();
     bool okHaltMode = pProc->IsHaltMode();
-    uint16_t memory[3];
+    std::array<uint16_t, 3> memory{};
     memory[0] = opcode;
     memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true).value;
     memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true).value;
 
-    // Put the instruction into the history ring
-    InstructionRecord& record = Emulator_AddHistoryRecord(okCpu);
-    record.pc = address;
-    record.words[0] = memory[0];
-    record.words[1] = memory[1];
-    record.words[2] = memory[2];
-    record.psw = pProc->GetPSW();
-    record.interrupt = false;
+    instructionHistory.RecordInstruction(okCpu, address, memory, pProc->GetPSW());
 
 #if !defined(PRODUCT)
     uint32_t dwTrace = g_pBoard->GetTrace();
@@ -462,14 +422,7 @@ void CALLBACK Emulator_Interrupt_Callback(const CProcessor* pProc, uint16_t oldP
 {
     bool okCpu = (pProc == g_pBoard->GetCPU());
 
-    // Put the interrupt into the history ring
-    InstructionRecord& record = Emulator_AddHistoryRecord(okCpu);
-    record.pc = oldPc;
-    record.words[0] = vector;
-    record.words[1] = pProc->GetPC();
-    record.words[2] = pProc->GetPSW();
-    record.psw = pProc->GetPSW();
-    record.interrupt = true;
+    instructionHistory.RecordInterrupt(okCpu, oldPc, vector, pProc->GetPC(), pProc->GetPSW());
 
 #if !defined(PRODUCT)
     uint32_t dwTrace = g_pBoard->GetTrace();

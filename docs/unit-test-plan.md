@@ -6,7 +6,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | Area | Scope | Status |
 | --- | --- | --- |
 | 1. Breakpoints | Shared CPU/PPU storage, limits, compaction, temporary ownership, sentinel readers | Complete: 14 GoogleTest cases |
-| 2. Instruction history | Ring wraparound, ordering, clearing, CPU/PPU separation, interrupt records/names | Pending |
+| 2. Instruction history | Ring wraparound, ordering, clearing, CPU/PPU separation, interrupt records/names | Complete: 14 GoogleTest cases |
 | 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Pending |
 | 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Pending |
 | 5. Commands | Console parsing/history/step-over and command-line options | Pending |
@@ -48,3 +48,19 @@ temporary targets before persisting the remaining list.
 
 Validation: Release application/test build and 311 passing Release CTest cases
 (297 existing plus 14 new). No interactive debugger UI test was performed.
+
+## Area 2 implementation
+
+`InstructionHistory` owns both 256-record rings and constructs complete
+instruction and interrupt records. The emulator callbacks delegate recording
+to this component before trace filtering; the existing debugger API delegates
+length, retrieval, clearing and interrupt names to the same implementation.
+
+Fourteen tests cover field preservation and source copying, newest-first order,
+exact capacity, first overflow, repeated wraps, CPU/PPU independence, mixed
+records, complete replacement of reused slots, clearing/reuse, all named vectors
+with every SEL high byte, and unknown/odd vectors falling back to VIRQ.
+
+Validation: Release application and new test target build successfully; all
+325 Release CTest cases pass. Tests exercise the extracted history component;
+interactive UI rendering and processor callback timing are not tested here.
