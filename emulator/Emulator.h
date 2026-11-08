@@ -13,11 +13,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "emubase/Board.h"
+#include "BreakpointSet.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
-const int MAX_BREAKPOINTCOUNT = 16;
+const int MAX_BREAKPOINTCOUNT = static_cast<int>(BreakpointSet::Capacity);
 
 extern CMotherboard* g_pBoard;
 

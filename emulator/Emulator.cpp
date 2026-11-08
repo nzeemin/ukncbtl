@@ -37,12 +37,8 @@ static std::unique_ptr<CMotherboard> g_boardOwner;
 bool g_okEmulatorInitialized = false;
 bool g_okEmulatorRunning = false;
 
-int m_wEmulatorCPUBpsCount = 0;
-int m_wEmulatorPPUBpsCount = 0;
-uint16_t m_EmulatorCPUBps[MAX_BREAKPOINTCOUNT + 1];
-uint16_t m_EmulatorPPUBps[MAX_BREAKPOINTCOUNT + 1];
-uint16_t m_wEmulatorTempCPUBreakpoint = 0177777;
-uint16_t m_wEmulatorTempPPUBreakpoint = 0177777;
+static BreakpointSet cpuBreakpoints;
+static BreakpointSet ppuBreakpoints;
 
 bool m_okEmulatorSound = false;
 uint16_t m_wEmulatorSoundSpeed = 100;
@@ -130,17 +126,13 @@ bool Emulator_Init()
     ::memset(g_pEmulatorChangedRam, 0, sizeof(g_pEmulatorChangedRam));
     CProcessor::Init();
 
-    m_wEmulatorCPUBpsCount = m_wEmulatorPPUBpsCount = 0;
-    for (int i = 0; i <= MAX_BREAKPOINTCOUNT; i++)
+    cpuBreakpoints.Clear();
+    ppuBreakpoints.Clear();
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; ++i)
     {
-        uint16_t address = Settings_GetDebugBreakpoint(i, TRUE);
-        m_EmulatorCPUBps[i] = address;
-        if (address != 0177777) m_wEmulatorCPUBpsCount = i + 1;
-        address = Settings_GetDebugBreakpoint(i, FALSE);
-        m_EmulatorPPUBps[i] = address;
-        if (address != 0177777) m_wEmulatorPPUBpsCount = i + 1;
+        cpuBreakpoints.Add(Settings_GetDebugBreakpoint(i, TRUE));
+        ppuBreakpoints.Add(Settings_GetDebugBreakpoint(i, FALSE));
     }
-
     g_boardOwner = std::make_unique<CMotherboard>();
     g_pBoard = g_boardOwner.get();
 
@@ -187,12 +179,14 @@ void Emulator_Done()
 {
     ASSERT(g_pBoard != nullptr);
 
-    // Save breakpoints
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        Settings_SetDebugBreakpoint(i, TRUE, i < m_wEmulatorCPUBpsCount ? m_EmulatorCPUBps[i] : 0177777);
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        Settings_SetDebugBreakpoint(i, FALSE, i < m_wEmulatorPPUBpsCount ? m_EmulatorPPUBps[i] : 0177777);
-
+    // Temporary run-to targets are not persistent debugger settings.
+    cpuBreakpoints.SetTemporary(BreakpointSet::NoBreakpoint);
+    ppuBreakpoints.SetTemporary(BreakpointSet::NoBreakpoint);
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; ++i)
+    {
+        Settings_SetDebugBreakpoint(i, TRUE, cpuBreakpoints.Data()[i]);
+        Settings_SetDebugBreakpoint(i, FALSE, ppuBreakpoints.Data()[i]);
+    }
     CProcessor::Done();
 
     g_pBoard->SetInstructionCallback(nullptr);
@@ -245,7 +239,7 @@ void Emulator_Start()
     m_dwTickCount = GetTickCount();
 
     // For proper breakpoint processing
-    if (m_wEmulatorCPUBpsCount != 0 || m_wEmulatorPPUBpsCount)
+    if (!cpuBreakpoints.Addresses().empty() || !ppuBreakpoints.Addresses().empty())
     {
         g_pBoard->GetCPU()->ClearInternalTick();
         g_pBoard->GetPPU()->ClearInternalTick();
@@ -285,168 +279,26 @@ void Emulator_Reset()
     MainWindow_UpdateAllViews();
 }
 
-bool Emulator_AddCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorCPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
-        return false;
-    for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)  // Check if the BP exists
-    {
-        if (m_EmulatorCPUBps[i] == address)
-            return false;  // Already in the list
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
-    {
-        if (m_EmulatorCPUBps[i] == 0177777)
-        {
-            m_EmulatorCPUBps[i] = address;
-            break;
-        }
-    }
-    m_wEmulatorCPUBpsCount++;
-    return true;
-}
-bool Emulator_AddPPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorPPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
-        return false;
-    for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)  // Check if the BP exists
-    {
-        if (m_EmulatorPPUBps[i] == address)
-            return false;  // Already in the list
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
-    {
-        if (m_EmulatorPPUBps[i] == 0177777)
-        {
-            m_EmulatorPPUBps[i] = address;
-            break;
-        }
-    }
-    m_wEmulatorPPUBpsCount++;
-    return true;
-}
-bool Emulator_RemoveCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorCPUBpsCount == 0 || address == 0177777)
-        return false;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorCPUBps[i] == address)
-        {
-            m_EmulatorCPUBps[i] = 0177777;
-            m_wEmulatorCPUBpsCount--;
-            if (m_wEmulatorCPUBpsCount > i)  // fill the hole
-            {
-                m_EmulatorCPUBps[i] = m_EmulatorCPUBps[m_wEmulatorCPUBpsCount];
-                m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = 0177777;
-            }
-            return true;
-        }
-    }
-    return false;
-}
-bool Emulator_RemovePPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorPPUBpsCount == 0 || address == 0177777)
-        return false;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorPPUBps[i] == address)
-        {
-            m_EmulatorPPUBps[i] = 0177777;
-            m_wEmulatorPPUBpsCount--;
-            if (m_wEmulatorPPUBpsCount > i)  // fill the hole
-            {
-                m_EmulatorPPUBps[i] = m_EmulatorPPUBps[m_wEmulatorPPUBpsCount];
-                m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = 0177777;
-            }
-            return true;
-        }
-    }
-    return false;
-}
-void Emulator_SetTempCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorTempCPUBreakpoint != 0177777)
-        Emulator_RemoveCPUBreakpoint(m_wEmulatorTempCPUBreakpoint);
-    if (address == 0177777)
-    {
-        m_wEmulatorTempCPUBreakpoint = 0177777;
-        return;
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorCPUBps[i] == address)
-            return;  // We have regular breakpoint with the same address
-    }
-    m_wEmulatorTempCPUBreakpoint = address;
-    m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = address;
-    m_wEmulatorCPUBpsCount++;
-}
-void Emulator_SetTempPPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorTempPPUBreakpoint != 0177777)
-        Emulator_RemovePPUBreakpoint(m_wEmulatorTempPPUBreakpoint);
-    if (address == 0177777)
-    {
-        m_wEmulatorTempPPUBreakpoint = 0177777;
-        return;
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorPPUBps[i] == address)
-            return;  // We have regular breakpoint with the same address
-    }
-    m_wEmulatorTempPPUBreakpoint = address;
-    m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = address;
-    m_wEmulatorPPUBpsCount++;
-}
-const uint16_t* Emulator_GetCPUBreakpointList() { return m_EmulatorCPUBps; }
-const uint16_t* Emulator_GetPPUBreakpointList() { return m_EmulatorPPUBps; }
+bool Emulator_AddCPUBreakpoint(uint16_t address) { return cpuBreakpoints.Add(address); }
+bool Emulator_AddPPUBreakpoint(uint16_t address) { return ppuBreakpoints.Add(address); }
+bool Emulator_RemoveCPUBreakpoint(uint16_t address) { return cpuBreakpoints.Remove(address); }
+bool Emulator_RemovePPUBreakpoint(uint16_t address) { return ppuBreakpoints.Remove(address); }
+void Emulator_SetTempCPUBreakpoint(uint16_t address) { cpuBreakpoints.SetTemporary(address); }
+void Emulator_SetTempPPUBreakpoint(uint16_t address) { ppuBreakpoints.SetTemporary(address); }
+const uint16_t* Emulator_GetCPUBreakpointList() { return cpuBreakpoints.Data(); }
+const uint16_t* Emulator_GetPPUBreakpointList() { return ppuBreakpoints.Data(); }
 bool Emulator_IsBreakpoint()
 {
-    uint16_t address = g_pBoard->GetCPU()->GetPC();
-    if (m_wEmulatorCPUBpsCount > 0)
-    {
-        for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)
-        {
-            if (address == m_EmulatorCPUBps[i])
-                return true;
-        }
-    }
-    address = g_pBoard->GetPPU()->GetPC();
-    if (m_wEmulatorPPUBpsCount > 0)
-    {
-        for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)
-        {
-            if (address == m_EmulatorPPUBps[i])
-                return true;
-        }
-    }
-    return false;
+    return cpuBreakpoints.Contains(g_pBoard->GetCPU()->GetPC()) ||
+        ppuBreakpoints.Contains(g_pBoard->GetPPU()->GetPC());
 }
 bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address)
 {
-    int bpsCount = okCpuPpu ? m_wEmulatorCPUBpsCount : m_wEmulatorPPUBpsCount;
-    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
-    if (bpsCount == 0)
-        return false;
-    for (int i = 0; i < bpsCount; i++)
-    {
-        if (address == pbps[i])
-            return true;
-    }
-    return false;
+    return (okCpuPpu ? cpuBreakpoints : ppuBreakpoints).Contains(address);
 }
 void Emulator_RemoveAllBreakpoints(bool okCpuPpu)
 {
-    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        pbps[i] = 0177777;
-    if (okCpuPpu)
-        m_wEmulatorCPUBpsCount = 0;
-    else
-        m_wEmulatorPPUBpsCount = 0;
+    (okCpuPpu ? cpuBreakpoints : ppuBreakpoints).Clear();
 }
 
 bool Emulator_IsSound()
@@ -869,8 +721,8 @@ bool Emulator_SystemFrame()
     if (Settings_GetMouse())
         ScreenView_UpdateMouse();
 
-    g_pBoard->SetCPUBreakpoints(std::span{m_EmulatorCPUBps}.first(m_wEmulatorCPUBpsCount));
-    g_pBoard->SetPPUBreakpoints(std::span{m_EmulatorPPUBps}.first(m_wEmulatorPPUBpsCount));
+    g_pBoard->SetCPUBreakpoints(cpuBreakpoints.Addresses());
+    g_pBoard->SetPPUBreakpoints(ppuBreakpoints.Addresses());
 
     if (!g_pBoard->SystemFrame())  // Breakpoint hit
     {
