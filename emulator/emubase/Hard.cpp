@@ -22,7 +22,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 // Constants
 
-#define TIME_PER_SECTOR                 (IDE_DISK_SECTOR_SIZE / 2)
+static constexpr auto TIME_PER_SECTOR = IDE_DISK_SECTOR_SIZE / 2;
 
 static constexpr auto IDE_PORT_DATA = 0x1f0;
 static constexpr auto IDE_PORT_ERROR = 0x1f1;
@@ -53,13 +53,6 @@ static constexpr auto IDE_ERROR_UNKNOWN_COMMAND = 0x04;
 static constexpr auto IDE_ERROR_BAD_LOCATION = 0x10;
 static constexpr auto IDE_ERROR_BAD_SECTOR = 0x80;
 
-enum TimeoutEvent
-{
-    TIMEEVT_NONE = 0,
-    TIMEEVT_RESET_DONE = 1,
-    TIMEEVT_READ_SECTOR_DONE = 2,
-    TIMEEVT_WRITE_SECTOR_DONE = 3,
-};
 
 //////////////////////////////////////////////////////////////////////
 
@@ -80,12 +73,12 @@ CHardDrive::CHardDrive()
     m_status = IDE_STATUS_BUSY;
     m_error = IDE_ERROR_NONE;
     m_command = 0;
-    m_timeoutcount = m_timeoutevent = 0;
+    m_timeoutcount = 0;
     m_sectorcount = 0;
 
     m_numsectors = m_numheads = m_numcylinders = 0;
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
-    memset(m_buffer, 0, IDE_DISK_SECTOR_SIZE);
+    m_buffer.fill(0);
 
     m_okInverted = false;
     m_okReadOnly = false;
@@ -104,7 +97,7 @@ void CHardDrive::Reset()
     m_error = IDE_ERROR_NONE;
     m_command = 0;
     m_timeoutcount = 2;
-    m_timeoutevent = TIMEEVT_RESET_DONE;
+    m_timeoutevent = TimeoutEvent::reset_done;
 }
 
 bool CHardDrive::AttachImage(LPCTSTR sFileName)
@@ -115,7 +108,7 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
 
     // Open file
     m_okReadOnly = false;
-    std::unique_ptr<FILE, decltype(&::fclose)> file(::_tfopen(sFileName, _T("r+b")), &::fclose);
+    UniqueFile file(::_tfopen(sFileName, _T("r+b")));
     if (!file)
     {
         m_okReadOnly = true;
@@ -135,14 +128,14 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
         return false;
 
     // Read first sector
-    size_t dwBytesRead = ::fread(m_buffer, 1, 512, file.get());
+    size_t dwBytesRead = ::fread(m_buffer.data(), 1, 512, file.get());
     if (dwBytesRead != 512)
         return false;
 
     // Detect hard disk type
-    uint16_t hardHeader[6]{};
-    memcpy(hardHeader, m_buffer, sizeof(hardHeader));
-    const uint16_t* pwHardBuffer = hardHeader;
+    std::array<uint16_t, 6> hardHeader{};
+    memcpy(hardHeader.data(), m_buffer.data(), sizeof(hardHeader));
+    const auto& pwHardBuffer = hardHeader;
     if (pwHardBuffer[0] == 0x54A9 && pwHardBuffer[1] == 0xFFEF && pwHardBuffer[2] == 0xFEFF ||
         pwHardBuffer[0] == 0xAB56 && pwHardBuffer[1] == 0x0010 && pwHardBuffer[2] == 0x0100)  // HD type
     {
@@ -152,7 +145,7 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
         if (m_okInverted)
         {
             InvertBuffer(m_buffer);
-            memcpy(hardHeader, m_buffer, sizeof(hardHeader));
+            memcpy(hardHeader.data(), m_buffer.data(), sizeof(hardHeader));
         }
 
         // Calculate geometry
@@ -178,8 +171,8 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
             InvertBuffer(m_buffer);
 
         // Calculate geometry
-        m_numsectors = *(m_buffer + 0);
-        m_numheads = *(m_buffer + 1);
+        m_numsectors = m_buffer[0];
+        m_numheads = m_buffer[1];
         if (m_numsectors == 0 || m_numheads == 0)
             return false;  // Geometry params are not defined
         m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;
@@ -187,7 +180,7 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
             return false;
     }
 
-    m_fpFile = file.release();
+    m_fpFile = std::move(file);
     m_curcylinder = m_curhead = m_curheadreg = m_cursector = m_bufferoffset = 0;
 
     m_status = IDE_STATUS_BUSY;
@@ -202,8 +195,7 @@ void CHardDrive::DetachImage()
 
     //FlushChanges();
 
-    ::fclose(m_fpFile);
-    m_fpFile = nullptr;
+    m_fpFile.reset();
 }
 
 uint16_t CHardDrive::ReadPort(uint16_t port)
@@ -223,7 +215,7 @@ uint16_t CHardDrive::ReadPort(uint16_t port)
             m_bufferoffset += 2;
 
             //if (m_bufferoffset == 2)
-            //    DebugLogFormat(_T("HDD Read sector start %04x\r\n"), data);
+            //    DebugLogFormat(_T("HDD Read sector start {:04x}\r\n"), data);
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
@@ -256,7 +248,7 @@ uint16_t CHardDrive::ReadPort(uint16_t port)
         break;
     }
 
-    //DebugPrintFormat(_T("HDD Read  %x     0x%04x\r\n"), port, data);
+    //DebugPrintFormat(_T("HDD Read  {:x}     0x{:04x}\r\n"), port, data);
     return data;
 }
 
@@ -264,7 +256,7 @@ void CHardDrive::WritePort(uint16_t port, uint16_t data)
 {
     ASSERT(port >= 0x1F0 && port <= 0x1F7);
 
-//    DebugPrintFormat(_T("HDD Write %x <-- 0x%04x\r\n"), port, data);
+//    DebugPrintFormat(_T("HDD Write {:x} <-- 0x{:04x}\r\n"), port, data);
 
     switch (port)
     {
@@ -278,7 +270,7 @@ void CHardDrive::WritePort(uint16_t port, uint16_t data)
             m_bufferoffset += 2;
 
             //if (m_bufferoffset == 2)
-            //    DebugLogFormat(_T("HDD Write sector start %04x\r\n"), data);
+            //    DebugLogFormat(_T("HDD Write sector start {:04x}\r\n"), data);
 
             if (m_bufferoffset >= IDE_DISK_SECTOR_SIZE)
             {
@@ -327,18 +319,17 @@ void CHardDrive::Periodic()
         m_timeoutcount--;
         if (m_timeoutcount == 0)
         {
-            int evt = m_timeoutevent;
-            m_timeoutevent = TIMEEVT_NONE;
+            const auto evt = std::exchange(m_timeoutevent, TimeoutEvent::none);
             switch (evt)
             {
-            case TIMEEVT_RESET_DONE:
+            case TimeoutEvent::reset_done:
                 m_status &= ~IDE_STATUS_BUSY;
                 m_status |= IDE_STATUS_DRIVE_READY | IDE_STATUS_SEEK_COMPLETE;
                 break;
-            case TIMEEVT_READ_SECTOR_DONE:
+            case TimeoutEvent::read_sector_done:
                 ReadSectorDone();
                 break;
-            case TIMEEVT_WRITE_SECTOR_DONE:
+            case TimeoutEvent::write_sector_done:
                 WriteSectorDone();
                 break;
             }
@@ -353,18 +344,18 @@ void CHardDrive::HandleCommand(uint8_t command)
     {
     case IDE_COMMAND_READ_MULTIPLE:
     case IDE_COMMAND_READ_MULTIPLE1:
-        //DebugLogFormat(_T("HDD COMMAND %02x (READ MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //DebugLogFormat(_T("HDD COMMAND {:02x} (READ MULT): C={}, H={}, SN={}, SC={}\r\n"),
         //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
         m_status |= IDE_STATUS_BUSY;
         m_status &= ~IDE_STATUS_BUFFER_READY;
 
         m_timeoutcount = TIME_PER_SECTOR * 3;  // Timeout while seek for track
-        m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
+        m_timeoutevent = TimeoutEvent::read_sector_done;
         break;
 
     case IDE_COMMAND_SET_CONFIG:
-        //DebugLogFormat(_T("HDD COMMAND %02x (SET CONFIG): H=%d, SC=%d\r\n"),
+        //DebugLogFormat(_T("HDD COMMAND {:02x} (SET CONFIG): H={}, SC={}\r\n"),
         //        command, m_curhead, m_sectorcount);
 
         m_numsectors = m_sectorcount;
@@ -373,7 +364,7 @@ void CHardDrive::HandleCommand(uint8_t command)
 
     case IDE_COMMAND_WRITE_MULTIPLE:
     case IDE_COMMAND_WRITE_MULTIPLE1:
-        //DebugLogFormat(_T("HDD COMMAND %02x (WRITE MULT): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //DebugLogFormat(_T("HDD COMMAND {:02x} (WRITE MULT): C={}, H={}, SN={}, SC={}\r\n"),
         //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
         m_bufferoffset = 0;
@@ -381,7 +372,7 @@ void CHardDrive::HandleCommand(uint8_t command)
         break;
 
     case IDE_COMMAND_IDENTIFY:
-        //DebugLogFormat(_T("HDD COMMAND %02x (IDENTIFY)\r\n"), command);
+        //DebugLogFormat(_T("HDD COMMAND {:02x} (IDENTIFY)\r\n"), command);
 
         IdentifyDrive();  // Prepare the buffer
         m_bufferoffset = 0;
@@ -392,7 +383,7 @@ void CHardDrive::HandleCommand(uint8_t command)
         break;
 
     default:
-        //DebugLogFormat(_T("HDD COMMAND %02x (UNKNOWN): C=%d, H=%d, SN=%d, SC=%d\r\n"),
+        //DebugLogFormat(_T("HDD COMMAND {:02x} (UNKNOWN): C={}, H={}, SN={}, SC={}\r\n"),
         //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
         break;
     }
@@ -439,18 +430,17 @@ void CHardDrive::IdentifyDrive()
         InvertBuffer(m_buffer);
 }
 
-bool CHardDrive::CalculateOffset(long& offset) const
+std::expected<long, CHardDrive::AddressError> CHardDrive::CalculateOffset() const
 {
     if (m_curcylinder < 0 || m_curcylinder >= m_numcylinders || m_curhead < 0 ||
         m_curhead >= m_numheads || m_cursector < 1 || m_cursector > m_numsectors)
-        return false;
+        return std::unexpected(AddressError::invalid_geometry);
     const uint64_t sector = (static_cast<uint64_t>(m_curcylinder) * m_numheads + m_curhead) *
         m_numsectors + (m_cursector - 1);
     const uint64_t byteOffset = sector * IDE_DISK_SECTOR_SIZE;
     if (byteOffset > LONG_MAX)
-        return false;
-    offset = static_cast<long>(byteOffset);
-    return true;
+        return std::unexpected(AddressError::offset_overflow);
+    return static_cast<long>(byteOffset);
 }
 
 void CHardDrive::ReadNextSector()
@@ -458,7 +448,7 @@ void CHardDrive::ReadNextSector()
     m_status |= IDE_STATUS_BUSY;
 
     m_timeoutcount = TIME_PER_SECTOR * 2;  // Timeout while seek for next sector
-    m_timeoutevent = TIMEEVT_READ_SECTOR_DONE;
+    m_timeoutevent = TimeoutEvent::read_sector_done;
 }
 
 void CHardDrive::ReadSectorDone()
@@ -469,15 +459,15 @@ void CHardDrive::ReadSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Read sector from HDD image to the buffer
-    long fileOffset = 0;
-    if (!CalculateOffset(fileOffset) || ::fseek(m_fpFile, fileOffset, SEEK_SET) != 0)
+    const auto fileOffset = CalculateOffset();
+    if (!fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
         m_error = IDE_ERROR_BAD_SECTOR;
         return;
     }
-    size_t dwBytesRead = ::fread(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
+    size_t dwBytesRead = ::fread(m_buffer.data(), 1, IDE_DISK_SECTOR_SIZE, m_fpFile.get());
     if (dwBytesRead != IDE_DISK_SECTOR_SIZE)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
@@ -506,11 +496,11 @@ void CHardDrive::WriteSectorDone()
     m_status |= IDE_STATUS_SEEK_COMPLETE;
 
     // Write buffer to the HDD image
-    long fileOffset = 0;
+    const auto fileOffset = CalculateOffset();
 
-    //DebugLogFormat(_T("WriteSector %lx\r\n"), fileOffset);
+    //if (fileOffset) DebugLogFormat(_T("WriteSector {:x}\r\n"), *fileOffset);
 
-    if (m_okReadOnly || !CalculateOffset(fileOffset) || ::fseek(m_fpFile, fileOffset, SEEK_SET) != 0)
+    if (m_okReadOnly || !fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
@@ -518,8 +508,8 @@ void CHardDrive::WriteSectorDone()
         return;
     }
 
-    size_t dwBytesWritten = ::fwrite(m_buffer, 1, IDE_DISK_SECTOR_SIZE, m_fpFile);
-    if (dwBytesWritten != IDE_DISK_SECTOR_SIZE || ::fflush(m_fpFile) != 0)
+    size_t dwBytesWritten = ::fwrite(m_buffer.data(), 1, IDE_DISK_SECTOR_SIZE, m_fpFile.get());
+    if (dwBytesWritten != IDE_DISK_SECTOR_SIZE || ::fflush(m_fpFile.get()) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
@@ -578,7 +568,7 @@ void CHardDrive::ContinueWrite()
     m_status |= IDE_STATUS_BUSY;
 
     m_timeoutcount = TIME_PER_SECTOR;
-    m_timeoutevent = TIMEEVT_WRITE_SECTOR_DONE;
+    m_timeoutevent = TimeoutEvent::write_sector_done;
 }
 
 

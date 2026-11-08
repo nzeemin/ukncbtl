@@ -24,13 +24,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 HWND g_hwndSprite = (HWND)INVALID_HANDLE_VALUE;  // Sprite view window handler
-WNDPROC m_wndprocSpriteToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocSpriteToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndSpriteViewer = (HWND)INVALID_HANDLE_VALUE;
-HDRAWDIB m_hSpriteDrawDib = NULL;
+HDRAWDIB m_hSpriteDrawDib = nullptr;
 BITMAPINFO m_bmpinfoSprite;
-HBITMAP m_hSpriteBitmap = NULL;
-DWORD * m_pSprite_bits = NULL;
+HBITMAP m_hSpriteBitmap = nullptr;
+DWORD * m_pSprite_bits = nullptr;
 
 const int m_nSprite_scale = 2;
 const int m_nSprite_ImageCX = 262;
@@ -90,12 +90,12 @@ void SpriteView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_SPRITEVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -114,7 +114,7 @@ void SpriteView_Create(int x, int y)
             CLASSNAME_OVERLAPPEDWINDOW, _T("Sprite Viewer"),
             WS_POPUPWINDOW | WS_CAPTION | WS_VISIBLE,
             x, y, width, height,
-            NULL, NULL, g_hInst, NULL);
+            nullptr, nullptr, g_hInst, nullptr);
 
     // ToolWindow subclassing
     m_wndprocSpriteToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndSprite, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(SpriteViewWndProc)));
@@ -122,10 +122,10 @@ void SpriteView_Create(int x, int y)
     RECT rcClient;  GetClientRect(g_hwndSprite, &rcClient);
 
     m_hwndSpriteViewer = CreateWindow(
-            CLASSNAME_SPRITEVIEW, NULL,
+            CLASSNAME_SPRITEVIEW, nullptr,
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndSprite, NULL, g_hInst, NULL);
+            g_hwndSprite, nullptr, g_hInst, nullptr);
 
     m_wSprite_BaseAddress = Settings_GetSpriteAddress();
     m_nSprite_width = (int)Settings_GetSpriteWidth();
@@ -157,16 +157,16 @@ void SpriteView_InitBitmap()
     m_bmpinfoSprite.bmiHeader.biClrUsed = 0;
     m_bmpinfoSprite.bmiHeader.biClrImportant = 0;
 
-    m_hSpriteBitmap = CreateDIBSection(hdc, &m_bmpinfoSprite, DIB_RGB_COLORS, (void **)&m_pSprite_bits, NULL, 0);
+    m_hSpriteBitmap = CreateDIBSection(hdc, &m_bmpinfoSprite, DIB_RGB_COLORS, (void **)&m_pSprite_bits, nullptr, 0);
 
     VERIFY(::ReleaseDC(g_hwnd, hdc));
 }
 
 void SpriteView_DoneBitmap()
 {
-    if (m_hSpriteBitmap != NULL)
+    if (m_hSpriteBitmap != nullptr)
     {
-        VERIFY(DeleteObject(m_hSpriteBitmap));  m_hSpriteBitmap = NULL;
+        VERIFY(DeleteObject(m_hSpriteBitmap));  m_hSpriteBitmap = nullptr;
     }
 
     DrawDibClose(m_hSpriteDrawDib);
@@ -241,7 +241,7 @@ void SpriteView_OnRButtonDown(int mousex, int mousey)
 
     POINT pt = { mousex, mousey };
     ::ClientToScreen(m_hwndSpriteViewer, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndSpriteViewer, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndSpriteViewer, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -256,7 +256,7 @@ void SpriteView_GoToAddress(WORD address)
 
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
-    InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+    InvalidateRect(m_hwndSpriteViewer, nullptr, TRUE);
     SpriteView_UpdateScrollPos();
 }
 
@@ -272,7 +272,7 @@ void SpriteView_SetSpriteWidth(int width)
 
     SpriteView_UpdateWindowText();
     SpriteView_PrepareBitmap();
-    InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+    InvalidateRect(m_hwndSpriteViewer, nullptr, TRUE);
     SpriteView_UpdateScrollPos();
 }
 
@@ -284,8 +284,7 @@ void SpriteView_UpdateWindowText()
 
     const size_t buffer_size = 128;
     TCHAR buffer[buffer_size];
-    _sntprintf(buffer, buffer_size - 1,
-            _T("Sprite Viewer - address %06o, width %d, mode%d %s"),
+    FormatBuffer(buffer, _T("Sprite Viewer - address {:06o}, width {}, mode{} {}"),
             m_wSprite_BaseAddress, m_nSprite_width, m_nSprite_Mode, spriteModeName);
     ::SetWindowText(g_hwndSprite, buffer);
 }
@@ -326,7 +325,7 @@ BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)
 
         SpriteView_UpdateWindowText();
         SpriteView_PrepareBitmap();
-        InvalidateRect(m_hwndSpriteViewer, NULL, TRUE);
+        InvalidateRect(m_hwndSpriteViewer, nullptr, TRUE);
         SpriteView_UpdateScrollPos();
 
         break;
@@ -431,7 +430,7 @@ void SpriteView_SelectAddress()
 
 void SpriteView_OnDraw(HDC hdc)
 {
-    ASSERT(g_pBoard != NULL);
+    ASSERT(g_pBoard != nullptr);
 
     SpriteView_PrepareBitmap();
 

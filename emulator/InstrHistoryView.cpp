@@ -21,7 +21,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 HWND g_hwndInstrHistory = (HWND) INVALID_HANDLE_VALUE;  // Instr History View window handle
-WNDPROC m_wndprocInstrHistoryToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocInstrHistoryToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndInstrHistoryViewer = (HWND) INVALID_HANDLE_VALUE;
 
@@ -55,19 +55,19 @@ void InstrHistoryView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_INSTRHISTORYVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
 
 void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     m_okInstrHistoryProcessor = Settings_GetDebugCpuPpu() != 0;
 
@@ -75,7 +75,7 @@ void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int heigh
             CLASSNAME_TOOLWINDOW, _T("Instructions History"),
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
 
     // ToolWindow subclassing
     m_wndprocInstrHistoryToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndInstrHistory, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(InstrHistoryViewWndProc)));
@@ -84,17 +84,17 @@ void InstrHistoryView_Create(HWND hwndParent, int x, int y, int width, int heigh
 
     m_hwndInstrHistoryViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
-            CLASSNAME_INSTRHISTORYVIEW, NULL,
+            CLASSNAME_INSTRHISTORYVIEW, nullptr,
             WS_CHILD | WS_VISIBLE | WS_VSCROLL,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndInstrHistory, NULL, g_hInst, NULL);
+            g_hwndInstrHistory, nullptr, g_hInst, nullptr);
 
     InstrHistoryView_OnUpdate();
 }
 
 void InstrHistoryView_Redraw()
 {
-    RedrawWindow(g_hwndInstrHistory, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+    RedrawWindow(g_hwndInstrHistory, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 // Adjust position of client windows
@@ -103,7 +103,7 @@ void InstrHistoryView_AdjustWindowLayout()
     RECT rc;  GetClientRect(g_hwndInstrHistory, &rc);
 
     if (m_hwndInstrHistoryViewer != (HWND) INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndInstrHistoryViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndInstrHistoryViewer, nullptr, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
 }
 
 LRESULT CALLBACK InstrHistoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -222,7 +222,7 @@ void InstrHistoryView_SetBottomLine(int index)
     if (index != m_nInstrHistoryBottomLine)
     {
         m_nInstrHistoryBottomLine = index;
-        InvalidateRect(m_hwndInstrHistoryViewer, NULL, TRUE);
+        InvalidateRect(m_hwndInstrHistoryViewer, nullptr, TRUE);
     }
     InstrHistoryView_UpdateScrollBar();
 }
@@ -286,7 +286,7 @@ void InstrHistoryView_OnUpdate()
     if (g_hwndInstrHistory != (HWND) INVALID_HANDLE_VALUE && m_hwndInstrHistoryViewer != (HWND) INVALID_HANDLE_VALUE)
     {
         InstrHistoryView_UpdateScrollBar();
-        InvalidateRect(m_hwndInstrHistoryViewer, NULL, TRUE);
+        InvalidateRect(m_hwndInstrHistoryViewer, nullptr, TRUE);
     }
 }
 
@@ -320,14 +320,14 @@ void InstrHistoryView_DoDraw(HDC hdc)
         {
             TCHAR bufvector[7];
             PrintOctalValue(bufvector, record.words[0]);
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%3d %s INT %s %s"),
+            FormatBuffer(buffer, _T("{:3} {} INT {} {}"),
                     index, bufaddr, bufvector, Emulator_GetInterruptName(record.words[0]));
         }
         else
         {
             const auto decoded = DisassembleInstruction(record.words, record.pc);
             if (!decoded) continue;
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%3d %s %s %s"), index, bufaddr,
+            FormatBuffer(buffer, _T("{:3} {} {} {}"), index, bufaddr,
                        decoded->mnemonic.c_str(), decoded->argument.c_str());
         }
         SetTextColor(hdc, record.interrupt ? colorInterrupt : colorText);

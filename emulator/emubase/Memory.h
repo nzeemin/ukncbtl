@@ -101,20 +101,20 @@ class CFirstMemoryController : public CMemoryController
     friend class CMotherboard;
 public:
     CFirstMemoryController();
-    virtual void DCLO_Signal();  ///< DCLO signal
-    virtual void ResetDevices();  ///< INIT signal
+    void DCLO_Signal() override;  ///< DCLO signal
+    void ResetDevices() override;  ///< INIT signal
 public:
-    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
-    virtual uint16_t GetSelRegister() const { return 0160000; }
-    virtual uint16_t GetPortView(uint16_t address) const;
+    int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const override;
+    uint16_t GetSelRegister() const override { return 0160000; }
+    uint16_t GetPortView(uint16_t address) const override;
 protected:  // Access to I/O ports
-    virtual uint16_t GetPortWord(uint16_t address);
-    virtual void SetPortWord(uint16_t address, uint16_t word);
-    virtual uint8_t GetPortByte(uint16_t address);
-    virtual void SetPortByte(uint16_t address, uint8_t byte);
+    uint16_t GetPortWord(uint16_t address) override;
+    void SetPortWord(uint16_t address, uint16_t word) override;
+    uint8_t GetPortByte(uint16_t address) override;
+    void SetPortByte(uint16_t address, uint8_t byte) override;
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(std::span<uint8_t, 64> image);
-    virtual void LoadFromImage(std::span<const uint8_t, 64> image);
+    void SaveToImage(std::span<uint8_t, 64> image) override;
+    void LoadFromImage(std::span<const uint8_t, 64> image) override;
 public:  // CPU specific
     bool SerialInput(uint8_t inputByte);
     bool NetworkInput(uint8_t inputByte);
@@ -140,23 +140,23 @@ class CSecondMemoryController : public CMemoryController
     friend class CMotherboard;
 public:
     CSecondMemoryController();
-    virtual void UpdateMemoryMap();
-    virtual void DCLO_Signal();  ///< DCLO signal
-    virtual void ResetDevices();  ///< INIT signal
+    void UpdateMemoryMap() override;
+    void DCLO_Signal() override;  ///< DCLO signal
+    void ResetDevices() override;  ///< INIT signal
     virtual void DCLO_177716();
     virtual void Init_177716();
 public:
-    virtual int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const;
-    virtual uint16_t GetSelRegister() const { return 0160000; }
-    virtual uint16_t GetPortView(uint16_t address) const;
+    int TranslateAddress(uint16_t address, bool okHaltMode, bool okExec, uint16_t* pOffset, bool okView) const override;
+    uint16_t GetSelRegister() const override { return 0160000; }
+    uint16_t GetPortView(uint16_t address) const override;
 protected:  // Access to I/O ports
-    virtual uint16_t GetPortWord(uint16_t address);
-    virtual void SetPortWord(uint16_t address, uint16_t word);
-    virtual uint8_t GetPortByte(uint16_t address);
-    virtual void SetPortByte(uint16_t address, uint8_t byte);  //TODO
+    uint16_t GetPortWord(uint16_t address) override;
+    void SetPortWord(uint16_t address, uint16_t word) override;
+    uint8_t GetPortByte(uint16_t address) override;
+    void SetPortByte(uint16_t address, uint8_t byte) override;  //TODO
 public:  // Saving/loading emulator status (64 bytes)
-    virtual void SaveToImage(std::span<uint8_t, 64> image);
-    virtual void LoadFromImage(std::span<const uint8_t, 64> image);
+    void SaveToImage(std::span<uint8_t, 64> image) override;
+    void LoadFromImage(std::span<const uint8_t, 64> image) override;
 public:  // PPU specifics
     void KeyboardEvent(uint8_t scancode, bool okPressed);  ///< Keyboard key pressed or released
     bool TapeInput(bool inputBit);

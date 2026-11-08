@@ -1,4 +1,4 @@
-﻿/*  This file is part of UKNCBTL.
+/*  This file is part of UKNCBTL.
     UKNCBTL is free software: you can redistribute it and/or modify it under the terms
 of the GNU Lesser General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version.
@@ -35,14 +35,4 @@ BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine)
 void DebugLog(LPCTSTR message)
 {
     OutputDebugString(message);
-}
-
-void DebugLogFormat(LPCTSTR pszFormat, ...)
-{
-    TCHAR buffer[512];
-    va_list ptr;
-    va_start(ptr, pszFormat);
-    _vsntprintf_s(buffer, 512, _TRUNCATE, pszFormat, ptr);
-    va_end(ptr);
-    OutputDebugString(buffer);
 }

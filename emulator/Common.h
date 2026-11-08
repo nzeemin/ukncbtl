@@ -12,9 +12,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #pragma once
 
+#include <format>
+#include <utility>
 #include <string>
 #include <string_view>
 #include "util/Octal.h"
+#include "util/TextFormat.h"
 
 using TcharString = std::basic_string<TCHAR>;
 
@@ -52,7 +55,11 @@ BOOL AssertFailedLine(LPCSTR lpszFileName, int nLine);
 
 void AlertInfo(LPCTSTR sMessage);
 void AlertWarning(LPCTSTR sMessage);
-void AlertWarningFormat(LPCTSTR sFormat, ...);
+template<class... Args>
+void AlertWarningFormat(std::wformat_string<Args...> format, Args&&... args)
+{
+    AlertWarning(std::format(format, std::forward<Args>(args)...).c_str());
+}
 BOOL AlertOkCancel(LPCTSTR sMessage);
 
 
@@ -60,11 +67,19 @@ BOOL AlertOkCancel(LPCTSTR sMessage);
 // DebugPrint
 
 void DebugPrint(LPCTSTR message);
-void DebugPrintFormat(LPCTSTR pszFormat, ...);
+template<class... Args>
+void DebugPrintFormat(std::wformat_string<Args...> format, Args&&... args)
+{
+    DebugPrint(std::format(format, std::forward<Args>(args)...).c_str());
+}
 void DebugLogClear();
 void DebugLogCloseFile();
 void DebugLog(LPCTSTR message);
-void DebugLogFormat(LPCTSTR pszFormat, ...);
+template<class... Args>
+void DebugLogFormat(std::wformat_string<Args...> format, Args&&... args)
+{
+    DebugLog(std::format(format, std::forward<Args>(args)...).c_str());
+}
 
 
 //////////////////////////////////////////////////////////////////////

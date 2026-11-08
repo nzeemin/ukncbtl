@@ -43,8 +43,8 @@ CFloppyDrive::CFloppyDrive()
     datatrack = dataside = 0;
     dataptr = 0;
     track = side = 0;
-    memset(data, 0, FLOPPY_RAWTRACKSIZE);
-    memset(marker, 0, FLOPPY_RAWMARKERSIZE);
+    data.fill(0);
+    marker.fill(0);
 }
 
 void CFloppyDrive::Reset()
@@ -60,7 +60,7 @@ void CFloppyDrive::Reset()
 CFloppyController::CFloppyController()
 {
     m_drive = m_side = m_track = 0;
-    m_pDrive = m_drivedata;
+    m_pDrive = m_drivedata.data();
     m_datareg = m_writereg = m_shiftreg = 0;
     m_writing = m_searchsync = m_writemarker = m_crccalculus = false;
     m_writeflag = m_shiftflag = m_shiftmarker = false;
@@ -75,8 +75,6 @@ CFloppyController::~CFloppyController()
     for (int drive = 0; drive < 4; drive++)
     {
         DetachImage(drive);
-        if (m_drivedata[drive].fpFile != nullptr)
-            ::fclose(m_drivedata[drive].fpFile);
     }
 }
 
@@ -87,7 +85,7 @@ void CFloppyController::Reset()
     if (!FlushChanges()) return;
 
     m_drive = m_side = m_track = 0;
-    m_pDrive = m_drivedata;
+    m_pDrive = m_drivedata.data();
     m_datareg = m_writereg = m_shiftreg = 0;
     m_writing = m_searchsync = m_writemarker = m_crccalculus = false;
     m_writeflag = m_shiftflag = false;
@@ -120,11 +118,11 @@ bool CFloppyController::AttachImage(int drive, LPCTSTR sFileName)
 
     // Open file
     m_drivedata[drive].okReadOnly = false;
-    m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("r+b"), _SH_DENYNO);
+    m_drivedata[drive].fpFile.reset(::_tfsopen(sFileName, _T("r+b"), _SH_DENYNO));
     if (m_drivedata[drive].fpFile == nullptr)
     {
         m_drivedata[drive].okReadOnly = true;
-        m_drivedata[drive].fpFile = ::_tfsopen(sFileName, _T("rb"), _SH_DENYNO);
+        m_drivedata[drive].fpFile.reset(::_tfsopen(sFileName, _T("rb"), _SH_DENYNO));
     }
     if (m_drivedata[drive].fpFile == nullptr)
         return false;
@@ -149,8 +147,7 @@ void CFloppyController::DetachImage(int drive)
 
     if (drive == m_drive && !FlushChanges()) return;
 
-    ::fclose(m_drivedata[drive].fpFile);
-    m_drivedata[drive].fpFile = nullptr;
+    m_drivedata[drive].fpFile.reset();
     m_drivedata[drive].okNetRT11Image = m_drivedata[drive].okReadOnly = false;
     m_drivedata[drive].Reset();
 }
@@ -177,7 +174,7 @@ uint16_t CFloppyController::GetState()
 //    if (res & FLOPPY_STATUS_MOREDATA)
 //    {
 //        TCHAR oct2[7];  PrintOctalValue(oct2, res);
-//        DebugLogFormat(_T("Floppy GET STATE %s\r\n"), oct2);
+//        DebugLogFormat(_T("Floppy GET STATE {}\r\n"), oct2);
 //    }
 
     return res;
@@ -185,7 +182,7 @@ uint16_t CFloppyController::GetState()
 
 void CFloppyController::SetCommand(uint16_t cmd)
 {
-    if (m_okTrace) DebugLogFormat(_T("Floppy COMMAND %06o\r\n"), cmd);
+    if (m_okTrace) DebugLogFormat(_T("Floppy COMMAND {:06o}\r\n"), cmd);
 
     bool okPrepareTrack = false;  // Is it needed to load the track into the buffer
 
@@ -200,10 +197,10 @@ void CFloppyController::SetCommand(uint16_t cmd)
         return;
     if ((cmd & 02000) != 0 && m_drive != newdrive)
     {
-        DebugLogFormat(_T("Floppy DRIVE %hu\r\n"), newdrive);
+        DebugLogFormat(_T("Floppy DRIVE {}\r\n"), newdrive);
 
         m_drive = newdrive;
-        m_pDrive = m_drivedata + m_drive;
+        m_pDrive = &m_drivedata[m_drive];
         if (m_pDrive->fpFile == nullptr || m_pDrive->okReadOnly)
             m_status |= FLOPPY_STATUS_WRITEPROTECT;
         else
@@ -245,7 +242,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
     {
         PrepareTrack();
 
-//    	DebugLogFormat(_T("Floppy DRIVE %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+//    	DebugLogFormat(_T("Floppy DRIVE {} TR {} SD {}\r\n"), m_drive, m_track, m_side);
     }
 
     if (cmd & FLOPPY_CMD_SEARCHSYNC) // Search for marker
@@ -269,7 +266,7 @@ void CFloppyController::SetCommand(uint16_t cmd)
 
 uint16_t CFloppyController::GetData()
 {
-    if (m_okTrace) DebugLogFormat(_T("Floppy READ\t\t%04x\r\n"), m_datareg);
+    if (m_okTrace) DebugLogFormat(_T("Floppy READ\t\t{:04x}\r\n"), m_datareg);
 
     m_status &= ~FLOPPY_STATUS_MOREDATA;
     m_writing = m_searchsync = false;
@@ -280,7 +277,7 @@ uint16_t CFloppyController::GetData()
 
 void CFloppyController::WriteData(uint16_t data)
 {
-//        DebugLogFormat(_T("Floppy WRITE\t\t%04x\r\n"), data);
+//        DebugLogFormat(_T("Floppy WRITE\t\t{:04x}\r\n"), data);
 
     m_writing = true;  // Switch to write mode if not yet
     m_searchsync = false;
@@ -396,7 +393,7 @@ void CFloppyController::PrepareTrack()
 {
     if (!FlushChanges()) return;
 
-    if (m_okTrace) DebugLogFormat(_T("Floppy PREP  %hu TR %hu SD %hu\r\n"), m_drive, m_track, m_side);
+    if (m_okTrace) DebugLogFormat(_T("Floppy PREP  {} TR {} SD {}\r\n"), m_drive, m_track, m_side);
 
     //TCHAR buffer[512];
 
@@ -409,21 +406,21 @@ void CFloppyController::PrepareTrack()
     // Track has 10 sectors, 512 bytes each; offset of the file is === ((Track<<1)+SIDE)*5120
     long foffset = ((m_track * 2) + (m_side)) * 5120;
     if (m_pDrive->okNetRT11Image) foffset += 256;  // Skip .RTD image header
-    //DebugPrintFormat(_T("floppy file offset %d  for trk %d side %d\r\n"), foffset, m_track, m_side);
+    //DebugPrintFormat(_T("floppy file offset {}  for trk {} side {}\r\n"), foffset, m_track, m_side);
 
-    uint8_t data[5120]{};
+    std::array<uint8_t, 5120> data{};
 
     if (m_pDrive->fpFile != nullptr)
     {
-        bool readFailed = ::fseek(m_pDrive->fpFile, foffset, SEEK_SET) != 0;
+        bool readFailed = ::fseek(m_pDrive->fpFile.get(), foffset, SEEK_SET) != 0;
         if (!readFailed)
         {
-            (void)::fread(data, 1, sizeof(data), m_pDrive->fpFile);
-            readFailed = ::ferror(m_pDrive->fpFile) != 0;
+            (void)::fread(data.data(), 1, data.size(), m_pDrive->fpFile.get());
+            readFailed = ::ferror(m_pDrive->fpFile.get()) != 0;
         }
         if (readFailed)
         {
-            ::clearerr(m_pDrive->fpFile);
+            ::clearerr(m_pDrive->fpFile.get());
             m_pDrive->okReadOnly = true;
             m_status |= FLOPPY_STATUS_WRITEPROTECT;
             m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
@@ -440,10 +437,10 @@ bool CFloppyController::FlushChanges()
 {
     if (!IsAttached(m_drive) || !m_trackchanged) return true;
 
-    if (m_okTrace) DebugLogFormat(_T("Floppy FLUSH %hu TR %hu SD %hu\r\n"), m_drive, m_pDrive->datatrack, m_pDrive->dataside);
+    if (m_okTrace) DebugLogFormat(_T("Floppy FLUSH {} TR {} SD {}\r\n"), m_drive, m_pDrive->datatrack, m_pDrive->dataside);
 
     // Decode track data from m_data
-    uint8_t data[5120];  memset(data, 0, 5120);
+    std::array<uint8_t, 5120> data{};
     bool decoded = DecodeTrackData(m_pDrive->data, data);
 
     if (decoded)  // Write to the file only if the track was correctly decoded from raw data
@@ -453,26 +450,26 @@ bool CFloppyController::FlushChanges()
         if (m_pDrive->okNetRT11Image) foffset += 256;  // Skip .RTD image header
 
         // Check file length
-        if (::fseek(m_pDrive->fpFile, 0, SEEK_END) != 0)
+        if (::fseek(m_pDrive->fpFile.get(), 0, SEEK_END) != 0)
             goto WriteError;
-        long fileSize = ::ftell(m_pDrive->fpFile);
+        long fileSize = ::ftell(m_pDrive->fpFile.get());
         if (fileSize < 0)
             goto WriteError;
         uint32_t currentFileSize = static_cast<uint32_t>(fileSize);
         while (currentFileSize < (uint32_t)(foffset + 5120))
         {
-            uint8_t datafill[512];  ::memset(datafill, 0, 512);
+            std::array<uint8_t, 512> datafill{};
             uint32_t bytesToWrite = ((uint32_t)(foffset + 5120) - currentFileSize) % 512;
             if (bytesToWrite == 0) bytesToWrite = 512;
-            if (::fwrite(datafill, 1, bytesToWrite, m_pDrive->fpFile) != bytesToWrite)
+            if (::fwrite(datafill.data(), 1, bytesToWrite, m_pDrive->fpFile.get()) != bytesToWrite)
                 goto WriteError;
             currentFileSize += bytesToWrite;
         }
 
         // Save data into the file
-        if (::fseek(m_pDrive->fpFile, foffset, SEEK_SET) != 0 ||
-            ::fwrite(data, 1, sizeof(data), m_pDrive->fpFile) != sizeof(data) ||
-            ::fflush(m_pDrive->fpFile) != 0)
+        if (::fseek(m_pDrive->fpFile.get(), foffset, SEEK_SET) != 0 ||
+            ::fwrite(data.data(), 1, data.size(), m_pDrive->fpFile.get()) != data.size() ||
+            ::fflush(m_pDrive->fpFile.get()) != 0)
             goto WriteError;
     }
     else
@@ -488,7 +485,7 @@ bool CFloppyController::FlushChanges()
     return true;
 
 WriteError:
-    ::clearerr(m_pDrive->fpFile);
+    ::clearerr(m_pDrive->fpFile.get());
     m_status |= FLOPPY_STATUS_WRITEPROTECT;
     m_status &= ~FLOPPY_STATUS_CHECKSUMOK;
     DebugLog(_T("Floppy image write failed; track changes retained.\r\n"));

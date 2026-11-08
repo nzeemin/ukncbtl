@@ -281,7 +281,7 @@ std::optional<int> Disasm_CheckForJump(std::span<const uint16_t> memory, uint16_
 // from the registers as the source left them.
 struct HintRegs
 {
-    uint16_t r[8];
+    std::array<uint16_t, 8> r{};
 };
 
 namespace {

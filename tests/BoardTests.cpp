@@ -47,6 +47,27 @@ TEST_CLASS(BoardTests)
 public:
     // Creation and reset
 
+    TEST_METHOD(Board_BreakpointsRespectSpanLength)
+    {
+        TestBoard tb;
+        auto& board = *tb.Board();
+        board.GetCPU()->SetDCLOPin(true);
+        board.GetPPU()->SetDCLOPin(true);
+        board.GetCPU()->SetPC(01000);
+        board.GetPPU()->SetPC(02000);
+        const std::array<uint16_t, 2> cpuBreakpoints{03000, 01000};
+        board.SetCPUBreakpoints(std::span{cpuBreakpoints}.first<1>());
+        Assert::IsTrue(board.SystemFrame(), _T("address beyond the span is not a breakpoint"));
+        board.SetCPUBreakpoints(cpuBreakpoints);
+        Assert::IsFalse(board.SystemFrame(), _T("the last span element is a CPU breakpoint"));
+        board.SetCPUBreakpoints({});
+        const std::array<uint16_t, 1> ppuBreakpoints{02000};
+        board.SetPPUBreakpoints(ppuBreakpoints);
+        Assert::IsFalse(board.SystemFrame(), _T("PPU breakpoints work without CPU breakpoints"));
+        board.SetPPUBreakpoints({});
+        Assert::IsTrue(board.SystemFrame(), _T("empty spans disable both breakpoint lists"));
+    }
+
     TEST_METHOD(Board_CreateAndReset)
     {
         CMotherboard board;
@@ -96,7 +117,7 @@ public:
         for (int plan = 0; plan < 3; plan++)
         {
             CMotherboard board;
-            board.LoadRAM(plan, &buffer[0]);
+            board.LoadRAM(plan, std::span<const uint8_t, 32768>{buffer});
             Eq(buffer[0] | (buffer[1] << 8), board.GetRAMWord(plan, 0), _T("first word"));
             Eq(buffer[32766] | (buffer[32767] << 8), board.GetRAMWord(plan, 32766), _T("last loaded word"));
             Eq(0, board.GetRAMWord(plan, 32768), _T("the second half is not loaded"));
@@ -109,7 +130,7 @@ public:
         std::vector<uint8_t> rom(32768);
         for (size_t i = 0; i < rom.size(); i++)
             rom[i] = (uint8_t) (i + 9);
-        board.LoadROM(&rom[0]);
+        board.LoadROM(std::span<const uint8_t, 32768>{rom});
         Eq(rom[0] | (rom[1] << 8), board.GetROMWord(0), _T("ROM first word"));
         Eq(rom[100] | (rom[101] << 8), board.GetROMWord(100), _T("ROM word 100"));
         Eq(rom[100], board.GetROMByte(100), _T("ROM byte 100"));
@@ -118,7 +139,7 @@ public:
         Assert::IsFalse(board.IsROMCartridgeLoaded(1), _T("cartridge 1 is absent"));
         Eq(0xFFFF, board.GetROMCartWord(1, 0), _T("an absent cartridge reads as ones"));
         std::vector<uint8_t> cart(24 * 1024, 0x6C);
-        board.LoadROMCartridge(1, &cart[0]);
+        board.LoadROMCartridge(1, std::span<const uint8_t, 24 * 1024>{cart});
         Assert::IsTrue(board.IsROMCartridgeLoaded(1), _T("cartridge 1 is loaded"));
         Assert::IsFalse(board.IsROMCartridgeLoaded(2), _T("cartridge 2 is still absent"));
         Eq(0x6C6C, board.GetROMCartWord(1, 0), _T("cartridge word"));
@@ -484,7 +505,7 @@ public:
         std::vector<uint8_t> rom(32768);
         for (size_t i = 0; i < rom.size(); i++)
             rom[i] = (uint8_t) (i * 3 + 7);
-        pa->LoadROM(&rom[0]);
+        pa->LoadROM(std::span<const uint8_t, 32768>{rom});
         pa->SetRAMByte(0, 0x1234, 0x11);
         pa->SetRAMByte(1, 0x2345, 0x22);
         pa->SetRAMByte(2, 0xFFFF, 0x33);

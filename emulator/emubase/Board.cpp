@@ -148,17 +148,17 @@ public:
 
 CMotherboard::CMotherboard ()
 {
-    memset(freq_per, 0, sizeof(freq_per));
-    memset(freq_out, 0, sizeof(freq_out));
-    memset(freq_enable, 0, sizeof(freq_enable));
+    freq_per.fill({});
+    freq_out.fill({});
+    freq_enable.fill({});
     m_multiply = 1;
-    memset(m_chancputx, 0, sizeof(m_chancputx));
-    memset(m_chancpurx, 0, sizeof(m_chancpurx));
-    memset(m_chanpputx, 0, sizeof(m_chanpputx));
-    memset(m_chanppurx, 0, sizeof(m_chanppurx));
+    m_chancputx.fill({});
+    m_chancpurx.fill({});
+    m_chanpputx.fill({});
+    m_chanppurx.fill({});
 
     m_dwTrace = TRACE_NONE;
-    m_CPUbps = m_PPUbps = nullptr;
+    m_CPUbps = m_PPUbps = {};
     m_TapeReadCallback = nullptr;
     m_TapeWriteCallback = nullptr;
     m_nTapeSampleRate = 0;
@@ -265,10 +265,10 @@ void CMotherboard::Reset ()
     m_chan0disabled = 0;
 
     m_scanned_key = 0;
-    memset(m_kbd_matrix, 0, sizeof(m_kbd_matrix));
+    m_kbd_matrix.fill({});
     m_kbd_matrix[3].row_Y = 0xFF;
 
-    memset(m_nSoundAYReg, 0, sizeof(m_nSoundAYReg));
+    m_nSoundAYReg.fill({});
     m_pSoundAY[0]->Reset();
     m_pSoundAY[1]->Reset();
     m_pSoundAY[2]->Reset();
@@ -281,27 +281,26 @@ void CMotherboard::Reset ()
     m_pPPU->SetACLOPin(false);
 }
 
-void CMotherboard::LoadROM(const uint8_t* pBuffer)  // Load 32 KB ROM image from the buffer
+void CMotherboard::LoadROM(std::span<const uint8_t, 32768> buffer)  // Load 32 KB ROM image from the buffer
 {
-    memcpy(m_pROM.get(), pBuffer, 32768);
+    std::ranges::copy(buffer, m_pROM.get());
 }
 
-void CMotherboard::LoadROMCartridge(int cartno, const uint8_t* pBuffer)  // Load 24 KB ROM cartridge image
+void CMotherboard::LoadROMCartridge(int cartno, std::span<const uint8_t, 24 * 1024> buffer)  // Load 24 KB ROM cartridge image
 {
     ASSERT(cartno == 1 || cartno == 2);  // Only two cartridges, #1 and #2
-    ASSERT(pBuffer != nullptr);
 
     int cartindex = cartno - 1;
     if (m_pROMCart[cartindex] == nullptr)
         m_pROMCart[cartindex] = std::make_unique<uint8_t[]>(24 * 1024);
 
-    memcpy(m_pROMCart[cartindex].get(), pBuffer, 24 * 1024);
+    std::ranges::copy(buffer, m_pROMCart[cartindex].get());
 }
 
-void CMotherboard::LoadRAM(int plan, const uint8_t* pBuffer)  // Load 32 KB RAM image from the buffer
+void CMotherboard::LoadRAM(int plan, std::span<const uint8_t, 32768> buffer)  // Load 32 KB RAM image from the buffer
 {
     ASSERT(plan >= 0 && plan <= 2);
-    memcpy(m_pRAM[plan].get(), pBuffer, 32768);
+    std::ranges::copy(buffer, m_pRAM[plan].get());
 }
 
 void CMotherboard::SetNetStation(uint16_t station)
@@ -655,15 +654,16 @@ Each frame is 1/50 second = 20 ms = 10000 ticks, 1 tick = 2 us of machine time.
 */
 
 static constexpr auto FRAMETICKS = 10000;  // Number of ticks in one frame
-#define SYSTEMFRAME_EXECUTE_CPU     { m_pCPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_PPU     { m_pPPU->Execute(); }
-#define SYSTEMFRAME_EXECUTE_BP_CPU  { m_pCPU->Execute(); if (m_CPUbps != nullptr) \
-    { const uint16_t* pbps = m_CPUbps; while(*pbps != 0177777) { if (m_pCPU->GetPC() == *pbps++) return false; } } }
-#define SYSTEMFRAME_EXECUTE_BP_PPU  { m_pPPU->Execute(); if (m_PPUbps != nullptr) \
-    { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
 bool CMotherboard::SystemFrame()
 {
     UKNC_PROFILE_SCOPE("Core frame");
+    const auto executeWithBreakpoints = [](CProcessor& processor, std::span<const uint16_t> breakpoints)
+    {
+        processor.Execute();
+        return !std::ranges::contains(breakpoints, processor.GetPC());
+    };
+    const auto executeCPU = [&] { return executeWithBreakpoints(*m_pCPU, m_CPUbps); };
+    const auto executePPU = [&] { return executeWithBreakpoints(*m_pPPU, m_PPUbps); };
     int frameticks = 0;  // count 10000 ticks
 
     m_SoundChanges = 0;
@@ -684,42 +684,42 @@ bool CMotherboard::SystemFrame()
             Tick50();  // 1/50 timer event
 
         // CPU - 16 times, PPU - 12.5 times
-        if (m_CPUbps == nullptr && m_PPUbps == nullptr)  // No breakpoints, no need to check
+        if (m_CPUbps.empty() && m_PPUbps.empty())  // No breakpoints, no need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  1 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  2 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
-            /*  3 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  4 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  5 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
-            /*  6 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  7 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /*  8 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
-            /*  9 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /* 10 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU
-            /* 11 */  SYSTEMFRAME_EXECUTE_CPU  SYSTEMFRAME_EXECUTE_PPU  SYSTEMFRAME_EXECUTE_CPU
+            /*  0 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  1 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  2 */  m_pCPU->Execute();  m_pPPU->Execute();  m_pCPU->Execute();
+            /*  3 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  4 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  5 */  m_pCPU->Execute();  m_pPPU->Execute();  m_pCPU->Execute();
+            /*  6 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  7 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /*  8 */  m_pCPU->Execute();  m_pPPU->Execute();  m_pCPU->Execute();
+            /*  9 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /* 10 */  m_pCPU->Execute();  m_pPPU->Execute();
+            /* 11 */  m_pCPU->Execute();  m_pPPU->Execute();  m_pCPU->Execute();
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
             {
-                SYSTEMFRAME_EXECUTE_PPU
+                m_pPPU->Execute();
             }
         }
         else  // Have breakpoint, need to check
         {
-            /*  0 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  1 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  2 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
-            /*  3 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  4 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  5 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
-            /*  6 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  7 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /*  8 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
-            /*  9 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /* 10 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU
-            /* 11 */  SYSTEMFRAME_EXECUTE_BP_CPU  SYSTEMFRAME_EXECUTE_BP_PPU  SYSTEMFRAME_EXECUTE_BP_CPU
+            /*  0 */  if (!executeCPU() || !executePPU()) return false;
+            /*  1 */  if (!executeCPU() || !executePPU()) return false;
+            /*  2 */  if (!executeCPU() || !executePPU() || !executeCPU()) return false;
+            /*  3 */  if (!executeCPU() || !executePPU()) return false;
+            /*  4 */  if (!executeCPU() || !executePPU()) return false;
+            /*  5 */  if (!executeCPU() || !executePPU() || !executeCPU()) return false;
+            /*  6 */  if (!executeCPU() || !executePPU()) return false;
+            /*  7 */  if (!executeCPU() || !executePPU()) return false;
+            /*  8 */  if (!executeCPU() || !executePPU() || !executeCPU()) return false;
+            /*  9 */  if (!executeCPU() || !executePPU()) return false;
+            /* 10 */  if (!executeCPU() || !executePPU()) return false;
+            /* 11 */  if (!executeCPU() || !executePPU() || !executeCPU()) return false;
             if ((frameticks & 1) == 0)  // (frameticks % 2 == 0) PPU extra ticks
             {
-                SYSTEMFRAME_EXECUTE_BP_PPU
+                if (!executePPU()) return false;
             }
         }
 
@@ -1472,7 +1472,7 @@ void CMotherboard::DoSound()
     uint16_t value = global ? 0x7fff : 0;
     if (m_okSoundAY)
     {
-        uint8_t bufferay[2];
+        std::array<uint8_t, 2> bufferay{};
         uint8_t valueay = 0;
         m_pSoundAY[0]->Callback(bufferay);
         valueay |= bufferay[1];

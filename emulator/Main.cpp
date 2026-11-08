@@ -25,8 +25,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 // Global Variables
 
-HINSTANCE g_hInst = NULL; // current instance
-HWND g_hwnd = NULL;
+HINSTANCE g_hInst = nullptr; // current instance
+HWND g_hwnd = nullptr;
 long m_nMainLastFrameTicks = 0;
 
 
@@ -91,7 +91,7 @@ int APIENTRY _tWinMain(
     HACCEL hAccelTable = ::LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_APPLICATION));
 
     if (Option_ShowHelp)
-        ::PostMessage(g_hwnd, WM_COMMAND, ID_HELP_COMMAND_LINE_HELP, NULL);
+        ::PostMessage(g_hwnd, WM_COMMAND, ID_HELP_COMMAND_LINE_HELP, 0);
 
     LARGE_INTEGER nPerformanceFrequency;
     ::QueryPerformanceFrequency(&nPerformanceFrequency);
@@ -125,7 +125,7 @@ int APIENTRY _tWinMain(
         }
 
         // Process all queue
-        while (::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ))
+        while (::PeekMessage( &msg, nullptr, 0, 0, PM_REMOVE ))
         {
             if (msg.message == WM_QUIT)
                 goto endprog;

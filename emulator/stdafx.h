@@ -48,8 +48,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <cstdlib>
 #include <cstdio>
 #include <cstdint>
-#include <malloc.h>
-#include <memory.h>
+#include <cstring>
 #include <tchar.h>
 
 // TODO: reference additional headers your program requires here

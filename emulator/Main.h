@@ -15,7 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-#define MAX_LOADSTRING 100
+inline constexpr auto MAX_LOADSTRING = 100;
 
 extern TCHAR g_szTitle[MAX_LOADSTRING];            // The title bar text
 extern TCHAR g_szWindowClass[MAX_LOADSTRING];      // Main window class name

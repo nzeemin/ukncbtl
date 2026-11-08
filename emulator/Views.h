@@ -193,8 +193,12 @@ extern HWND g_hwndConsole;  // Console View window handle
 void ConsoleView_RegisterClass();
 void ConsoleView_Create(HWND hwndParent, int x, int y, int width, int height);
 LRESULT CALLBACK ConsoleViewWndProc(HWND, UINT, WPARAM, LPARAM);
-void ConsoleView_PrintFormat(LPCTSTR pszFormat, ...);
 void ConsoleView_Print(LPCTSTR message);
+template<class... Args>
+void ConsoleView_PrintFormat(std::wformat_string<Args...> format, Args&&... args)
+{
+    ConsoleView_Print(std::format(format, std::forward<Args>(args)...).c_str());
+}
 void ConsoleView_Activate();
 void ConsoleView_SetCurrentProc(BOOL okCPU);
 void ConsoleView_StepInto();

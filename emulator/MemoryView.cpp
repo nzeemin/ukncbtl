@@ -24,7 +24,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 
 HWND g_hwndMemory = (HWND)INVALID_HANDLE_VALUE;  // Memory view window handler
-WNDPROC m_wndprocMemoryToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocMemoryToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndMemoryViewer = (HWND)INVALID_HANDLE_VALUE;
 HWND m_hwndMemoryToolbar = (HWND)INVALID_HANDLE_VALUE;
@@ -71,19 +71,19 @@ void MemoryView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_MEMORYVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
 
 void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     m_Mode = Settings_GetDebugMemoryMode();
     if (m_Mode > MEMMODE_LAST) m_Mode = MEMMODE_LAST;
@@ -91,10 +91,10 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     m_NumeralMode = Settings_GetDebugMemoryNumeral();
 
     g_hwndMemory = CreateWindow(
-            CLASSNAME_TOOLWINDOW, NULL,
+            CLASSNAME_TOOLWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
     MemoryView_UpdateWindowText();
 
     // ToolWindow subclassing
@@ -104,16 +104,16 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     m_hwndMemoryViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
-            CLASSNAME_MEMORYVIEW, NULL,
+            CLASSNAME_MEMORYVIEW, nullptr,
             WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_TABSTOP,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndMemory, NULL, g_hInst, NULL);
+            g_hwndMemory, nullptr, g_hInst, nullptr);
 
-    m_hwndMemoryToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
+    m_hwndMemoryToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, nullptr,
             WS_CHILD | WS_VISIBLE | TBSTYLE_FLAT | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | CCS_NOPARENTALIGN | CCS_NODIVIDER | CCS_VERT,
             4, 4, 32, 32 * 8, m_hwndMemoryViewer,
             (HMENU) 102,
-            g_hInst, NULL);
+            g_hInst, nullptr);
 
     TBADDBITMAP addbitmap;
     addbitmap.hInst = g_hInst;
@@ -162,7 +162,7 @@ void MemoryView_AdjustWindowLayout()
     RECT rc;  GetClientRect(g_hwndMemory, &rc);
 
     if (m_hwndMemoryViewer != (HWND) INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndMemoryViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndMemoryViewer, nullptr, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
 }
 
 LRESULT CALLBACK MemoryViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -223,7 +223,7 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         return (LRESULT) MemoryView_OnVScroll(LOWORD(wParam), HIWORD(wParam));
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     default:
         return DefWindowProc(hWnd, message, wParam, lParam);
@@ -328,20 +328,24 @@ void MemoryView_OnRButtonDown(int mousex, int mousey)
         TCHAR buffer[24];
         if (okValid)
         {
-            LPCTSTR vformat = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Copy Value: %06o") : _T("Copy Value: %04x");
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, vformat, value);
+            if (m_NumeralMode == MEMMODENUM_OCT)
+                FormatBuffer(buffer, L"Copy Value: {:06o}", value);
+            else
+                FormatBuffer(buffer, L"Copy Value: {:04x}", value);
             ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
         }
-        LPCTSTR aformat = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Copy Address: %06o") : _T("Copy Address: %04x");
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, aformat, addr);
+        if (m_NumeralMode == MEMMODENUM_OCT)
+            FormatBuffer(buffer, L"Copy Address: {:06o}", addr);
+        else
+            FormatBuffer(buffer, L"Copy Address: {:04x}", addr);
         ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, buffer);
-        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
     }
 
     ::AppendMenu(hMenu, 0, ID_DEBUG_GOTO_ADDRESS, _T("Go to Address...\tG"));
 
     ::ClientToScreen(m_hwndMemoryViewer, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndMemoryViewer, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndMemoryViewer, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -386,8 +390,10 @@ BOOL MemoryView_OnVScroll(WORD scrollcmd, WORD scrollpos)
 void MemoryView_UpdateWindowText()
 {
     TCHAR buffer[64];
-    LPCTSTR format = (m_NumeralMode == MEMMODENUM_OCT) ? _T("Memory - %s - %06o") : _T("Memory - %s - %04x");
-    _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, format, MemoryView_GetMemoryModeName(), m_wCurrentAddress);
+    if (m_NumeralMode == MEMMODENUM_OCT)
+        FormatBuffer(buffer, L"Memory - {} - {:06o}", MemoryView_GetMemoryModeName(), m_wCurrentAddress);
+    else
+        FormatBuffer(buffer, L"Memory - {} - {:04x}", MemoryView_GetMemoryModeName(), m_wCurrentAddress);
     ::SetWindowText(g_hwndMemory, buffer);
 }
 
@@ -416,7 +422,7 @@ void MemoryView_SetViewMode(MemoryViewMode mode)
     m_Mode = mode;
     Settings_SetDebugMemoryMode((WORD)m_Mode);
 
-    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, nullptr, TRUE);
     MemoryView_UpdateWindowText();
 
     MemoryView_UpdateToolbar();
@@ -474,7 +480,7 @@ void MemoryView_ScrollTo(WORD wBaseAddress)
     m_wBaseAddress = wBaseAddress;
     Settings_SetDebugMemoryBase(wBaseAddress);
 
-    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, nullptr, TRUE);
 
     MemoryView_UpdateScrollPos();
 }
@@ -516,14 +522,14 @@ void MemoryView_SwitchWordByte()
 {
     m_okMemoryByteMode = !m_okMemoryByteMode;
     Settings_SetDebugMemoryByte(m_okMemoryByteMode);
-    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, nullptr, TRUE);
 }
 
 void MemoryView_SwitchNumeralMode()
 {
     int newMode = m_NumeralMode ^ 1;
     m_NumeralMode = newMode;
-    InvalidateRect(m_hwndMemoryViewer, NULL, TRUE);
+    InvalidateRect(m_hwndMemoryViewer, nullptr, TRUE);
     Settings_SetDebugMemoryNumeral((WORD)newMode);
 
     MemoryView_UpdateWindowText();
@@ -553,7 +559,7 @@ void MemoryView_UpdateScrollPos()
 
 void MemoryView_GetCurrentValueRect(LPRECT pRect, int cxChar, int cyLine)
 {
-    ASSERT(pRect != NULL);
+    ASSERT(pRect != nullptr);
 
     int addroffset = m_wCurrentAddress - m_wBaseAddress;
     int line = addroffset / 16;
@@ -618,7 +624,7 @@ WORD MemoryView_GetWordFromMemory(WORD address, BOOL& okValid, int& addrtype, WO
 
 void MemoryView_OnDraw(HDC hdc)
 {
-    ASSERT(g_pBoard != NULL);
+    ASSERT(g_pBoard != nullptr);
 
     HFONT hFont = CreateMonospacedFont();
     HGDIOBJ hOldFont = SelectObject(hdc, hFont);

@@ -21,7 +21,7 @@ NEONBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 HWND g_hwndDisplayList = (HWND)INVALID_HANDLE_VALUE;  // DisplayList view window handler
-WNDPROC m_wndprocDisplayListToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocDisplayListToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndDisplayListViewer = (HWND)INVALID_HANDLE_VALUE;
 
@@ -42,12 +42,12 @@ void DisplayListView_RegisterClass()
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = 0;
     wcex.hInstance = g_hInst;
-    wcex.hIcon = NULL;
-    wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon = nullptr;
+    wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName = NULL;
+    wcex.lpszMenuName = nullptr;
     wcex.lpszClassName = CLASSNAME_DISPLAYLISTVIEW;
-    wcex.hIconSm = NULL;
+    wcex.hIconSm = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -62,7 +62,7 @@ void DisplayListView_Create(int x, int y)
             CLASSNAME_OVERLAPPEDWINDOW, _T("Display List Viewer"),
             WS_POPUPWINDOW | WS_CAPTION | WS_VISIBLE,
             x, y, width, height,
-            NULL, NULL, g_hInst, NULL);
+            nullptr, nullptr, g_hInst, nullptr);
 
     // ToolWindow subclassing
     m_wndprocDisplayListToolWindow = reinterpret_cast<WNDPROC>(SetWindowLongPtr(g_hwndDisplayList, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(DisplayListViewWndProc)));
@@ -70,13 +70,13 @@ void DisplayListView_Create(int x, int y)
     RECT rcClient;  GetClientRect(g_hwndDisplayList, &rcClient);
 
     m_hwndDisplayListTextbox = CreateWindowEx(
-            WS_EX_CLIENTEDGE, _T("EDIT"), NULL,
+            WS_EX_CLIENTEDGE, _T("EDIT"), nullptr,
             WS_VISIBLE | WS_CHILD | WS_BORDER | WS_VSCROLL | ES_READONLY | ES_MULTILINE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDisplayList, NULL, g_hInst, NULL);
+            g_hwndDisplayList, nullptr, g_hInst, nullptr);
 
     HFONT hFont = CreateMonospacedFont();
-    ::SendMessage(m_hwndDisplayListTextbox, WM_SETFONT, (WPARAM)hFont, NULL);
+    ::SendMessage(m_hwndDisplayListTextbox, WM_SETFONT, (WPARAM)hFont, 0);
 
     DiaplayList_FillTreeView();
     ::SetFocus(m_hwndDisplayListViewer);
@@ -158,17 +158,17 @@ void DiaplayList_FillTreeView()
             address += 2;
             tag2 = pBoard->GetRAMWord(0, address);
             address += 2;
-            _sntprintf(buftags, buftagssize, _T("%06o %06o"), tag1, tag2);
+            FormatBuffer(buftags, _T("{:06o} {:06o}"), tag1, tag2);
         }
         else
-            _sntprintf(buftags, buftagssize, _T("------ ------"));
+            FormatBuffer(buftags, _T("------ ------"));
 
         WORD addressBits = pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
         address += 2;
 
         WORD tagB = pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
 
-        _sntprintf(buffer, buffersize, _T(" %3d  %06o  %s %06o %06o  "), yy, curaddress, buftags, addressBits, tagB);
+        FormatBuffer(buffer, _T(" {:3}  {:06o}  {} {:06o} {:06o}  "), yy, curaddress, buftags, addressBits, tagB);
         DisplayList_Print(buffer);
 
         const size_t bufcmtsize = 64 - 1;
@@ -181,7 +181,7 @@ void DiaplayList_FillTreeView()
             {
                 int scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
                 scale = 1 << scale;
-                _sntprintf(buftags, buftagssize, _T("scale %d; "), scale);
+                FormatBuffer(buftags, _T("scale {}; "), scale);
                 _tcsncat_s(bufcmt, bufcmtsize, buftags, _TRUNCATE);
             }
         }
@@ -194,7 +194,7 @@ void DiaplayList_FillTreeView()
         {
             nextaddress = tagB & ~7;
             okNextTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-            _sntprintf(buftags, buftagssize, _T("next: 4-word at %06o"), nextaddress);
+            FormatBuffer(buftags, _T("next: 4-word at {:06o}"), nextaddress);
             _tcsncat_s(bufcmt, bufcmtsize, buftags, _TRUNCATE);
         }
         else

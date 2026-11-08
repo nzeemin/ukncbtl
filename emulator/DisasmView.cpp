@@ -62,7 +62,7 @@ struct DisasmLineItem
 };
 
 HWND g_hwndDisasm = (HWND) INVALID_HANDLE_VALUE;  // Disasm View window handle
-WNDPROC m_wndprocDisasmToolWindow = NULL;  // Old window proc address of the ToolWindow
+WNDPROC m_wndprocDisasmToolWindow = nullptr;  // Old window proc address of the ToolWindow
 
 HWND m_hwndDisasmViewer = (HWND) INVALID_HANDLE_VALUE;
 
@@ -116,12 +116,12 @@ void DisasmView_RegisterClass()
     wcex.cbClsExtra     = 0;
     wcex.cbWndExtra     = 0;
     wcex.hInstance      = g_hInst;
-    wcex.hIcon          = NULL;
-    wcex.hCursor        = LoadCursor(NULL, IDC_ARROW);
+    wcex.hIcon          = nullptr;
+    wcex.hCursor        = LoadCursor(nullptr, IDC_ARROW);
     wcex.hbrBackground  = (HBRUSH)(COLOR_WINDOW + 1);
-    wcex.lpszMenuName   = NULL;
+    wcex.lpszMenuName   = nullptr;
     wcex.lpszClassName  = CLASSNAME_DISASMVIEW;
-    wcex.hIconSm        = NULL;
+    wcex.hIconSm        = nullptr;
 
     RegisterClassEx(&wcex);
 }
@@ -150,15 +150,15 @@ void DisasmView_Done()
 
 void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
 {
-    ASSERT(hwndParent != NULL);
+    ASSERT(hwndParent != nullptr);
 
     m_okDisasmProcessor = Settings_GetDebugCpuPpu() != 0;
 
     g_hwndDisasm = CreateWindow(
-            CLASSNAME_TOOLWINDOW, NULL,
+            CLASSNAME_TOOLWINDOW, nullptr,
             WS_CHILD | WS_VISIBLE,
             x, y, width, height,
-            hwndParent, NULL, g_hInst, NULL);
+            hwndParent, nullptr, g_hInst, nullptr);
     DisasmView_UpdateWindowText();
 
     // ToolWindow subclassing
@@ -168,15 +168,15 @@ void DisasmView_Create(HWND hwndParent, int x, int y, int width, int height)
 
     m_hwndDisasmViewer = CreateWindowEx(
             WS_EX_STATICEDGE,
-            CLASSNAME_DISASMVIEW, NULL,
+            CLASSNAME_DISASMVIEW, nullptr,
             WS_CHILD | WS_VISIBLE,
             0, 0, rcClient.right, rcClient.bottom,
-            g_hwndDisasm, NULL, g_hInst, NULL);
+            g_hwndDisasm, nullptr, g_hInst, nullptr);
 }
 
 void DisasmView_Redraw()
 {
-    RedrawWindow(g_hwndDisasm, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
+    RedrawWindow(g_hwndDisasm, nullptr, nullptr, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
 // Adjust position of client windows
@@ -185,7 +185,7 @@ void DisasmView_AdjustWindowLayout()
     RECT rc;  GetClientRect(g_hwndDisasm, &rc);
 
     if (m_hwndDisasmViewer != (HWND) INVALID_HANDLE_VALUE)
-        SetWindowPos(m_hwndDisasmViewer, NULL, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
+        SetWindowPos(m_hwndDisasmViewer, nullptr, 0, 0, rc.right, rc.bottom, SWP_NOZORDER);
 }
 
 LRESULT CALLBACK DisasmViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -232,7 +232,7 @@ LRESULT CALLBACK DisasmViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
         return (LRESULT) DisasmView_OnKeyDown(wParam, lParam);
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
-        ::InvalidateRect(hWnd, NULL, TRUE);
+        ::InvalidateRect(hWnd, nullptr, TRUE);
         break;
     case WM_COMMAND:
         if (wParam == ID_DEBUG_COPY_ADDRESS || wParam == ID_DEBUG_COPY_VALUE)
@@ -288,13 +288,13 @@ void DisasmView_OnLButtonDown(int mousex, int mousey)
     {
         bool result = m_okDisasmProcessor ? Emulator_AddCPUBreakpoint(address) : Emulator_AddPPUBreakpoint(address);
         if (!result)
-            AlertWarningFormat(_T("Failed to add breakpoint at %06ho."), address);
+            AlertWarningFormat(_T("Failed to add breakpoint at {:06o}."), address);
     }
     else
     {
         bool result = m_okDisasmProcessor ? Emulator_RemoveCPUBreakpoint(address) : Emulator_RemovePPUBreakpoint(address);
         if (!result)
-            AlertWarningFormat(_T("Failed to remove breakpoint at %06ho."), address);
+            AlertWarningFormat(_T("Failed to remove breakpoint at {:06o}."), address);
     }
 
     DebugView_Redraw();
@@ -319,21 +319,21 @@ void DisasmView_OnRButtonDown(int mousex, int mousey)
     if (pLineItem != nullptr)
     {
         TCHAR buffer[24];
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Address: %06o"), pLineItem->address);
+        FormatBuffer(buffer, _T("Copy Address: {:06o}"), pLineItem->address);
         ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_ADDRESS, buffer);
         if ((pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0)  // if the item has a valid value
         {
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Copy Value: %06o"), pLineItem->value);
+            FormatBuffer(buffer, _T("Copy Value: {:06o}"), pLineItem->value);
             ::AppendMenu(hMenu, 0, ID_DEBUG_COPY_VALUE, buffer);
         }
-        ::AppendMenu(hMenu, MF_SEPARATOR, 0, NULL);
+        ::AppendMenu(hMenu, MF_SEPARATOR, 0, nullptr);
     }
     ::AppendMenu(hMenu, 0, ID_DEBUG_SUBTITLES, m_okDisasmSubtitles ? _T("Unload Subtitles\tS") : _T("Load Subtitles...\tS"));
 
     int linebottom = 2 + m_cyDisasmLine * (m_nDisasmSelectedLineIndex + 1);
     POINT pt = { mousex, linebottom };
     ::ClientToScreen(m_hwndDisasmViewer, &pt);
-    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDisasmViewer, NULL);
+    ::TrackPopupMenu(hMenu, 0, pt.x, pt.y, 0, m_hwndDisasmViewer, nullptr);
 
     VERIFY(::DestroyMenu(hMenu));
 }
@@ -367,9 +367,9 @@ void DisasmView_UpdateWindowText()
 
     TCHAR buffer[64];
     if (m_okDisasmSubtitles)
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Disassemble - %s - Subtitles"), sProcName);
+        FormatBuffer(buffer, _T("Disassemble - {} - Subtitles"), sProcName);
     else
-        _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("Disassemble - %s"), sProcName);
+        FormatBuffer(buffer, _T("Disassemble - {}"), sProcName);
     ::SetWindowText(g_hwndDisasm, buffer);
 }
 
@@ -403,14 +403,14 @@ void DisasmView_LoadUnloadSubtitles()
     if (! okResult) return;
 
     // Load subtitles text from the file
-    HANDLE hSubFile = CreateFile(bufFileName, GENERIC_READ, FILE_SHARE_READ, NULL,
-            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    HANDLE hSubFile = CreateFile(bufFileName, GENERIC_READ, FILE_SHARE_READ, nullptr,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
     if (hSubFile == INVALID_HANDLE_VALUE)
     {
         AlertWarning(_T("Failed to load subtitles file."));
         return;
     }
-    DWORD dwSubFileSize = ::GetFileSize(hSubFile, NULL);
+    DWORD dwSubFileSize = ::GetFileSize(hSubFile, nullptr);
     if (dwSubFileSize > 1024 * 1024)
     {
         ::CloseHandle(hSubFile);
@@ -428,7 +428,7 @@ void DisasmView_LoadUnloadSubtitles()
     m_strDisasmSubtitles = m_subtitleTextOwner.get();
     DWORD dwBytesRead = 0;
     BOOL readOk = m_strDisasmSubtitles != nullptr &&
-        ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, NULL);
+        ::ReadFile(hSubFile, m_strDisasmSubtitles, dwSubFileSize, &dwBytesRead, nullptr);
     ::CloseHandle(hSubFile);
     if (!readOk || dwBytesRead != dwSubFileSize)
     {
@@ -508,7 +508,7 @@ BOOL DisasmView_ParseSubtitles()
                 pText++;
 
                 if (okDirective)
-                    DisasmView_AddSubtitle(address, SUBTYPE_DATA, NULL);
+                    DisasmView_AddSubtitle(address, SUBTYPE_DATA, nullptr);
                 continue;
             }
 
@@ -573,7 +573,7 @@ void DisasmView_SetCurrentProc(BOOL okCPU)
     CProcessor* pDisasmPU = (m_okDisasmProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
     ASSERT(pDisasmPU != nullptr);
     m_wDisasmBaseAddr = pDisasmPU->GetPC();
-    InvalidateRect(m_hwndDisasmViewer, NULL, TRUE);
+    InvalidateRect(m_hwndDisasmViewer, nullptr, TRUE);
     DisasmView_UpdateWindowText();
     DisasmView_OnUpdate();  // We have to re-build the list of lines to show
     InstrHistoryView_SetCurrentProc(okCPU);  // Instr History follows the current processor
@@ -770,9 +770,9 @@ void DisasmView_DrawJump(HDC hdc, int yFrom, int delta, int x, int cyLine, COLOR
     points[2].x = x + dist * 12;  points[2].y = yTo;
     points[3].x = x;  points[3].y = yTo;
     PolyBezier(hdc, points, 4);
-    MoveToEx(hdc, x - 4, points[3].y, NULL);
+    MoveToEx(hdc, x - 4, points[3].y, nullptr);
     LineTo(hdc, x + 4, yTo - 1);
-    MoveToEx(hdc, x - 4, points[3].y, NULL);
+    MoveToEx(hdc, x - 4, points[3].y, nullptr);
     LineTo(hdc, x + 4, yTo + 1);
 
     ::SelectObject(hdc, oldPen);
