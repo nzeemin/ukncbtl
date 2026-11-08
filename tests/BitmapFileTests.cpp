@@ -1,5 +1,6 @@
 /* This file is part of UKNCBTL, distributed under the GNU LGPL v3 or later. */
 #include "stdafx.h"
+#include <gtest/gtest.h>
 #include "util/BitmapFile.h"
 #include <array>
 #include <cstdio>
@@ -46,7 +47,7 @@ bool HasExpectedPixels(LPCTSTR path)
     return pixels == expected;
 }
 
-int main()
+static int RunRegressionChecks()
 {
     TCHAR directory[MAX_PATH]{}, path[MAX_PATH]{};
     if (!GetTempPath(MAX_PATH, directory) || !GetTempFileName(directory, _T("img"), 0, path)) return 1;
@@ -61,4 +62,9 @@ int main()
     DeleteFile(path);
     if (!ok) std::fprintf(stderr, "bitmap round-trip failed\n");
     return ok ? 0 : 1;
+}
+
+TEST(BitmapFileTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }

@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // UKNCBTL.cpp : Defines the entry point for the application.
 
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include <crtdbg.h>
 #include <CommCtrl.h>
 #include <shellapi.h>
@@ -103,6 +104,7 @@ int APIENTRY _tWinMain(
     MSG msg;
     for (;;)
     {
+        UKNC_PROFILE_FRAME();
         ::QueryPerformanceCounter(&nFrameStartTime);
 
         if (!g_okEmulatorRunning)
@@ -142,6 +144,7 @@ int APIENTRY _tWinMain(
                 ;  // Speed MAX, consume 100% of one CPU core
             else
             {
+                UKNC_PROFILE_SCOPE("Frame pacing wait");
                 LONGLONG nFrameDelay;
                 switch (speed)
                 {

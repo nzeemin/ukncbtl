@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 /// \file Board.cpp  Motherboard class implementation
 
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include "Emubase.h"
 #include "Board.h"
 #include "ImageSerialization.h"
@@ -662,6 +663,7 @@ static constexpr auto FRAMETICKS = 10000;  // Number of ticks in one frame
     { const uint16_t* pbps = m_PPUbps; while(*pbps != 0177777) { if (m_pPPU->GetPC() == *pbps++) return false; } } }
 bool CMotherboard::SystemFrame()
 {
+    UKNC_PROFILE_SCOPE("Core frame");
     int frameticks = 0;  // count 10000 ticks
 
     m_SoundChanges = 0;

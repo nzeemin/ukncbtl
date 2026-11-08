@@ -1,5 +1,6 @@
 /* This file is part of UKNCBTL, distributed under the GNU LGPL v3 or later. */
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include "ScreenScale.h"
 #include <algorithm>
 #include <array>
@@ -195,6 +196,7 @@ const Mode& GetMode(int mode) { return modes[ModeIndex(mode)]; }
 
 bool Apply(int mode, std::span<const uint32_t> source, std::span<uint32_t> destination)
 {
+    UKNC_PROFILE_SCOPE("Screen scale");
     const size_t index = ModeIndex(mode);
     const auto& selected = modes[index];
     if (source.size() < static_cast<size_t>(UKNC_SCREEN_WIDTH) * UKNC_SCREEN_HEIGHT ||

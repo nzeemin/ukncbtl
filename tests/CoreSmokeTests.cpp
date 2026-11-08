@@ -1,4 +1,5 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
+#include <gtest/gtest.h>
 #include "emubase/Emubase.h"
 #include "emubase/ImageSerialization.h"
 #include "util/Octal.h"
@@ -19,7 +20,7 @@ void DebugLogFormat(LPCTSTR, ...) {}
 const TCHAR* REGISTER_NAME[] = { _T("R0"), _T("R1"), _T("R2"), _T("R3"),
                                 _T("R4"), _T("R5"), _T("SP"), _T("PC") };
 
-int main()
+static int RunRegressionChecks()
 {
     CProcessor::Init();
     bool ok = true;
@@ -135,4 +136,9 @@ int main()
     CProcessor::Done();
     if (!ok) fprintf(stderr, "Core regression test failed\n");
     return ok ? 0 : 1;
+}
+
+TEST(CoreSmokeTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }

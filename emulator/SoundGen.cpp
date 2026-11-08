@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // SoundGen.cpp
 
 #include "stdafx.h"
+#include "util/Profiler.h"
 #include "emubase/Emubase.h"
 #include "SoundGen.h"
 #include "mmsystem.h"
@@ -134,6 +135,7 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
 
     if (bufcurpos >= BUFSIZE)
     {
+        UKNC_PROFILE_SCOPE("Audio submit");
         WAVEHDR* current = &waveBlocks[waveCurrentBlock];
 
         if (current->dwFlags & WHDR_PREPARED)
@@ -155,8 +157,11 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
             return;
         }
 
-        while (!waveFreeBlockCount)
-            Sleep(1);
+        {
+            UKNC_PROFILE_SCOPE("Audio buffer wait");
+            while (!waveFreeBlockCount)
+                Sleep(1);
+        }
 
         waveCurrentBlock++;
         if (waveCurrentBlock >= BLOCK_COUNT)

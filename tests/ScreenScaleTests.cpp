@@ -1,5 +1,6 @@
 /* This file is part of UKNCBTL, distributed under the GNU LGPL v3 or later. */
 #include "stdafx.h"
+#include <gtest/gtest.h>
 #include "util/ScreenScale.h"
 #include <algorithm>
 #include <array>
@@ -22,7 +23,7 @@ uint32_t Average(uint32_t a, uint32_t b)
 }
 }
 
-int main()
+static int RunRegressionChecks()
 {
     bool ok = true;
     const auto modes = screen_scale::Modes();
@@ -88,4 +89,9 @@ int main()
         }
     }
     return ok ? 0 : 1;
+}
+
+TEST(ScreenScaleTests, RegressionChecks)
+{
+    EXPECT_EQ(RunRegressionChecks(), 0);
 }
