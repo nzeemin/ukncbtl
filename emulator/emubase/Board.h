@@ -137,16 +137,22 @@ class CHardDrive;
 //////////////////////////////////////////////////////////////////////
 
 
+struct BusAddressRange
+{
+    uint16_t start;
+    uint16_t length;
+};
+
 /// \brief Bus device
 class CBusDevice
 {
 public:
     /// \brief Name of the device
     virtual LPCTSTR GetName() const = 0;
-    /// \brief Device address ranges: [address, length] pairs, last pair is [0,0]
-    virtual const uint16_t* GetAddressRanges() const = 0;
+    /// \brief Device address ranges
+    virtual std::span<const BusAddressRange> GetAddressRanges() const = 0;
 
-    virtual ~CBusDevice() { }
+    virtual ~CBusDevice() = default;
 };
 
 /// \brief UKNC computer
@@ -174,11 +180,11 @@ public:  // Getting devices
 protected:
     std::array<std::unique_ptr<CBusDevice>, 5> m_cpuDeviceOwners;
     std::array<std::unique_ptr<CBusDevice>, 7> m_ppuDeviceOwners;
-    std::array<const CBusDevice*, 6> m_pCpuDevices{};
-    std::array<const CBusDevice*, 8> m_pPpuDevices{};
+    std::array<const CBusDevice*, 5> m_pCpuDevices{};
+    std::array<const CBusDevice*, 7> m_pPpuDevices{};
 public:
-    const CBusDevice** GetCPUBusDevices() { return m_pCpuDevices.data(); }
-    const CBusDevice** GetPPUBusDevices() { return m_pPpuDevices.data(); }
+    std::span<const CBusDevice* const> GetCPUBusDevices() const { return m_pCpuDevices; }
+    std::span<const CBusDevice* const> GetPPUBusDevices() const { return m_pPpuDevices; }
 
 protected:  // Memory
     std::unique_ptr<uint8_t[]> m_pRAM[3];  ///< RAM, three planes, 64 KB each
@@ -359,6 +365,7 @@ private:
     TAPEREADCALLBACK    m_TapeReadCallback;
     TAPEWRITECALLBACK   m_TapeWriteCallback;
     int                 m_nTapeSampleRate;
+    uint64_t            m_tapeSamplePhase = 0;
     SOUNDGENCALLBACK    m_SoundGenCallback;
     int                 m_SoundPrevValue;  ///< Previous value of the sound signal
     int                 m_SoundChanges;  ///< Sound signal 0 to 1 changes since the beginning of the frame

@@ -400,9 +400,8 @@ BOOL ConsoleView_SaveMemoryDump(CProcessor *pProc, uint16_t addr1, uint16_t addr
     std::vector<uint16_t> data(bsize / sizeof(uint16_t));
 
     bool isHaltMode = pProc->IsHaltMode();
-    int addrtype;
     for (uint16_t i = waddr1; i <= waddr2; i++)
-        data[i - waddr1] = pMemCtl->GetWordView(i * 2, isHaltMode, false, &addrtype);
+        data[i - waddr1] = pMemCtl->GetWordView(i * 2, isHaltMode, false).value;
 
     TCHAR fname[20];
     _sntprintf(fname, sizeof(fname) / sizeof(TCHAR) - 1, _T("memdump%s.bin"), pProc->GetName());
@@ -426,7 +425,11 @@ void ConsoleView_SaveDisplayListDump()
 {
     LPCTSTR fname = _T("displaylist.txt");
     FILE* fpFile = ::_tfopen(fname, _T("wt"));
-    //TODO: check if fpFile == nullptr
+    if (fpFile == nullptr)
+    {
+        ConsoleView_Print(_T("  Failed to create display list file.\r\n"));
+        return;
+    }
     _ftprintf(fpFile, _T("line address  tag 1  tag 2  addr   next   \n"));
 
     WORD address = 0000270;  // Tag sequence start address
@@ -486,7 +489,13 @@ void ConsoleView_SaveDisplayListDump()
         _ftprintf(fpFile, _T("\n"));
     }
 
-    ::fclose(fpFile);
+    const bool writeFailed = std::ferror(fpFile) != 0;
+    const bool closeFailed = std::fclose(fpFile) != 0;
+    if (writeFailed || closeFailed)
+    {
+        ConsoleView_Print(_T("  Failed to write display list file.\r\n"));
+        return;
+    }
 
     ConsoleView_PrintFormat(_T("  Display list saved to %s\r\n"), fname);
 }
@@ -502,9 +511,8 @@ void ConsoleView_PrintMemoryDump(CProcessor* pProc, WORD address, int lines = 8)
     for (int line = 0; line < lines; line++)
     {
         WORD dump[8];
-        int addrtype;
         for (WORD i = 0; i < 8; i++)
-            dump[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, false, &addrtype);
+            dump[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, false).value;
 
         TCHAR buffer[2 + 6 + 2 + 7 * 8 + 1 + 16 + 1 + 2];
         TCHAR* pBuf = buffer;
@@ -550,9 +558,8 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
 
     const int nWindowSize = 30;
     WORD memory[nWindowSize + 2];
-    int addrtype;
     for (WORD i = 0; i < nWindowSize + 2; i++)
-        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, true, &addrtype);
+        memory[i] = pMemCtl->GetWordView(address + i * 2, okHaltMode, true).value;
 
     TCHAR bufaddr[7];
     TCHAR bufvalue[7];
@@ -579,16 +586,17 @@ int ConsoleView_PrintDisassemble(CProcessor* pProc, WORD address, BOOL okOneInst
         {
             if (okOneInstr && index > 0)
                 break;
-            TCHAR instr[8];
-            TCHAR args[32];
-            length = DisassembleInstruction(std::span{memory}.subspan(index), address, instr, args);
+            const auto decoded = DisassembleInstruction(std::span{memory}.subspan(index), address);
+            if (!decoded)
+                break;
+            length = decoded->length;
             lastLength = length;
             if (index + length > nWindowSize)
                 break;
             if (okShort)
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %-7s %s\r\n"), bufaddr, instr, args);
+                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %-7s %s\r\n"), bufaddr, decoded->mnemonic.c_str(), decoded->argument.c_str());
             else
-                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %s  %-7s %s\r\n"), bufaddr, bufvalue, instr, args);
+                _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("  %s  %s  %-7s %s\r\n"), bufaddr, bufvalue, decoded->mnemonic.c_str(), decoded->argument.c_str());
             ConsoleView_Print(buffer);
         }
         length--;
@@ -790,8 +798,7 @@ void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
 
     int instrLength = ConsoleView_PrintDisassemble(pProc, pProc->GetPC(), TRUE, FALSE);
 
-    int addrtype;
-    uint16_t instr = pMemCtl->GetWordView(pProc->GetPC(), pProc->IsHaltMode(), true, &addrtype);
+    uint16_t instr = pMemCtl->GetWordView(pProc->GetPC(), pProc->IsHaltMode(), true).value;
 
     // For JMP and BR use Step Into logic, not Step Over
     if ((instr & ~(uint16_t)077) == PI_JMP || (instr & ~(uint16_t)0377) == PI_BR)
@@ -885,8 +892,7 @@ void ConsoleView_CmdSetMemoryAtAddress(const ConsoleCommandParams& params)
     CMemoryController* pMemCtl = pProc->GetMemoryController();
     bool okHaltMode = pProc->IsHaltMode();
 
-    int addrtype;
-    pMemCtl->GetWordView(address, okHaltMode, false, &addrtype);
+    const int addrtype = pMemCtl->GetWordView(address, okHaltMode, false).addressType;
     if (addrtype != ADDRTYPE_RAM12 && addrtype != ADDRTYPE_RAM0 && addrtype != ADDRTYPE_RAM1 && addrtype != ADDRTYPE_RAM2)
     {
         ConsoleView_Print(_T("  Can't change memory value for this memory type.\r\n"));
@@ -912,9 +918,8 @@ void ConsoleView_CmdCalculateFloatNumber(const ConsoleCommandParams& params)
     }
     exp -= 128;
     ConsoleView_PrintFormat(_T("exp: %hi, mant: 0x%lx\r\n"), exp, mant);
-    TCHAR buffer[32];
-    Disasm_FloatToString(O1, O2, buffer, sizeof(buffer) / sizeof(TCHAR));
-    ConsoleView_PrintFormat(_T("%s\r\n"), buffer);
+    const auto value = Disasm_FloatToString(O1, O2);
+    ConsoleView_PrintFormat(_T("%s\r\n"), value.c_str());
 }
 
 #if !defined(PRODUCT)

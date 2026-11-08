@@ -16,11 +16,12 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "Emubase.h"
+#include <algorithm>
+#include <limits>
 
 static constexpr auto MAX_OUTPUT = 0x0ffff;
 
 static constexpr auto STEP3 = 1;
-#define STEP2 length
 static constexpr auto STEP = 2;
 
 /* register id's */
@@ -206,19 +207,33 @@ void CSoundAY::SetReg(int r, int v)
     }
 }
 
-void CSoundAY::Callback(uint8_t* stream, int length)
+void CSoundAY::Callback(std::span<uint8_t> stream)
+{
+    // The mixer uses signed counters; split very large buffers so their updates cannot overflow.
+    constexpr auto maxChunk = static_cast<size_t>((std::numeric_limits<int32_t>::max)() / 8);
+    while (!stream.empty())
+    {
+        const auto chunk = stream.first((std::min)(stream.size(), maxChunk));
+        RenderChunk(chunk);
+        stream = stream.subspan(chunk.size());
+    }
+}
+
+void CSoundAY::RenderChunk(std::span<uint8_t> stream)
 {
     int outn;
-    uint8_t* buf1 = stream;
+    uint8_t* buf1 = stream.data();
 
     /* hack to prevent us from hanging when starting filtered outputs */
     if (!this->ready)
     {
-        memset(stream, 0, length * sizeof(*stream));
+        std::ranges::fill(stream, 0);
         return;
     }
 
-    length = length * 2;
+    int length = static_cast<int>(stream.size()) * 2;
+    // Each loop iteration advances the oscillators by two ticks.
+    const int updateTicks = length * 2;
 
     /* The 8910 has three outputs, each output is the mix of one of the three */
     /* tone generators and of the (single) noise generator. The two are mixed */
@@ -235,7 +250,7 @@ void CSoundAY::Callback(uint8_t* stream, int length)
     /* If the volume is 0, increase the counter, but don't touch the output. */
     if (this->Regs[AY_ENABLE] & 0x01)
     {
-        if (this->CountA <= STEP2) this->CountA += STEP2;
+        if (this->CountA <= updateTicks) this->CountA += updateTicks;
         this->OutputA = 1;
     }
     else if (this->Regs[AY_AVOL] == 0)
@@ -243,31 +258,31 @@ void CSoundAY::Callback(uint8_t* stream, int length)
         /* note that I do count += length, NOT count = length + 1. You might think */
         /* it's the same since the volume is 0, but doing the latter could cause */
         /* interferencies when the program is rapidly modulating the volume. */
-        if (this->CountA <= STEP2) this->CountA += STEP2;
+        if (this->CountA <= updateTicks) this->CountA += updateTicks;
     }
     if (this->Regs[AY_ENABLE] & 0x02)
     {
-        if (this->CountB <= STEP2) this->CountB += STEP2;
+        if (this->CountB <= updateTicks) this->CountB += updateTicks;
         this->OutputB = 1;
     }
     else if (this->Regs[AY_BVOL] == 0)
     {
-        if (this->CountB <= STEP2) this->CountB += STEP2;
+        if (this->CountB <= updateTicks) this->CountB += updateTicks;
     }
     if (this->Regs[AY_ENABLE] & 0x04)
     {
-        if (this->CountC <= STEP2) this->CountC += STEP2;
+        if (this->CountC <= updateTicks) this->CountC += updateTicks;
         this->OutputC = 1;
     }
     else if (this->Regs[AY_CVOL] == 0)
     {
-        if (this->CountC <= STEP2) this->CountC += STEP2;
+        if (this->CountC <= updateTicks) this->CountC += updateTicks;
     }
 
     /* for the noise channel we must not touch OutputN - it's also not necessary */
     /* since we use outn. */
     if ((this->Regs[AY_ENABLE] & 0x38) == 0x38) /* all off */
-        if (this->CountN <= STEP2) this->CountN += STEP2;
+        if (this->CountN <= updateTicks) this->CountN += updateTicks;
 
     outn = (this->OutputN | this->Regs[AY_ENABLE]);
 

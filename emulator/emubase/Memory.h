@@ -35,6 +35,12 @@ inline constexpr auto ADDRTYPE_NONE = 128;  ///< No data
 inline constexpr auto ADDRTYPE_DENY = 255;  ///< Access denied
 inline constexpr auto ADDRTYPE_MASK_RAM = 7;  ///< Mask to get memory plane number
 
+struct MemoryWordView
+{
+    uint16_t value;
+    int addressType;
+};
+
 
 //////////////////////////////////////////////////////////////////////
 
@@ -68,7 +74,7 @@ public:  // Access to memory
     /// \brief Write byte
     void SetByte(uint16_t address, bool okHaltMode, uint8_t byte);
     /// \brief Read word from memory for debugger
-    uint16_t GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const;
+    [[nodiscard]] MemoryWordView GetWordView(uint16_t address, bool okHaltMode, bool okExec) const;
     /// \brief Read word from port for debugger
     virtual uint16_t GetPortView(uint16_t address) const = 0;
     /// \brief Read SEL register

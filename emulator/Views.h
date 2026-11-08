@@ -210,6 +210,7 @@ extern HWND g_hwndTape;  // Tape View window handle
 
 void TapeView_RegisterClass();
 void TapeView_Create(HWND hwndParent, int x, int y, int width, int height);
+void TapeView_Done();
 LRESULT CALLBACK TapeViewWndProc(HWND, UINT, WPARAM, LPARAM);
 
 

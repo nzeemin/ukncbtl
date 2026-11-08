@@ -380,8 +380,7 @@ void DebugView_DrawAddressAndValue(HDC hdc, const CProcessor* pProc, const CMemo
     DrawOctalValue(hdc, x, y, address);
     x += 7 * cxChar;
 
-    int addrtype = ADDRTYPE_NONE;
-    uint16_t value = pMemCtl->GetWordView(address, pProc->IsHaltMode(), FALSE, &addrtype);
+    auto [value, addrtype] = pMemCtl->GetWordView(address, pProc->IsHaltMode(), false);
     if (addrtype == ADDRTYPE_RAM0 || (addrtype & ADDRTYPE_MASK_RAM) != 0)
     {
         uint16_t wChanged = Emulator_GetChangeRamStatus(addrtype, address);
@@ -696,17 +695,7 @@ void DebugView_DrawMemoryForRegister(HDC hdc, int reg, CProcessor* pProc, int x,
 
     uint16_t current = pProc->GetReg(reg) & ~1;
     uint16_t previous = oldValue;
-    bool okExec = (reg == 7);
-
-    // Reading from memory into the buffer
-    uint16_t memory[16];
-    int addrtype[16];
     const CMemoryController* pMemCtl = pProc->GetMemoryController();
-    for (int idx = 0; idx < 16; idx++)
-    {
-        memory[idx] = pMemCtl->GetWordView(
-                (uint16_t)(current + idx * 2 - 16), pProc->IsHaltMode(), okExec, addrtype + idx);
-    }
 
     WORD address = current - 16;
     for (int index = 0; index < 16; index++)

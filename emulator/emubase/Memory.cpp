@@ -46,12 +46,9 @@ void CMemoryController::UpdateMemoryMap()
     {
         const CBusDevice* pDevice = m_pDevices[device];
         uint8_t deviceIndex = static_cast<uint8_t>(device + 1) | ADDRTYPE_IO;
-        const uint16_t * pRanges = pDevice->GetAddressRanges();
-        while (*pRanges != 0)
+        for (const auto& range : pDevice->GetAddressRanges())
         {
-            uint16_t start = *pRanges;  pRanges++;
-            uint16_t length = *pRanges;  pRanges++;
-            for (uint32_t addr = start; addr < static_cast<uint32_t>(start) + length && addr < m_pMapping.size(); addr++)
+            for (uint32_t addr = range.start; addr < static_cast<uint32_t>(range.start) + range.length && addr < m_pMapping.size(); addr++)
                 m_pMapping[addr] = deviceIndex;
         }
     }
@@ -59,39 +56,39 @@ void CMemoryController::UpdateMemoryMap()
 
 // Read word from memory for debugger
 // To check if the address is valid: (addrtype != ADDRTYPE_IO) && (addrtype != ADDRTYPE_DENY)
-uint16_t CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec, int* pAddrType) const
+MemoryWordView CMemoryController::GetWordView(uint16_t address, bool okHaltMode, bool okExec) const
 {
     uint16_t offset;
-    int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true);
-    *pAddrType = addrtype;
+    const int addrtype = TranslateAddress(address, okHaltMode, okExec, &offset, true);
+    uint16_t value = 0;
 
     switch (addrtype)
     {
     case ADDRTYPE_RAM0:
-        return m_pBoard->GetRAMWord(0, offset);
+        value = m_pBoard->GetRAMWord(0, offset); break;
     case ADDRTYPE_RAM1:
-        return m_pBoard->GetRAMWord(1, offset);
+        value = m_pBoard->GetRAMWord(1, offset); break;
     case ADDRTYPE_RAM2:
-        return m_pBoard->GetRAMWord(2, offset);
+        value = m_pBoard->GetRAMWord(2, offset); break;
     case ADDRTYPE_RAM12:
-        return MAKEWORD(
+        value = MAKEWORD(
                 m_pBoard->GetRAMByte(1, offset / 2),
-                m_pBoard->GetRAMByte(2, offset / 2));
+                m_pBoard->GetRAMByte(2, offset / 2)); break;
     case ADDRTYPE_ROMCART1:
-        return m_pBoard->GetROMCartWord(1, offset);
+        value = m_pBoard->GetROMCartWord(1, offset); break;
     case ADDRTYPE_ROMCART2:
-        return m_pBoard->GetROMCartWord(2, offset);
+        value = m_pBoard->GetROMCartWord(2, offset); break;
     case ADDRTYPE_ROM:
-        return m_pBoard->GetROMWord(offset);
+        value = m_pBoard->GetROMWord(offset); break;
     case ADDRTYPE_IO:  // I/O port, not memory
-        return 0;
     case ADDRTYPE_DENY:  // This memory is inaccessible for reading
     case ADDRTYPE_NONE:
-        return 0;
+        break;
+    default:
+        ASSERT(false);  // Unexpected address type
+        break;
     }
-
-    ASSERT(false);  // If we are here - then addrtype has invalid value
-    return 0;
+    return {value, addrtype};
 }
 
 uint16_t CMemoryController::GetWord(uint16_t address, bool okHaltMode, bool okExec)
@@ -362,7 +359,7 @@ uint16_t CFirstMemoryController::GetPortWord(uint16_t address)
     case 0176663:
         return m_pBoard->ChanReadByCPU(1);
     case 0176664:
-    case 0177665:
+    case 0176665:
         return m_pBoard->ChanTxStateGetCPU(1);
     case 0176674:
     case 0176675:

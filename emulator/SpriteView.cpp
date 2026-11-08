@@ -463,8 +463,7 @@ void SpriteView_PrepareBitmap()
                 if (m_nSprite_Mode == 0)
                 {
                     // Get byte from memory -- CPU memory only for now
-                    int addrtype = 0;
-                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
                     if (address & 1)
                         value = value >> 8;
                     ++address;
@@ -479,12 +478,11 @@ void SpriteView_PrepareBitmap()
                 }
                 else
                 {
-                    int addrtype = 0;
-                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
                     if (address & 1)
                         value = value >> 8;
                     ++address;
-                    WORD value1 = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, FALSE, &addrtype);
+                    WORD value1 = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
                     if (address & 1)
                         value1 = value1 >> 8;
                     ++address;

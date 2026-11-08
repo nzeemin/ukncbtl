@@ -20,8 +20,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 //////////////////////////////////////////////////////////////////////
 
 
-static void CALLBACK waveOutProc(HWAVEOUT, UINT, DWORD, DWORD, DWORD);
-
 static std::array<WAVEHDR, BLOCK_COUNT> waveBlocks{};
 static std::array<std::array<char, BLOCK_SIZE>, BLOCK_COUNT> waveSamples{};
 static std::atomic<int> waveFreeBlockCount{0};
@@ -115,6 +113,9 @@ void SoundGen_SetVolume(WORD volume)
 
 void SoundGen_SetSpeed(WORD speedpercent)
 {
+    if (!m_SoundGenInitialized)
+        return;
+
     DWORD dwRate = 0x00010000;
     if (speedpercent > 0 && speedpercent < 1000)
         dwRate = (((DWORD)speedpercent / 100) << 16) | ((speedpercent % 100) * 0x00010000 / 100);

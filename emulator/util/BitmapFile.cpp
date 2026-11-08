@@ -28,26 +28,28 @@ template <typename T> struct ComRelease
 //////////////////////////////////////////////////////////////////////
 // Globals
 
-IWICImagingFactory * BitmapFile_pIWICFactory = NULL;
+static std::unique_ptr<IWICImagingFactory, ComRelease<IWICImagingFactory>> BitmapFile_factory;
+static bool BitmapFile_comInitialized = false;
 
 
 void BitmapFile_Init()
 {
-    // Initialize COM
-    CoInitialize(NULL);
-
-    CoCreateInstance(
-        CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER,
-        IID_PPV_ARGS(&BitmapFile_pIWICFactory));
+    const HRESULT initialized = CoInitialize(nullptr);
+    BitmapFile_comInitialized = SUCCEEDED(initialized);
+    if (FAILED(initialized) && initialized != RPC_E_CHANGED_MODE)
+        return;
+    IWICImagingFactory* factory = nullptr;
+    if (SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+                                   IID_PPV_ARGS(&factory))))
+        BitmapFile_factory.reset(factory);
 }
 
 void BitmapFile_Done()
 {
-    if (BitmapFile_pIWICFactory != nullptr)
-    {
-        BitmapFile_pIWICFactory->Release();
-        BitmapFile_pIWICFactory = nullptr;
-    }
+    BitmapFile_factory.reset();
+    if (BitmapFile_comInitialized)
+        CoUninitialize();
+    BitmapFile_comInitialized = false;
 }
 
 
@@ -97,7 +99,7 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
 
 HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
 {
-    IWICImagingFactory * piFactory = BitmapFile_pIWICFactory;
+    IWICImagingFactory * piFactory = BitmapFile_factory.get();
     ASSERT(piFactory != NULL);
     if (piFactory == nullptr)
         return NULL;
@@ -165,17 +167,17 @@ HBITMAP BitmapFile_LoadPngFromResource(LPCTSTR lpName)
 
 
 bool BitmapFile_SaveImageFile(
-    const uint32_t* pBits,
+    std::span<const uint32_t> pixels,
     LPCTSTR sFileName, BitmapFileFormat format,
     int width, int height)
 {
-    ASSERT(pBits != NULL);
     ASSERT(sFileName != NULL);
 
-    IWICImagingFactory * piFactory = BitmapFile_pIWICFactory;
+    IWICImagingFactory * piFactory = BitmapFile_factory.get();
     ASSERT(piFactory != NULL);
-    if (piFactory == nullptr || pBits == nullptr || sFileName == nullptr || width <= 0 || height <= 0 ||
-        static_cast<uint64_t>(width) * height * 4 > UINT_MAX)
+    if (piFactory == nullptr || sFileName == nullptr || width <= 0 || height <= 0 ||
+        static_cast<uint64_t>(width) * height * 4 > UINT_MAX ||
+        static_cast<uint64_t>(width) * height > pixels.size())
         return false;
 
     GUID containerFormatGuid = GUID_ContainerFormatPng;
@@ -189,82 +191,42 @@ bool BitmapFile_SaveImageFile(
         containerFormatGuid = GUID_ContainerFormatPng;
     }
 
-    bool result = false;
-    HRESULT hr = NULL;
-    IWICStream *piStream = NULL;
-    IWICBitmapFrameEncode *piBitmapFrame = NULL;
-    IPropertyBag2 *pPropertyBag = NULL;
     WICPixelFormatGUID formatGUID = GUID_WICPixelFormat24bppBGR;
-
-    IWICBitmapEncoder *piEncoder = NULL;
-    hr = piFactory->CreateEncoder(containerFormatGuid, NULL, &piEncoder);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piFactory->CreateStream(&piStream);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piStream->InitializeFromFilename(sFileName, GENERIC_WRITE);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piEncoder->Initialize(piStream, WICBitmapEncoderNoCache);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piEncoder->CreateNewFrame(&piBitmapFrame, &pPropertyBag);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piBitmapFrame->Initialize(pPropertyBag);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piBitmapFrame->SetSize(width, height);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piBitmapFrame->SetPixelFormat(&formatGUID);
-    if (hr != S_OK) goto Cleanup;
-
-    hr = IsEqualGUID(formatGUID, GUID_WICPixelFormat24bppBGR) ? S_OK : E_FAIL;
-    if (hr != S_OK) goto Cleanup;
+    IWICBitmapEncoder* rawEncoder = nullptr;
+    if (FAILED(piFactory->CreateEncoder(containerFormatGuid, nullptr, &rawEncoder))) return false;
+    std::unique_ptr<IWICBitmapEncoder, ComRelease<IWICBitmapEncoder>> encoder(rawEncoder);
+    IWICStream* rawStream = nullptr;
+    if (FAILED(piFactory->CreateStream(&rawStream))) return false;
+    std::unique_ptr<IWICStream, ComRelease<IWICStream>> stream(rawStream);
+    if (FAILED(stream->InitializeFromFilename(sFileName, GENERIC_WRITE)) ||
+        FAILED(encoder->Initialize(stream.get(), WICBitmapEncoderNoCache))) return false;
+    IWICBitmapFrameEncode* rawFrame = nullptr;
+    IPropertyBag2* rawProperties = nullptr;
+    const HRESULT frameResult = encoder->CreateNewFrame(&rawFrame, &rawProperties);
+    std::unique_ptr<IWICBitmapFrameEncode, ComRelease<IWICBitmapFrameEncode>> frame(rawFrame);
+    std::unique_ptr<IPropertyBag2, ComRelease<IPropertyBag2>> properties(rawProperties);
+    if (FAILED(frameResult)) return false;
+    if (FAILED(frame->Initialize(properties.get())) || FAILED(frame->SetSize(width, height)) ||
+        FAILED(frame->SetPixelFormat(&formatGUID)) || !IsEqualGUID(formatGUID, GUID_WICPixelFormat24bppBGR))
+        return false;
 
     // Convert upside-down 32bpp bitmap to normal 24bpp bitmap
-    {
-    UINT cbStride = static_cast<UINT>(width) * 3;
-    UINT cbBufferSize = static_cast<UINT>(height) * cbStride;
+    const UINT cbStride = static_cast<UINT>(width) * 3;
+    const UINT cbBufferSize = static_cast<UINT>(height) * cbStride;
     std::vector<BYTE> pixelBuffer(cbBufferSize);
     for (int line = 0; line < height; line++)
     {
-        const BYTE* pSrc = reinterpret_cast<const BYTE*>(pBits) + static_cast<size_t>(height - line - 1) * width * 4;
         BYTE* pDst = pixelBuffer.data() + static_cast<size_t>(line) * cbStride;
         for (int x = 0; x < width; x++)
         {
-            *pDst++ = *pSrc++;
-            *pDst++ = *pSrc++;
-            *pDst++ = *pSrc++;
-            pSrc++;
+            const uint32_t pixel = pixels[static_cast<size_t>(height - line - 1) * width + x];
+            *pDst++ = static_cast<BYTE>(pixel);
+            *pDst++ = static_cast<BYTE>(pixel >> 8);
+            *pDst++ = static_cast<BYTE>(pixel >> 16);
         }
     }
-
-    hr = piBitmapFrame->WritePixels(height, cbStride, cbBufferSize, pixelBuffer.data());
-    if (hr != S_OK) goto Cleanup;
-    }
-
-    hr = piBitmapFrame->Commit();
-    if (hr != S_OK) goto Cleanup;
-
-    hr = piEncoder->Commit();
-    if (hr != S_OK) goto Cleanup;
-
-    result = true;
-
-Cleanup:
-    if (piEncoder != NULL)
-        piEncoder->Release();
-    if (piBitmapFrame != NULL)
-        piBitmapFrame->Release();
-    if (pPropertyBag != NULL)
-        pPropertyBag->Release();
-    if (piStream != NULL)
-        piStream->Release();
-
-    return result;
+    return SUCCEEDED(frame->WritePixels(height, cbStride, cbBufferSize, pixelBuffer.data())) &&
+           SUCCEEDED(frame->Commit()) && SUCCEEDED(encoder->Commit());
 }
 
 

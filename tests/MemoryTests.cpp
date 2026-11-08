@@ -12,8 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // RAM planes, ROM, I/O ports and bus errors
 //
 // Expected values come from the memory maps in the comments of Memory.cpp and from the
-// UKNC documentation, not from the emulator output. Tests of the known bugs are ignored,
-// see the list in docs/unit-tests.md.
+// UKNC documentation, not from the emulator output.
 
 #include "stdafx.h"
 #include <CppUnitTest.h>
@@ -82,6 +81,18 @@ public:
         Eq(0xBEEF, tb.GetWord(0157776), _T("last RAM word in USER mode"));
         Eq(0xEF, tb.Board()->GetRAMByte(1, 0157776 / 2), _T("plane 1"));
         Eq(0xBE, tb.Board()->GetRAMByte(2, 0157776 / 2), _T("plane 2"));
+    }
+
+    TEST_METHOD(Memory_DebuggerViewReturnsTheValueAndAddressType)
+    {
+        TestBoard tb;
+        tb.SetWord(0200, 0x1234);
+        const auto ram = tb.CpuMem()->GetWordView(0200, false, false);
+        Eq(0x1234, ram.value, _T("RAM value"));
+        Eq(ADDRTYPE_RAM12, ram.addressType, _T("RAM type"));
+        const auto io = tb.CpuMem()->GetWordView(0176560, false, false);
+        Eq(0, io.value, _T("I/O is not read by the debugger view"));
+        Eq(ADDRTYPE_IO, io.addressType, _T("I/O type"));
     }
 
     TEST_METHOD(Memory_CpuAddressTypes)
@@ -216,12 +227,7 @@ public:
         Eq(0200 + 5, tb.Board()->GetCPUMemoryController()->GetWord(0176564, false, false) & 0377, _T("transmitter status"));
     }
 
-    // Known bug: the status register of the channel 1 transmitter is 176664, its odd byte 176665 must work
-    // like the odd byte 177565 of the channel 0 (the case label in GetPortWord has a typo, 177665)
-    BEGIN_TEST_METHOD_ATTRIBUTE(Memory_CpuChannelStatusOddBytes_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Memory_CpuChannelStatusOddBytes_KnownBug)
+    TEST_METHOD(Memory_CpuChannelStatusOddBytes)
     {
         static const uint16_t addresses[] = { 0177561, 0177565, 0176661, 0176665, 0176675 };
         for (size_t i = 0; i < sizeof(addresses) / sizeof(addresses[0]); i++)
@@ -470,41 +476,33 @@ public:
     TEST_METHOD(Memory_BusDevicesHaveNamesAndRanges)
     {
         TestBoard tb;
-        const CBusDevice** lists[2] = { tb.Board()->GetCPUBusDevices(), tb.Board()->GetPPUBusDevices() };
-        for (int list = 0; list < 2; list++)
+        const auto lists = std::array{tb.Board()->GetCPUBusDevices(), tb.Board()->GetPPUBusDevices()};
+        for (const auto devices : lists)
         {
-            int deviceCount = 0;
-            for (const CBusDevice** pp = lists[list]; *pp != nullptr; pp++, deviceCount++)
+            Assert::IsFalse(devices.empty(), _T("there are devices"));
+            for (const CBusDevice* pDevice : devices)
             {
-                const CBusDevice* pDevice = *pp;
+                Assert::IsTrue(pDevice != nullptr, _T("device exists"));
                 Assert::IsTrue(pDevice->GetName() != nullptr && pDevice->GetName()[0] != 0, _T("device name"));
-                const uint16_t* r = pDevice->GetAddressRanges();
-                Assert::IsTrue(r[0] != 0, _T("device has at least one range"));
+                Assert::IsFalse(pDevice->GetAddressRanges().empty(), _T("device has at least one range"));
             }
-            Assert::IsTrue(deviceCount > 0, _T("there are devices"));
         }
     }
 
-    // Known bug: the address ranges of the CPU devices "Network adapter" (176560-176567) and "Memory access"
-    // (176564-176567) overlap, and so do the PPU devices "CPU-PPU channels" (177100-177103) and
-    // "Programmable port" (177100-177103). The device that comes later in the list wins in the memory map.
-    BEGIN_TEST_METHOD_ATTRIBUTE(Memory_BusDevicesDoNotOverlap_KnownBug)
-        TEST_IGNORE()
-    END_TEST_METHOD_ATTRIBUTE()
-    TEST_METHOD(Memory_BusDevicesDoNotOverlap_KnownBug)
+    TEST_METHOD(Memory_BusDevicesDoNotOverlap)
     {
         TestBoard tb;
-        const CBusDevice** lists[2] = { tb.Board()->GetCPUBusDevices(), tb.Board()->GetPPUBusDevices() };
-        for (int list = 0; list < 2; list++)
+        const auto lists = std::array{tb.Board()->GetCPUBusDevices(), tb.Board()->GetPPUBusDevices()};
+        for (const auto devices : lists)
         {
             std::vector<int> owner(65536, -1);
             int deviceCount = 0;
-            for (const CBusDevice** pp = lists[list]; *pp != nullptr; pp++, deviceCount++)
+            for (const CBusDevice* pDevice : devices)
             {
-                const CBusDevice* pDevice = *pp;
-                for (const uint16_t* r = pDevice->GetAddressRanges(); r[0] != 0; r += 2)
+                for (const auto& range : pDevice->GetAddressRanges())
                 {
-                    for (uint32_t a = r[0]; a < (uint32_t) r[0] + r[1]; a++)
+                    Assert::IsTrue(range.length != 0 && static_cast<uint32_t>(range.start) + range.length <= owner.size());
+                    for (uint32_t a = range.start; a < static_cast<uint32_t>(range.start) + range.length; a++)
                     {
                         TCHAR msg[80];
                         _stprintf_s(msg, _T("address %06o of the device %s"), a, pDevice->GetName());
@@ -512,6 +510,7 @@ public:
                         owner[a] = deviceCount;
                     }
                 }
+                ++deviceCount;
             }
         }
     }

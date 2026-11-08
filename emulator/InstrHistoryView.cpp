@@ -326,11 +326,10 @@ void InstrHistoryView_DoDraw(HDC hdc)
         }
         else
         {
-            TCHAR strInstr[8];
-            TCHAR strArg[32];
-            DisassembleInstruction(record.words, record.pc, strInstr, strArg);
-
-            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%3d %s %s %s"), index, bufaddr, strInstr, strArg);
+            const auto decoded = DisassembleInstruction(record.words, record.pc);
+            if (!decoded) continue;
+            _sntprintf(buffer, sizeof(buffer) / sizeof(TCHAR) - 1, _T("%3d %s %s %s"), index, bufaddr,
+                       decoded->mnemonic.c_str(), decoded->argument.c_str());
         }
         SetTextColor(hdc, record.interrupt ? colorInterrupt : colorText);
         TextOut(hdc, x, y, buffer, static_cast<int>(_tcslen(buffer)));

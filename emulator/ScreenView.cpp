@@ -18,6 +18,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Views.h"
 #include "Emulator.h"
 #include "util/BitmapFile.h"
+#include "util/ScreenScale.h"
 #include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -25,8 +26,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 HWND g_hwndScreen = NULL;  // Screen View window handle
 
-DWORD * m_bits = NULL;
-static std::unique_ptr<DWORD[]> m_screenBitsOwner;
+uint32_t* m_bits = nullptr;
+static std::unique_ptr<uint32_t[]> m_screenBitsOwner;
 int m_cxScreenWidth = UKNC_SCREEN_WIDTH;
 int m_cyScreenHeight = UKNC_SCREEN_HEIGHT;
 int m_xScreenOffset = 0;
@@ -35,6 +36,7 @@ ScreenViewMode m_ScreenMode = RGBScreen;
 int m_ScreenHeightMode = 0;  // Render mode
 
 HMODULE g_hModuleRender = NULL;
+static bool g_renderInitialized = false;
 RENDER_INIT_CALLBACK RenderInitProc = NULL;
 RENDER_DONE_CALLBACK RenderDoneProc = NULL;
 RENDER_DRAW_CALLBACK RenderDrawProc = NULL;
@@ -60,10 +62,6 @@ BOOL bEntPressed = FALSE;
 
 void ScreenView_OnDraw(HDC hdc);
 
-using PREPARE_SCREENSHOT_CALLBACK = void (CALLBACK*)(const void * pSrcBits, void * pDestBits);
-
-void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei);
-PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode);
 void ScreenView_OnRButtonDown(int mousex, int mousey);
 
 
@@ -91,7 +89,7 @@ yrgb  R   G   B  0xRRGGBB
 */
 
 // Table for color conversion yrgb (4 bits) -> DWORD (32 bits)
-const DWORD ScreenView_StandardRGBColors[16 * 8] =
+constexpr uint32_t ScreenView_StandardRGBColors[16 * 8] =
 {
     0x000000, 0x000080, 0x008000, 0x008080, 0x800000, 0x800080, 0x808000, 0x808080,
     0x000000, 0x0000FF, 0x00FF00, 0x00FFFF, 0xFF0000, 0xFF00FF, 0xFFFF00, 0xFFFFFF,
@@ -110,7 +108,7 @@ const DWORD ScreenView_StandardRGBColors[16 * 8] =
     0x000000, 0x000060, 0x006000, 0x006060, 0x600000, 0x600060, 0x606000, 0x606060,
     0x000000, 0x0000DF, 0x00DF00, 0x00DFDF, 0xDF0000, 0xDF00DF, 0xDFDF00, 0xDFDFDF,
 };
-const DWORD ScreenView_StandardGRBColors[16 * 8] =
+constexpr uint32_t ScreenView_StandardGRBColors[16 * 8] =
 {
     0x000000, 0x000080, 0x800000, 0x800080, 0x008000, 0x008080, 0x808000, 0x808080,
     0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF,
@@ -130,7 +128,7 @@ const DWORD ScreenView_StandardGRBColors[16 * 8] =
     0x000000, 0x0000DF, 0xDF0000, 0xDF00DF, 0x00DF00, 0x00DFDF, 0xDFDF00, 0xDFDFDF,
 };
 // Table for color conversion, gray (black and white) display
-const DWORD ScreenView_GrayColors[16 * 8] =
+constexpr uint32_t ScreenView_GrayColors[16 * 8] =
 {
     0x000000, 0x242424, 0x484848, 0x6C6C6C, 0x909090, 0xB4B4B4, 0xD8D8D8, 0xFFFFFF,
     0x000000, 0x242424, 0x484848, 0x6C6C6C, 0x909090, 0xB4B4B4, 0xD8D8D8, 0xFFFFFF,
@@ -200,7 +198,7 @@ void ScreenView_RegisterClass()
 
 void ScreenView_Init()
 {
-    m_screenBitsOwner = std::make_unique<DWORD[]>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
+    m_screenBitsOwner = std::make_unique<uint32_t[]>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
     m_bits = m_screenBitsOwner.get();
 
     ::GetCursorPos(&m_LastMousePos);
@@ -223,14 +221,14 @@ void ScreenView_SetMode(ScreenViewMode newMode)
 
 void CALLBACK ScreenView_EnumModesProc(int modeNum, LPCTSTR modeDesc, int modeWidth, int modeHeight)
 {
-    if (g_nScreenModeIndex >= 32)
+    if (g_nScreenModeIndex >= 32 || modeDesc == nullptr)
         return;
 
     ScreenModeStruct* pmode = ScreenModeReference + g_nScreenModeIndex;
     pmode->modeNum = modeNum;
     pmode->width = modeWidth;
     pmode->height = modeHeight;
-    _tcscpy_s(pmode->description, 40, modeDesc);
+    _tcsncpy_s(pmode->description, _countof(pmode->description), modeDesc, _TRUNCATE);
 
     g_nScreenModeIndex++;
 }
@@ -249,30 +247,35 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     if (RenderInitProc == NULL)
     {
         AlertWarningFormat(_T("Failed to retrieve RenderInit address (0x%08lx)."), ::GetLastError());
+        ScreenView_DoneRender();
         return FALSE;
     }
     RenderDoneProc = (RENDER_DONE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDone");
     if (RenderDoneProc == NULL)
     {
         AlertWarningFormat(_T("Failed to retrieve RenderDone address (0x%08lx)."), ::GetLastError());
+        ScreenView_DoneRender();
         return FALSE;
     }
     RenderDrawProc = (RENDER_DRAW_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderDraw");
     if (RenderDrawProc == NULL)
     {
         AlertWarningFormat(_T("Failed to retrieve RenderDraw address (0x%08lx)."), ::GetLastError());
+        ScreenView_DoneRender();
         return FALSE;
     }
     RenderEnumModesProc = (RENDER_ENUM_MODES_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderEnumModes");
     if (RenderEnumModesProc == NULL)
     {
         AlertWarningFormat(_T("Failed to retrieve RenderEnumModes address (0x%08lx)."), ::GetLastError());
+        ScreenView_DoneRender();
         return FALSE;
     }
     RenderSelectModeProc = (RENDER_SELECT_MODE_CALLBACK) ::GetProcAddress(g_hModuleRender, "RenderSelectMode");
     if (RenderSelectModeProc == NULL)
     {
         AlertWarningFormat(_T("Failed to retrieve RenderSelectMode address (0x%08lx)."), ::GetLastError());
+        ScreenView_DoneRender();
         return FALSE;
     }
 
@@ -290,10 +293,11 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     if (!RenderInitProc(UKNC_SCREEN_WIDTH, UKNC_SCREEN_HEIGHT, g_hwndScreen))
     {
         AlertWarning(_T("Failed to initialize the render."));
-        //ScreenView_DestroyScreen();
+        ScreenView_DoneRender();
         return FALSE;
     }
 
+    g_renderInitialized = true;
     return TRUE;
 }
 
@@ -301,8 +305,9 @@ void ScreenView_DoneRender()
 {
     if (g_hModuleRender != NULL)
     {
-        if (RenderDoneProc != NULL)
+        if (g_renderInitialized && RenderDoneProc != NULL)
             RenderDoneProc();
+        g_renderInitialized = false;
 
         RenderInitProc = NULL;
         RenderDoneProc = NULL;
@@ -477,30 +482,22 @@ void ScreenView_RedrawScreen()
 }
 
 // Choose color palette depending of screen mode
-const DWORD* ScreenView_GetPalette()
+std::span<const uint32_t, 16 * 8> ScreenView_GetPalette()
 {
-    //TODO: Move the switch into ScreenView_SetMode()
-    const DWORD* colors;
     switch (m_ScreenMode)
     {
-    case RGBScreen:   colors = ScreenView_StandardRGBColors; break;
-    case GrayScreen:  colors = ScreenView_GrayColors; break;
-    case GRBScreen:   colors = ScreenView_StandardGRBColors; break;
-    default:          colors = ScreenView_StandardRGBColors; break;
+    case GrayScreen: return ScreenView_GrayColors;
+    case GRBScreen: return ScreenView_StandardGRBColors;
+    default: return ScreenView_StandardRGBColors;
     }
-
-    return colors;
 }
-
-#define AVERAGERGB(a, b)  ( (((a) & 0xfefefeffUL) + ((b) & 0xfefefeffUL)) >> 1 )
 
 void ScreenView_PrepareScreen()
 {
     if (m_bits == NULL) return;
 
-    const DWORD* colors = ScreenView_GetPalette();
-
-    Emulator_PrepareScreenRGB32(m_bits, (const uint32_t*)colors);
+    Emulator_PrepareScreenRGB32(std::span{m_bits, static_cast<size_t>(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT)},
+        ScreenView_GetPalette());
 }
 
 void ScreenView_PutKeyEventToQueue(WORD keyevent)
@@ -701,24 +698,19 @@ BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode)
     ASSERT(sFileName != NULL);
 
     std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
-    const DWORD* palette = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(bits.data(), (const uint32_t*)palette);
+    Emulator_PrepareScreenRGB32(bits, ScreenView_GetPalette());
 
-    int scrwidth, scrheight;
-    ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
-    PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
-
-    if (scrwidth <= 0 || scrheight <= 0 || callback == nullptr)
-        return FALSE;
+    const auto [scrwidth, scrheight, description] = screen_scale::GetMode(screenshotMode);
     std::vector<uint32_t> scrBits(static_cast<size_t>(scrwidth) * scrheight);
-    callback(bits.data(), scrBits.data());
+    if (!screen_scale::Apply(screenshotMode, bits, scrBits))
+        return FALSE;
 
     LPCTSTR sFileNameExt = _tcsrchr(sFileName, _T('.'));
     BitmapFileFormat imageFormat = BitmapFileFormatPng;
     if (sFileNameExt != NULL && _tcsicmp(sFileNameExt, _T(".bmp")) == 0)
         imageFormat = BitmapFileFormatBmp;
     BOOL result = BitmapFile_SaveImageFile(
-            scrBits.data(), sFileName, imageFormat, scrwidth, scrheight);
+            scrBits, sFileName, imageFormat, scrwidth, scrheight);
 
     return result;
 }
@@ -727,17 +719,12 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
 {
     std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
 
-    const DWORD* palette = ScreenView_GetPalette();
-    Emulator_PrepareScreenRGB32(bits.data(), (const uint32_t*)palette);
+    Emulator_PrepareScreenRGB32(bits, ScreenView_GetPalette());
 
-    int scrwidth, scrheight;
-    ScreenView_GetScreenshotSize(screenshotMode, &scrwidth, &scrheight);
-    PREPARE_SCREENSHOT_CALLBACK callback = ScreenView_GetScreenshotCallback(screenshotMode);
-
-    if (scrwidth <= 0 || scrheight <= 0 || callback == nullptr)
-        return NULL;
+    const auto [scrwidth, scrheight, description] = screen_scale::GetMode(screenshotMode);
     std::vector<uint32_t> scrBits(static_cast<size_t>(scrwidth) * scrheight);
-    callback(bits.data(), scrBits.data());
+    if (!screen_scale::Apply(screenshotMode, bits, scrBits))
+        return NULL;
 
     BITMAPINFOHEADER bi;
     ::ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
@@ -765,9 +752,9 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     p += sizeof(BITMAPINFOHEADER);
     for (int line = 0; line < scrheight; line++)
     {
-        const BYTE* psrc = reinterpret_cast<const BYTE*>(scrBits.data()) + (scrheight - line - 1) * scrwidth * 4;
-        ::CopyMemory(p, psrc, scrwidth * 4);
-        p += scrwidth * 4;
+        const auto row = std::span{scrBits}.subspan(static_cast<size_t>(scrheight - line - 1) * scrwidth, scrwidth);
+        ::CopyMemory(p, row.data(), row.size_bytes());
+        p += row.size_bytes();
     }
     ::GlobalUnlock(hDIB);
 
@@ -824,20 +811,18 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
 {
     // Get screenshot
     std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
-    const uint32_t* colors = (const uint32_t*)ScreenView_GrayColors;
-    Emulator_PrepareScreenToText(bits.data(), colors);
+    Emulator_PrepareScreenToText(bits, ScreenView_GrayColors);
 
     // Prepare font, get current font data from PPU memory
     CMemoryController* pPpuMemCtl = g_pBoard->GetPPUMemoryController();
     uint8_t fontcur[11 * 16 * 14];
     uint16_t fontaddr = 014142 + 32 * 2;
-    int addrtype = 0;
     for (BYTE charidx = 0; charidx < 16 * 14; charidx++)
     {
-        uint16_t charaddr = pPpuMemCtl->GetWordView(fontaddr + charidx * 2, FALSE, FALSE, &addrtype);
+        uint16_t charaddr = pPpuMemCtl->GetWordView(fontaddr + charidx * 2, false, false).value;
         for (int16_t y = 0; y < 11; y++)
         {
-            uint16_t fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, FALSE, FALSE, &addrtype);
+            uint16_t fontdata = pPpuMemCtl->GetWordView((charaddr + y) & ~1, false, false).value;
             if (((charaddr + y) & 1) == 1) fontdata >>= 8;
             fontcur[charidx * 11 + y] = (uint8_t)(fontdata & 0xff);
         }
@@ -847,7 +832,7 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
     uint16_t charstdaddr = 0120170;
     for (uint16_t idx = 0; idx < 16 * 14 * 11; idx++)
     {
-        uint16_t fontdata = pPpuMemCtl->GetWordView(charstdaddr & ~1, FALSE, FALSE, &addrtype);
+        uint16_t fontdata = pPpuMemCtl->GetWordView(charstdaddr & ~1, false, false).value;
         if ((charstdaddr & 1) == 1) fontdata >>= 8;
         fontstd[idx] = (uint8_t)(fontdata & 0xff);
         charstdaddr++;
@@ -881,230 +866,12 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
 //////////////////////////////////////////////////////////////////////
 
 
-void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale2(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale2d(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale4(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits);
-void CALLBACK PrepareScreenUpscale5(const void * pSrcBits, void * pDestBits);
-
-struct ScreenshotModeStruct
-{
-    int width;
-    int height;
-    PREPARE_SCREENSHOT_CALLBACK callback;
-    LPCTSTR description;
-}
-static ScreenshotModeReference[] =
-{
-    {  640,  288, PrepareScreenCopy,        _T("640 x 288 Standard") },
-    {  640,  432, PrepareScreenUpscale,     _T("640 x 432 Upscaled to 1.5") },
-    {  640,  576, PrepareScreenUpscale2,    _T("640 x 576 Interlaced") },
-    {  640,  576, PrepareScreenUpscale2d,   _T("640 x 576 Doubled") },
-    {  960,  576, PrepareScreenUpscale3,    _T("960 x 576 Interlaced") },
-    {  960,  720, PrepareScreenUpscale4,    _T("960 x 720, 4:3") },
-    { 1120,  864, PrepareScreenUpscale175,  _T("1120 x 864 Interlaced") },
-    { 1280,  864, PrepareScreenUpscale5,    _T("1280 x 864 Interlaced") },
-};
-const int ScreenshotModeCount = sizeof(ScreenshotModeReference) / sizeof(ScreenshotModeStruct);
-
-void ScreenView_GetScreenshotSize(int screenshotMode, int* pwid, int* phei)
-{
-    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
-        screenshotMode = 1;
-    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
-    *pwid = pinfo->width;
-    *phei = pinfo->height;
-}
-
-PREPARE_SCREENSHOT_CALLBACK ScreenView_GetScreenshotCallback(int screenshotMode)
-{
-    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
-        screenshotMode = 1;
-    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
-    return pinfo->callback;
-}
-
 LPCTSTR ScreenView_GetScreenshotModeName(int screenshotMode)
 {
-    if (screenshotMode < 0 || screenshotMode >= ScreenshotModeCount)
-        return NULL;
-    ScreenshotModeStruct* pinfo = ScreenshotModeReference + screenshotMode;
-    return pinfo->description;
+    const auto modes = screen_scale::Modes();
+    if (screenshotMode < 0 || static_cast<size_t>(screenshotMode) >= modes.size())
+        return nullptr;
+    return modes[screenshotMode].description;
 }
-
-#define AVERAGERGB(a, b)  ( (((a) & 0xfefefeffUL) + ((b) & 0xfefefeffUL)) >> 1 )
-
-void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits)
-{
-    for (int line = 0; line < UKNC_SCREEN_HEIGHT; line++)
-    {
-        const DWORD * pSrc = ((const DWORD*)pSrcBits) + UKNC_SCREEN_WIDTH * (UKNC_SCREEN_HEIGHT - 1 - line);
-        DWORD * pDest = ((DWORD*)pDestBits) + UKNC_SCREEN_WIDTH * line;
-        ::memcpy(pDest, pSrc, UKNC_SCREEN_WIDTH * 4);
-    }
-}
-
-// Upscale screen from height 288 to 432
-void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits)
-{
-    int ukncline = 0;
-    for (int line = 0; line < 432; line++)
-    {
-        DWORD* pdest = ((DWORD*)pDestBits) + line * UKNC_SCREEN_WIDTH;
-        if (line % 3 == 1)
-        {
-            const DWORD* psrc1 = ((DWORD*)pSrcBits) + ((UKNC_SCREEN_HEIGHT - 1 - ukncline) + 1) * UKNC_SCREEN_WIDTH;
-            const DWORD* psrc2 = ((DWORD*)pSrcBits) + ((UKNC_SCREEN_HEIGHT - 1 - ukncline) + 0) * UKNC_SCREEN_WIDTH;
-            DWORD* pdst1 = (DWORD*)pdest;
-            for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
-            {
-                *pdst1 = AVERAGERGB(*psrc1, *psrc2);
-                psrc1++;  psrc2++;  pdst1++;
-            }
-        }
-        else
-        {
-            const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-            memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-            ukncline++;
-        }
-    }
-}
-
-// Upscale screen to twice height with "interlaced" effect
-void CALLBACK PrepareScreenUpscale2(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
-    {
-        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-
-        pdest += UKNC_SCREEN_WIDTH;
-        memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
-    }
-}
-
-// Upscale screen to twice height
-void CALLBACK PrepareScreenUpscale2d(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
-    {
-        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-
-        pdest += UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
-    }
-}
-
-// Upscale screen width 640->960, height 288->720
-void CALLBACK PrepareScreenUpscale4(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline += 2)
-    {
-        const DWORD* psrc1 = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        const DWORD* psrc2 = psrc1 - UKNC_SCREEN_WIDTH;
-        DWORD* pdest0 = ((DWORD*)pDestBits) + ukncline / 2 * 5 * 960;
-        DWORD* pdest1 = pdest0 + 960;
-        DWORD* pdest2 = pdest1 + 960;
-        DWORD* pdest3 = pdest2 + 960;
-        DWORD* pdest4 = pdest3 + 960;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
-        {
-            DWORD c1a = *(psrc1++);  DWORD c1b = *(psrc1++);
-            DWORD c2a = *(psrc2++);  DWORD c2b = *(psrc2++);
-            DWORD c1 = AVERAGERGB(c1a, c1b);
-            DWORD c2 = AVERAGERGB(c2a, c2b);
-            DWORD ca = AVERAGERGB(c1a, c2a);
-            DWORD cb = AVERAGERGB(c1b, c2b);
-            DWORD c  = AVERAGERGB(ca,  cb);
-            (*pdest0++) = c1a;  (*pdest0++) = c1;  (*pdest0++) = c1b;
-            (*pdest1++) = c1a;  (*pdest1++) = c1;  (*pdest1++) = c1b;
-            (*pdest2++) = ca;   (*pdest2++) = c;   (*pdest2++) = cb;
-            (*pdest3++) = c2a;  (*pdest3++) = c2;  (*pdest3++) = c2b;
-            (*pdest4++) = c2a;  (*pdest4++) = c2;  (*pdest4++) = c2b;
-        }
-    }
-}
-
-// Upscale screen width 640->960, height 288->576 with "interlaced" effect
-void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = UKNC_SCREEN_HEIGHT - 1; ukncline >= 0; ukncline--)
-    {
-        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        psrc += UKNC_SCREEN_WIDTH - 1;  // end of line
-        DWORD* pdest = ((DWORD*)pDestBits) + (ukncline * 2) * 960;
-        pdest += 960 - 1;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH / 2; i++)
-        {
-            DWORD c1 = *psrc;  psrc--;
-            DWORD c2 = *psrc;  psrc--;
-            DWORD c12 = AVERAGERGB(c1, c2);
-            *pdest = c1;  pdest--;
-            *pdest = c12; pdest--;
-            *pdest = c2;  pdest--;
-        }
-
-        pdest += 960;
-        memset(pdest, 0, 960 * 4);
-    }
-}
-
-// Upscale screen width 640->1120 (x1.75), height 288->864 (x3) with "interlaced" effect
-void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
-    {
-        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        DWORD* pdest1 = ((DWORD*)pDestBits) + ukncline * 3 * 1120;
-        DWORD* pdest2 = pdest1 + 1120;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH / 4; i++)
-        {
-            DWORD c1 = *(psrc++);
-            DWORD c2 = *(psrc++);
-            DWORD c3 = *(psrc++);
-            DWORD c4 = *(psrc++);
-
-            *(pdest1++) = *(pdest2++) = c1;
-            *(pdest1++) = *(pdest2++) = AVERAGERGB(c1, c2);
-            *(pdest1++) = *(pdest2++) = c2;
-            *(pdest1++) = *(pdest2++) = AVERAGERGB(c2, c3);
-            *(pdest1++) = *(pdest2++) = c3;
-            *(pdest1++) = *(pdest2++) = AVERAGERGB(c3, c4);
-            *(pdest1++) = *(pdest2++) = c4;
-        }
-    }
-}
-
-// Upscale screen width 640->1280, height 288->864 with "interlaced" effect
-void CALLBACK PrepareScreenUpscale5(const void * pSrcBits, void * pDestBits)
-{
-    for (int ukncline = 0; ukncline < UKNC_SCREEN_HEIGHT; ukncline++)
-    {
-        const DWORD* psrc = ((const DWORD*)pSrcBits) + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-        DWORD* pdest = ((DWORD*)pDestBits) + ukncline * 3 * 1280;
-        psrc += UKNC_SCREEN_WIDTH - 1;  // end of line
-        pdest += 1280 - 1;
-        DWORD* pdest2 = pdest + 1280;
-        DWORD* pdest3 = pdest2 + 1280;
-        for (int i = 0; i < UKNC_SCREEN_WIDTH; i++)
-        {
-            DWORD color = *psrc;  psrc--;
-            *pdest = color;  pdest--;
-            *pdest = color;  pdest--;
-            *pdest2 = color;  pdest2--;
-            *pdest2 = color;  pdest2--;
-            *pdest3 = 0;  pdest3--;
-            *pdest3 = 0;  pdest3--;
-        }
-    }
-}
-
 
 //////////////////////////////////////////////////////////////////////

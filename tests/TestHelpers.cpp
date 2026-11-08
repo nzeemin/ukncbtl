@@ -76,8 +76,7 @@ void TestBoard::SetByte(uint16_t address, uint8_t byte)
 
 uint16_t TestBoard::GetWord(uint16_t address)
 {
-    int addrtype;
-    return m_pBoard->GetCPUMemoryController()->GetWordView(address & 0xFFFE, false, false, &addrtype);
+    return m_pBoard->GetCPUMemoryController()->GetWordView(address & 0xFFFE, false, false).value;
 }
 
 uint8_t TestBoard::GetByte(uint16_t address)
@@ -93,8 +92,7 @@ void TestBoard::SetPpuWord(uint16_t address, uint16_t word)
 
 uint16_t TestBoard::GetPpuWord(uint16_t address)
 {
-    int addrtype;
-    return m_pBoard->GetPPUMemoryController()->GetWordView(address & 0xFFFE, false, false, &addrtype);
+    return m_pBoard->GetPPUMemoryController()->GetWordView(address & 0xFFFE, false, false).value;
 }
 
 void TestBoard::StartCPU()
