@@ -7,7 +7,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | --- | --- | --- |
 | 1. Breakpoints | Shared CPU/PPU storage, limits, compaction, temporary ownership, sentinel readers | Complete: 14 GoogleTest cases |
 | 2. Instruction history | Ring wraparound, ordering, clearing, CPU/PPU separation, interrupt records/names | Complete: 14 GoogleTest cases |
-| 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Pending |
+| 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Complete: 55 GoogleTest cases |
 | 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Pending |
 | 5. Commands | Console parsing/history/step-over and command-line options | Pending |
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Pending |
@@ -64,3 +64,27 @@ with every SEL high byte, and unknown/odd vectors falling back to VIRQ.
 Validation: Release application and new test target build successfully; all
 325 Release CTest cases pass. Tests exercise the extracted history component;
 interactive UI rendering and processor callback timing are not tested here.
+
+## Area 3 implementation
+
+`Snapshot.cpp` contains the actual snapshot save/load path used by the emulator.
+The application supplies its stop callback; file/header validation finishes
+before that callback or any state restoration. Valid loads restore the board
+and uptime and clear both instruction histories. Null paths now fail cleanly.
+Existing acceptance of trailing bytes and ignored reserved header bytes remains
+unchanged.
+
+Twenty-one snapshot cases use temporary files and the real motherboard to test
+exact header/file layout, valid state restoration, callback ordering, byte-for-byte
+round trips, missing/null paths, locked-file read/write failures, reserved/trailing
+bytes, nine truncation lengths and each of the four validated header fields.
+Rejected files preserve serialized board state, uptime and both histories.
+
+Thirty-four serialization cases cover 8/16/32/64-bit little-endian reads/writes,
+unaligned addresses, guard bytes, zero/max/single-bit round trips, exact and short
+buffers for every Reader/Writer operation, unchanged cursors/buffers after
+exceptions, mixed fields, array copying and zero/oversized skips.
+
+Validation: Release application and both new test targets build; all 380 Release
+CTest cases pass. Tests do not simulate disk-full or close-time failures, test
+interactive UI effects, or exercise execution on a big-endian host.

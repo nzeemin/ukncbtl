@@ -22,7 +22,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emulator.h"
 #include "Views.h"
 #include "emubase/Emubase.h"
-#include "emubase/ImageSerialization.h"
+#include "Snapshot.h"
 #include "SoundGen.h"
 
 //NOTE: I know, we use unsafe string functions
@@ -1070,47 +1070,13 @@ void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const ui
 
 bool Emulator_SaveImage(LPCTSTR sFilePath)
 {
-    std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0);
-    image::Writer header(std::span{image}.first<20>());
-    header.dword(UKNCIMAGE_HEADER1);
-    header.dword(UKNCIMAGE_HEADER2);
-    header.dword(UKNCIMAGE_VERSION);
-    header.dword(UKNCIMAGE_SIZE);
-    header.dword(m_dwEmulatorUptime);
-    g_pBoard->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
-
-    UniqueFile fpFile(::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR));
-    if (fpFile == nullptr)
-        return false;
-    const size_t bytesWritten = ::fwrite(image.data(), 1, image.size(), fpFile.get());
-    const int closeResult = ::fclose(fpFile.release());
-    return bytesWritten == image.size() && closeResult == 0;
+    return snapshot::Save(sFilePath, *g_pBoard, m_dwEmulatorUptime);
 }
 
 bool Emulator_LoadImage(LPCTSTR sFilePath)
 {
-    UniqueFile file(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR));
-    if (!file)
-        return false;
-    std::vector<uint8_t> image(UKNCIMAGE_SIZE);
-    if (::fread(image.data(), 1, image.size(), file.get()) != image.size())
-        return false;
-
-    image::Reader header(std::span<const uint8_t>{image}.first<20>());
-    if (header.dword() != UKNCIMAGE_HEADER1 || header.dword() != UKNCIMAGE_HEADER2 ||
-        header.dword() != UKNCIMAGE_VERSION || header.dword() != UKNCIMAGE_SIZE)
-        return false;
-    const uint32_t uptime = header.dword();
-
-    // Restore emulator state from the image
-    Emulator_Stop();
-    g_pBoard->Reset();
-    g_pBoard->LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE>{image});
-    Emulator_ClearHistory();
-
-    m_dwEmulatorUptime = uptime;
-    return true;
+    return snapshot::Load(sFilePath, *g_pBoard, m_dwEmulatorUptime,
+                          instructionHistory, Emulator_Stop);
 }
-
 
 //////////////////////////////////////////////////////////////////////
