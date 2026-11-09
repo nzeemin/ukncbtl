@@ -72,7 +72,7 @@ ukncbtl_target(ScreenScale)
 target_link_libraries(ScreenScale PUBLIC EmulatorProfiling)
 
 add_executable(UKNCBTL WIN32
-  emulator/Common.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
+  emulator/Common.cpp emulator/util/CommonText.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
   emulator/Dialogs.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
   emulator/DisplayListView.cpp emulator/Emulator.cpp emulator/KeyboardView.cpp
   emulator/Main.cpp emulator/MainWindow.cpp emulator/MemoryView.cpp
@@ -117,6 +117,7 @@ if(BUILD_TESTING)
   target_compile_definitions(ConsoleProductTests PRIVATE PRODUCT)
   set_target_properties(ConsoleProductTests PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
   ukncbtl_test(SettingsTests tests/SettingsTests.cpp emulator/Settings.cpp)
+  ukncbtl_test(CommonTextTests tests/CommonTextTests.cpp emulator/util/CommonText.cpp)
   ukncbtl_test(TextFormatTests tests/TextFormatTests.cpp)
   ukncbtl_test(ScreenScaleTests tests/ScreenScaleTests.cpp)
   target_link_libraries(ScreenScaleTests PRIVATE ScreenScale)

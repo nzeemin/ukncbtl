@@ -11,7 +11,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Complete: 81 GoogleTest cases |
 | 5. Commands | Console parsing/history/step-over and command-line options | Complete: 98 GoogleTest cases |
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Complete: 34 GoogleTest cases |
-| 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Pending |
+| 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Complete: 42 utility cases; 10 named core smoke cases |
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Pending |
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Pending |
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Pending |
@@ -159,3 +159,28 @@ spans, output guard regions and unchanged motherboard state.
 Validation: Release application and VideoDecoderTests build; all 593 Release
 CTest cases pass. Tests validate decoded pixels and tags, not interactive drawing
 or the display-list views' text formatting. Renderer-DLL scaling remains Area 20.
+
+## Area 7 implementation
+
+The existing number-formatting, UKNC KOI8-R translation and filename functions
+now live in `util/CommonText.cpp`, compiled into both the application and its
+unit-test target. Their behavior is unchanged, including lowercase hex output,
+fixed-width zero padding, the machine-specific graphics mapping, and filename
+extraction using backslash only (returning a pointer into the original input).
+
+Forty-two utility cases cover fixed examples and buffer guards, all 65,536 words
+against standard octal/hex/binary formatting and octal round trips, exact parse
+errors, long leading-zero inputs, non-null-terminated views, embedded nulls,
+ASCII/control preservation, both Cyrillic alphabets, representative UKNC graphics
+symbols and filename/path boundaries including Unicode and UNC paths.
+
+The former combined CoreSmokeTests.RegressionChecks is now ten named cases with
+direct assertions and fixture cleanup, retaining disassembly, jump, RAM,
+unaligned snapshot, device-list, stepping and disk regressions. Its four octal
+checks are covered by the dedicated utility tests; its short serialization
+checks are covered by Area 3's parameterized tests.
+
+Validation: Release application, CommonTextTests and CoreSmokeTests build;
+all 644 Release CTest cases pass (42 new utility cases plus nine net cases from
+the smoke-test split). Win32 text drawing and clipboard ownership remain outside
+these pure utility tests; the supported Unicode build is tested.
