@@ -177,7 +177,8 @@ using RENDER_DRAW_CALLBACK = void (CALLBACK*)(const void * pixels, HDC hdcTarget
 //////////////////////////////////////////////////////////////////////
 // Settings
 
-void Settings_Init();
+// Optional explicit INI path; reinitialization invalidates all cached values.
+void Settings_Init(LPCTSTR iniPath = nullptr);
 void Settings_Done();
 BOOL Settings_GetWindowRect(RECT * pRect);
 void Settings_SetWindowRect(const RECT * pRect);

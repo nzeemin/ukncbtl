@@ -8,7 +8,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 1. Breakpoints | Shared CPU/PPU storage, limits, compaction, temporary ownership, sentinel readers | Complete: 14 GoogleTest cases |
 | 2. Instruction history | Ring wraparound, ordering, clearing, CPU/PPU separation, interrupt records/names | Complete: 14 GoogleTest cases |
 | 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Complete: 55 GoogleTest cases |
-| 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Pending |
+| 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Complete: 81 GoogleTest cases |
 | 5. Commands | Console parsing/history/step-over and command-line options | Pending |
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Pending |
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Pending |
@@ -88,3 +88,29 @@ exceptions, mixed fields, array copying and zero/oversized skips.
 Validation: Release application and both new test targets build; all 380 Release
 CTest cases pass. Tests do not simulate disk-full or close-time failures, test
 interactive UI effects, or exercise execution on a big-endian host.
+
+## Area 4 implementation
+
+`SettingsCodec.h` provides checked decimal/color parsing and binary hex
+encoding/decoding. Numeric parsing consumes the whole value and rejects signs,
+trailing junk and overflow. Colors use RGB text and COLORREF byte order; binary
+hex accepts either case. Binary decoding validates the complete exact-length
+input before modifying any output bytes.
+
+`Settings_Init` accepts an optional INI path and invalidates scalar, color and
+DCB caches when reinitialized. Default application calls still use the INI next
+to the executable. String reads distinguish exact fits from truncation; callers
+receive failure rather than a valid-looking truncated prefix. Empty INI values
+retain the existing missing-value behavior.
+
+Eighty-one tests cover codecs, all 30 scalar setting caches (defaults, malformed
+input, setter persistence, external edits, reinitialization and file switching),
+all color entries, window rectangles, Unicode device paths, port names,
+breakpoint slots/deletion, serial/network defaults and cache persistence, missing
+values, invalid buffers and unwritable paths. Persistence tests compile the real
+Settings.cpp and use only isolated temporary Unicode INI files.
+
+Validation: Release application and SettingsTests build; all 461 Release CTest
+cases pass. Tests do not exercise interactive settings dialogs or simulate
+mid-write storage failures. Scalar setters retain their existing behavior of
+updating the in-memory cache even when persistence fails.
