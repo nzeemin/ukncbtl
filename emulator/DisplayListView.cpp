@@ -16,6 +16,7 @@ NEONBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Views.h"
 #include "ToolWindow.h"
 #include "Emulator.h"
+#include "VideoDecoder.h"
 #include "emubase/Emubase.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -134,80 +135,33 @@ void DiaplayList_FillTreeView()
 {
     SendMessage(m_hwndDisplayListTextbox, WM_SETREDRAW, FALSE, 0);
 
-    const CMotherboard* pBoard = g_pBoard;
-
     DisplayList_Print(_T("line address  tag 1  tag 2  addr   next   \r\n"));
-
-    WORD address = 0000270;  // Tag sequence start address
-    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
-    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
-
-    for (int yy = 0; yy < 307; yy++)  // Loop over the lines
+    video::DisplayListCursor cursor;
+    for (int line = 0; line < video::TotalLines; ++line)
     {
-        const size_t buffersize = 256 - 1;
-        TCHAR buffer[buffersize + 1];
-        const size_t buftagssize = 24 - 1;
-        TCHAR buftags[buftagssize + 1];
-
-        uint32_t curaddress = address;
-
-        WORD tag2 = 0;
-        if (okTagSize)  // 4-word tag
-        {
-            WORD tag1 = pBoard->GetRAMWord(0, address);
-            address += 2;
-            tag2 = pBoard->GetRAMWord(0, address);
-            address += 2;
-            FormatBuffer(buftags, _T("{:06o} {:06o}"), tag1, tag2);
-        }
+        const auto tag = cursor.Next(*g_pBoard);
+        TCHAR buffer[256], tags[24];
+        if (tag.kind != video::TagKind::Short)
+            FormatBuffer(tags, _T("{:06o} {:06o}"), tag.tag1, tag.tag2);
         else
-            FormatBuffer(buftags, _T("------ ------"));
-
-        WORD addressBits = pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
-        address += 2;
-
-        WORD tagB = pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
-
-        FormatBuffer(buffer, _T(" {:3}  {:06o}  {} {:06o} {:06o}  "), yy, curaddress, buftags, addressBits, tagB);
+            FormatBuffer(tags, _T("------ ------"));
+        FormatBuffer(buffer, _T(" {:3}  {:06o}  {} {:06o} {:06o}  "),
+                     line, tag.address, tags, tag.pixels, tag.link);
         DisplayList_Print(buffer);
-
-        const size_t bufcmtsize = 64 - 1;
-        TCHAR bufcmt[bufcmtsize + 1];  bufcmt[0] = 0;
-        if (okTagSize)  // 4-word tag
+        if (tag.kind == video::TagKind::Palette)
+            DisplayList_Print(_T("palette; "));
+        else if (tag.kind == video::TagKind::Parameters)
         {
-            if (okTagType)  // 4-word palette tag
-                _tcsncat_s(bufcmt, bufcmtsize, _T("palette; "), _TRUNCATE);
-            else
-            {
-                int scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                scale = 1 << scale;
-                FormatBuffer(buftags, _T("scale {}; "), scale);
-                _tcsncat_s(bufcmt, bufcmtsize, buftags, _TRUNCATE);
-            }
+            FormatBuffer(buffer, _T("scale {}; "), tag.Scale());
+            DisplayList_Print(buffer);
         }
-
-        // Calculate size, type and address of the next tag
-        uint16_t nextaddress;
-        bool okNextTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
-        bool okNextTagType = okTagType;
-        if (okNextTagSize)
+        if (tag.NextKind() != video::TagKind::Short)
         {
-            nextaddress = tagB & ~7;
-            okNextTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-            FormatBuffer(buftags, _T("next: 4-word at {:06o}"), nextaddress);
-            _tcsncat_s(bufcmt, bufcmtsize, buftags, _TRUNCATE);
+            FormatBuffer(buffer, _T("next: 4-word at {:06o}"), tag.NextAddress());
+            DisplayList_Print(buffer);
         }
-        else
-            nextaddress = tagB & ~3;
-
-        _tcsncat_s(bufcmt, bufcmtsize, _T("\r\n"), _TRUNCATE);
-        DisplayList_Print(bufcmt);
-
-        address = nextaddress;
-        okTagSize = okNextTagSize;
-        okTagType = okNextTagType;
+        DisplayList_Print(_T("\r\n"));
     }
-
     SendMessage(m_hwndDisplayListTextbox, WM_SETREDRAW, TRUE, 0);
 }
 

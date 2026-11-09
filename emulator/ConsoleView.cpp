@@ -21,6 +21,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 #include "CommandHistory.h"
 #include "ConsoleCommands.h"
+#include "VideoDecoder.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -406,63 +407,24 @@ void ConsoleView_SaveDisplayListDump() try
     }
     std::print(fpFile.get(), "line address  tag 1  tag 2  addr   next   \n");
 
-    WORD address = 0000270;  // Tag sequence start address
-    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
-    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
-
-    for (int yy = 0; yy < 307; yy++)
+    video::DisplayListCursor cursor;
+    for (int line = 0; line < video::TotalLines; ++line)
     {
-        std::print(fpFile.get(), "{:4d}  {:06o}  ", yy, address);
-
-        WORD tag2 = 0;
-        if (okTagSize)  // 4-word tag
-        {
-            WORD tag1 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-            tag2 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-            std::print(fpFile.get(), "{:06o} {:06o} ", tag1, tag2);
-        }
+        const auto tag = cursor.Next(*g_pBoard);
+        std::print(fpFile.get(), "{:4d}  {:06o}  ", line, tag.address);
+        if (tag.kind != video::TagKind::Short)
+            std::print(fpFile.get(), "{:06o} {:06o} ", tag.tag1, tag.tag2);
         else
             std::print(fpFile.get(), "------ ------ ");
-
-        WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
-        address += 2;
-        std::print(fpFile.get(), "{:06o} ", addressBits);
-
-        WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
-        std::print(fpFile.get(), "{:06o}  ", tagB);
-
-        if (okTagSize)  // 4-word tag
-        {
-            if (okTagType)  // 4-word palette tag
-                std::print(fpFile.get(), "palette; ");
-            else
-            {
-                int scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                scale = 1 << scale;
-                std::print(fpFile.get(), "scale {}; ", scale);
-            }
-        }
-
-        // Calculate size, type and address of the next tag
-        bool okNextTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
-        bool okNextTagType = okTagType;
-        if (okNextTagSize)
-        {
-            address = tagB & ~7;
-            okNextTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-            std::print(fpFile.get(), "next: 4-word at {:06o}", address);
-        }
-        else
-            address = tagB & ~3;
-
-        okTagSize = okNextTagSize;
-        okTagType = okNextTagType;
-
+        std::print(fpFile.get(), "{:06o} {:06o}  ", tag.pixels, tag.link);
+        if (tag.kind == video::TagKind::Palette)
+            std::print(fpFile.get(), "palette; ");
+        else if (tag.kind == video::TagKind::Parameters)
+            std::print(fpFile.get(), "scale {}; ", tag.Scale());
+        if (tag.NextKind() != video::TagKind::Short)
+            std::print(fpFile.get(), "next: 4-word at {:06o}", tag.NextAddress());
         std::print(fpFile.get(), "\n");
     }
-
     const bool writeFailed = std::ferror(fpFile.get()) != 0;
     const bool closeFailed = std::fclose(fpFile.release()) != 0;
     if (writeFailed || closeFailed)

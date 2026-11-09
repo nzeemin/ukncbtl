@@ -63,6 +63,10 @@ add_library(EmulatorSnapshot STATIC emulator/Snapshot.cpp)
 ukncbtl_target(EmulatorSnapshot)
 target_link_libraries(EmulatorSnapshot PUBLIC EmulatorCore)
 
+add_library(VideoDecoder STATIC emulator/VideoDecoder.cpp)
+ukncbtl_target(VideoDecoder)
+target_link_libraries(VideoDecoder PUBLIC EmulatorCore)
+
 add_library(ScreenScale STATIC emulator/util/ScreenScale.cpp)
 ukncbtl_target(ScreenScale)
 target_link_libraries(ScreenScale PUBLIC EmulatorProfiling)
@@ -77,7 +81,7 @@ add_executable(UKNCBTL WIN32
   emulator/util/BitmapFile.cpp emulator/util/WavPcmFile.cpp emulator/res/UKNCBTL.rc)
 ukncbtl_target(UKNCBTL)
 target_include_directories(UKNCBTL PRIVATE emulator/res)
-target_link_libraries(UKNCBTL PRIVATE EmulatorCore EmulatorSnapshot ScreenScale vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
+target_link_libraries(UKNCBTL PRIVATE EmulatorCore EmulatorSnapshot VideoDecoder ScreenScale vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
 target_link_options(UKNCBTL PRIVATE "LINKER:/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'")
 
 # The default renderer is loaded dynamically, so it must be built alongside the
@@ -105,6 +109,8 @@ if(BUILD_TESTING)
   ukncbtl_test(SerializationTests tests/SerializationTests.cpp)
   ukncbtl_test(SnapshotTests tests/SnapshotTests.cpp)
   target_link_libraries(SnapshotTests PRIVATE EmulatorSnapshot)
+  ukncbtl_test(VideoDecoderTests tests/VideoDecoderTests.cpp)
+  target_link_libraries(VideoDecoderTests PRIVATE VideoDecoder)
   ukncbtl_test(CommandTests tests/CommandTests.cpp)
   target_link_libraries(CommandTests PRIVATE shell32)
   ukncbtl_test(ConsoleProductTests tests/ConsoleProductTests.cpp)

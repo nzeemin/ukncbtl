@@ -10,7 +10,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Complete: 55 GoogleTest cases |
 | 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Complete: 81 GoogleTest cases |
 | 5. Commands | Console parsing/history/step-over and command-line options | Complete: 98 GoogleTest cases |
-| 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Pending |
+| 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Complete: 34 GoogleTest cases |
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Pending |
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Pending |
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Pending |
@@ -139,3 +139,23 @@ owned paths and Windows tokenization of quoted Unicode paths. `/boot` and
 Validation: Release application and both command test targets build; all 559
 Release CTest cases pass (98 new). Tests cover parsing and decision logic, not
 interactive command-handler UI effects or live processor step-over execution.
+
+## Area 6 implementation
+
+`VideoDecoder` provides a shared display-list cursor and headless RGB/text
+rendering. Both renderers, DisplayListView and the console display-list dump now
+use the same two-/four-word tag interpretation. Emulator wrappers retain their
+initialization guard. Rendering retains the existing initial black palette,
+19 hidden lines, 288 visible lines, palette/parameter persistence, cursor timing
+and text-mode behavior (no horizontal expansion; unused row tails untouched).
+
+Thirty-four tests use synthetic motherboard RAM to verify tag fields and link
+flags, links at the end of RAM, all four scales over entire frames, all eight
+brightness banks and palette nibbles, symbolic/graphical cursor positioning,
+blanking-line state changes, cursor toggles, palette/scale transitions, pixel
+address wraparound across all planes, bounded cyclic lists, exact/undersized
+spans, output guard regions and unchanged motherboard state.
+
+Validation: Release application and VideoDecoderTests build; all 593 Release
+CTest cases pass. Tests validate decoded pixels and tags, not interactive drawing
+or the display-list views' text formatting. Renderer-DLL scaling remains Area 20.
