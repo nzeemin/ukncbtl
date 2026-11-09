@@ -18,6 +18,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <timeapi.h>
 
 #include "Main.h"
+#include "CommandLineOptions.h"
+#include <vector>
 #include "Emulator.h"
 #include "Views.h"
 #include "util/BitmapFile.h"
@@ -252,83 +254,23 @@ void ParseCommandLine()
     int argnum = 0;
     LPTSTR* args = CommandLineToArgvW(commandline, &argnum);
 
-    for (int curargn = 1; curargn < argnum; curargn++)
+    if (!args) return;
+    std::vector<std::basic_string_view<TCHAR>> arguments;
+    for (int i = 1; i < argnum; ++i) arguments.emplace_back(args[i]);
+    const auto options = ParseCommandLineOptions(arguments);
+    Option_ShowHelp = options.help;
+    Option_AutoBoot = options.boot;
+    if (options.autostart) Settings_SetAutostart(*options.autostart);
+    if (options.debug) Settings_SetDebug(*options.debug);
+    if (options.sound) Settings_SetSound(*options.sound);
+    if (options.fullscreen) Settings_SetWindowFullscreen(*options.fullscreen);
+    for (int i = 0; i < 4; ++i)
+        if (options.disks[i]) Settings_SetFloppyFilePath(i, options.disks[i]->c_str());
+    for (int i = 0; i < 2; ++i)
     {
-        LPTSTR arg = args[curargn];
-
-        if (_tcscmp(arg, _T("/help")) == 0 || _tcscmp(arg, _T("/h")) == 0)
-        {
-            Option_ShowHelp = true;
-        }
-        else if (_tcslen(arg) >= 5 && _tcsncmp(arg, _T("/boot"), 5) == 0)
-        {
-            Option_AutoBoot = 1;
-            if (_tcslen(arg) >= 6 && arg[5] >= _T('1') && arg[5] <= _T('7'))
-                Option_AutoBoot = arg[5] - _T('0');
-        }
-        else if (_tcscmp(arg, _T("/autostart")) == 0 || _tcscmp(arg, _T("/autostarton")) == 0)
-        {
-            Settings_SetAutostart(TRUE);
-        }
-        else if (_tcscmp(arg, _T("/autostartoff")) == 0 || _tcscmp(arg, _T("/noautostart")) == 0)
-        {
-            Settings_SetAutostart(FALSE);
-        }
-        else if (_tcscmp(arg, _T("/debug")) == 0 || _tcscmp(arg, _T("/debugon")) == 0 || _tcscmp(arg, _T("/debugger")) == 0)
-        {
-            Settings_SetDebug(TRUE);
-        }
-        else if (_tcscmp(arg, _T("/debugoff")) == 0 || _tcscmp(arg, _T("/nodebug")) == 0)
-        {
-            Settings_SetDebug(FALSE);
-        }
-        else if (_tcscmp(arg, _T("/sound")) == 0 || _tcscmp(arg, _T("/soundon")) == 0)
-        {
-            Settings_SetSound(TRUE);
-        }
-        else if (_tcscmp(arg, _T("/soundoff")) == 0 || _tcscmp(arg, _T("/nosound")) == 0)
-        {
-            Settings_SetSound(FALSE);
-        }
-        else if (_tcscmp(arg, _T("/fullscreen")) == 0 || _tcscmp(arg, _T("/fullscreenon")) == 0)
-        {
-            Settings_SetWindowFullscreen(TRUE);
-        }
-        else if (_tcscmp(arg, _T("/windowed")) == 0 || _tcscmp(arg, _T("/fullscreenoff")) == 0)
-        {
-            Settings_SetWindowFullscreen(FALSE);
-        }
-        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/disk"), 5) == 0)  // "/diskN:filePath", N=0..3
-        {
-            if (arg[5] >= _T('0') && arg[5] <= _T('3') && arg[6] == ':')
-            {
-                int slot = arg[5] - _T('0');
-                LPCTSTR filePath = arg + 7;
-                Settings_SetFloppyFilePath(slot, filePath);
-            }
-        }
-        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/cart"), 5) == 0)  // "/cartN:filePath", N=1..2
-        {
-            if (arg[5] >= _T('1') && arg[5] <= _T('2') && arg[6] == ':')
-            {
-                int slot = arg[5] - _T('0');
-                LPCTSTR filePath = arg + 7;
-                Settings_SetCartridgeFilePath(slot, filePath);
-            }
-        }
-        else if (_tcslen(arg) > 7 && _tcsncmp(arg, _T("/hard"), 5) == 0)  // "/hardN:filePath", N=1..2
-        {
-            if (arg[5] >= _T('1') && arg[5] <= _T('2') && arg[6] == ':')
-            {
-                int slot = arg[5] - _T('0');
-                LPCTSTR filePath = arg + 7;
-                Settings_SetHardFilePath(slot, filePath);
-            }
-        }
-        //TODO: "/state:filepath" or "filepath.uknc"
-        //TODO: "/subtitles:filepath"
+        if (options.cartridges[i]) Settings_SetCartridgeFilePath(i + 1, options.cartridges[i]->c_str());
+        if (options.hardDrives[i]) Settings_SetHardFilePath(i + 1, options.hardDrives[i]->c_str());
     }
-
     ::LocalFree(args);
 }
 

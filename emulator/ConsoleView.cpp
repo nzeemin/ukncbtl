@@ -19,6 +19,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emulator.h"
 #include "emubase/Emubase.h"
 #include <vector>
+#include "CommandHistory.h"
+#include "ConsoleCommands.h"
 
 //////////////////////////////////////////////////////////////////////
 
@@ -36,9 +38,7 @@ WNDPROC m_wndprocConsoleEdit = nullptr;  // Old window proc address of the conso
 bool m_okCurrentProc = false;  // Current processor: TRUE - CPU, FALSE - PPU
 HBRUSH m_hbrConsoleFocused = nullptr;
 
-const size_t CONSOLE_HISTORY_SIZE = 32;  // Commands kept
-std::vector<TcharString> m_ConsoleHistory;  // Oldest first, the newest command is the last element
-int m_nConsoleHistoryPos = -1;  // -1 = editing a new line; 0 = newest stored command, 1 = the one before, ...
+static CommandHistory commandHistory;
 
 void ConsoleView_HistoryAdd(LPCTSTR command);
 void ConsoleView_HistoryUp();
@@ -187,6 +187,14 @@ LRESULT CALLBACK ConsoleViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     return CallWindowProc(m_wndprocConsoleToolWindow, hWnd, message, wParam, lParam);
 }
 
+static TcharString ConsoleView_ReadCommand()
+{
+    const int length = GetWindowTextLength(m_hwndConsoleEdit);
+    TcharString text(static_cast<size_t>(length) + 1, _T('\0'));
+    const int copied = GetWindowText(m_hwndConsoleEdit, text.data(), length + 1);
+    text.resize(copied);
+    return text;
+}
 LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
@@ -194,15 +202,14 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
     case WM_CHAR:
         if (wParam == 13)
         {
-            TCHAR command[32];
-            GetWindowText(m_hwndConsoleEdit, command, 32);
-            ConsoleView_HistoryAdd(command);
+            const auto command = ConsoleView_ReadCommand();
+            ConsoleView_HistoryAdd(command.c_str());
             ConsoleView_DoConsoleCommand();
             return 0;
         }
         if (wParam == VK_ESCAPE)
         {
-            m_nConsoleHistoryPos = -1;
+            commandHistory.ResetNavigation();
             TCHAR command[32];
             GetWindowText(m_hwndConsoleEdit, command, 32);
             if (*command == 0)  // If command is empty
@@ -211,7 +218,7 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
                 SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T(""));  // Clear command
             return 0;
         }
-        m_nConsoleHistoryPos = -1;  // The line is being edited, next Up starts from the newest
+        commandHistory.ResetNavigation();  // The line is being edited, next Up starts from the newest
         break;
     case WM_KEYDOWN:
         if (wParam == VK_UP)
@@ -232,48 +239,27 @@ LRESULT CALLBACK ConsoleEditWndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 void ConsoleView_HistoryAdd(LPCTSTR command)
 {
-    m_nConsoleHistoryPos = -1;
-    if (command[0] == 0) return;
-
-    // Remove the same command from anywhere in the history, so it moves to the newest position
-    for (size_t i = m_ConsoleHistory.size(); i > 0; i--)
-    {
-        if (m_ConsoleHistory[i - 1] == command)
-            m_ConsoleHistory.erase(m_ConsoleHistory.begin() + (i - 1));
-    }
-
-    m_ConsoleHistory.push_back(command);
-    if (m_ConsoleHistory.size() > CONSOLE_HISTORY_SIZE)
-        m_ConsoleHistory.erase(m_ConsoleHistory.begin());
+    commandHistory.Add(command);
 }
 
 void ConsoleView_HistoryShow()
 {
-    LPCTSTR text = _T("");
-    size_t len = 0;
-    if (m_nConsoleHistoryPos >= 0)
-    {
-        const TcharString& command = m_ConsoleHistory[m_ConsoleHistory.size() - 1 - m_nConsoleHistoryPos];
-        text = command.c_str();
-        len = command.length();
-    }
+    const auto text = commandHistory.Current();
+    const auto len = _tcslen(text);
     SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)text);
-    SendMessage(m_hwndConsoleEdit, EM_SETSEL, (WPARAM)len, (LPARAM)len);  // Caret to the end
+    SendMessage(m_hwndConsoleEdit, EM_SETSEL, (WPARAM)len, (LPARAM)len);
 }
 void ConsoleView_HistoryUp()
 {
-    if (m_ConsoleHistory.empty()) return;
-    if (m_nConsoleHistoryPos < (int)m_ConsoleHistory.size() - 1)
-        m_nConsoleHistoryPos++;
+    if (commandHistory.Size() == 0) return;
+    commandHistory.Up();
     ConsoleView_HistoryShow();
 }
 void ConsoleView_HistoryDown()
 {
-    if (m_nConsoleHistoryPos == -1) return;
-    m_nConsoleHistoryPos--;
+    if (!commandHistory.Down()) return;
     ConsoleView_HistoryShow();
 }
-
 void ConsoleView_Activate()
 {
     if (g_hwndConsole == INVALID_HANDLE_VALUE) return;
@@ -618,12 +604,6 @@ void ConsoleView_TraceLog(DWORD value)
 //////////////////////////////////////////////////////////////////////
 // Console commands handlers
 
-struct ConsoleCommandParams
-{
-    LPCTSTR     commandText;
-    int         paramReg1;
-    uint16_t    paramOct1, paramOct2;
-};
 
 void ConsoleView_CmdShowHelp(const ConsoleCommandParams& /*params*/)
 {
@@ -794,7 +774,8 @@ void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
     uint16_t instr = pMemCtl->GetWordView(pProc->GetPC(), pProc->IsHaltMode(), true).value;
 
     // For JMP and BR use Step Into logic, not Step Over
-    if ((instr & ~(uint16_t)077) == PI_JMP || (instr & ~(uint16_t)0377) == PI_BR)
+    const auto target = console_command::StepOverTarget(instr, pProc->GetPC(), instrLength);
+    if (!target)
     {
         g_pBoard->DebugTicks();
 
@@ -803,7 +784,7 @@ void ConsoleView_CmdStepOver(const ConsoleCommandParams& /*params*/)
         return;
     }
 
-    uint16_t bpaddress = (uint16_t)(pProc->GetPC() + instrLength * 2);
+    const uint16_t bpaddress = *target;
 
     if (m_okCurrentProc)
         Emulator_SetTempCPUBreakpoint(bpaddress);
@@ -935,140 +916,64 @@ void ConsoleView_CmdTraceLogOnOff(const ConsoleCommandParams& /*params*/)
 
 //////////////////////////////////////////////////////////////////////
 
-enum ConsoleCommandArgInfo
-{
-    ARGINFO_NONE,     // No parameters
-    ARGINFO_REG,      // Register number 0..7
-    ARGINFO_OCT,      // Octal value
-    ARGINFO_REG_OCT,  // Register number, octal value
-    ARGINFO_OCT_OCT,  // Octal value, octal value
-};
-
-typedef void(*CONSOLE_COMMAND_CALLBACK)(const ConsoleCommandParams& params);
-
-struct ConsoleCommandStruct
-{
-    LPCTSTR pattern;
-    ConsoleCommandArgInfo arginfo;
-    CONSOLE_COMMAND_CALLBACK callback;
-}
-static ConsoleCommands[] =
-{
-    // IMPORTANT! First list more complex forms with more arguments, then less complex forms
-    { _T("h"), ARGINFO_NONE, ConsoleView_CmdShowHelp },
-    { _T("c"), ARGINFO_NONE, ConsoleView_CmdClearConsoleLog },
-    { _T("p"), ARGINFO_NONE, ConsoleView_CmdSwitchCpuPpu },
-    { _T("r%d=%ho"), ARGINFO_REG_OCT, ConsoleView_CmdSetRegisterValue },
-    { _T("r%d %ho"), ARGINFO_REG_OCT, ConsoleView_CmdSetRegisterValue },
-    { _T("r%d"), ARGINFO_REG, ConsoleView_CmdPrintRegister },
-    { _T("r"), ARGINFO_NONE, ConsoleView_CmdPrintAllRegisters },
-    { _T("rps=%ho"), ARGINFO_OCT, ConsoleView_CmdSetRegisterPSW },
-    { _T("rps %ho"), ARGINFO_OCT, ConsoleView_CmdSetRegisterPSW },
-    { _T("rps"), ARGINFO_NONE, ConsoleView_CmdPrintRegisterPSW },
-    { _T("s"), ARGINFO_NONE, ConsoleView_CmdStepInto },
-    { _T("so"), ARGINFO_NONE, ConsoleView_CmdStepOver },
-    { _T("d%ho"), ARGINFO_OCT, ConsoleView_CmdPrintDisassembleAtAddress },
-    { _T("D%ho"), ARGINFO_OCT, ConsoleView_CmdPrintDisassembleAtAddress },
-    { _T("d"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
-    { _T("D"), ARGINFO_NONE, ConsoleView_CmdPrintDisassembleAtPC },
-    { _T("u%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSaveMemoryFragment },
-    { _T("u"), ARGINFO_NONE, ConsoleView_CmdSaveMemoryDump },
-    { _T("udl"), ARGINFO_NONE, ConsoleView_CmdSaveDisplayListDump },
-    { _T("m%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSetMemoryAtAddress },
-    { _T("m%ho=%ho"), ARGINFO_OCT_OCT, ConsoleView_CmdSetMemoryAtAddress },
-    { _T("m%ho"), ARGINFO_OCT, ConsoleView_CmdPrintMemoryDumpAtAddress },
-    { _T("mr%d"), ARGINFO_REG, ConsoleView_CmdPrintMemoryDumpAtRegister },
-    { _T("m"), ARGINFO_NONE, ConsoleView_CmdPrintMemoryDumpAtPC },
-    { _T("g%ho"), ARGINFO_OCT, ConsoleView_CmdRunToAddress },
-    { _T("g"), ARGINFO_NONE, ConsoleView_CmdRun },
-    { _T("b%ho"), ARGINFO_OCT, ConsoleView_CmdSetBreakpointAtAddress },
-    { _T("b"), ARGINFO_NONE, ConsoleView_CmdPrintAllBreakpoints },
-    { _T("bc%ho"), ARGINFO_OCT, ConsoleView_CmdRemoveBreakpointAtAddress },
-    { _T("bc"), ARGINFO_NONE, ConsoleView_CmdRemoveAllBreakpoints },
-    { _T("fc%ho %ho"), ARGINFO_OCT_OCT, ConsoleView_CmdCalculateFloatNumber },
-#if !defined(PRODUCT)
-    { _T("t%ho"), ARGINFO_OCT, ConsoleView_CmdTraceLogWithMask },
-    { _T("t"), ARGINFO_NONE, ConsoleView_CmdTraceLogOnOff },
-    { _T("tc"), ARGINFO_NONE, ConsoleView_CmdClearTraceLog },
-#endif
-};
-const size_t ConsoleCommandsCount = sizeof(ConsoleCommands) / sizeof(ConsoleCommands[0]);
-
 void ConsoleView_DoConsoleCommand()
 {
     // Get command text
-    TCHAR command[32];
-    GetWindowText(m_hwndConsoleEdit, command, 32);
+    const auto command = ConsoleView_ReadCommand();
     SendMessage(m_hwndConsoleEdit, WM_SETTEXT, 0, (LPARAM)_T(""));  // Clear command
-    m_nConsoleHistoryPos = -1;  // Also covers commands put by toolbar and menu
+    commandHistory.ResetNavigation();  // Also covers commands put by toolbar and menu
 
-    if (command[0] == 0) return;  // Nothing to do
+    if (command.empty()) return;  // Nothing to do
 
     // Echo command to the log
     TCHAR buffer[36];
     ::GetWindowText(m_hwndConsolePrompt, buffer, 14);
     ConsoleView_Print(buffer);
-    FormatBuffer(buffer, _T(" {}\r\n"), command);
-    ConsoleView_Print(buffer);
+    ConsoleView_PrintFormat(_T(" {}\r\n"), command);
 
-    ConsoleCommandParams params;
-    params.commandText = command;
-    params.paramReg1 = -1;
-    params.paramOct1 = 0;
-    params.paramOct2 = 0;
-
-    // Find matching console command from the list, parse and execute the command
-    bool parsedOkay = false, parseError = false;
-    for (size_t i = 0; i < ConsoleCommandsCount; i++)
+    const auto parsed = console_command::Parse(command.c_str());
+    if (!parsed)
     {
-        ConsoleCommandStruct& cmd = ConsoleCommands[i];
-
-        int paramsParsed = 0;
-        switch (cmd.arginfo)
-        {
-        case ARGINFO_NONE:
-            parsedOkay = (_tcscmp(command, cmd.pattern) == 0);
-            break;
-        case ARGINFO_REG:
-            paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1);
-            parsedOkay = (paramsParsed == 1);
-            if (parsedOkay && (params.paramReg1 < 0 || params.paramReg1 > 7))
-            {
-                ConsoleView_Print(MESSAGE_INVALID_REGNUM);
-                parseError = true;
-            }
-            break;
-        case ARGINFO_OCT:
-            paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramOct1);
-            parsedOkay = (paramsParsed == 1);
-            break;
-        case ARGINFO_REG_OCT:
-            paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramReg1, &params.paramOct1);
-            parsedOkay = (paramsParsed == 2);
-            if (parsedOkay && (params.paramReg1 < 0 || params.paramReg1 > 7))
-            {
-                ConsoleView_Print(MESSAGE_INVALID_REGNUM);
-                parseError = true;
-            }
-            break;
-        case ARGINFO_OCT_OCT:
-            paramsParsed = _sntscanf_s(command, 32, cmd.pattern, &params.paramOct1, &params.paramOct2);
-            parsedOkay = (paramsParsed == 2);
-            break;
-        }
-
-        if (parseError)
-            break;  // Validation detected error and printed the message already
-
-        if (parsedOkay)
-        {
-            cmd.callback(params);  // Execute the command
-            break;
-        }
+        ConsoleView_Print(parsed.error() == console_command::Error::InvalidRegister ? MESSAGE_INVALID_REGNUM :
+            parsed.error() == console_command::Error::InvalidValue ? MESSAGE_WRONG_VALUE : MESSAGE_UNKNOWN_COMMAND);
+        ConsoleView_PrintConsolePrompt();
+        return;
     }
-
-    if (!parsedOkay && !parseError)
-        ConsoleView_Print(MESSAGE_UNKNOWN_COMMAND);
+    switch (parsed->action)
+    {
+    case console_command::Action::ShowHelp: ConsoleView_CmdShowHelp(parsed->params); break;
+    case console_command::Action::ClearConsoleLog: ConsoleView_CmdClearConsoleLog(parsed->params); break;
+    case console_command::Action::SwitchCpuPpu: ConsoleView_CmdSwitchCpuPpu(parsed->params); break;
+    case console_command::Action::SetRegisterValue: ConsoleView_CmdSetRegisterValue(parsed->params); break;
+    case console_command::Action::PrintRegister: ConsoleView_CmdPrintRegister(parsed->params); break;
+    case console_command::Action::PrintAllRegisters: ConsoleView_CmdPrintAllRegisters(parsed->params); break;
+    case console_command::Action::SetRegisterPSW: ConsoleView_CmdSetRegisterPSW(parsed->params); break;
+    case console_command::Action::PrintRegisterPSW: ConsoleView_CmdPrintRegisterPSW(parsed->params); break;
+    case console_command::Action::StepInto: ConsoleView_CmdStepInto(parsed->params); break;
+    case console_command::Action::StepOver: ConsoleView_CmdStepOver(parsed->params); break;
+    case console_command::Action::PrintDisassembleAtAddress: ConsoleView_CmdPrintDisassembleAtAddress(parsed->params); break;
+    case console_command::Action::PrintDisassembleAtPC: ConsoleView_CmdPrintDisassembleAtPC(parsed->params); break;
+    case console_command::Action::SaveMemoryFragment: ConsoleView_CmdSaveMemoryFragment(parsed->params); break;
+    case console_command::Action::SaveMemoryDump: ConsoleView_CmdSaveMemoryDump(parsed->params); break;
+    case console_command::Action::SaveDisplayListDump: ConsoleView_CmdSaveDisplayListDump(parsed->params); break;
+    case console_command::Action::SetMemoryAtAddress: ConsoleView_CmdSetMemoryAtAddress(parsed->params); break;
+    case console_command::Action::PrintMemoryDumpAtAddress: ConsoleView_CmdPrintMemoryDumpAtAddress(parsed->params); break;
+    case console_command::Action::PrintMemoryDumpAtRegister: ConsoleView_CmdPrintMemoryDumpAtRegister(parsed->params); break;
+    case console_command::Action::PrintMemoryDumpAtPC: ConsoleView_CmdPrintMemoryDumpAtPC(parsed->params); break;
+    case console_command::Action::RunToAddress: ConsoleView_CmdRunToAddress(parsed->params); break;
+    case console_command::Action::Run: ConsoleView_CmdRun(parsed->params); break;
+    case console_command::Action::SetBreakpointAtAddress: ConsoleView_CmdSetBreakpointAtAddress(parsed->params); break;
+    case console_command::Action::PrintAllBreakpoints: ConsoleView_CmdPrintAllBreakpoints(parsed->params); break;
+    case console_command::Action::RemoveBreakpointAtAddress: ConsoleView_CmdRemoveBreakpointAtAddress(parsed->params); break;
+    case console_command::Action::RemoveAllBreakpoints: ConsoleView_CmdRemoveAllBreakpoints(parsed->params); break;
+    case console_command::Action::CalculateFloatNumber: ConsoleView_CmdCalculateFloatNumber(parsed->params); break;
+#if !defined(PRODUCT)
+    case console_command::Action::TraceLogWithMask: ConsoleView_CmdTraceLogWithMask(parsed->params); break;
+    case console_command::Action::TraceLogOnOff: ConsoleView_CmdTraceLogOnOff(parsed->params); break;
+    case console_command::Action::ClearTraceLog: ConsoleView_CmdClearTraceLog(parsed->params); break;
+#endif
+    default: break;
+    }
 
     ConsoleView_PrintConsolePrompt();
 }

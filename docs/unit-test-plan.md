@@ -9,7 +9,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 2. Instruction history | Ring wraparound, ordering, clearing, CPU/PPU separation, interrupt records/names | Complete: 14 GoogleTest cases |
 | 3. Snapshots and serialization | File validation, state preservation, uptime/history restoration, Reader/Writer boundaries, little endian helpers | Complete: 55 GoogleTest cases |
 | 4. Settings | Decimal/color/binary codecs, invalid input, defaults, isolated persistence | Complete: 81 GoogleTest cases |
-| 5. Commands | Console parsing/history/step-over and command-line options | Pending |
+| 5. Commands | Console parsing/history/step-over and command-line options | Complete: 98 GoogleTest cases |
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Pending |
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Pending |
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Pending |
@@ -114,3 +114,28 @@ Validation: Release application and SettingsTests build; all 461 Release CTest
 cases pass. Tests do not exercise interactive settings dialogs or simulate
 mid-write storage failures. Scalar setters retain their existing behavior of
 updating the in-memory cache even when persistence fails.
+
+## Area 5 implementation
+
+`ConsoleCommands.h` holds the command patterns and checked full-input parsing.
+ConsoleView dispatches the parsed action to its existing handlers. Register and
+octal operands are validated without wrapping; malformed assignments and trailing
+junk cannot fall back to executing a shorter command prefix. The view reads the
+complete edit-control text rather than executing only its first 31 characters.
+A separate PRODUCT test target verifies that trace commands are excluded.
+
+`CommandHistory` implements the existing 32-entry, unique-command history and
+navigation. Tests cover empty history, newest-first navigation, bounds, duplicate
+promotion, capacity, copied input, and navigation reset when editing. Down while
+editing leaves the current line alone. Step-over target tests cover all JMP/BR
+variants, ordinary instruction lengths, address wraparound and invalid lengths.
+
+`CommandLineOptions` parses tokenized arguments into owned values before Main
+applies them to settings. Tests cover every boolean alias, help and boot forms,
+last-valid-option precedence, all disk/cartridge/HDD slots, malformed options,
+owned paths and Windows tokenization of quoted Unicode paths. `/boot` and
+`/boot1` through `/boot7` remain supported; malformed suffixes are ignored.
+
+Validation: Release application and both command test targets build; all 559
+Release CTest cases pass (98 new). Tests cover parsing and decision logic, not
+interactive command-handler UI effects or live processor step-over execution.
