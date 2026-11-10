@@ -210,7 +210,7 @@ void CALLBACK PrepareScreenCopy(const void * pSrcBits, void * pDestBits)
 void CALLBACK PrepareScreenUpscale(const void * pSrcBits, void * pDestBits)
 {
     int ukncline = g_SourceHeight - 1;
-    for (int line = 431; line > 0; line--)
+    for (int line = 431; line >= 0; line--)
     {
         DWORD* pdest = ((DWORD*)pDestBits) + (431 - line) * g_SourceWidth;
         if (line % 3 == 1)
@@ -309,7 +309,7 @@ void CALLBACK PrepareScreenUpscale3(const void * pSrcBits, void * pDestBits)
             *pdest = c2;  pdest--;
         }
 
-        pdest += 960;
+        pdest += 961;
         memset(pdest, 0, 960 * 4);
     }
 }
@@ -338,6 +338,7 @@ void CALLBACK PrepareScreenUpscale175(const void * pSrcBits, void * pDestBits)
             *(pdest1++) = *(pdest2++) = AVERAGERGB(c3, c4);
             *(pdest1++) = *(pdest2++) = c4;
         }
+        memset(pdest2, 0, 1120 * 4);
     }
 }
 

@@ -34,7 +34,9 @@ static bool BitmapFile_comInitialized = false;
 
 void BitmapFile_Init()
 {
-    const HRESULT initialized = CoInitialize(nullptr);
+    if (BitmapFile_factory)
+        return;
+    const HRESULT initialized = BitmapFile_comInitialized ? S_FALSE : CoInitialize(nullptr);
     BitmapFile_comInitialized = SUCCEEDED(initialized);
     if (FAILED(initialized) && initialized != RPC_E_CHANGED_MODE)
         return;

@@ -24,7 +24,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Complete: 29 GoogleTest cases |
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Complete: 90 GoogleTest cases |
 | 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Complete: 34 GoogleTest cases |
-| 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Pending |
+| 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Complete: 40 new GoogleTest cases |
 | 21. Test infrastructure | Legacy assertion adapter cases; split remaining monolithic RegressionChecks cases | Pending |
 
 OS window creation, menus, clipboard, dynamic renderer loading, physical serial
@@ -471,3 +471,29 @@ Validation: full Release build and all 1,049 Release CTest cases pass (34 new).
 No production disassembler changes were needed. These tests supplement existing
 instruction/hint cases and corpus hashes; they do not claim exhaustive semantic
 coverage of every instruction. Images and scaling remain Area 20.
+
+## Area 20 implementation
+
+Twenty-six scaling cases compare every output pixel in all eight modes with a
+scalar reference, check short spans, guards, unused capacity and source preservation,
+and compare the renderer's separate implementation with the shared scaler. Invalid
+modes use the default dimensions/output. All 65,536 byte pairs are checked in each
+RGB channel to preserve the existing interpolation rounding convention.
+
+The renderer comparisons exposed three discrepancies: the 640x432 scaler skipped
+its last row, the 960x576 scaler started clearing scanlines one pixel early, and the
+1120x864 scaler left scanlines unwritten. These three boundaries are corrected.
+
+Fourteen bitmap cases add BMP/PNG/TIFF round trips, odd-width and single-pixel
+images, alpha removal and orientation, invalid-size preservation, locked/missing
+destinations, fallback format, repeated initialization/finalization and existing
+MTA ownership. Test resources include the repository keyboard PNG and malformed
+bytes. Resource dimensions, missing resources and repeated GDI cleanup are checked.
+An IWICBitmapSource stub tests invalid dimensions, failed size/copy operations and
+exact DIB bytes/orientation. Repeated initialization exposed an extra COM reference;
+initialization now reuses the existing factory/reference.
+
+Validation: full Release build and all 1,089 Release CTest cases pass (40 new).
+Renderer scaling is tested directly without displaying windows. Tests do not inject
+every WIC encoder failure or exhaust GDI resources. Test infrastructure remains
+Area 21.
