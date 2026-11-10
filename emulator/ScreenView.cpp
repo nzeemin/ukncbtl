@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <memory>
 #include <windowsx.h>
 #include "Input.h"
+#include "ScreenText.h"
 #include "Main.h"
 #include "Views.h"
 #include "Emulator.h"
@@ -632,54 +633,10 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     return hDIB;
 }
 
-static BYTE RecognizeCharacter(const uint8_t* fontcur, const uint8_t* fontstd, const uint32_t* pBits)
-{
-    int16_t bestmatch = -32767;
-    uint8_t bestchar = 0;
-    for (uint8_t charidx = 0; charidx < 16 * 14; charidx++)
-    {
-        int16_t matchcur = 0;
-        int16_t matchstd = 0;
-        const uint32_t * pb = pBits;
-        for (int16_t y = 0; y < 11; y++)
-        {
-            uint8_t fontcurdata = fontcur[charidx * 11 + y];
-            uint8_t fontstddata = fontstd[charidx * 11 + y];
-            for (int x = 0; x < 8; x++)
-            {
-                uint32_t color = pb[x];
-                int sum = (color & 0xff) + ((color >> 8) & 0xff) + ((color >> 16) & 0xff);
-                uint8_t fontcurbit = (fontcurdata >> x) & 1;
-                uint8_t fontstdbit = (fontstddata >> x) & 1;
-                if (sum > 384)
-                {
-                    matchcur += fontcurbit;  matchstd += fontstdbit;
-                }
-                else
-                {
-                    matchcur -= fontcurbit;  matchstd -= fontstdbit;
-                }
-            }
-            pb += 640;
-        }
-        if (matchcur > bestmatch)
-        {
-            bestmatch = matchcur;
-            bestchar = charidx;
-        }
-        if (matchstd > bestmatch)
-        {
-            bestmatch = matchstd;
-            bestchar = charidx;
-        }
-    }
-
-    return 0x20 + bestchar;
-}
-
 // buffer size is 82 * 26 + 1 means 26 lines, 80 chars in every line plus CR/LF plus trailing zero
-BOOL ScreenView_ScreenToText(uint8_t* buffer)
+BOOL ScreenView_ScreenToText(std::span<uint8_t> buffer)
 {
+    if (buffer.size() < screen_text::OutputSize) return FALSE;
     // Get screenshot
     std::vector<uint32_t> bits(UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT);
     Emulator_PrepareScreenToText(bits, ScreenView_GrayColors);
@@ -709,28 +666,7 @@ BOOL ScreenView_ScreenToText(uint8_t* buffer)
         charstdaddr++;
     }
 
-    // Loop for lines
-    int charidx = 0;
-    int y = 0;
-    while (y <= 288 - 11)
-    {
-        const uint32_t* pCharBits = bits.data() + y * 640;
-
-        for (int x = 0; x < 640; x += 8)
-        {
-            uint8_t ch = RecognizeCharacter(fontcur, fontstd, pCharBits + x);
-            buffer[charidx] = ch;
-            charidx++;
-        }
-        buffer[charidx++] = 0x0d;
-        buffer[charidx++] = 0x0a;
-
-        y += 11;
-        if (y == 11) y++;  // Extra line after upper indicator lines
-        if (y == 276) y++;  // Extra line before lower indicator lines
-    }
-
-    return TRUE;
+    return screen_text::Convert(fontcur, fontstd, bits, buffer);
 }
 
 

@@ -13,7 +13,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Complete: 34 GoogleTest cases |
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Complete: 42 utility cases; 10 named core smoke cases |
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Complete: 23 GoogleTest cases |
-| 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Pending |
+| 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Complete: 26 GoogleTest cases |
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Pending |
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Pending |
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Pending |
@@ -207,3 +207,30 @@ current down bit rather than treating the pressed-since-last-query bit as held.
 Validation: Release application and InputTests build; all 667 Release CTest cases
 pass (23 new). OS keyboard polling, focus transitions, window messages and drawing
 remain integration-test concerns; existing Enter normalization is preserved.
+## Area 9 implementation
+
+`Subtitles.cpp` provides bounded parsing and lookup, with owned Unicode comment
+strings. The disassembly view uses this implementation. Lookup no longer walks
+past the vector looking for a nonexistent sentinel, and supports unsorted input.
+Duplicate addresses retain first-matching-item behavior for each type mask.
+Parsing preserves optional LE BOMs, null termination, column-zero addresses and
+block comments, last-block-line selection, and the existing delimiter grammar.
+Final directives and block comments attached to final addresses now work without
+a trailing newline. Invalid final addresses are checked rather than skipped.
+
+Seventeen subtitle cases cover empty/BE input, optional BOMs, CR/LF/CRLF, EOF,
+directives and mixed comment/data flags, block association/cancellation, address
+limits/overflow/invalid digits, bounded views, embedded nulls, Unicode ownership,
+copying, empty/missing/past-end lookup, duplicates, unsorted input and type masks.
+
+`ScreenText.cpp` shares glyph recognition and screen-to-text layout with the view.
+The screen-to-text API now takes a span, rejects undersized output before reading
+the screen, and writes the promised trailing zero. Nine cases cover all 224
+characters from each font, tie order, pixel bit order/stride, brightness threshold
+and alpha, dark-pixel penalties, short inputs with unchanged output, all 26 rows,
+indicator gaps, CRLF, terminator and output guards.
+
+Validation: Release application, SubtitleTests and ScreenTextTests build; all
+693 Release CTest cases pass (26 new). File dialogs, clipboard ownership and live
+PPU font-memory reads remain integration concerns. Recognition scoring is
+unchanged; the tests use synthetic fonts and frames rather than visual OCR quality.
