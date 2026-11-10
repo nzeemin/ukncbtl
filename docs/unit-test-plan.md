@@ -12,7 +12,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 5. Commands | Console parsing/history/step-over and command-line options | Complete: 98 GoogleTest cases |
 | 6. Video decoding | Display tags, palettes, scaling, cursors, text preparation and display-list interpretation | Complete: 34 GoogleTest cases |
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Complete: 42 utility cases; 10 named core smoke cases |
-| 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Pending |
+| 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Complete: 23 GoogleTest cases |
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Pending |
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Pending |
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Pending |
@@ -184,3 +184,26 @@ Validation: Release application, CommonTextTests and CoreSmokeTests build;
 all 644 Release CTest cases pass (42 new utility cases plus nine net cases from
 the smoke-test split). Win32 text drawing and clipboard ownership remain outside
 these pure utility tests; the supported Unicode build is tested.
+
+## Area 8 implementation
+
+`Input.cpp` contains the shared keyboard queue, host-key mappings, key transitions,
+Enter/numpad normalization, keyboard rectangle hit testing and mouse calculations.
+ScreenView and KeyboardView delegate to these functions. Keyboard releases keep
+using the layout saved on key-down, and the 32-event queue retains its existing
+policy of dropping the newest event when full. Zero events are rejected because
+zero denotes an empty queue.
+
+Twenty-three cases cover queue capacity/order/repeated wraps, independent queues,
+alphabet/digit/keypad/control mappings, every key's press/repeat/release across
+layout changes, toggle bits, Enter combinations, hit-test edges/offsets/overlaps,
+invalid rectangles, mouse scaling/truncation/acceleration/clamping, stationary
+cursors, invalid dimensions and all mouse button state words with/without focus.
+
+Mouse deltas now use wide arithmetic before clamping, preventing large movements
+from wrapping. Zero-sized displays produce zero movement. Mouse buttons use the
+current down bit rather than treating the pressed-since-last-query bit as held.
+
+Validation: Release application and InputTests build; all 667 Release CTest cases
+pass (23 new). OS keyboard polling, focus transitions, window messages and drawing
+remain integration-test concerns; existing Enter normalization is preserved.

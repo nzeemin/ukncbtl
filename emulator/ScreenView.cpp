@@ -15,6 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 #include <memory>
 #include <windowsx.h>
+#include "Input.h"
 #include "Main.h"
 #include "Views.h"
 #include "Emulator.h"
@@ -47,19 +48,15 @@ HMENU g_hScreenModeMenu = nullptr;
 int g_nScreenModeIndex = 0;
 
 BYTE m_ScreenKeyState[256];
-const int KEYEVENT_QUEUE_SIZE = 32;
-WORD m_ScreenKeyQueue[KEYEVENT_QUEUE_SIZE];
-int m_ScreenKeyQueueTop = 0;
-int m_ScreenKeyQueueBottom = 0;
-int m_ScreenKeyQueueCount = 0;
+input::KeyQueue m_ScreenKeyQueue;
 void ScreenView_PutKeyEventToQueue(WORD keyevent);
 WORD ScreenView_GetKeyEventFromQueue();
 
 POINT m_LastMousePos;
 
-BOOL bEnter = FALSE;
-BOOL bNumpadEnter = FALSE;
-BOOL bEntPressed = FALSE;
+bool bEnter = false;
+bool bNumpadEnter = false;
+bool bEntPressed = false;
 
 void ScreenView_OnDraw(HDC hdc);
 
@@ -503,69 +500,8 @@ void ScreenView_PrepareScreen()
         ScreenView_GetPalette());
 }
 
-void ScreenView_PutKeyEventToQueue(WORD keyevent)
-{
-    if (m_ScreenKeyQueueCount == KEYEVENT_QUEUE_SIZE) return;  // Full queue
-
-    m_ScreenKeyQueue[m_ScreenKeyQueueTop] = keyevent;
-    m_ScreenKeyQueueTop++;
-    if (m_ScreenKeyQueueTop >= KEYEVENT_QUEUE_SIZE)
-        m_ScreenKeyQueueTop = 0;
-    m_ScreenKeyQueueCount++;
-}
-WORD ScreenView_GetKeyEventFromQueue()
-{
-    if (m_ScreenKeyQueueCount == 0) return 0;  // Empty queue
-
-    WORD keyevent = m_ScreenKeyQueue[m_ScreenKeyQueueBottom];
-    m_ScreenKeyQueueBottom++;
-    if (m_ScreenKeyQueueBottom >= KEYEVENT_QUEUE_SIZE)
-        m_ScreenKeyQueueBottom = 0;
-    m_ScreenKeyQueueCount--;
-
-    return keyevent;
-}
-
-const BYTE arrPcscan2UkncscanLat[256] =    // LAT
-{
-    /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-    /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
-    /*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000,
-    /*2*/    0113, 0004, 0151, 0152, 0155, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000,
-    /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*4*/    0000, 0072, 0076, 0050, 0057, 0033, 0047, 0055, 0156, 0073, 0027, 0052, 0056, 0112, 0054, 0075,
-    /*5*/    0053, 0067, 0074, 0111, 0114, 0051, 0137, 0071, 0115, 0070, 0157, 0000, 0000, 0106, 0000, 0000,
-    /*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131,
-    /*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0155, 0000, 0000, 0000, 0000,
-    /*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0174, 0110, 0117, 0175, 0135, 0173,
-    /*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0036, 0136, 0037, 0077, 0000,
-    /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-};
-const BYTE arrPcscan2UkncscanRus[256] =    // RUS
-{
-    /*       0     1     2     3     4     5     6     7     8     9     a     b     c     d     e     f  */
-    /*0*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0132, 0026, 0000, 0000, 0000, 0153, 0166, 0000,
-    /*1*/    0105, 0000, 0000, 0000, 0107, 0000, 0000, 0000, 0000, 0000, 0000, 0006, 0000, 0000, 0000, 0000,
-    /*2*/    0113, 0004, 0151, 0152, 0174, 0116, 0154, 0133, 0134, 0000, 0000, 0000, 0000, 0171, 0172, 0000,
-    /*3*/    0176, 0030, 0031, 0032, 0013, 0034, 0035, 0016, 0017, 0177, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*4*/    0000, 0047, 0073, 0111, 0071, 0051, 0072, 0053, 0074, 0036, 0075, 0056, 0057, 0115, 0114, 0037,
-    /*5*/    0157, 0027, 0052, 0070, 0033, 0055, 0112, 0050, 0110, 0054, 0067, 0000, 0000, 0106, 0000, 0000,
-    /*6*/    0126, 0127, 0147, 0167, 0130, 0150, 0170, 0125, 0145, 0165, 0025, 0000, 0000, 0005, 0146, 0131,
-    /*7*/    0010, 0011, 0012, 0014, 0015, 0172, 0152, 0151, 0171, 0000, 0004, 0174, 0000, 0000, 0000, 0000,
-    /*8*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*9*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*a*/    0000, 0000, 0046, 0066, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*b*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0137, 0117, 0076, 0175, 0077, 0173,
-    /*c*/    0007, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*d*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0156, 0135, 0155, 0136, 0000,
-    /*e*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-    /*f*/    0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000, 0000,
-};
+void ScreenView_PutKeyEventToQueue(WORD keyevent) { m_ScreenKeyQueue.Push(keyevent); }
+WORD ScreenView_GetKeyEventFromQueue() { return m_ScreenKeyQueue.Pop(); }
 
 void ScreenView_ScanKeyboard()
 {
@@ -575,62 +511,19 @@ void ScreenView_ScanKeyboard()
         // Read current keyboard state
         BYTE keys[256];
         VERIFY(::GetKeyboardState(keys));
-        if (keys[VK_RETURN] & 128)
-        {
-            if (bEnter && bNumpadEnter)
-                keys[VK_RETURN + 1] = 128;
-            if (!bEnter && bNumpadEnter)
-            {
-                keys[VK_RETURN] = 0;
-                keys[VK_RETURN + 1] = 128;
-            }
-            bEntPressed = TRUE;
-        }
-        else
-        {
-            if (bEntPressed)
-            {
-                if (bEnter) keys[VK_RETURN + 1] = 128;
-                if (bNumpadEnter) keys[VK_RETURN + 1] = 128;
-            }
-            else
-            {
-                bEnter = FALSE;
-                bNumpadEnter = FALSE;
-            }
-            bEntPressed = FALSE;
-        }
+        input::NormalizeEnter(keys, bEnter, bNumpadEnter, bEntPressed);
         // Choose the mapping table depending on the RUS/LAT flag in the UKNC
         uint16_t ukncRegister = g_pBoard->GetKeyboardRegister();
 
         // Check every key for state change
         for (int scan = 0; scan < 256; scan++)
         {
-            BYTE newstate = keys[scan];
-            BYTE oldstate = m_ScreenKeyState[scan];
-            if ((newstate & 128) != (oldstate & 128))  // Key state changed - key pressed or released
+            const WORD event = input::KeyTransition(static_cast<BYTE>(scan), keys[scan],
+                    m_ScreenKeyState[scan], (ukncRegister & KEYB_LAT) != 0);
+            if (event != 0)
             {
-                const BYTE* pTable = nullptr;
-                BYTE pcscan = (BYTE)scan;
-                BYTE ukncscan;
-                if (oldstate & 128)
-                {
-                    pTable = ((oldstate & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-                    m_ScreenKeyState[scan] = 0;
-                }
-                else
-                {
-                    pTable = ((ukncRegister & KEYB_LAT) != 0) ? arrPcscan2UkncscanLat : arrPcscan2UkncscanRus;
-                    m_ScreenKeyState[scan] = (BYTE)((newstate & 128) | ukncRegister);
-                }
-                ukncscan = pTable[pcscan];
-                if (ukncscan != 0)
-                {
-                    BYTE pressed = newstate & 128;
-                    WORD keyevent = MAKEWORD(ukncscan, pressed);
-                    ScreenView_PutKeyEventToQueue(keyevent);
-                    KeyboardView_KeyEvent(ukncscan, pressed);
-                }
+                ScreenView_PutKeyEventToQueue(event);
+                KeyboardView_KeyEvent(LOBYTE(event), (event & 0x8000) != 0);
             }
         }
     }
@@ -656,40 +549,15 @@ void ScreenView_UpdateMouse()
     POINT mousepos;
     ::GetCursorPos(&mousepos);
 
-    int dx = (short)(mousepos.x - m_LastMousePos.x);
-    int dy = (short)(mousepos.y - m_LastMousePos.y);
-
     RECT rcScreen = { m_xScreenOffset, m_yScreenOffset, m_xScreenOffset + m_cxScreenWidth, m_yScreenOffset + m_cyScreenHeight };
     ::MapWindowPoints(g_hwndScreen, nullptr, (LPPOINT)&rcScreen, 2);
-    if (dx != 0 && mousepos.x < rcScreen.left)
-        dx -= (rcScreen.left - mousepos.x) / 2;
-    if (dx != 0 && mousepos.x > rcScreen.right)
-        dx += (mousepos.x - rcScreen.right) / 2;
-    if (dy != 0 && mousepos.y < rcScreen.top)
-        dy -= (rcScreen.top - mousepos.y) / 2;
-    if (dy != 0 && mousepos.y > rcScreen.bottom)
-        dy += (mousepos.y - rcScreen.bottom) / 2;
-
-    if (m_cxScreenWidth != UKNC_SCREEN_WIDTH)
-        dx = dx * UKNC_SCREEN_WIDTH / m_cxScreenWidth;
-    if (m_cyScreenHeight != UKNC_SCREEN_HEIGHT)
-        dy = dy * UKNC_SCREEN_HEIGHT / m_cyScreenHeight;
-
-    if (dx < -127)
-        dx = -127;
-    else if (dx > 127)
-        dx = 127;
-    if (dy < -127)
-        dy = -127;
-    else if (dy > 127)
-        dy = 127;
-
-    bool btnLeft = false, btnRight = false;
-    if (::GetFocus() == g_hwndScreen)
-    {
-        btnLeft = ::GetAsyncKeyState(VK_LBUTTON) != 0;
-        btnRight = ::GetAsyncKeyState(VK_RBUTTON) != 0;
-    }
+    const auto dx = input::MouseAxis(mousepos.x, m_LastMousePos.x, rcScreen.left, rcScreen.right,
+            m_cxScreenWidth, UKNC_SCREEN_WIDTH);
+    const auto dy = input::MouseAxis(mousepos.y, m_LastMousePos.y, rcScreen.top, rcScreen.bottom,
+            m_cyScreenHeight, UKNC_SCREEN_HEIGHT);
+    const bool focused = ::GetFocus() == g_hwndScreen;
+    const bool btnLeft = input::MouseButton(::GetAsyncKeyState(VK_LBUTTON), focused);
+    const bool btnRight = input::MouseButton(::GetAsyncKeyState(VK_RBUTTON), focused);
 
     g_pBoard->MouseMove((int16_t)dx, (int16_t)dy, btnLeft, btnRight);
 
