@@ -20,7 +20,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Complete: 15 GoogleTest cases |
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Complete: 60 GoogleTest cases |
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Complete: 26 GoogleTest cases |
-| 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Pending |
+| 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Complete: 24 GoogleTest cases |
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Pending |
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Pending |
 | 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Pending |
@@ -380,3 +380,26 @@ Validation: Release targets rebuilt and all 872 Release CTest cases pass (26 new
 Tests exercise real board/controller code and synthetic memory/port inputs;
 physical serial/network devices and application debugger painting are not tested.
 Board callback scheduling remains Area 16.
+
+## Area 16 implementation
+
+`BoardFrameTests` exercises complete frames on the real motherboard with captured
+host callbacks. Twenty-four cases cover sound cadence/removal, stereo and Covox
+mixing, tape output levels, fractional sample carry and batching through INT_MAX
+rates, callback replacement/self-removal, invalid rates and tape timer events.
+Serial/network cases verify polling cadence, delivery, receive/transmit interrupts,
+ready flags and loopback. Parallel strobe/acknowledgement, Covox exclusion and
+terminal channel selection are covered separately.
+
+Keyboard tests check acknowledgement stalls, held rows, release reporting and
+interrupts. CPU/PPU breakpoints verify the stopping order; a nonmatching-breakpoint
+frame must produce the same saved machine state as the fast execution path.
+
+A constant sound signal previously counted every sample as a new rising edge.
+The mixer now updates its previous signal value; the regression checks sustained
+high/low signals and transitions across frames.
+
+Validation: full Release build and all 896 Release CTest cases pass (24 new).
+Callbacks use synthetic host data; physical devices, audible output and hardware
+cycle-timing conformance are not tested. Storage-controller sequences remain
+Area 17.

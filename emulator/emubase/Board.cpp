@@ -1468,6 +1468,7 @@ void CMotherboard::DoSound()
 
     if (m_SoundPrevValue == 0 && global != 0)
         m_SoundChanges++;
+    m_SoundPrevValue = global;
 
     uint16_t value = global ? 0x7fff : 0;
     if (m_okSoundAY)
