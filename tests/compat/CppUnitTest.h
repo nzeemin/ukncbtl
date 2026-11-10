@@ -48,7 +48,7 @@ struct Assert
         {
             const wchar_t* lhs = expected;
             const wchar_t* rhs = actual;
-            equal = lhs && rhs && std::wcscmp(lhs, rhs) == 0;
+            equal = lhs == rhs || (lhs && rhs && std::wcscmp(lhs, rhs) == 0);
         }
         else
             equal = expected == actual;

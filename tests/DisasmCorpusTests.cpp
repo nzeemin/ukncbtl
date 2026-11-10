@@ -84,27 +84,14 @@ static uint64_t HintHash()
     }
     return hash;
 }
-static int RunRegressionChecks()
+TEST(DisasmCorpusTests, EveryOpcodeMatchesDisassemblyBaseline)
+{
+    EXPECT_EQ(0x1d71c2c39c45930cull,DisassemblyHash());
+}
+TEST(DisasmCorpusTests, EveryOpcodeMatchesHintBaseline)
 {
     CProcessor::Init();
-    const auto hash = DisassemblyHash();
-    const auto hintHash = HintHash();
+    const auto hash=HintHash();
     CProcessor::Done();
-    // Captured from the pre-refactor decoder for every opcode and both fixtures.
-    constexpr uint64_t expected = 0x1d71c2c39c45930cull;
-    if (hash != expected) {
-        std::fprintf(stderr, "disassembly corpus mismatch: %016llx\n", static_cast<unsigned long long>(hash));
-        return 1;
-    }
-    constexpr uint64_t expectedHints = 0xe2a07d058b2a589dull; // Captured before refactoring the hint builders.
-    if (hintHash != expectedHints) {
-        std::fprintf(stderr, "hint corpus mismatch: %016llx\n", static_cast<unsigned long long>(hintHash));
-        return 1;
-    }
-    return 0;
-}
-
-TEST(DisasmCorpusTests, RegressionChecks)
-{
-    EXPECT_EQ(RunRegressionChecks(), 0);
+    EXPECT_EQ(0xe2a07d058b2a589dull,hash);
 }

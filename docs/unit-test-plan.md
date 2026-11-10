@@ -25,7 +25,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Complete: 90 GoogleTest cases |
 | 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Complete: 34 GoogleTest cases |
 | 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Complete: 40 new GoogleTest cases |
-| 21. Test infrastructure | Legacy assertion adapter cases; split remaining monolithic RegressionChecks cases | Pending |
+| 21. Test infrastructure | Legacy assertion adapter cases; split remaining monolithic RegressionChecks cases | Complete: 8 adapter cases; 4 regression wrappers replaced with named cases |
 
 OS window creation, menus, clipboard, dynamic renderer loading, physical serial
 ports and real audio output need integration tests. Extract deterministic
@@ -497,3 +497,25 @@ Validation: full Release build and all 1,089 Release CTest cases pass (40 new).
 Renderer scaling is tested directly without displaying windows. Tests do not inject
 every WIC encoder failure or exhaust GDI resources. Test infrastructure remains
 Area 21.
+
+## Area 21 implementation
+
+Eight additional adapter tests verify successful assertions, boolean/pointer
+failures, explicit/default messages, null wide strings, original source locations
+and expected/actual diagnostics, nested stack unwinding, unexpected exception
+propagation and execution after a failed legacy case. Two null wide-string pointers
+now compare equal; null/non-null comparisons still report a mismatch safely.
+
+The four remaining `RegressionChecks` wrappers are removed. CPU overflow checks
+are split into exhaustive byte pairs, nine word-boundary cases in both operand
+orders, and the existing million deterministic word pairs. Disassembly and hint
+corpus hashes have independent named cases with unchanged baselines. Scaling has
+catalog/validation tests and one case per mode, retaining the original assertions.
+The bitmap wrapper's checks are covered by the named format/dimension tests plus
+an explicit short-pixel-span preservation case. Failures now identify their case
+and report through GoogleTest rather than a single integer result.
+
+Validation: full Release build and all 1,117 Release CTest cases pass (net increase
+of 28 through added coverage and finer registration). No `RegressionChecks` or
+`RunRegressionChecks` wrappers remain under tests. All 21 planned unit-test areas
+are complete; the integration concerns listed above remain outside this plan.

@@ -48,28 +48,6 @@ bool HasExpectedPixels(LPCTSTR path)
     return pixels == expected;
 }
 
-static int RunRegressionChecks()
-{
-    TCHAR directory[MAX_PATH]{}, path[MAX_PATH]{};
-    if (!GetTempPath(MAX_PATH, directory) || !GetTempFileName(directory, _T("img"), 0, path)) return 1;
-    BitmapFile_Init();
-    // Source is bottom-up: red and green below blue and white.
-    constexpr std::array<uint32_t, 4> pixels{0x00ff0000, 0x0000ff00, 0x000000ff, 0x00ffffff};
-    bool ok = !BitmapFile_SaveImageFile(std::span{pixels}.first<3>(), path, BitmapFileFormatPng, 2, 2);
-    ok &= !BitmapFile_SaveImageFile(pixels, path, BitmapFileFormatPng, 0, 2);
-    for (const auto format : {BitmapFileFormatPng, BitmapFileFormatBmp})
-        ok &= BitmapFile_SaveImageFile(pixels, path, format, 2, 2) && HasExpectedPixels(path);
-    BitmapFile_Done();
-    DeleteFile(path);
-    if (!ok) std::fprintf(stderr, "bitmap round-trip failed\n");
-    return ok ? 0 : 1;
-}
-
-TEST(BitmapFileTests, RegressionChecks)
-{
-    EXPECT_EQ(RunRegressionChecks(), 0);
-}
-
 class BitmapEdges : public testing::Test {
 protected:
     std::array<TCHAR,MAX_PATH> path{};
@@ -81,6 +59,11 @@ protected:
     void TearDown() override { BitmapFile_Done(); DeleteFile(path.data()); }
     bool Save(BitmapFileFormat format=BitmapFileFormatPng) { return BitmapFile_SaveImageFile(pixels,path.data(),format,2,2); }
 };
+TEST_F(BitmapEdges, ShortPixelSpanDoesNotOverwriteExistingImage) {
+    ASSERT_TRUE(Save());
+    EXPECT_FALSE(BitmapFile_SaveImageFile(std::span(pixels).first(3),path.data(),BitmapFileFormatPng,2,2));
+    EXPECT_TRUE(HasExpectedPixels(path.data()));
+}
 TEST_F(BitmapEdges, AllFormatsRoundTripAndReleaseFileForDeletion) {
     for(auto format : {BitmapFileFormatBmp,BitmapFileFormatPng,BitmapFileFormatTiff}) {
         ASSERT_TRUE(Save(format)); EXPECT_TRUE(HasExpectedPixels(path.data())); EXPECT_TRUE(DeleteFile(path.data()));
