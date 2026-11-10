@@ -19,7 +19,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Complete: 16 GoogleTest cases |
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Complete: 15 GoogleTest cases |
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Complete: 60 GoogleTest cases |
-| 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Pending |
+| 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Complete: 26 GoogleTest cases |
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Pending |
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Pending |
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Pending |
@@ -354,3 +354,29 @@ CTest cases pass (60 new). The fixture deliberately controls memory translation;
 physical CPU/PPU device mapping and board callback scheduling remain in Areas 15
 and 16. These regression tests do not claim exhaustive instruction-set or hardware
 cycle-timing conformance.
+## Area 15 implementation
+
+`RamChanges.h` shares the application's RAM comparison and change-word readers.
+Six cases cover every byte including 0xFFFF, XOR bit flags, baseline replacement,
+unchanged/reverted data, short spans, guards, independent planes, every aligned/
+odd word address and the CPU's interleaved planes through the end of HALT memory.
+The application previously skipped the final byte of each plane, used unchecked
+unaligned word loads and suppressed interleaved change flags above octal 170000.
+It now compares all bytes, aligns word reads within the plane, and covers all
+interleaved RAM addresses selected by the memory controller.
+
+Twenty memory-controller cases add full CPU mapping checks, PPU window priority
+and boundaries across all 256 low-byte control values, execution-denied I/O,
+CPU address-watch mode matching and debugger suppression, plane-register byte
+lanes, serial/network overflow and acknowledgements, transmitter masks, keyboard
+read side effects, mouse signed chunking/clamping/consumption, tape enable/edge/
+output behavior and background-pixel plane packing.
+
+A regression demonstrated mouse accumulation wrapping before saturation. Mouse
+arithmetic now clamps in an int before narrowing to int16_t; both positive and
+negative extremes are tested. Normal movement and port behavior remain unchanged.
+
+Validation: Release targets rebuilt and all 872 Release CTest cases pass (26 new).
+Tests exercise real board/controller code and synthetic memory/port inputs;
+physical serial/network devices and application debugger painting are not tested.
+Board callback scheduling remains Area 16.

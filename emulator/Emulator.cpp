@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Emulator.cpp
 
 #include "stdafx.h"
+#include "RamChanges.h"
 #include "util/Profiler.h"
 #include <cstdio>
 #include <array>
@@ -766,19 +767,9 @@ void Emulator_OnUpdate()
     // Update memory change flags
     for (int plane = 0; plane < 3; plane++)
     {
-        uint8_t* pOld = g_pEmulatorRam[plane];
-        uint8_t* pChanged = g_pEmulatorChangedRam[plane];
-        uint16_t addr = 0;
-        do
-        {
-            uint8_t newvalue = g_pBoard->GetRAMByte(plane, addr);
-            uint8_t oldvalue = *pOld;
-            *pChanged = newvalue ^ oldvalue;
-            *pOld = newvalue;
-            addr++;
-            pOld++;  pChanged++;
-        }
-        while (addr < 65535);
+        ram_changes::Update(std::span<uint8_t>(g_pEmulatorRam[plane], 65536),
+            std::span<uint8_t>(g_pEmulatorChangedRam[plane], 65536),
+            [plane](uint16_t address) { return g_pBoard->GetRAMByte(plane, address); });
     }
 }
 
@@ -791,14 +782,12 @@ uint16_t Emulator_GetChangeRamStatus(int addrtype, uint16_t address)
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        return *((uint16_t*)(g_pEmulatorChangedRam[addrtype] + address));
+        if (!g_pEmulatorChangedRam[addrtype]) return 0;
+        return ram_changes::Word(std::span<const uint8_t>(g_pEmulatorChangedRam[addrtype], 65536), address);
     case ADDRTYPE_RAM12:
-        if (address < 0170000)
-            return MAKEWORD(
-                    *(g_pEmulatorChangedRam[1] + address / 2),
-                    *(g_pEmulatorChangedRam[2] + address / 2));
-        else
-            return 0;
+        if (!g_pEmulatorChangedRam[1] || !g_pEmulatorChangedRam[2]) return 0;
+        return ram_changes::Interleaved(std::span<const uint8_t>(g_pEmulatorChangedRam[1], 65536),
+            std::span<const uint8_t>(g_pEmulatorChangedRam[2], 65536), address);
     default:
         return 0;
     }

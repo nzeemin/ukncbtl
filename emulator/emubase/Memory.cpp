@@ -15,6 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Board.h"
 #include "Processor.h"
 #include "ImageSerialization.h"
+#include <algorithm>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -1619,12 +1620,9 @@ void CSecondMemoryController::Init_177716()
 
 void CSecondMemoryController::MouseMove(int16_t dx, int16_t dy, bool btnLeft, bool btnRight)
 {
-    m_mousedx += dx;
-    if (m_mousedx > 256) m_mousedx = 256;
-    if (m_mousedx < -256) m_mousedx = -256;
-    m_mousedy -= dy;
-    if (m_mousedy > 256) m_mousedy = 256;
-    if (m_mousedy < -256) m_mousedy = -256;
+    // Clamp before narrowing: accumulated int16_t deltas can otherwise wrap.
+    m_mousedx = static_cast<int16_t>(std::clamp(static_cast<int>(m_mousedx) + dx, -256, 256));
+    m_mousedy = static_cast<int16_t>(std::clamp(static_cast<int>(m_mousedy) - dy, -256, 256));
     m_mouseflags = (btnLeft ? 0x0100 : 0) | (btnRight ? 0x0001 : 0);
 }
 
