@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // InstrHistoryView.cpp
 
 #include "stdafx.h"
+#include "ViewCalculations.h"
 #include "Main.h"
 #include "Views.h"
 #include "ToolWindow.h"
@@ -182,15 +183,13 @@ int InstrHistoryView_GetRowCount()
     ReleaseDC(m_hwndInstrHistoryViewer, hdc);
 
     RECT rcClient;  GetClientRect(m_hwndInstrHistoryViewer, &rcClient);
-    int rows = (rcClient.bottom - 2) / cyLine;
-    return rows > 0 ? rows : 1;
+    return view_calc::HistoryRows(rcClient.bottom, cyLine);
 }
 
 // The biggest index of the bottom line: the oldest instruction is at the top line
 int InstrHistoryView_GetMaxBottomLine()
 {
-    int max = m_nInstrHistorySnapshotLength - InstrHistoryView_GetRowCount();
-    return max > 0 ? max : 0;
+    return view_calc::HistoryMaximum(m_nInstrHistorySnapshotLength, InstrHistoryView_GetRowCount());
 }
 
 // The scrollbar top is the oldest instruction, the bottom is the most recent one
@@ -217,8 +216,7 @@ void InstrHistoryView_SetBottomLine(int index)
         return;
 
     int max = InstrHistoryView_GetMaxBottomLine();
-    if (index > max) index = max;
-    if (index < 0) index = 0;
+    index = view_calc::HistoryClamp(index, max);
     if (index != m_nInstrHistoryBottomLine)
     {
         m_nInstrHistoryBottomLine = index;
@@ -230,48 +228,21 @@ void InstrHistoryView_SetBottomLine(int index)
 void InstrHistoryView_OnMouseWheel(WPARAM wParam)
 {
     short zDelta = GET_WHEEL_DELTA_WPARAM(wParam);
-    int steps = zDelta / 40;  // 120 units per notch = 3 lines
-    if (steps == 0)
-        return;
-    InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + steps);  // Wheel up shows older instructions
+    InstrHistoryView_SetBottomLine(view_calc::HistoryWheel(m_nInstrHistoryBottomLine,
+        InstrHistoryView_GetMaxBottomLine(), zDelta));
 }
 
 void InstrHistoryView_OnVScroll(WORD scrollcmd)
 {
-    int max = InstrHistoryView_GetMaxBottomLine();
-    int rows = InstrHistoryView_GetRowCount();
-    switch (scrollcmd)
+    SCROLLINFO si{};
+    if (scrollcmd == SB_THUMBTRACK || scrollcmd == SB_THUMBPOSITION)
     {
-    case SB_LINEUP:
-        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + 1);
-        break;
-    case SB_LINEDOWN:
-        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine - 1);
-        break;
-    case SB_PAGEUP:
-        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine + rows);
-        break;
-    case SB_PAGEDOWN:
-        InstrHistoryView_SetBottomLine(m_nInstrHistoryBottomLine - rows);
-        break;
-    case SB_TOP:
-        InstrHistoryView_SetBottomLine(max);
-        break;
-    case SB_BOTTOM:
-        InstrHistoryView_SetBottomLine(0);
-        break;
-    case SB_THUMBTRACK:
-    case SB_THUMBPOSITION:
-        {
-            SCROLLINFO si;
-            ZeroMemory(&si, sizeof(si));
-            si.cbSize = sizeof(si);
-            si.fMask = SIF_TRACKPOS;  // 32-bit position, the message has only 16 bits
-            GetScrollInfo(m_hwndInstrHistoryViewer, SB_VERT, &si);
-            InstrHistoryView_SetBottomLine(max - si.nTrackPos);
-        }
-        break;
+        si.cbSize = sizeof(si);
+        si.fMask = SIF_TRACKPOS;
+        GetScrollInfo(m_hwndInstrHistoryViewer, SB_VERT, &si);
     }
+    InstrHistoryView_SetBottomLine(view_calc::HistoryScroll(m_nInstrHistoryBottomLine,
+        InstrHistoryView_GetMaxBottomLine(), InstrHistoryView_GetRowCount(), scrollcmd, si.nTrackPos));
 }
 
 // Update after Run or Step

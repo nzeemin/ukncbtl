@@ -77,7 +77,7 @@ add_executable(UKNCBTL WIN32
   emulator/DisplayListView.cpp emulator/Emulator.cpp emulator/KeyboardView.cpp
   emulator/Main.cpp emulator/MainWindow.cpp emulator/MemoryView.cpp
   emulator/ScreenView.cpp emulator/ScreenText.cpp emulator/Subtitles.cpp emulator/Input.cpp emulator/Settings.cpp emulator/SoundGen.cpp
-  emulator/SpriteView.cpp emulator/TapeView.cpp emulator/ToolWindow.cpp
+  emulator/SpriteView.cpp emulator/ViewCalculations.cpp emulator/TapeView.cpp emulator/ToolWindow.cpp
   emulator/util/BitmapFile.cpp emulator/util/WavPcmFile.cpp emulator/res/UKNCBTL.rc)
 ukncbtl_target(UKNCBTL)
 target_include_directories(UKNCBTL PRIVATE emulator/res)
@@ -118,6 +118,8 @@ if(BUILD_TESTING)
   set_target_properties(ConsoleProductTests PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
   ukncbtl_test(SettingsTests tests/SettingsTests.cpp emulator/Settings.cpp)
   ukncbtl_test(CommonTextTests tests/CommonTextTests.cpp emulator/util/CommonText.cpp)
+  ukncbtl_test(SpriteTests tests/SpriteTests.cpp)
+  ukncbtl_test(ViewCalculationTests tests/ViewCalculationTests.cpp emulator/ViewCalculations.cpp)
   ukncbtl_test(SubtitleTests tests/SubtitleTests.cpp emulator/Subtitles.cpp)
   ukncbtl_test(ScreenTextTests tests/ScreenTextTests.cpp emulator/ScreenText.cpp)
   ukncbtl_test(InputTests tests/InputTests.cpp emulator/Input.cpp)

@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // MemoryView.cpp
 
 #include "stdafx.h"
+#include "ViewCalculations.h"
 #include <CommCtrl.h>
 #include <windowsx.h>
 #include "Main.h"
@@ -234,14 +235,8 @@ LRESULT CALLBACK MemoryViewViewerWndProc(HWND hWnd, UINT message, WPARAM wParam,
 // Returns even address 0-65534, or -1 if out of area
 int MemoryView_GetAddressByPoint(int mousex, int mousey)
 {
-    int line = mousey / m_cyLineMemory - 1;
-    if (line < 0) line = 0;
-    else if (line >= m_nPageSize) return -1;
-    int pos = (mousex - (32 + 4) - 9 * m_cxChar + m_cxChar / 2) / m_PostionIncrement;
-    if (pos < 0) pos = 0;
-    else if (pos > 7) pos = 7;
-
-    return (WORD)(m_wBaseAddress + line * 16 + pos * 2);
+    return view_calc::MemoryAddress(mousex, mousey, m_cyLineMemory, m_cxChar,
+        m_PostionIncrement, m_nPageSize, m_wBaseAddress);
 }
 
 BOOL MemoryView_OnKeyDown(WPARAM vkey, LPARAM /*lParam*/)

@@ -14,7 +14,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 7. Common utilities | Number formatting, octal parsing, KOI8-R, filenames, named smoke cases | Complete: 42 utility cases; 10 named core smoke cases |
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Complete: 23 GoogleTest cases |
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Complete: 26 GoogleTest cases |
-| 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Pending |
+| 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Complete: 18 GoogleTest cases |
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Pending |
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Pending |
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Pending |
@@ -234,3 +234,26 @@ Validation: Release application, SubtitleTests and ScreenTextTests build; all
 693 Release CTest cases pass (26 new). File dialogs, clipboard ownership and live
 PPU font-memory reads remain integration concerns. Recognition scoring is
 unchanged; the tests use synthetic fonts and frames rather than visual OCR quality.
+## Area 10 implementation
+
+`SpriteDecoder.h` contains the sprite renderer used by SpriteView, with an injected
+aligned CPU-word reader. Eight cases cover every output pixel for all five modes
+and all widths 1 through 32, bottom-up DIB layout, plane palettes and bit order,
+column separators and unused pixels, odd/even starting addresses, 16-bit address
+wrapping, memory-read order, output guards and rejected dimensions/modes/spans.
+Page size now counts the same columns as rendering, including a final column
+that fits exactly (four width-8 columns fill the 262-pixel bitmap).
+
+`ViewCalculations` shares memory hit testing, debug row selection and history
+scroll calculations with their views. Ten cases cover all memory columns,
+multiple rows and wrapped addresses, header/margin clamping, bottom boundaries,
+missing metrics, debug register/saved-state/blank rows, history row counts,
+empty/full pages, line/page/top/bottom commands, reversed thumb positions,
+32-bit track positions, wheel direction, partial notches and endpoint clamping.
+Uninitialized font metrics no longer cause division by zero; the debug top
+margin no longer selects register zero through integer truncation.
+
+Validation: Release application, SpriteTests and ViewCalculationTests build;
+all 711 Release CTest cases pass (18 new). Tests exercise shared calculations and
+synthetic sprite memory. Window painting, font measurement, scrollbar messaging
+and the live CPU memory-controller mapping remain integration concerns.
