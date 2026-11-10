@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Dialogs.cpp
 
 #include "stdafx.h"
+#include "DiskImage.h"
 #include <commdlg.h>
 #include <CommCtrl.h>
 #include <shellapi.h>
@@ -303,31 +304,6 @@ INT_PTR CALLBACK CreateDiskProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM /
     return (INT_PTR) FALSE;
 }
 
-const uint8_t DiskInitBlockAt0000[] =
-{
-    0xA0, 0x00, 0x05, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x10, 0x43, 0x10, 0x9C, 0x00, 0x01,
-    0x37, 0x08, 0x24, 0x00, 0x0D, 0x00, 0x00, 0x00, 0x00, 0x0A, 0x3F, 0x42, 0x4F, 0x4F, 0x54, 0x2D,
-    0x55, 0x2D, 0x4E, 0x6F, 0x20, 0x62, 0x6F, 0x6F, 0x74, 0x20, 0x6F, 0x6E, 0x20, 0x76, 0x6F, 0x6C,
-    0x75, 0x6D, 0x65, 0x0D, 0x0A, 0x0A, 0x80, 0x00, 0xDF, 0x8B, 0x74, 0xFF, 0xFD, 0x80, 0x1F, 0x94,
-    0x76, 0xFF, 0xFA, 0x80, 0xFF, 0x01
-};
-const uint8_t DiskInitBlockAt03D2[] =
-{
-    0x01, 0x00, 0x06, 0x00, 0x53, 0x8E, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20,
-    0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20
-};
-const uint8_t DiskInitBlockAt0C00For400K[] =
-{
-    0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x02, 0xD5, 0x19, 0xC0, 0x62,
-    0xEA, 0x27, 0x12, 0x03, 0x00, 0x00, 0x4D, 0x2D, 0x00, 0x08
-};
-const uint8_t DiskInitBlockAt0C00For800K[] =
-{
-    0x04, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0E, 0x00, 0x00, 0x02, 0xD5, 0x00, 0x39, 0x67,
-    0xF4, 0x26, 0x32, 0x06, 0x00, 0x00, 0xFB, 0x33, 0x00, 0x08
-};
-
 void Dialogs_DoCreateDisk(int tracks)
 {
     TCHAR bufFileName[MAX_PATH];
@@ -338,36 +314,11 @@ void Dialogs_DoCreateDisk(int tracks)
             bufFileName);
     if (! okResult) return;
 
-    // Create the file
-    LONG fileSize = tracks * 10240;
-    HANDLE hFile = ::CreateFile(bufFileName,
-            GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (hFile == INVALID_HANDLE_VALUE)
-    {
-        DWORD dwError = ::GetLastError();
-        AlertWarningFormat(_T("Failed to create a file for the new disk (0x{:08x})."), dwError);
-        return;
-    }
-
-    // Zero-fill the file
-    BOOL success = ::SetFilePointer(hFile, fileSize, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-                   ::SetEndOfFile(hFile);
-
-    // Prepare disk the same way as INIT does
-    auto writeBlock = [hFile](LONG offset, const void* data, DWORD size) {
-        DWORD written = 0;
-        return ::SetFilePointer(hFile, offset, nullptr, FILE_BEGIN) != INVALID_SET_FILE_POINTER &&
-            ::WriteFile(hFile, data, size, &written, nullptr) && written == size;
-    };
-    success = success && writeBlock(0, DiskInitBlockAt0000, sizeof(DiskInitBlockAt0000));
-    success = success && writeBlock(0x03D2, DiskInitBlockAt03D2, sizeof(DiskInitBlockAt03D2));
-    const uint8_t* DiskInitBlockAt0C00 = (tracks <= 40) ? DiskInitBlockAt0C00For400K : DiskInitBlockAt0C00For800K;
-    success = success && writeBlock(0x0C00, DiskInitBlockAt0C00, 26);
-
-    success = ::CloseHandle(hFile) && success;
-
-    if (success)
+    const auto result = disk_image::Create(bufFileName, tracks);
+    if (result)
         AlertInfo(_T("New disk file created successfully."));
+    else if (result.error().kind == disk_image::ErrorKind::Open)
+        AlertWarningFormat(_T("Failed to create a file for the new disk (0x{:08x})."), result.error().code);
     else
         AlertWarning(_T("Failed to write the new disk file."));
 }

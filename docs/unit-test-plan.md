@@ -17,7 +17,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Complete: 18 GoogleTest cases |
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Complete: 45 GoogleTest cases |
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Complete: 16 GoogleTest cases |
-| 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Pending |
+| 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Complete: 15 GoogleTest cases |
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Pending |
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Pending |
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Pending |
@@ -308,3 +308,23 @@ Validation: Release application and SoundOutputTests build; all 771 Release CTes
 cases pass (16 new). Audible output, actual device capabilities and concurrent
 WinMM callback timing remain integration concerns. Existing wait-until-completion
 behavior is retained; a driver that never returns buffers can still block shutdown.
+## Area 13 implementation
+
+`DiskImage.cpp` builds and writes the disk images used by the creation dialog.
+Only the supported 40-/80-track geometries are accepted, producing 409,600 and
+819,200 bytes. The existing initialization blocks remain at offsets 0, 0x03D2
+and 0x0C00. The full image is explicitly zero-initialized and written, avoiding
+reliance on extended-file contents. Invalid arguments are rejected before opening
+or truncating the destination. Extra output-span bytes are preserved.
+
+Fifteen cases verify complete images against the original initialization bytes,
+zero-filled regions, exact sizes, buffer guards, invalid tracks and short spans,
+real file output, overwrite/truncation, Unicode paths, invalid-input preservation,
+locked files and missing parents. An injected file backend covers open/write/close
+failures, successful short writes, handle cleanup, original write-error retention
+when close also fails, and incomplete backend rejection.
+
+Validation: Release application and DiskImageTests build; all 786 Release CTest
+cases pass (15 new). Interactive save dialogs and physical disk-full conditions
+were not exercised; write failures are injected. Existing replacement semantics
+are retained, so a failed write may leave a partial destination file.

@@ -73,7 +73,7 @@ target_link_libraries(ScreenScale PUBLIC EmulatorProfiling)
 
 add_executable(UKNCBTL WIN32
   emulator/Common.cpp emulator/util/CommonText.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
-  emulator/Dialogs.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
+  emulator/Dialogs.cpp emulator/DiskImage.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
   emulator/DisplayListView.cpp emulator/Emulator.cpp emulator/KeyboardView.cpp
   emulator/Main.cpp emulator/MainWindow.cpp emulator/MemoryView.cpp
   emulator/ScreenView.cpp emulator/ScreenText.cpp emulator/Subtitles.cpp emulator/Input.cpp emulator/Settings.cpp emulator/SoundGen.cpp
@@ -128,6 +128,7 @@ if(BUILD_TESTING)
   target_link_libraries(ScreenScaleTests PRIVATE ScreenScale)
   ukncbtl_test(BitmapFileTests tests/BitmapFileTests.cpp emulator/util/BitmapFile.cpp)
   target_link_libraries(BitmapFileTests PRIVATE windowscodecs)
+  ukncbtl_test(DiskImageTests tests/DiskImageTests.cpp emulator/DiskImage.cpp)
   ukncbtl_test(SoundOutputTests tests/SoundOutputTests.cpp emulator/SoundGen.cpp)
   target_link_libraries(SoundOutputTests PRIVATE winmm EmulatorProfiling)
   ukncbtl_test(TapeTests tests/TapeTests.cpp)
