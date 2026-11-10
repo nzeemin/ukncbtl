@@ -18,7 +18,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Complete: 45 GoogleTest cases |
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Complete: 16 GoogleTest cases |
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Complete: 15 GoogleTest cases |
-| 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Pending |
+| 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Complete: 60 GoogleTest cases |
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Pending |
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Pending |
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Pending |
@@ -328,3 +328,29 @@ Validation: Release application and DiskImageTests build; all 786 Release CTest
 cases pass (15 new). Interactive save dialogs and physical disk-full conditions
 were not exercised; write failures are injected. Existing replacement semantics
 are retained, so a failed write may leave a partial destination file.
+## Area 14 implementation
+
+`ProcessorEdgeTests` exercises the real processor and memory-access code with a
+controlled memory controller. Separate HALT/USER RAM planes expose mode mistakes;
+selected denied addresses trigger real bus-error requests. No production processor
+code was changed. Expected instruction results and state transitions are asserted
+directly rather than compared to captured emulator output.
+
+Sixty cases cover all 24 privileged opcode aliases rejecting USER execution,
+HALT copy-register access, RUN/STEP, SEL, MFUS/MTUS, normalization, HALT/FIS vectors,
+DCLO/ACLO/HALT pin transitions, interrupt masks and priority, VIRQ queue selection,
+fetch/source/destination/stack/vector faults, double faults and recovery, callback
+arguments and timing, callback removal and CPU/PPU installation, WAIT and internal
+execution ticks. Register byte writes, saved PC/PSW behavior and condition setters
+are checked, including all 65,536 input values to SetPSW.
+
+The MOV/MOVB matrix covers all 64 source/destination addressing-mode pairs, six
+boundary operands and all 16 incoming condition-code combinations (12,288 checks).
+It verifies data, byte sign extension/preservation, flags, PC extension words and
+register increments/decrements, complementing the existing arithmetic suites.
+
+Validation: Release application and ProcessorEdgeTests build; all 846 Release
+CTest cases pass (60 new). The fixture deliberately controls memory translation;
+physical CPU/PPU device mapping and board callback scheduling remain in Areas 15
+and 16. These regression tests do not claim exhaustive instruction-set or hardware
+cycle-timing conformance.
