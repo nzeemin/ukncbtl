@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "Main.h"
+#include "Input.h"
 #include "Views.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -275,20 +276,7 @@ void KeyboardView_OnDraw(HDC hdc)
 // Returns: UKNC scan-code of key under the cursor position, or 0 if not found
 BYTE KeyboardView_GetKeyByPoint(int x, int y)
 {
-    for (int i = 0; i < m_nKeyboardKeysCount; i++)
-    {
-        RECT rcKey;
-        rcKey.left = m_nKeyboardBitmapLeft + m_arrKeyboardKeys[i * 5];
-        rcKey.top = m_nKeyboardBitmapTop + m_arrKeyboardKeys[i * 5 + 1];
-        rcKey.right = rcKey.left + m_arrKeyboardKeys[i * 5 + 2];
-        rcKey.bottom = rcKey.top + m_arrKeyboardKeys[i * 5 + 3];
-
-        if (x >= rcKey.left && x < rcKey.right && y >= rcKey.top && y < rcKey.bottom)
-        {
-            return (BYTE) m_arrKeyboardKeys[i * 5 + 4];
-        }
-    }
-    return 0;
+    return input::HitTest(m_arrKeyboardKeys, x, y, m_nKeyboardBitmapLeft, m_nKeyboardBitmapTop);
 }
 
 void Keyboard_DrawKey(HDC hdc, BYTE keyscan)

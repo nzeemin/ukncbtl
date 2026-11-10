@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // Emulator.cpp
 
 #include "stdafx.h"
+#include "RamChanges.h"
 #include "util/Profiler.h"
 #include <cstdio>
 #include <array>
@@ -22,7 +23,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Emulator.h"
 #include "Views.h"
 #include "emubase/Emubase.h"
-#include "emubase/ImageSerialization.h"
+#include "Snapshot.h"
+#include "VideoDecoder.h"
 #include "SoundGen.h"
 
 //NOTE: I know, we use unsafe string functions
@@ -37,12 +39,8 @@ static std::unique_ptr<CMotherboard> g_boardOwner;
 bool g_okEmulatorInitialized = false;
 bool g_okEmulatorRunning = false;
 
-int m_wEmulatorCPUBpsCount = 0;
-int m_wEmulatorPPUBpsCount = 0;
-uint16_t m_EmulatorCPUBps[MAX_BREAKPOINTCOUNT + 1];
-uint16_t m_EmulatorPPUBps[MAX_BREAKPOINTCOUNT + 1];
-uint16_t m_wEmulatorTempCPUBreakpoint = 0177777;
-uint16_t m_wEmulatorTempPPUBreakpoint = 0177777;
+static BreakpointSet cpuBreakpoints;
+static BreakpointSet ppuBreakpoints;
 
 bool m_okEmulatorSound = false;
 uint16_t m_wEmulatorSoundSpeed = 100;
@@ -130,17 +128,13 @@ bool Emulator_Init()
     ::memset(g_pEmulatorChangedRam, 0, sizeof(g_pEmulatorChangedRam));
     CProcessor::Init();
 
-    m_wEmulatorCPUBpsCount = m_wEmulatorPPUBpsCount = 0;
-    for (int i = 0; i <= MAX_BREAKPOINTCOUNT; i++)
+    cpuBreakpoints.Clear();
+    ppuBreakpoints.Clear();
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; ++i)
     {
-        uint16_t address = Settings_GetDebugBreakpoint(i, TRUE);
-        m_EmulatorCPUBps[i] = address;
-        if (address != 0177777) m_wEmulatorCPUBpsCount = i + 1;
-        address = Settings_GetDebugBreakpoint(i, FALSE);
-        m_EmulatorPPUBps[i] = address;
-        if (address != 0177777) m_wEmulatorPPUBpsCount = i + 1;
+        cpuBreakpoints.Add(Settings_GetDebugBreakpoint(i, TRUE));
+        ppuBreakpoints.Add(Settings_GetDebugBreakpoint(i, FALSE));
     }
-
     g_boardOwner = std::make_unique<CMotherboard>();
     g_pBoard = g_boardOwner.get();
 
@@ -187,12 +181,14 @@ void Emulator_Done()
 {
     ASSERT(g_pBoard != nullptr);
 
-    // Save breakpoints
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        Settings_SetDebugBreakpoint(i, TRUE, i < m_wEmulatorCPUBpsCount ? m_EmulatorCPUBps[i] : 0177777);
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        Settings_SetDebugBreakpoint(i, FALSE, i < m_wEmulatorPPUBpsCount ? m_EmulatorPPUBps[i] : 0177777);
-
+    // Temporary run-to targets are not persistent debugger settings.
+    cpuBreakpoints.SetTemporary(BreakpointSet::NoBreakpoint);
+    ppuBreakpoints.SetTemporary(BreakpointSet::NoBreakpoint);
+    for (int i = 0; i < MAX_BREAKPOINTCOUNT; ++i)
+    {
+        Settings_SetDebugBreakpoint(i, TRUE, cpuBreakpoints.Data()[i]);
+        Settings_SetDebugBreakpoint(i, FALSE, ppuBreakpoints.Data()[i]);
+    }
     CProcessor::Done();
 
     g_pBoard->SetInstructionCallback(nullptr);
@@ -245,7 +241,7 @@ void Emulator_Start()
     m_dwTickCount = GetTickCount();
 
     // For proper breakpoint processing
-    if (m_wEmulatorCPUBpsCount != 0 || m_wEmulatorPPUBpsCount)
+    if (!cpuBreakpoints.Addresses().empty() || !ppuBreakpoints.Addresses().empty())
     {
         g_pBoard->GetCPU()->ClearInternalTick();
         g_pBoard->GetPPU()->ClearInternalTick();
@@ -285,168 +281,26 @@ void Emulator_Reset()
     MainWindow_UpdateAllViews();
 }
 
-bool Emulator_AddCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorCPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
-        return false;
-    for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)  // Check if the BP exists
-    {
-        if (m_EmulatorCPUBps[i] == address)
-            return false;  // Already in the list
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
-    {
-        if (m_EmulatorCPUBps[i] == 0177777)
-        {
-            m_EmulatorCPUBps[i] = address;
-            break;
-        }
-    }
-    m_wEmulatorCPUBpsCount++;
-    return true;
-}
-bool Emulator_AddPPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorPPUBpsCount == MAX_BREAKPOINTCOUNT - 1 || address == 0177777)
-        return false;
-    for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)  // Check if the BP exists
-    {
-        if (m_EmulatorPPUBps[i] == address)
-            return false;  // Already in the list
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)  // Put in the first empty cell
-    {
-        if (m_EmulatorPPUBps[i] == 0177777)
-        {
-            m_EmulatorPPUBps[i] = address;
-            break;
-        }
-    }
-    m_wEmulatorPPUBpsCount++;
-    return true;
-}
-bool Emulator_RemoveCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorCPUBpsCount == 0 || address == 0177777)
-        return false;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorCPUBps[i] == address)
-        {
-            m_EmulatorCPUBps[i] = 0177777;
-            m_wEmulatorCPUBpsCount--;
-            if (m_wEmulatorCPUBpsCount > i)  // fill the hole
-            {
-                m_EmulatorCPUBps[i] = m_EmulatorCPUBps[m_wEmulatorCPUBpsCount];
-                m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = 0177777;
-            }
-            return true;
-        }
-    }
-    return false;
-}
-bool Emulator_RemovePPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorPPUBpsCount == 0 || address == 0177777)
-        return false;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorPPUBps[i] == address)
-        {
-            m_EmulatorPPUBps[i] = 0177777;
-            m_wEmulatorPPUBpsCount--;
-            if (m_wEmulatorPPUBpsCount > i)  // fill the hole
-            {
-                m_EmulatorPPUBps[i] = m_EmulatorPPUBps[m_wEmulatorPPUBpsCount];
-                m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = 0177777;
-            }
-            return true;
-        }
-    }
-    return false;
-}
-void Emulator_SetTempCPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorTempCPUBreakpoint != 0177777)
-        Emulator_RemoveCPUBreakpoint(m_wEmulatorTempCPUBreakpoint);
-    if (address == 0177777)
-    {
-        m_wEmulatorTempCPUBreakpoint = 0177777;
-        return;
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorCPUBps[i] == address)
-            return;  // We have regular breakpoint with the same address
-    }
-    m_wEmulatorTempCPUBreakpoint = address;
-    m_EmulatorCPUBps[m_wEmulatorCPUBpsCount] = address;
-    m_wEmulatorCPUBpsCount++;
-}
-void Emulator_SetTempPPUBreakpoint(uint16_t address)
-{
-    if (m_wEmulatorTempPPUBreakpoint != 0177777)
-        Emulator_RemovePPUBreakpoint(m_wEmulatorTempPPUBreakpoint);
-    if (address == 0177777)
-    {
-        m_wEmulatorTempPPUBreakpoint = 0177777;
-        return;
-    }
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-    {
-        if (m_EmulatorPPUBps[i] == address)
-            return;  // We have regular breakpoint with the same address
-    }
-    m_wEmulatorTempPPUBreakpoint = address;
-    m_EmulatorPPUBps[m_wEmulatorPPUBpsCount] = address;
-    m_wEmulatorPPUBpsCount++;
-}
-const uint16_t* Emulator_GetCPUBreakpointList() { return m_EmulatorCPUBps; }
-const uint16_t* Emulator_GetPPUBreakpointList() { return m_EmulatorPPUBps; }
+bool Emulator_AddCPUBreakpoint(uint16_t address) { return cpuBreakpoints.Add(address); }
+bool Emulator_AddPPUBreakpoint(uint16_t address) { return ppuBreakpoints.Add(address); }
+bool Emulator_RemoveCPUBreakpoint(uint16_t address) { return cpuBreakpoints.Remove(address); }
+bool Emulator_RemovePPUBreakpoint(uint16_t address) { return ppuBreakpoints.Remove(address); }
+void Emulator_SetTempCPUBreakpoint(uint16_t address) { cpuBreakpoints.SetTemporary(address); }
+void Emulator_SetTempPPUBreakpoint(uint16_t address) { ppuBreakpoints.SetTemporary(address); }
+const uint16_t* Emulator_GetCPUBreakpointList() { return cpuBreakpoints.Data(); }
+const uint16_t* Emulator_GetPPUBreakpointList() { return ppuBreakpoints.Data(); }
 bool Emulator_IsBreakpoint()
 {
-    uint16_t address = g_pBoard->GetCPU()->GetPC();
-    if (m_wEmulatorCPUBpsCount > 0)
-    {
-        for (int i = 0; i < m_wEmulatorCPUBpsCount; i++)
-        {
-            if (address == m_EmulatorCPUBps[i])
-                return true;
-        }
-    }
-    address = g_pBoard->GetPPU()->GetPC();
-    if (m_wEmulatorPPUBpsCount > 0)
-    {
-        for (int i = 0; i < m_wEmulatorPPUBpsCount; i++)
-        {
-            if (address == m_EmulatorPPUBps[i])
-                return true;
-        }
-    }
-    return false;
+    return cpuBreakpoints.Contains(g_pBoard->GetCPU()->GetPC()) ||
+        ppuBreakpoints.Contains(g_pBoard->GetPPU()->GetPC());
 }
 bool Emulator_IsBreakpoint(bool okCpuPpu, uint16_t address)
 {
-    int bpsCount = okCpuPpu ? m_wEmulatorCPUBpsCount : m_wEmulatorPPUBpsCount;
-    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
-    if (bpsCount == 0)
-        return false;
-    for (int i = 0; i < bpsCount; i++)
-    {
-        if (address == pbps[i])
-            return true;
-    }
-    return false;
+    return (okCpuPpu ? cpuBreakpoints : ppuBreakpoints).Contains(address);
 }
 void Emulator_RemoveAllBreakpoints(bool okCpuPpu)
 {
-    uint16_t* pbps = okCpuPpu ? m_EmulatorCPUBps : m_EmulatorPPUBps;
-    for (int i = 0; i < MAX_BREAKPOINTCOUNT; i++)
-        pbps[i] = 0177777;
-    if (okCpuPpu)
-        m_wEmulatorCPUBpsCount = 0;
-    else
-        m_wEmulatorPPUBpsCount = 0;
+    (okCpuPpu ? cpuBreakpoints : ppuBreakpoints).Clear();
 }
 
 bool Emulator_IsSound()
@@ -509,59 +363,26 @@ void Emulator_SetMouse(bool mouseOnOff)
     g_pBoard->SetMouse(mouseOnOff);
 }
 
-// Instruction history: ring buffers for CPU and PPU, filled by Emulator_Instruction_Callback
-static InstructionRecord m_InstrHistory[2][INSTR_HISTORY_SIZE];  // [0] = PPU, [1] = CPU
-static int m_InstrHistoryHead[2] = { 0, 0 };    // Index of the next record to write
-static int m_InstrHistoryLength[2] = { 0, 0 };  // Number of valid records
+static InstructionHistory instructionHistory;
 
 int Emulator_GetHistoryLength(bool okCpuPpu)
 {
-    return m_InstrHistoryLength[okCpuPpu ? 1 : 0];
+    return instructionHistory.Length(okCpuPpu);
 }
 
-// Index 0 is the most recent instruction
 const InstructionRecord& Emulator_GetHistoryRecord(bool okCpuPpu, int index)
 {
-    int ring = okCpuPpu ? 1 : 0;
-    ASSERT(index >= 0 && index < m_InstrHistoryLength[ring]);
-    return m_InstrHistory[ring][(m_InstrHistoryHead[ring] - 1 - index) & (INSTR_HISTORY_SIZE - 1)];
+    return instructionHistory.Get(okCpuPpu, index);
 }
 
 void Emulator_ClearHistory()
 {
-    m_InstrHistoryHead[0] = m_InstrHistoryHead[1] = 0;
-    m_InstrHistoryLength[0] = m_InstrHistoryLength[1] = 0;
+    instructionHistory.Clear();
 }
 
-// Take the next slot of the history ring of the processor; the caller fills the record
-static InstructionRecord& Emulator_AddHistoryRecord(bool okCpu)
-{
-    int ring = okCpu ? 1 : 0;
-    InstructionRecord& record = m_InstrHistory[ring][m_InstrHistoryHead[ring]];
-    m_InstrHistoryHead[ring] = (m_InstrHistoryHead[ring] + 1) & (INSTR_HISTORY_SIZE - 1);
-    if (m_InstrHistoryLength[ring] < INSTR_HISTORY_SIZE)
-        m_InstrHistoryLength[ring]++;
-    return record;
-}
-
-// Short name of the interrupt vector; the SEL register high byte of HALT mode vectors is ignored
 LPCTSTR Emulator_GetInterruptName(uint16_t vector)
 {
-    switch (vector & 0377)
-    {
-    case 0000: return _T("START");
-    case 0004: return _T("BUS");
-    case 0010: return _T("RSVD");
-    case 0014: return _T("BPT/TBIT");
-    case 0020: return _T("IOT");
-    case 0024: return _T("ACLO");
-    case 0030: return _T("EMT");
-    case 0034: return _T("TRAP");
-    case 0100: return _T("EVNT");
-    case 0170: return _T("HALT");
-    case 0174: return _T("HALT BUS");
-    default:   return _T("VIRQ");
-    }
+    return InstructionHistory::InterruptName(vector);
 }
 
 // Called by CPU/PPU before each instruction is executed; installed always, records history and writes trace
@@ -572,19 +393,12 @@ void CALLBACK Emulator_Instruction_Callback(const CProcessor* pProc, uint16_t ad
     // Instruction is at most 3 words long
     const CMemoryController* pMemCtl = pProc->GetMemoryControllerConst();
     bool okHaltMode = pProc->IsHaltMode();
-    uint16_t memory[3];
+    std::array<uint16_t, 3> memory{};
     memory[0] = opcode;
     memory[1] = pMemCtl->GetWordView(address + 1 * 2, okHaltMode, true).value;
     memory[2] = pMemCtl->GetWordView(address + 2 * 2, okHaltMode, true).value;
 
-    // Put the instruction into the history ring
-    InstructionRecord& record = Emulator_AddHistoryRecord(okCpu);
-    record.pc = address;
-    record.words[0] = memory[0];
-    record.words[1] = memory[1];
-    record.words[2] = memory[2];
-    record.psw = pProc->GetPSW();
-    record.interrupt = false;
+    instructionHistory.RecordInstruction(okCpu, address, memory, pProc->GetPSW());
 
 #if !defined(PRODUCT)
     uint32_t dwTrace = g_pBoard->GetTrace();
@@ -610,14 +424,7 @@ void CALLBACK Emulator_Interrupt_Callback(const CProcessor* pProc, uint16_t oldP
 {
     bool okCpu = (pProc == g_pBoard->GetCPU());
 
-    // Put the interrupt into the history ring
-    InstructionRecord& record = Emulator_AddHistoryRecord(okCpu);
-    record.pc = oldPc;
-    record.words[0] = vector;
-    record.words[1] = pProc->GetPC();
-    record.words[2] = pProc->GetPSW();
-    record.psw = pProc->GetPSW();
-    record.interrupt = true;
+    instructionHistory.RecordInterrupt(okCpu, oldPc, vector, pProc->GetPC(), pProc->GetPSW());
 
 #if !defined(PRODUCT)
     uint32_t dwTrace = g_pBoard->GetTrace();
@@ -869,8 +676,8 @@ bool Emulator_SystemFrame()
     if (Settings_GetMouse())
         ScreenView_UpdateMouse();
 
-    g_pBoard->SetCPUBreakpoints(std::span{m_EmulatorCPUBps}.first(m_wEmulatorCPUBpsCount));
-    g_pBoard->SetPPUBreakpoints(std::span{m_EmulatorPPUBps}.first(m_wEmulatorPPUBpsCount));
+    g_pBoard->SetCPUBreakpoints(cpuBreakpoints.Addresses());
+    g_pBoard->SetPPUBreakpoints(ppuBreakpoints.Addresses());
 
     if (!g_pBoard->SystemFrame())  // Breakpoint hit
     {
@@ -960,19 +767,9 @@ void Emulator_OnUpdate()
     // Update memory change flags
     for (int plane = 0; plane < 3; plane++)
     {
-        uint8_t* pOld = g_pEmulatorRam[plane];
-        uint8_t* pChanged = g_pEmulatorChangedRam[plane];
-        uint16_t addr = 0;
-        do
-        {
-            uint8_t newvalue = g_pBoard->GetRAMByte(plane, addr);
-            uint8_t oldvalue = *pOld;
-            *pChanged = newvalue ^ oldvalue;
-            *pOld = newvalue;
-            addr++;
-            pOld++;  pChanged++;
-        }
-        while (addr < 65535);
+        ram_changes::Update(std::span<uint8_t>(g_pEmulatorRam[plane], 65536),
+            std::span<uint8_t>(g_pEmulatorChangedRam[plane], 65536),
+            [plane](uint16_t address) { return g_pBoard->GetRAMByte(plane, address); });
     }
 }
 
@@ -985,14 +782,12 @@ uint16_t Emulator_GetChangeRamStatus(int addrtype, uint16_t address)
     case ADDRTYPE_RAM0:
     case ADDRTYPE_RAM1:
     case ADDRTYPE_RAM2:
-        return *((uint16_t*)(g_pEmulatorChangedRam[addrtype] + address));
+        if (!g_pEmulatorChangedRam[addrtype]) return 0;
+        return ram_changes::Word(std::span<const uint8_t>(g_pEmulatorChangedRam[addrtype], 65536), address);
     case ADDRTYPE_RAM12:
-        if (address < 0170000)
-            return MAKEWORD(
-                    *(g_pEmulatorChangedRam[1] + address / 2),
-                    *(g_pEmulatorChangedRam[2] + address / 2));
-        else
-            return 0;
+        if (!g_pEmulatorChangedRam[1] || !g_pEmulatorChangedRam[2]) return 0;
+        return ram_changes::Interleaved(std::span<const uint8_t>(g_pEmulatorChangedRam[1], 65536),
+            std::span<const uint8_t>(g_pEmulatorChangedRam[2], 65536), address);
     default:
         return 0;
     }
@@ -1021,233 +816,15 @@ bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath)
 
 void Emulator_PrepareScreenRGB32(std::span<uint32_t> pixels, std::span<const uint32_t> colors)
 {
-    UKNC_PROFILE_SCOPE("Video decode");
-    if (pixels.size() < UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT || colors.size() < 16 * 8) return;
     if (!g_okEmulatorInitialized) return;
-
-    // Tag parsing loop
-    BYTE cursorYRGB = 0;
-    bool okCursorType = false;
-    BYTE cursorPos = 128;
-    bool cursorOn = false;
-    BYTE cursorAddress = 0;  // Address of graphical cursor
-    WORD address = 0000270;  // Tag sequence start address
-    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
-    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
-    int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
-    uint32_t palette = 0;       // Palette
-    uint32_t palettecurrent[8];  memset(palettecurrent, 0, sizeof(palettecurrent)); // Current palette; update each time we change the "palette" variable
-    BYTE pbpgpr = 0;         // 3-bit Y-value modifier
-    for (int yy = 0; yy < 307; yy++)
-    {
-        if (okTagSize)  // 4-word tag
-        {
-            WORD tag1 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-            WORD tag2 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-
-            if (okTagType)  // 4-word palette tag
-            {
-                palette = MAKELONG(tag1, tag2);
-            }
-            else  // 4-word params tag
-            {
-                scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                pbpgpr = (BYTE)((7 - (tag2 & 7)) << 4);  // Y-value modifier
-                cursorYRGB = (BYTE)(tag1 & 15);  // Cursor color
-                okCursorType = ((tag1 & 16) != 0);  // true - graphical cursor, false - symbolic cursor
-                //ASSERT(okCursorType == 0);  //DEBUG
-                cursorPos = (BYTE)(((tag1 >> 8) >> scale) & 0x7f);  // Cursor position in the line
-                cursorAddress = (BYTE)((tag1 >> 5) & 7);
-                scale = 1 << scale;
-            }
-            for (BYTE c = 0; c < 8; c++)  // Update palettecurrent
-            {
-                BYTE valueYRGB = (BYTE) (palette >> (c << 2)) & 15;
-                palettecurrent[c] = colors[pbpgpr | valueYRGB];
-                //if (pbpgpr != 0) DebugLogFormat(_T("pbpgpr {:02x}\r\n"), pbpgpr | valueYRGB);
-            }
-        }
-
-        WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
-        address += 2;
-
-        // Calculate size, type and address of the next tag
-        WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
-        okTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
-        if (okTagSize)
-        {
-            address = tagB & ~7;
-            okTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-        }
-        else
-            address = tagB & ~3;
-        if ((tagB & 1) != 0)
-            cursorOn = !cursorOn;
-
-        // Draw bits into the bitmap, from line 20 to line 307
-        if (yy < 19 /*|| yy > 306*/)
-            continue;
-
-        // Loop thru bits from addressBits, planes 0,1,2
-        // For each pixel:
-        //   Get bit from planes 0,1,2 and make value
-        //   Map value to palette; result is 4-bit value YRGB
-        //   Translate value to 24-bit RGB
-        //   Put value to m_bits; repeat using scale value
-
-        int xr = 640;
-        int y = yy - 19;
-        uint32_t* pBits = pixels.data() + y * 640;
-        int pos = 0;
-        for (;;)
-        {
-            // Get bit from planes 0,1,2
-            BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
-            BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
-            BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
-            // Loop through the bits of the byte
-            int bit = 0;
-            for (;;)
-            {
-                uint32_t valueRGB;
-                if (cursorOn && (pos == cursorPos) && (!okCursorType || (okCursorType && bit == cursorAddress)))
-                    valueRGB = colors[cursorYRGB];  // 4-bit to 32-bit color
-                else
-                {
-                    // Make 3-bit value from the bits
-                    BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
-                    valueRGB = palettecurrent[value012];  // 3-bit to 32-bit color
-                }
-
-                // Put value to m_bits; repeat using scale value
-                //WAS: for (int s = 0; s < scale; s++) *pBits++ = valueRGB;
-                switch (scale)
-                {
-                case 8:
-                    *pBits++ = valueRGB;
-                    *pBits++ = valueRGB;
-                    *pBits++ = valueRGB;
-                    *pBits++ = valueRGB;
-                case 4:
-                    *pBits++ = valueRGB;
-                    *pBits++ = valueRGB;
-                case 2:
-                    *pBits++ = valueRGB;
-                case 1:
-                    *pBits++ = valueRGB;
-                default:
-                    break;
-                }
-
-                xr -= scale;
-
-                if (bit == 7)
-                    break;
-                bit++;
-
-                // Shift to the next bit
-                src0 >>= 1;
-                src1 >>= 1;
-                src2 >>= 1;
-            }
-            if (xr <= 0)
-                break;  // End of line
-            addressBits++;  // Go to the next byte
-            pos++;
-        }
-    }
+    video::RenderRgb(*g_pBoard, pixels, colors);
 }
 
 void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const uint32_t> colors)
 {
-    if (pixels.size() < UKNC_SCREEN_WIDTH * UKNC_SCREEN_HEIGHT || colors.size() < 8) return;
     if (!g_okEmulatorInitialized) return;
-
-    // Tag parsing loop
-    WORD address = 0000270;  // Tag sequence start address
-    bool okTagSize = false;  // Tag size: TRUE - 4-word, false - 2-word (first tag is always 2-word)
-    bool okTagType = false;  // Type of 4-word tag: TRUE - set palette, false - set params
-    int scale = 1;           // Horizontal scale: 1, 2, 4, or 8
-    for (int yy = 0; yy < 307; yy++)
-    {
-        if (okTagSize)  // 4-word tag
-        {
-            //WORD tag1 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-            WORD tag2 = g_pBoard->GetRAMWord(0, address);
-            address += 2;
-
-            if (okTagType)  // 4-word palette tag
-            {
-                //palette = MAKELONG(tag1, tag2);
-            }
-            else  // 4-word params tag
-            {
-                scale = (tag2 >> 4) & 3;  // Bits 4-5 - new scale value
-                scale = 1 << scale;
-            }
-        }
-
-        WORD addressBits = g_pBoard->GetRAMWord(0, address);  // The word before the last word - is address of bits from all three memory planes
-        address += 2;
-
-        // Calculate size, type and address of the next tag
-        WORD tagB = g_pBoard->GetRAMWord(0, address);  // Last word of the tag - is address and type of the next tag
-        okTagSize = (tagB & 2) != 0;  // Bit 1 shows size of the next tag
-        if (okTagSize)
-        {
-            address = tagB & ~7;
-            okTagType = (tagB & 4) != 0;  // Bit 2 shows type of the next tag
-        }
-        else
-            address = tagB & ~3;
-
-        // Draw bits into the bitmap, from line 20 to line 307
-        if (yy < 19 /*|| yy > 306*/)
-            continue;
-
-        // Loop thru bits from addressBits, planes 0,1,2
-        int xr = 640;
-        int y = yy - 19;
-        uint32_t* pBits = pixels.data() + y * 640;
-        int pos = 0;
-        for (;;)
-        {
-            // Get bit from planes 0,1,2
-            BYTE src0 = g_pBoard->GetRAMByte(0, addressBits);
-            BYTE src1 = g_pBoard->GetRAMByte(1, addressBits);
-            BYTE src2 = g_pBoard->GetRAMByte(2, addressBits);
-            // Loop through the bits of the byte
-            int bit = 0;
-            for (;;)
-            {
-                // Make 3-bit value from the bits
-                BYTE value012 = (src0 & 1) | ((src1 & 1) << 1) | ((src2 & 1) << 2);
-                uint32_t valueRGB = colors[value012];  // 3-bit to 32-bit color
-
-                // Put value to m_bits; (do not repeat using scale value)
-                *pBits++ = valueRGB;
-                xr -= scale;
-
-                if (bit == 7)
-                    break;
-                bit++;
-
-                // Shift to the next bit
-                src0 >>= 1;
-                src1 >>= 1;
-                src2 >>= 1;
-            }
-            if (xr <= 0)
-                break;  // End of line
-            addressBits++;  // Go to the next byte
-            pos++;
-        }
-    }
+    video::RenderText(*g_pBoard, pixels, colors);
 }
-
 
 //////////////////////////////////////////////////////////////////////
 //
@@ -1265,47 +842,13 @@ void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const ui
 
 bool Emulator_SaveImage(LPCTSTR sFilePath)
 {
-    std::vector<uint8_t> image(UKNCIMAGE_SIZE, 0);
-    image::Writer header(std::span{image}.first<20>());
-    header.dword(UKNCIMAGE_HEADER1);
-    header.dword(UKNCIMAGE_HEADER2);
-    header.dword(UKNCIMAGE_VERSION);
-    header.dword(UKNCIMAGE_SIZE);
-    header.dword(m_dwEmulatorUptime);
-    g_pBoard->SaveToImage(std::span<uint8_t, UKNCIMAGE_SIZE>{image});
-
-    UniqueFile fpFile(::_tfsopen(sFilePath, _T("w+b"), _SH_DENYWR));
-    if (fpFile == nullptr)
-        return false;
-    const size_t bytesWritten = ::fwrite(image.data(), 1, image.size(), fpFile.get());
-    const int closeResult = ::fclose(fpFile.release());
-    return bytesWritten == image.size() && closeResult == 0;
+    return snapshot::Save(sFilePath, *g_pBoard, m_dwEmulatorUptime);
 }
 
 bool Emulator_LoadImage(LPCTSTR sFilePath)
 {
-    UniqueFile file(::_tfsopen(sFilePath, _T("rb"), _SH_DENYWR));
-    if (!file)
-        return false;
-    std::vector<uint8_t> image(UKNCIMAGE_SIZE);
-    if (::fread(image.data(), 1, image.size(), file.get()) != image.size())
-        return false;
-
-    image::Reader header(std::span<const uint8_t>{image}.first<20>());
-    if (header.dword() != UKNCIMAGE_HEADER1 || header.dword() != UKNCIMAGE_HEADER2 ||
-        header.dword() != UKNCIMAGE_VERSION || header.dword() != UKNCIMAGE_SIZE)
-        return false;
-    const uint32_t uptime = header.dword();
-
-    // Restore emulator state from the image
-    Emulator_Stop();
-    g_pBoard->Reset();
-    g_pBoard->LoadFromImage(std::span<const uint8_t, UKNCIMAGE_SIZE>{image});
-    Emulator_ClearHistory();
-
-    m_dwEmulatorUptime = uptime;
-    return true;
+    return snapshot::Load(sFilePath, *g_pBoard, m_dwEmulatorUptime,
+                          instructionHistory, Emulator_Stop);
 }
-
 
 //////////////////////////////////////////////////////////////////////

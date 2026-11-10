@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // DisasmView.cpp
 
 #include "stdafx.h"
+#include "Subtitles.h"
 #include <vector>
 #include <memory>
 
@@ -25,21 +26,6 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 //////////////////////////////////////////////////////////////////////
 
-
-enum DisasmSubtitleType
-{
-    SUBTYPE_NONE         = 0,
-    SUBTYPE_COMMENT      = 1,
-    SUBTYPE_BLOCKCOMMENT = 2,
-    SUBTYPE_DATA         = 4,
-};
-
-struct DisasmSubtitleItem
-{
-    uint16_t address;
-    DisasmSubtitleType type;
-    LPCTSTR comment;
-};
 
 enum DisasmLineType
 {
@@ -373,15 +359,6 @@ void DisasmView_UpdateWindowText()
     ::SetWindowText(g_hwndDisasm, buffer);
 }
 
-void DisasmView_AddSubtitle(uint16_t addr, int type, LPCTSTR pCommentText)
-{
-    DisasmSubtitleItem item;
-    item.address = addr;
-    item.type = static_cast<DisasmSubtitleType>(type);
-    item.comment = pCommentText;
-    m_SubtitleItems.push_back(item);
-}
-
 void DisasmView_LoadUnloadSubtitles()
 {
     if (m_okDisasmSubtitles)  // Reset subtitles
@@ -453,116 +430,19 @@ void DisasmView_LoadUnloadSubtitles()
 
 // Parsing the "subtitles" text.
 // Input: text in m_strDisasmSubtitles in UTF-16 LE format, ends with a character with code 0.
-// Output: array of descriptions [memory address, type, comment string address] in m_SubtitleItems.
+// Output: items with memory address, type and owned comment text in m_SubtitleItems.
 BOOL DisasmView_ParseSubtitles()
 {
-    ASSERT(m_strDisasmSubtitles != nullptr);
-    TCHAR* pText = m_strDisasmSubtitles;
-    if (*pText == 0 || *pText == 0xFFFE)  // EOF or Unicode Big Endian
-        return FALSE;
-    if (*pText == 0xFEFF)
-        pText++;  // Skip Unicode LE mark
-
-    m_SubtitleItems.clear();
-    TCHAR* pBlockCommentStart = nullptr;
-
-    for (;;)  // Text reading loop - line by line
-    {
-        // Line starts
-        if (*pText == 0) break;
-        if (*pText == _T('\n') || *pText == _T('\r'))
-        {
-            pText++;
-            continue;
-        }
-
-        if (*pText >= _T('0') && *pText <= _T('9'))  // A digit -- we assume it is an address
-        {
-            // Parse the address
-            TCHAR* pAddrStart = pText;
-            while (*pText != 0 && *pText >= _T('0') && *pText <= _T('9')) pText++;
-            if (*pText == 0) break;
-            const auto parsedAddress = ParseOctalValue(std::basic_string_view<TCHAR>(pAddrStart, pText - pAddrStart));
-            if (!parsedAddress)
-                return FALSE;
-            const uint16_t address = *parsedAddress;
-
-            if (pBlockCommentStart != nullptr)  // The previous line had a block comment
-            {
-                // Save the block comment in the array
-                DisasmView_AddSubtitle(address, SUBTYPE_BLOCKCOMMENT, pBlockCommentStart);
-                pBlockCommentStart = nullptr;
-            }
-
-            // Skip the delimiters
-            while (*pText != 0 &&
-                   (*pText == _T(' ') || *pText == _T('\t') || *pText == _T('$') || *pText == _T(':')))
-                pText++;
-            BOOL okDirective = (*pText == _T('.'));
-
-            // Look for the start of the comment and the end of the line
-            while (*pText != 0 && *pText != _T(';') && *pText != _T('\n') && *pText != _T('\r')) pText++;
-            if (*pText == 0) break;
-            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL, no comment found
-            {
-                pText++;
-
-                if (okDirective)
-                    DisasmView_AddSubtitle(address, SUBTYPE_DATA, nullptr);
-                continue;
-            }
-
-            // Found the start of the comment -- look for the end of the line or the file
-            TCHAR* pCommentStart = pText;
-            while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
-
-            // Save the comment in the array
-            DisasmView_AddSubtitle(address,
-                    (okDirective ? SUBTYPE_COMMENT | SUBTYPE_DATA : SUBTYPE_COMMENT),
-                    pCommentStart);
-
-            if (*pText == 0) break;
-            *pText = 0;  // Mark the end of the comment
-            pText++;
-        }
-        else  // Not a digit -- skip to the end of the line
-        {
-            if (*pText == _T(';'))  // The line starts with a comment -- presumably a block comment
-                pBlockCommentStart = pText;
-            else
-                pBlockCommentStart = nullptr;
-
-            while (*pText != 0 && *pText != _T('\n') && *pText != _T('\r')) pText++;
-            if (*pText == 0) break;
-            if (*pText == _T('\n') || *pText == _T('\r'))  // EOL
-            {
-                *pText = 0;  // Mark the end of the comment -- for a block comment
-                pText++;
-            }
-        }
-    }
-
+    const auto parsed = subtitles::Parse(m_strDisasmSubtitles);
+    if (!parsed) return FALSE;
+    m_SubtitleItems = *parsed;
     return TRUE;
 }
 
 const DisasmSubtitleItem* DisasmView_FindSubtitle(uint16_t address, int typemask)
 {
-    if (m_SubtitleItems.empty())
-        return nullptr;
-
-    const DisasmSubtitleItem* pItem = m_SubtitleItems.data();
-    while (pItem->type != 0)
-    {
-        if (pItem->address > address)
-            return nullptr;
-        if (pItem->address == address && (pItem->type & typemask) != 0)
-            return pItem;
-        ++pItem;
-    }
-
-    return nullptr;
+    return subtitles::Find(m_SubtitleItems, address, typemask);
 }
-
 
 //////////////////////////////////////////////////////////////////////
 
@@ -673,7 +553,7 @@ void DisasmView_OnUpdate()
         {
             // Subtitles - find a comment for a block
             const DisasmSubtitleItem* pSubItem = DisasmView_FindSubtitle(address, SUBTYPE_BLOCKCOMMENT);
-            if (pSubItem != nullptr && pSubItem->comment != nullptr)
+            if (pSubItem != nullptr && !pSubItem->comment.empty())
             {
                 pLineItem->type = LINETYPE_SUBTITLE;
                 pLineItem->pSubItem = pSubItem;
@@ -694,7 +574,7 @@ void DisasmView_OnUpdate()
                 okData = true;
                 pLineItem->type |= LINETYPE_DATA;
             }
-            if (pSubItem != nullptr && (pSubItem->type & SUBTYPE_COMMENT) != 0 && pSubItem->comment != nullptr)
+            if (pSubItem != nullptr && (pSubItem->type & SUBTYPE_COMMENT) != 0 && !pSubItem->comment.empty())
             {
                 pLineItem->type |= LINETYPE_SUBTITLE;
                 pLineItem->pSubItem = pSubItem;
@@ -881,7 +761,7 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
         if ((pLineItem->type & LINETYPE_SUBTITLE) != 0 && (pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) == 0 &&
             pLineItem->pSubItem != nullptr)  // Subtitles - comment for a block
         {
-            LPCTSTR strBlockSubtitle = pLineItem->pSubItem->comment;
+            LPCTSTR strBlockSubtitle = pLineItem->pSubItem->comment.c_str();
 
             ::SetTextColor(hdc, colorSubtitle);
             TextOut(hdc, x + 21 * cxChar, y, strBlockSubtitle, static_cast<int>(_tcslen(strBlockSubtitle)));
@@ -933,7 +813,7 @@ int DisasmView_DrawDisassemble(HDC hdc, const CProcessor* pProc, uint16_t curren
         if ((pLineItem->type & LINETYPE_SUBTITLE) != 0 && (pLineItem->type & (LINETYPE_DATA | LINETYPE_INSTR)) != 0 &&
             pLineItem->pSubItem != nullptr)  // Show subtitle comment for instruction or data
         {
-            LPCTSTR strComment = pLineItem->pSubItem->comment;
+            LPCTSTR strComment = pLineItem->pSubItem->comment.c_str();
             if (strComment != nullptr)
             {
                 ::SetTextColor(hdc, colorSubtitle);

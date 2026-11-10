@@ -66,7 +66,7 @@ LRESULT CALLBACK ScreenViewWndProc(HWND, UINT, WPARAM, LPARAM);
 LPCTSTR ScreenView_GetScreenshotModeName(int screenshotMode);
 BOOL ScreenView_SaveScreenshot(LPCTSTR sFileName, int screenshotMode);
 HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode);
-BOOL ScreenView_ScreenToText(uint8_t* buffer);
+BOOL ScreenView_ScreenToText(std::span<uint8_t> buffer);
 void ScreenView_KeyEvent(BYTE keyscan, BOOL pressed);
 
 

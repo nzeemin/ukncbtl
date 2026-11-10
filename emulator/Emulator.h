@@ -13,11 +13,13 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "emubase/Board.h"
+#include "BreakpointSet.h"
+#include "InstructionHistory.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
-const int MAX_BREAKPOINTCOUNT = 16;
+const int MAX_BREAKPOINTCOUNT = static_cast<int>(BreakpointSet::Capacity);
 
 extern CMotherboard* g_pBoard;
 
@@ -70,18 +72,6 @@ void Emulator_PrepareScreenToText(std::span<uint32_t> pixels, std::span<const ui
 bool Emulator_LoadROMCartridge(int slot, LPCTSTR sFilePath);
 
 // Instruction history, recorded always for both CPU and PPU
-const int INSTR_HISTORY_SIZE = 256;  // Must be a power of two
-
-// A record is either an executed instruction or an interrupt taken by the processor
-struct InstructionRecord
-{
-    uint16_t pc;        // Instruction: its address; interrupt: PC where the interrupt appeared
-    uint16_t words[3];  // Instruction: opcode and two next words, the instruction is at most 3 words long;
-    // interrupt: vector, new PC, new PSW
-    uint16_t psw;       // Instruction: PSW before it; interrupt: new PSW; bit 0400 = HALT mode
-    bool     interrupt; // true = interrupt record
-};
-
 int Emulator_GetHistoryLength(bool okCpuPpu);  // okCpuPpu: true = CPU, false = PPU
 const InstructionRecord& Emulator_GetHistoryRecord(bool okCpuPpu, int index);  // index 0 = most recent
 void Emulator_ClearHistory();

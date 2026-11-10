@@ -13,12 +13,16 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "stdafx.h"
 #include "Main.h"
 #include <vector>
+#include <algorithm>
+#include <climits>
+#include "util/SettingsCodec.h"
 
 //////////////////////////////////////////////////////////////////////
 
 
 const TCHAR m_Settings_IniAppName[] = _T("UKNCBTL");
-TCHAR m_Settings_IniPath[MAX_PATH];
+static std::basic_string<TCHAR> m_Settings_IniPath;
+static void Settings_ResetCaches();
 
 DCB  m_Settings_SerialConfig;
 DCB  m_Settings_NetComConfig;
@@ -33,15 +37,20 @@ int Option_AutoBoot = 0;
 //////////////////////////////////////////////////////////////////////
 
 
-void Settings_Init()
+void Settings_Init(LPCTSTR iniPath)
 {
-    // Prepare m_Settings_IniPath: get .exe file path and change extension to .ini
-    ::GetModuleFileName(GetModuleHandle(nullptr), m_Settings_IniPath, MAX_PATH);
-    TCHAR* pExt = m_Settings_IniPath + _tcslen(m_Settings_IniPath) - 3;
-    *pExt++ = _T('i');
-    *pExt++ = _T('n');
-    *pExt++ = _T('i');
-
+    Settings_ResetCaches();
+    if (iniPath)
+        m_Settings_IniPath = iniPath;
+    else
+    {
+        TCHAR executable[MAX_PATH]{};
+        ::GetModuleFileName(GetModuleHandle(nullptr), executable, MAX_PATH);
+        m_Settings_IniPath = executable;
+        const auto extension = m_Settings_IniPath.find_last_of(_T('.'));
+        if (extension != std::basic_string<TCHAR>::npos) m_Settings_IniPath.resize(extension);
+        m_Settings_IniPath += _T(".ini");
+    }
     // Set m_Settings_SerialConfig defaults
     ::memset(&m_Settings_SerialConfig, 0, sizeof(DCB));
     m_Settings_SerialConfig.DCBlength = sizeof(DCB);
@@ -87,16 +96,23 @@ void Settings_Done()
 BOOL Settings_SaveStringValue(LPCTSTR sName, LPCTSTR sValue)
 {
     BOOL result = WritePrivateProfileString(
-            m_Settings_IniAppName, sName, sValue, m_Settings_IniPath);
+            m_Settings_IniAppName, sName, sValue, m_Settings_IniPath.c_str());
     return result;
 }
 BOOL Settings_LoadStringValue(LPCTSTR sName, LPTSTR sBuffer, int nBufferLengthChars)
 {
-    DWORD result = GetPrivateProfileString(
-            m_Settings_IniAppName, sName, nullptr, sBuffer, nBufferLengthChars, m_Settings_IniPath);
-    if (result > 0)
+    if (!sBuffer || nBufferLengthChars <= 0) return FALSE;
+    // Probe one character beyond the destination so an exact fit is distinct
+    // from a truncated value. Never expose a valid-looking truncated prefix.
+    std::vector<TCHAR> text(static_cast<size_t>(nBufferLengthChars) + 1, 0);
+    const DWORD result = GetPrivateProfileString(
+        m_Settings_IniAppName, sName, nullptr, text.data(),
+        static_cast<DWORD>(text.size()), m_Settings_IniPath.c_str());
+    if (result > 0 && result < static_cast<DWORD>(nBufferLengthChars))
+    {
+        std::copy_n(text.data(), result + 1, sBuffer);
         return TRUE;
-
+    }
     sBuffer[0] = _T('\0');
     return FALSE;
 }
@@ -110,109 +126,47 @@ BOOL Settings_SaveDwordValue(LPCTSTR sName, DWORD dwValue)
 }
 BOOL Settings_LoadDwordValue(LPCTSTR sName, DWORD* dwValue)
 {
-    TCHAR buffer[12];
-    if (!Settings_LoadStringValue(sName, buffer, 12))
-        return FALSE;
-
-    int result = _stscanf(buffer, _T("%lu"), dwValue);
-    if (result == 0)
-        return FALSE;
-
+    if (!dwValue) return FALSE;
+    TCHAR buffer[64];
+    if (!Settings_LoadStringValue(sName, buffer, 64)) return FALSE;
+    const auto value = settings_codec::DecodeDword(buffer);
+    if (!value) return FALSE;
+    *dwValue = *value;
     return TRUE;
 }
-
 BOOL Settings_SaveColorValue(LPCTSTR sName, COLORREF color)
 {
-    // 00BBGGRR -> 00RRGGBB conversion
-    DWORD dwValue = ((color & 0x0000ff) << 16) | (color & 0x00ff00) | ((color & 0xff0000) >> 16);
-
-    TCHAR buffer[12];
-    FormatBuffer(buffer, _T("{:06X}"), dwValue);
-
-    return Settings_SaveStringValue(sName, buffer);
+    const auto text = settings_codec::EncodeColor(color);
+    return Settings_SaveStringValue(sName, text.c_str());
 }
 BOOL Settings_LoadColorValue(LPCTSTR sName, COLORREF* pColor)
 {
-    TCHAR buffer[12];
-    if (!Settings_LoadStringValue(sName, buffer, 12))
-        return FALSE;
-
-    DWORD dwValue = 0;
-    int result = _stscanf(buffer, _T("%lX"), &dwValue);
-    if (result != 1)
-        return FALSE;
-
-    // 00RRGGBB -> 00BBGGRR conversion
-    *pColor = ((dwValue & 0x0000ff) << 16) | (dwValue & 0x00ff00) | ((dwValue & 0xff0000) >> 16);
-
+    if (!pColor) return FALSE;
+    TCHAR buffer[64];
+    if (!Settings_LoadStringValue(sName, buffer, 64)) return FALSE;
+    const auto color = settings_codec::DecodeColor(buffer);
+    if (!color) return FALSE;
+    *pColor = *color;
     return TRUE;
 }
 
-
-BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void * pData, int size)
+BOOL Settings_SaveBinaryValue(LPCTSTR sName, const void* pData, int size)
 {
-    if (size < 0 || (size > 0 && pData == nullptr))
-        return FALSE;
-    std::vector<TCHAR> buffer(static_cast<size_t>(size) * 2 + 1, 0);
-    const BYTE* p = static_cast<const BYTE*>(pData);
-    TCHAR* buf = buffer.data();
-    for (int i = 0; i < size; i++)
-    {
-        int a = *p;
-        FormatBuffer(std::span{buf, size_t{3}}, _T("{:02X}"), a);
-        p++;
-        buf += 2;
-    }
-
-    return Settings_SaveStringValue(sName, buffer.data());
+    if (size < 0 || (size > 0 && !pData)) return FALSE;
+    const auto text = settings_codec::EncodeBinary(
+        std::span{static_cast<const uint8_t*>(pData), static_cast<size_t>(size)});
+    return Settings_SaveStringValue(sName, text.c_str());
 }
 
-BOOL Settings_LoadBinaryValue(LPCTSTR sName, void * pData, int size)
+BOOL Settings_LoadBinaryValue(LPCTSTR sName, void* pData, int size)
 {
-    if (size < 0 || (size > 0 && pData == nullptr))
-        return FALSE;
-    size_t buffersize = static_cast<size_t>(size) * 2 + 1;
-    std::vector<TCHAR> buffer(buffersize, 0);
-    if (!Settings_LoadStringValue(sName, buffer.data(), buffersize))
-        return FALSE;
-
-    BYTE* p = static_cast<BYTE*>(pData);
-    const TCHAR* buf = buffer.data();
-    for (int i = 0; i < size; i++)
-    {
-        BYTE v = 0;
-
-        TCHAR ch = *buf;
-        if (ch >= _T('0') && ch <= _T('9'))
-            v = static_cast<BYTE>(ch - _T('0'));
-        else if (ch >= _T('A') && ch <= _T('F'))
-            v = static_cast<BYTE>(ch - _T('A') + 10);
-        else  // Not hex
-        {
-            return FALSE;
-        }
-        buf++;
-
-        v = v << 4;
-
-        ch = *buf;
-        if (ch >= _T('0') && ch <= _T('9'))
-            v |= static_cast<BYTE>(ch - _T('0'));
-        else if (ch >= _T('A') && ch <= _T('F'))
-            v |= static_cast<BYTE>(ch - _T('A') + 10);
-        else  // Not hex
-        {
-            return FALSE;
-        }
-        buf++;
-
-        *p = v;
-        p++;
-    }
-
-    return TRUE;
+    if (size < 0 || (size > 0 && !pData) || size > (INT_MAX - 2) / 2) return FALSE;
+    // One extra character detects a value longer than the requested object.
+    std::vector<TCHAR> buffer(static_cast<size_t>(size) * 2 + 2, 0);
+    if (!Settings_LoadStringValue(sName, buffer.data(), static_cast<int>(buffer.size()))) return FALSE;
+    return settings_codec::DecodeBinary(buffer.data(),
+        std::span{static_cast<uint8_t*>(pData), static_cast<size_t>(size)});
 }
-
 
 //////////////////////////////////////////////////////////////////////
 
@@ -548,3 +502,40 @@ COLORREF Settings_GetDefaultColor(ColorIndices colorIndex)
 
 
 //////////////////////////////////////////////////////////////////////
+
+static void Settings_ResetCaches()
+{
+    m_Settings_WindowMaximized_Valid = FALSE;
+    m_Settings_WindowFullscreen_Valid = FALSE;
+    m_Settings_ScreenViewMode_Valid = FALSE;
+    m_Settings_ScreenHeightMode_Valid = FALSE;
+    m_Settings_ScreenshotMode_Valid = FALSE;
+    m_Settings_Toolbar_Valid = FALSE;
+    m_Settings_Debug_Valid = FALSE;
+    m_Settings_DebugCpuPpu_Valid = FALSE;
+    m_Settings_DebugMemoryMode_Valid = FALSE;
+    m_Settings_DebugMemoryAddress_Valid = FALSE;
+    m_Settings_DebugMemoryBase_Valid = FALSE;
+    m_Settings_DebugMemoryByte_Valid = FALSE;
+    m_Settings_DebugMemoryNumeral_Valid = FALSE;
+    m_Settings_Autostart_Valid = FALSE;
+    m_Settings_RealSpeed_Valid = FALSE;
+    m_Settings_Sound_Valid = FALSE;
+    m_Settings_SoundVolume_Valid = FALSE;
+    m_Settings_SoundAY_Valid = FALSE;
+    m_Settings_SoundCovox_Valid = FALSE;
+    m_Settings_Mouse_Valid = FALSE;
+    m_Settings_Keyboard_Valid = FALSE;
+    m_Settings_Tape_Valid = FALSE;
+    m_Settings_InstrHistory_Valid = FALSE;
+    m_Settings_Serial_Valid = FALSE;
+    m_Settings_Parallel_Valid = FALSE;
+    m_Settings_Network_Valid = FALSE;
+    m_Settings_NetStation_Valid = FALSE;
+    m_Settings_SpriteAddress_Valid = FALSE;
+    m_Settings_SpriteWidth_Valid = FALSE;
+    m_Settings_SpriteMode_Valid = FALSE;
+    m_Settings_SerialConfig_Valid = FALSE;
+    m_Settings_NetComConfig_Valid = FALSE;
+    for (auto& color : ColorDescriptors) color.valid = FALSE;
+}

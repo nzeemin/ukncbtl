@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // SpriteView.cpp
 
 #include "stdafx.h"
+#include "SpriteDecoder.h"
 #include <windowsx.h>
 #include <Vfw.h>
 #include "Main.h"
@@ -30,7 +31,7 @@ HWND m_hwndSpriteViewer = (HWND)INVALID_HANDLE_VALUE;
 HDRAWDIB m_hSpriteDrawDib = nullptr;
 BITMAPINFO m_bmpinfoSprite;
 HBITMAP m_hSpriteBitmap = nullptr;
-DWORD * m_pSprite_bits = nullptr;
+uint32_t* m_pSprite_bits = nullptr;
 
 const int m_nSprite_scale = 2;
 const int m_nSprite_ImageCX = 262;
@@ -54,14 +55,7 @@ static LPCTSTR SpriteModeNames[] =
     _T("Red and Green on Black"),
     _T("Magenta and Cyan on Blue")
 };
-static DWORD SpriteModePalettes[][3] =
-{
-    { 0x000000, 0xFFFFFF, 0x000000 },
-    { 0x000000, 0x00FF00, 0xFF0000 },
-    { 0x0000FF, 0x00FFFF, 0xFF00FF },
-    { 0x000000, 0xFF0000, 0x00FF00 },
-    { 0x0000FF, 0xFF00FF, 0x00FFFF },
-};
+
 
 void SpriteView_OnRButtonDown(int mousex, int mousey);
 BOOL SpriteView_OnKeyDown(WPARAM vkey, LPARAM lParam);
@@ -397,18 +391,8 @@ BOOL SpriteView_OnVScroll(WPARAM wParam, LPARAM /*lParam*/)
 
 void SpriteView_UpdateScrollPos()
 {
-    int columns = 0;
-    int cx = m_nSprite_ImageCX;
-    while (cx > m_nSprite_width * 8)
-    {
-        columns++;
-        cx -= m_nSprite_width * 8;
-        if (cx <= 2)
-            break;
-        cx -= 2;
-    }
     int stepSizeBytes = ((m_nSprite_Mode == 0) ? 1 : 2);
-    m_nSprite_PageSizeBytes = m_nSprite_ImageCY * columns * m_nSprite_width * stepSizeBytes;
+    m_nSprite_PageSizeBytes = sprite::PageBytes(m_nSprite_width, m_nSprite_Mode);
 
     SCROLLINFO si;
     ZeroMemory(&si, sizeof(si));
@@ -444,62 +428,11 @@ void SpriteView_OnDraw(HDC hdc)
 
 void SpriteView_PrepareBitmap()
 {
-    // Clear bitmap
-    memset(m_pSprite_bits, 0x7f, m_nSprite_ImageCX * m_nSprite_ImageCY * 4);
-
-    WORD address = m_wSprite_BaseAddress;
-
-    for (int x = 0; x + m_nSprite_width * 8 <= m_nSprite_ImageCX; x += m_nSprite_width * 8 + 2)
-    {
-        for (int y = 0; y < m_nSprite_ImageCY; y++)
-        {
-            DWORD* pBits = m_pSprite_bits + (m_nSprite_ImageCY - 1 - y) * m_nSprite_ImageCX + x;
-
-            bool okHalt = g_pBoard->GetCPU()->IsHaltMode();
-            for (int w = 0; w < m_nSprite_width; w++)
-            {
-                if (m_nSprite_Mode == 0)
-                {
-                    // Get byte from memory -- CPU memory only for now
-                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
-                    if (address & 1)
-                        value = value >> 8;
-                    ++address;
-
-                    for (int i = 0; i < 8; ++i)
-                    {
-                        COLORREF color = (value & 1) ? 0xffffff : 0;
-                        *pBits = color;
-                        pBits++;
-                        value = value >> 1;
-                    }
-                }
-                else
-                {
-                    WORD value = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
-                    if (address & 1)
-                        value = value >> 8;
-                    ++address;
-                    WORD value1 = g_pBoard->GetCPUMemoryController()->GetWordView(address & ~1, okHalt, false).value;
-                    if (address & 1)
-                        value1 = value1 >> 8;
-                    ++address;
-
-                    DWORD background = SpriteModePalettes[m_nSprite_Mode][0];
-                    for (int i = 0; i < 8; ++i)
-                    {
-                        COLORREF color = background;
-                        color |= (value & 1) ? SpriteModePalettes[m_nSprite_Mode][1] : 0;
-                        color |= (value1 & 1) ? SpriteModePalettes[m_nSprite_Mode][2] : 0;
-                        *pBits = color;
-                        pBits++;
-                        value = value >> 1;
-                        value1 = value1 >> 1;
-                    }
-                }
-            }
-        }
-    }
+    const bool halt = g_pBoard->GetCPU()->IsHaltMode();
+    sprite::Decode(std::span<uint32_t>(m_pSprite_bits, sprite::Width * sprite::Height),
+        m_wSprite_BaseAddress, m_nSprite_width, m_nSprite_Mode, [halt](uint16_t address) {
+            return g_pBoard->GetCPUMemoryController()->GetWordView(address, halt, false).value;
+        });
 }
 
 

@@ -59,21 +59,29 @@ if(UKNCBTL_ENABLE_TRACY)
 endif()
 target_link_libraries(EmulatorCore PUBLIC EmulatorProfiling)
 
+add_library(EmulatorSnapshot STATIC emulator/Snapshot.cpp)
+ukncbtl_target(EmulatorSnapshot)
+target_link_libraries(EmulatorSnapshot PUBLIC EmulatorCore)
+
+add_library(VideoDecoder STATIC emulator/VideoDecoder.cpp)
+ukncbtl_target(VideoDecoder)
+target_link_libraries(VideoDecoder PUBLIC EmulatorCore)
+
 add_library(ScreenScale STATIC emulator/util/ScreenScale.cpp)
 ukncbtl_target(ScreenScale)
 target_link_libraries(ScreenScale PUBLIC EmulatorProfiling)
 
 add_executable(UKNCBTL WIN32
-  emulator/Common.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
-  emulator/Dialogs.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
+  emulator/Common.cpp emulator/util/CommonText.cpp emulator/ConsoleView.cpp emulator/DebugView.cpp
+  emulator/Dialogs.cpp emulator/DiskImage.cpp emulator/DisasmView.cpp emulator/InstrHistoryView.cpp
   emulator/DisplayListView.cpp emulator/Emulator.cpp emulator/KeyboardView.cpp
   emulator/Main.cpp emulator/MainWindow.cpp emulator/MemoryView.cpp
-  emulator/ScreenView.cpp emulator/Settings.cpp emulator/SoundGen.cpp
-  emulator/SpriteView.cpp emulator/TapeView.cpp emulator/ToolWindow.cpp
+  emulator/ScreenView.cpp emulator/ScreenText.cpp emulator/Subtitles.cpp emulator/Input.cpp emulator/Settings.cpp emulator/SoundGen.cpp
+  emulator/SpriteView.cpp emulator/ViewCalculations.cpp emulator/TapeView.cpp emulator/ToolWindow.cpp
   emulator/util/BitmapFile.cpp emulator/util/WavPcmFile.cpp emulator/res/UKNCBTL.rc)
 ukncbtl_target(UKNCBTL)
 target_include_directories(UKNCBTL PRIVATE emulator/res)
-target_link_libraries(UKNCBTL PRIVATE EmulatorCore ScreenScale vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
+target_link_libraries(UKNCBTL PRIVATE EmulatorCore EmulatorSnapshot VideoDecoder ScreenScale vfw32 comctl32 winmm advapi32 shell32 windowscodecs)
 target_link_options(UKNCBTL PRIVATE "LINKER:/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='amd64' publicKeyToken='6595b64144ccf1df' language='*'")
 
 # The default renderer is loaded dynamically, so it must be built alongside the
@@ -96,16 +104,55 @@ if(BUILD_TESTING)
 
   ukncbtl_test(CpuOverflowTests tests/CpuOverflowTests.cpp)
   target_link_libraries(CpuOverflowTests PRIVATE CpuOverflow)
+  ukncbtl_test(BreakpointTests tests/BreakpointTests.cpp)
+  ukncbtl_test(InstructionHistoryTests tests/InstructionHistoryTests.cpp)
+  ukncbtl_test(SerializationTests tests/SerializationTests.cpp)
+  ukncbtl_test(SnapshotTests tests/SnapshotTests.cpp)
+  target_link_libraries(SnapshotTests PRIVATE EmulatorSnapshot)
+  ukncbtl_test(VideoDecoderTests tests/VideoDecoderTests.cpp)
+  target_link_libraries(VideoDecoderTests PRIVATE VideoDecoder)
+  ukncbtl_test(CommandTests tests/CommandTests.cpp)
+  target_link_libraries(CommandTests PRIVATE shell32)
+  ukncbtl_test(ConsoleProductTests tests/ConsoleProductTests.cpp)
+  target_compile_definitions(ConsoleProductTests PRIVATE PRODUCT)
+  set_target_properties(ConsoleProductTests PROPERTIES DISABLE_PRECOMPILE_HEADERS ON)
+  ukncbtl_test(SettingsTests tests/SettingsTests.cpp emulator/Settings.cpp)
+  ukncbtl_test(CommonTextTests tests/CommonTextTests.cpp emulator/util/CommonText.cpp)
+  ukncbtl_test(SpriteTests tests/SpriteTests.cpp)
+  ukncbtl_test(ViewCalculationTests tests/ViewCalculationTests.cpp emulator/ViewCalculations.cpp)
+  ukncbtl_test(SubtitleTests tests/SubtitleTests.cpp emulator/Subtitles.cpp)
+  ukncbtl_test(ScreenTextTests tests/ScreenTextTests.cpp emulator/ScreenText.cpp)
+  ukncbtl_test(InputTests tests/InputTests.cpp emulator/Input.cpp)
   ukncbtl_test(TextFormatTests tests/TextFormatTests.cpp)
   ukncbtl_test(ScreenScaleTests tests/ScreenScaleTests.cpp)
   target_link_libraries(ScreenScaleTests PRIVATE ScreenScale)
-  ukncbtl_test(BitmapFileTests tests/BitmapFileTests.cpp emulator/util/BitmapFile.cpp)
+  ukncbtl_test(ImageScaleEdgeTests tests/ImageScaleEdgeTests.cpp third_party/RenderVfw/RenderVfw.cpp)
+  target_link_libraries(ImageScaleEdgeTests PRIVATE ScreenScale vfw32)
+  ukncbtl_test(BitmapFileTests tests/BitmapFileTests.cpp emulator/util/BitmapFile.cpp tests/BitmapTestResources.rc)
+  target_include_directories(BitmapFileTests PRIVATE tests)
   target_link_libraries(BitmapFileTests PRIVATE windowscodecs)
+  ukncbtl_test(BoardFrameTests tests/BoardFrameTests.cpp)
+  target_link_libraries(BoardFrameTests PRIVATE EmulatorCore)
+  ukncbtl_test(StorageControllerTests tests/StorageControllerTests.cpp)
+  target_link_libraries(StorageControllerTests PRIVATE EmulatorCore)
+  ukncbtl_test(SoundAYEdgeTests tests/SoundAYEdgeTests.cpp)
+  target_link_libraries(SoundAYEdgeTests PRIVATE EmulatorCore)
+  ukncbtl_test(MemoryEdgeTests tests/MemoryEdgeTests.cpp)
+  target_link_libraries(MemoryEdgeTests PRIVATE EmulatorCore)
+  ukncbtl_test(RamChangeTests tests/RamChangeTests.cpp)
+  ukncbtl_test(ProcessorEdgeTests tests/ProcessorEdgeTests.cpp)
+  target_link_libraries(ProcessorEdgeTests PRIVATE EmulatorCore)
+  ukncbtl_test(DiskImageTests tests/DiskImageTests.cpp emulator/DiskImage.cpp)
+  ukncbtl_test(SoundOutputTests tests/SoundOutputTests.cpp emulator/SoundGen.cpp)
+  target_link_libraries(SoundOutputTests PRIVATE winmm EmulatorProfiling)
+  ukncbtl_test(TapeTests tests/TapeTests.cpp)
   ukncbtl_test(WavPcmFileTests tests/WavPcmFileTests.cpp emulator/util/WavPcmFile.cpp)
   ukncbtl_test(CoreSmokeTests tests/CoreSmokeTests.cpp)
   target_link_libraries(CoreSmokeTests PRIVATE EmulatorCore)
   ukncbtl_test(DisasmCorpusTests tests/DisasmCorpusTests.cpp)
   target_link_libraries(DisasmCorpusTests PRIVATE EmulatorCore)
+  ukncbtl_test(DisasmEdgeTests tests/DisasmEdgeTests.cpp)
+  target_link_libraries(DisasmEdgeTests PRIVATE EmulatorCore)
 
   # Preserve the Microsoft test sources while registering each case with GoogleTest.
   # New tests can use native TEST/TEST_F/TEST_P macros directly.

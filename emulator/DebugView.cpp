@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // DebugView.cpp
 
 #include "stdafx.h"
+#include "ViewCalculations.h"
 #include <windowsx.h>
 #include <CommCtrl.h>
 #include "Main.h"
@@ -411,7 +412,7 @@ DebugCtrlHitTest DebugView_BaseHitTest(int /*x*/, int y)
     DebugCtrlHitTest hit;
     hit.isValid = false;
     hit.address = hit.value = 0;
-    hit.line = (y - m_cyDebugLine / 2) / m_cyDebugLine;
+    hit.line = view_calc::DebugLine(y, m_cyDebugLine);
 
     m_DebugLastHitTest = hit;
     return hit;
@@ -600,7 +601,7 @@ void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WOR
 DebugCtrlHitTest DebugProcView_HitTest(int x, int y)
 {
     DebugCtrlHitTest hit = DebugView_BaseHitTest(x, y);
-    if (hit.line < 0 || hit.line == 9 || hit.line > 11)
+    if (!view_calc::IsRegisterLine(hit.line))
         return hit;  // Invalid line number
     hit.isValid = true;
 
