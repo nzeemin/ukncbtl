@@ -148,6 +148,8 @@ if(BUILD_TESTING)
   target_link_libraries(CoreSmokeTests PRIVATE EmulatorCore)
   ukncbtl_test(DisasmCorpusTests tests/DisasmCorpusTests.cpp)
   target_link_libraries(DisasmCorpusTests PRIVATE EmulatorCore)
+  ukncbtl_test(DisasmEdgeTests tests/DisasmEdgeTests.cpp)
+  target_link_libraries(DisasmEdgeTests PRIVATE EmulatorCore)
 
   # Preserve the Microsoft test sources while registering each case with GoogleTest.
   # New tests can use native TEST/TEST_F/TEST_P macros directly.

@@ -23,7 +23,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Complete: 24 GoogleTest cases |
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Complete: 29 GoogleTest cases |
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Complete: 90 GoogleTest cases |
-| 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Pending |
+| 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Complete: 34 GoogleTest cases |
 | 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Pending |
 | 21. Test infrastructure | Legacy assertion adapter cases; split remaining monolithic RegressionChecks cases | Pending |
 
@@ -450,3 +450,24 @@ Validation: full Release build and all 1,015 Release CTest cases pass (90 new).
 Tests cover deterministic samples and state continuity, not physical-chip timing
 or audible quality. Span tests extend to 65,537 bytes; allocations near the signed
 counter limit are not exercised. Disassembly remains Area 19.
+
+## Area 19 implementation
+
+`DisasmEdgeTests` adds 34 cases alongside the existing corpus hashes. For all
+65,536 opcodes, one- and two-word spans must match explicit zero padding, and
+five-word spans must ignore words beyond the instruction buffer. The same checks
+cover combined, instruction and jump hints. Empty input returns no instruction,
+arrow or hint. A separate sweep verifies that hint queries preserve saved machine
+state and respect the three-line output limit.
+
+Direct semantic checks cover all 15 branches, all 256 signed offsets at four
+addresses, and all 16 condition-code combinations. Twelve two-operand instruction
+families exercise all 64 PC addressing-mode pairs across the 16-bit address wrap,
+checking exact operand text, extension order and instruction length. SOB checks
+every register/offset combination; jump-arrow tests reject missing extensions and
+odd targets.
+
+Validation: full Release build and all 1,049 Release CTest cases pass (34 new).
+No production disassembler changes were needed. These tests supplement existing
+instruction/hint cases and corpus hashes; they do not claim exhaustive semantic
+coverage of every instruction. Images and scaling remain Area 20.
