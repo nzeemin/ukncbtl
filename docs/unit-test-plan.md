@@ -22,7 +22,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Complete: 26 GoogleTest cases |
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Complete: 24 GoogleTest cases |
 | 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Complete: 29 GoogleTest cases |
-| 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Pending |
+| 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Complete: 90 GoogleTest cases |
 | 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Pending |
 | 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Pending |
 | 21. Test infrastructure | Legacy assertion adapter cases; split remaining monolithic RegressionChecks cases | Pending |
@@ -429,3 +429,24 @@ Validation: full Release build and all 925 Release CTest cases pass (29 new).
 Failure injection exercises stream write rejection, not physical disk-full or
 device faults. Existing CRC stubs and unsupported ATA commands are unchanged;
 these tests do not establish hardware protocol conformance.
+
+## Area 18 implementation
+
+`SoundAYEdgeTests` adds 90 cases. All 64 mixer masks compare one continuous render
+with variable-sized callbacks, then enable every channel and compare the resulting
+phase. All 16 envelope shapes are restarted after a long render and compared with
+a freshly configured chip. Additional tests cover empty spans, one-byte/odd/large
+spans and guards, not-ready silence, every byte value for all 16 register masks,
+zero/one tone and noise periods, reset determinism, muted-channel phase, register
+changes between renders, constant disabled-channel output and audio-neutral ports.
+
+The continuity tests exposed callback-size-dependent phase in disabled/muted tone
+channels and disabled noise. Their counter compensation was conditional on expiry,
+so smaller callbacks could consume part of a counter while larger ones preserved
+it. Compensation now consistently preserves these counters during each callback.
+The existing convention of suspending disabled/muted generators is retained.
+
+Validation: full Release build and all 1,015 Release CTest cases pass (90 new).
+Tests cover deterministic samples and state continuity, not physical-chip timing
+or audible quality. Span tests extend to 65,537 bytes; allocations near the signed
+counter limit are not exercised. Disassembly remains Area 19.

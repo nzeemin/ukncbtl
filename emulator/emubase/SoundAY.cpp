@@ -243,14 +243,15 @@ void CSoundAY::RenderChunk(std::span<uint8_t> stream)
     /* is 1, not 0, and can be modulated changing the volume. */
 
 
-    /* If the channels are disabled, set their output to 1, and increase the */
-    /* counter, if necessary, so they will not be inverted during this update. */
+    /* If the channels are disabled, set their output to 1 and preserve their */
+    /* counter for this update. Always compensate for the elapsed ticks: doing */
+    /* so only near expiry makes the saved phase depend on callback size. */
     /* Setting the output to 1 is necessary because a disabled channel is locked */
     /* into the ON state (see above); and it has no effect if the volume is 0. */
     /* If the volume is 0, increase the counter, but don't touch the output. */
     if (this->Regs[AY_ENABLE] & 0x01)
     {
-        if (this->CountA <= updateTicks) this->CountA += updateTicks;
+        this->CountA += updateTicks;
         this->OutputA = 1;
     }
     else if (this->Regs[AY_AVOL] == 0)
@@ -258,31 +259,31 @@ void CSoundAY::RenderChunk(std::span<uint8_t> stream)
         /* note that I do count += length, NOT count = length + 1. You might think */
         /* it's the same since the volume is 0, but doing the latter could cause */
         /* interferencies when the program is rapidly modulating the volume. */
-        if (this->CountA <= updateTicks) this->CountA += updateTicks;
+        this->CountA += updateTicks;
     }
     if (this->Regs[AY_ENABLE] & 0x02)
     {
-        if (this->CountB <= updateTicks) this->CountB += updateTicks;
+        this->CountB += updateTicks;
         this->OutputB = 1;
     }
     else if (this->Regs[AY_BVOL] == 0)
     {
-        if (this->CountB <= updateTicks) this->CountB += updateTicks;
+        this->CountB += updateTicks;
     }
     if (this->Regs[AY_ENABLE] & 0x04)
     {
-        if (this->CountC <= updateTicks) this->CountC += updateTicks;
+        this->CountC += updateTicks;
         this->OutputC = 1;
     }
     else if (this->Regs[AY_CVOL] == 0)
     {
-        if (this->CountC <= updateTicks) this->CountC += updateTicks;
+        this->CountC += updateTicks;
     }
 
     /* for the noise channel we must not touch OutputN - it's also not necessary */
     /* since we use outn. */
     if ((this->Regs[AY_ENABLE] & 0x38) == 0x38) /* all off */
-        if (this->CountN <= updateTicks) this->CountN += updateTicks;
+        this->CountN += updateTicks;
 
     outn = (this->OutputN | this->Regs[AY_ENABLE]);
 
