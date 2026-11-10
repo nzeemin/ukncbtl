@@ -15,7 +15,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 8. Input | Keyboard queue, mappings, press/release, keyboard hit testing and mouse calculations | Complete: 23 GoogleTest cases |
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Complete: 26 GoogleTest cases |
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Complete: 18 GoogleTest cases |
-| 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Pending |
+| 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Complete: 45 GoogleTest cases |
 | 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Pending |
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Pending |
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Pending |
@@ -257,3 +257,28 @@ Validation: Release application, SpriteTests and ViewCalculationTests build;
 all 711 Release CTest cases pass (18 new). Tests exercise shared calculations and
 synthetic sprite memory. Window painting, font measurement, scrollbar messaging
 and the live CPU memory-controller mapping remain integration concerns.
+## Area 11 implementation
+
+`TapeTransport.h` shares insertion/play/stop/eject state, batched sample processing,
+graph updates and position calculations with TapeView. Thirteen cases cover both
+transport modes, repeat transitions, zero-sized and oversized batches, exact EOF,
+partial EOF, read/write errors, threshold/last-sample semantics, graph continuity,
+empty graph spans, time conversion and position-update thresholds/rewind.
+The graph now scrolls by the number of successfully processed samples rather than
+the requested count, preserving recent history on early EOF or I/O failure.
+Injected stream failures exercise the same batch functions used by WAV callbacks.
+
+The former combined WAV RegressionChecks case is replaced by 32 named cases.
+They cover 8/16/32-bit PCM signed boundaries and little endian data, mono/stereo/
+four-channel input (first channel used), high rates, seeking/rewinding, every
+truncated fixture prefix, malformed fields/chunks, missing/duplicate/out-of-order
+chunks, unknown odd chunks, extended formats, trailing bytes, empty and legacy
+unpadded data, invalid arguments, open failure, recording overwrite/append,
+move ownership, destructor finalization, wrong-mode/closed operations, idempotent
+close, physical file sizes and odd-byte padding. Files use isolated temporary paths.
+
+Validation: Release application, TapeTests and WavPcmFileTests build; all 755
+Release CTest cases pass (45 area cases replacing one prior combined case, net 44).
+No WAV codec behavior was changed. OS dialogs, motherboard callback scheduling,
+physical tape signals, disk-full and close-time I/O failures remain outside these
+tests; callback scheduling is tracked in Area 16.

@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // TapeView.cpp
 
 #include "stdafx.h"
+#include "TapeTransport.h"
 #include <format>
 #include <optional>
 #include <commdlg.h>
@@ -44,11 +45,9 @@ HWND m_hwndTapeSave = (HWND) INVALID_HANDLE_VALUE;
 HWND m_hwndTapeGraph = (HWND) INVALID_HANDLE_VALUE;
 
 HFONT m_hfontTape = nullptr;
-BOOL m_okTapeInserted = FALSE;
-BOOL m_okTapeRecording = FALSE;
+tape::State m_tapeState;
 TCHAR m_szTapeFile[MAX_PATH];
 std::optional<WavPcmFile> m_tapeFile;
-BOOL m_okTapePlaying = FALSE;
 DWORD m_dwTapePositionShown = 0;  // What we show (in seconds) in the m_hwndTapeCurrent control
 
 void TapeView_CreateTape(LPCTSTR lpszFile);
@@ -246,8 +245,7 @@ void TapeView_CreateTape(LPCTSTR lpszFile)
     m_tapeFile.emplace(std::move(*file));
 
     _tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
-    m_okTapeInserted = TRUE;
-    m_okTapeRecording = TRUE;
+    m_tapeState.Insert(true);
 
     EnableWindow(m_hwndTapePlay, TRUE);
     SetWindowText(m_hwndTapePlay, g_sRecord);
@@ -271,8 +269,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
     m_tapeFile.emplace(std::move(*file));
 
     _tcscpy_s(m_szTapeFile, MAX_PATH, lpszFile);
-    m_okTapeInserted = TRUE;
-    m_okTapeRecording = FALSE;
+    m_tapeState.Insert(false);
 
     EnableWindow(m_hwndTapePlay, TRUE);
     SetWindowText(m_hwndTapePlay, g_sPlay);
@@ -284,7 +281,7 @@ void TapeView_OpenTape(LPCTSTR lpszFile)
 
     DWORD wavLength = m_tapeFile->Length();
     int wavFreq = m_tapeFile->Frequency();
-    const auto centiseconds = wavFreq > 0 ? static_cast<uint64_t>(wavLength) * 100 / wavFreq : 0;
+    const auto centiseconds = tape::Centiseconds(wavLength, wavFreq);
     const auto duration = std::format(_T("{}:{:02}.{:02}, {} Hz"),
         centiseconds / 6000, centiseconds / 100 % 60, centiseconds % 100, wavFreq);
     SetWindowText(m_hwndTapeTotal, duration.c_str());
@@ -302,7 +299,7 @@ void TapeView_CloseTape()
     if (closeFailed)
         AlertWarning(_T("Failed to finish writing the WAV file."));
 
-    m_okTapeInserted = FALSE;
+    m_tapeState.Eject();
 
     EnableWindow(m_hwndTapePlay, FALSE);
     EnableWindow(m_hwndTapeRewind, FALSE);
@@ -318,38 +315,35 @@ void TapeView_CloseTape()
 }
 void TapeView_PlayTape()
 {
-    if (m_okTapePlaying) return;
-    if (!m_okTapeInserted) return;
+    if (!m_tapeState.Play()) return;
 
     int sampleRate = m_tapeFile->Frequency();
 
-    if (m_okTapeRecording)
+    if (m_tapeState.Recording())
         g_pBoard->SetTapeWriteCallback(TapeView_TapeWriteCallback, sampleRate);
     else
         g_pBoard->SetTapeReadCallback(TapeView_TapeReadCallback, sampleRate);
 
-    m_okTapePlaying = TRUE;
     SetWindowText(m_hwndTapePlay, g_sStop);
 }
 void TapeView_StopTape()
 {
-    if (!m_okTapePlaying) return;
+    if (!m_tapeState.Stop()) return;
 
-    if (m_okTapeRecording)
+    if (m_tapeState.Recording())
         g_pBoard->SetTapeWriteCallback(nullptr, 0);
     else
         g_pBoard->SetTapeReadCallback(nullptr, 0);
 
-    m_okTapePlaying = FALSE;
 
-    SetWindowText(m_hwndTapePlay, m_okTapeRecording ? g_sRecord : g_sPlay);
+    SetWindowText(m_hwndTapePlay, m_tapeState.Recording() ? g_sRecord : g_sPlay);
 }
 
 void TapeView_UpdatePosition()
 {
     DWORD wavPos = m_tapeFile ? m_tapeFile->Position() : 0;
     int wavFreq = m_tapeFile ? m_tapeFile->Frequency() : 0;
-    const auto centiseconds = wavFreq > 0 ? static_cast<uint64_t>(wavPos) * 100 / wavFreq : 0;
+    const auto centiseconds = tape::Centiseconds(wavPos, wavFreq);
     const auto position = std::format(_T("{}:{:02}.{:02}"),
         centiseconds / 6000, centiseconds / 100 % 60, centiseconds % 100);
     SetWindowText(m_hwndTapeCurrent, position.c_str());
@@ -359,7 +353,7 @@ void TapeView_UpdatePosition()
 
 void TapeView_DoOpenWav()
 {
-    if (m_okTapeInserted)
+    if (m_tapeState.Inserted())
     {
         TapeView_CloseTape();
         return;
@@ -377,7 +371,7 @@ void TapeView_DoOpenWav()
 }
 void TapeView_DoSaveWav()
 {
-    if (m_okTapeInserted)
+    if (m_tapeState.Inserted())
     {
         TapeView_CloseTape();
         return;
@@ -397,7 +391,7 @@ void TapeView_DoSaveWav()
 
 void TapeView_DoPlayStop()
 {
-    if (m_okTapePlaying)
+    if (m_tapeState.Playing())
         TapeView_StopTape();
     else
         TapeView_PlayTape();
@@ -405,7 +399,7 @@ void TapeView_DoPlayStop()
 
 void TapeView_DoRewind()
 {
-    if (!m_okTapeInserted) return;
+    if (!m_tapeState.Inserted()) return;
 
     if (!m_tapeFile || !m_tapeFile->SetPosition(0))
     {
@@ -427,28 +421,10 @@ bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
 {
     if (samples == 0 || !m_tapeFile) return false;
 
-    // Scroll buffer
-    const unsigned int displayed = (std::min)(samples, static_cast<unsigned int>(TAPE_BUFFER_SIZE));
-    memmove(m_TapeBuffer, m_TapeBuffer + displayed, TAPE_BUFFER_SIZE - displayed);
-
-    UINT value = 0;
-    bool readSample = false;
-    for (UINT i = 0; i < samples; i++)
-    {
-        const auto sample = m_tapeFile->ReadOne();
-        if (!sample)
-        {
-            TapeView_StopTape();
-            if (sample.error() != WavError::end_of_data)
-                AlertWarning(_T("Failed to read the WAV file."));
-            break;
-        }
-        value = *sample;
-        readSample = true;
-        if (i >= samples - displayed)
-            m_TapeBuffer[TAPE_BUFFER_SIZE - displayed + i - (samples - displayed)] = static_cast<BYTE>(value >> 24);
-    }
-    bool result = readSample && value >= 0x80000000u;
+    const auto batch = tape::Read(*m_tapeFile, samples, m_TapeBuffer);
+    if (batch.stop) TapeView_StopTape();
+    if (batch.error) AlertWarning(_T("Failed to read the WAV file."));
+    const bool result = batch.bit;
 
     InvalidateRect(m_hwndTapeGraph, nullptr, FALSE);
 
@@ -458,7 +434,7 @@ bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
         TapeView_StopTape();
 
     int wavFreq = m_tapeFile->Frequency();
-    if (wavPos - m_dwTapePositionShown > (DWORD)(wavFreq / 6) || !m_okTapePlaying)
+    if (tape::UpdatePosition(wavPos, m_dwTapePositionShown, wavFreq, m_tapeState.Playing()))
     {
         TapeView_UpdatePosition();
     }
@@ -471,32 +447,17 @@ bool CALLBACK TapeView_TapeReadCallback(unsigned int samples)
 void CALLBACK TapeView_TapeWriteCallback(int value, UINT samples)
 {
     if (!m_tapeFile) return;
-    if (!m_okTapeRecording) return;
+    if (!m_tapeState.Recording()) return;
     if (samples == 0) return;
 
-    // Scroll buffer
-    const unsigned int displayed = (std::min)(samples, static_cast<unsigned int>(TAPE_BUFFER_SIZE));
-    memmove(m_TapeBuffer, m_TapeBuffer + displayed, TAPE_BUFFER_SIZE - displayed);
-
-    // Write samples to the file
-    for (UINT i = 0; i < samples; i++)
-    {
-        if (!m_tapeFile->WriteOne(static_cast<uint32_t>(value)))
-        {
-            TapeView_StopTape();
-            AlertWarning(_T("Failed to write the WAV file."));
-            break;
-        }
-        if (i >= samples - displayed)
-            m_TapeBuffer[TAPE_BUFFER_SIZE - displayed + i - (samples - displayed)] =
-                static_cast<BYTE>(static_cast<uint32_t>(value) >> 24);
-    }
-
+    const auto batch = tape::Write(*m_tapeFile, static_cast<uint32_t>(value), samples, m_TapeBuffer);
+    if (batch.stop) TapeView_StopTape();
+    if (batch.error) AlertWarning(_T("Failed to write the WAV file."));
     InvalidateRect(m_hwndTapeGraph, nullptr, FALSE);
 
     DWORD wavPos = m_tapeFile->Position();
     int wavFreq = m_tapeFile->Frequency();
-    if (wavPos - m_dwTapePositionShown > (DWORD)(wavFreq / 6) || !m_okTapePlaying)
+    if (tape::UpdatePosition(wavPos, m_dwTapePositionShown, wavFreq, m_tapeState.Playing()))
     {
         TapeView_UpdatePosition();
     }
