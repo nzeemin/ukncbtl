@@ -16,7 +16,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 9. Text and subtitles | Subtitle parser/lookup, glyph recognition, screen-to-text layout and buffer contract | Complete: 26 GoogleTest cases |
 | 10. Sprites and view calculations | Sprite decoding, address wrapping, memory/debug hit testing, history scrolling | Complete: 18 GoogleTest cases |
 | 11. Tape and WAV | Tape state and batched callbacks; malformed WAVs, mode/lifecycle and sample formats | Complete: 45 GoogleTest cases |
-| 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Pending |
+| 12. Audio output | Playback rates, stereo packing, buffers and injectable backend failures | Complete: 16 GoogleTest cases |
 | 13. Disk-image creation | Sizes, initialization blocks, offsets, zero fill and errors | Pending |
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Pending |
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Pending |
@@ -282,3 +282,29 @@ Release CTest cases pass (45 area cases replacing one prior combined case, net 4
 No WAV codec behavior was changed. OS dialogs, motherboard callback scheduling,
 physical tape signals, disk-full and close-time I/O failures remain outside these
 tests; callback scheduling is tracked in Area 16.
+## Area 12 implementation
+
+`SoundBackend.h` provides a replaceable WinMM function table; normal application
+calls still use WinMM. Backend selection is rejected while the device is open
+or when any required function is missing. Tests compile the real SoundGen.cpp
+and replace device operations and waits with deterministic callbacks, without
+opening an audio device or sleeping.
+
+Sixteen cases cover inactive operations, PCM format and initial volume,
+idempotent initialization/finalization, failed-open retry, channel volume packing,
+all 65,536 speed values, nonfatal control failures, stereo little-endian samples,
+exact block boundaries, repeated eight-buffer wraps, deferred completion and
+queue backpressure, draining on finalize, prepare/write failure recovery,
+unprepare failures, close retry and partial-buffer reset after reinitialization.
+Open/close notifications do not release queued buffers; successful completion
+callbacks do. Failed writes restore the free-buffer count.
+
+A failed unprepare now drops the pending batch without overwriting device-owned
+storage. Finalization retains device state when unprepare or close fails, allowing
+a later finalize call to retry rather than forgetting a live handle. Cleanup
+iterates the fixed buffer array instead of using the callback counter as a bound.
+
+Validation: Release application and SoundOutputTests build; all 771 Release CTest
+cases pass (16 new). Audible output, actual device capabilities and concurrent
+WinMM callback timing remain integration concerns. Existing wait-until-completion
+behavior is retained; a driver that never returns buffers can still block shutdown.

@@ -14,6 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "util/Profiler.h"
 #include "emubase/Emubase.h"
 #include "SoundGen.h"
+#include "SoundBackend.h"
 #include "mmsystem.h"
 #include <atomic>
 #include <array>
@@ -27,6 +28,16 @@ static std::atomic<int> waveFreeBlockCount{0};
 static int              waveCurrentBlock;
 
 static bool m_SoundGenInitialized = false;
+static sound::Backend backend;
+
+bool sound::SetBackend(const Backend& replacement)
+{
+    if (m_SoundGenInitialized || !replacement.open || !replacement.close ||
+        !replacement.prepare || !replacement.unprepare || !replacement.write ||
+        !replacement.volume || !replacement.rate || !replacement.wait) return false;
+    backend = replacement;
+    return true;
+}
 
 HWAVEOUT hWaveOut;
 
@@ -71,14 +82,14 @@ void SoundGen_Initialize(WORD volume)
     wfx.nBlockAlign     = (wfx.wBitsPerSample * wfx.nChannels) >> 3;
     wfx.nAvgBytesPerSec = wfx.nBlockAlign * wfx.nSamplesPerSec;
 
-    MMRESULT result = waveOutOpen(
+    MMRESULT result = backend.open(
             &hWaveOut, WAVE_MAPPER, &wfx, (DWORD_PTR)WaveCallback, (DWORD_PTR)&waveFreeBlockCount, CALLBACK_FUNCTION);
     if (result != MMSYSERR_NOERROR)
     {
         return;
     }
 
-    waveOutSetVolume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
+    backend.volume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
 
     bufcurpos = 0;
 
@@ -91,15 +102,16 @@ void SoundGen_Finalize()
         return;
 
     while (waveFreeBlockCount < BLOCK_COUNT)
-        Sleep(1);
+        backend.wait(1);
 
-    for (int i = 0; i < waveFreeBlockCount; i++)
+    for (int i = 0; i < BLOCK_COUNT; i++)
     {
         if (waveBlocks[i].dwFlags & WHDR_PREPARED)
-            waveOutUnprepareHeader(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR));
+            if (backend.unprepare(hWaveOut, &waveBlocks[i], sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+                return; // Keep the device and headers alive so cleanup can be retried.
     }
 
-    waveOutClose(hWaveOut);
+    if (backend.close(hWaveOut) != MMSYSERR_NOERROR) return;
 
     m_SoundGenInitialized = false;
 }
@@ -109,7 +121,7 @@ void SoundGen_SetVolume(WORD volume)
     if (!m_SoundGenInitialized)
         return;
 
-    waveOutSetVolume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
+    backend.volume(hWaveOut, ((DWORD)volume << 16) | ((DWORD)volume));
 }
 
 void SoundGen_SetSpeed(WORD speedpercent)
@@ -121,7 +133,7 @@ void SoundGen_SetSpeed(WORD speedpercent)
     if (speedpercent > 0 && speedpercent < 1000)
         dwRate = (((DWORD)speedpercent / 100) << 16) | ((speedpercent % 100) * 0x00010000 / 100);
 
-    waveOutSetPlaybackRate(hWaveOut, dwRate);
+    backend.rate(hWaveOut, dwRate);
 }
 
 void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
@@ -138,19 +150,23 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
         UKNC_PROFILE_SCOPE("Audio submit");
         WAVEHDR* current = &waveBlocks[waveCurrentBlock];
 
-        if (current->dwFlags & WHDR_PREPARED)
-            waveOutUnprepareHeader(hWaveOut, current, sizeof(WAVEHDR));
+        if ((current->dwFlags & WHDR_PREPARED) &&
+            backend.unprepare(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        {
+            bufcurpos = 0;
+            return; // Do not overwrite a buffer still owned by the backend.
+        }
 
         memcpy(current->lpData, buffer, BUFSIZE);
         current->dwBufferLength = BLOCK_SIZE;
 
-        if (waveOutPrepareHeader(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        if (backend.prepare(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
         {
             bufcurpos = 0;
             return;
         }
         waveFreeBlockCount.fetch_sub(1);
-        if (waveOutWrite(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
+        if (backend.write(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)
         {
             waveFreeBlockCount.fetch_add(1);
             bufcurpos = 0;
@@ -160,7 +176,7 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
         {
             UKNC_PROFILE_SCOPE("Audio buffer wait");
             while (!waveFreeBlockCount)
-                Sleep(1);
+                backend.wait(1);
         }
 
         waveCurrentBlock++;
