@@ -21,7 +21,7 @@ the next area. This tracks the repository audit, not measured code coverage.
 | 14. Processor | HALT instructions, pins, interrupt priority, bus faults, callbacks, flags/addressing combinations | Complete: 60 GoogleTest cases |
 | 15. Memory and RAM changes | Port widths/side effects, maps, network/mouse/tape edges, application RAM comparison | Complete: 26 GoogleTest cases |
 | 16. Board | Callback scheduling, sound, keyboard scan, tape writes, frame execution with breakpoints | Complete: 24 GoogleTest cases |
-| 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Pending |
+| 17. Storage controllers | Floppy transfer/reset/flush failures; HDD command/count/CHS/reset/status sequences | Complete: 29 GoogleTest cases |
 | 18. AY sound | Chunk continuity, span sizes, masking, envelope restart and mid-render changes | Pending |
 | 19. Disassembly | Truncated spans, wrapping and semantic assertions alongside corpus hashes | Pending |
 | 20. Images and scaling | Bitmap failure/lifecycle/resource cases, complete scaling output and rounding, renderer duplicate implementation | Pending |
@@ -403,3 +403,29 @@ Validation: full Release build and all 896 Release CTest cases pass (24 new).
 Callbacks use synthetic host data; physical devices, audible output and hardware
 cycle-timing conformance are not tested. Storage-controller sequences remain
 Area 17.
+
+## Area 17 implementation
+
+`StorageControllerTests` adds 29 cases using generated temporary images and the
+real floppy/HDD controllers. HDD tests cover command aliases, transfer delays,
+zero-count 256-sector reads and writes, data boundaries, CHS rollover and invalid
+locations, end-of-image errors and recovery, reset during partial/scheduled writes,
+IDENTIFY completion/replacement, detach/re-attach and commands without an image.
+Complete image comparisons check both written sectors and untouched regions.
+
+Floppy cases cover write-register queuing/overwrite, read cancellation, marker
+propagation, reset flushing and malformed-track recovery. A valid read-only FILE
+injects write failures into reset, side/track/drive changes, detach and attach.
+Each operation must retain the selected dirty track and original file; reopening
+the stream writable verifies that retry saves the retained data.
+
+Regressions exposed HDD transfer timers surviving detach and replacement commands,
+and IDENTIFY scheduling an unintended disk read after its response. Detach now
+cancels transfers, WRITE/IDENTIFY cancel superseded timers, IDENTIFY has no trailing
+sector transfer, and disk I/O checks for an attached file before accessing it.
+No floppy production code changes were needed.
+
+Validation: full Release build and all 925 Release CTest cases pass (29 new).
+Failure injection exercises stream write rejection, not physical disk-full or
+device faults. Existing CRC stubs and unsupported ATA commands are unchanged;
+these tests do not establish hardware protocol conformance.

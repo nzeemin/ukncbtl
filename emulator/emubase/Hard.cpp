@@ -191,10 +191,11 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
 
 void CHardDrive::DetachImage()
 {
-    if (m_fpFile == nullptr) return;
-
-    //FlushChanges();
-
+    m_timeoutcount = 0;
+    m_timeoutevent = TimeoutEvent::none;
+    m_status = IDE_STATUS_BUSY;
+    m_command = 0;
+    m_sectorcount = m_bufferoffset = 0;
     m_fpFile.reset();
 }
 
@@ -367,6 +368,10 @@ void CHardDrive::HandleCommand(uint8_t command)
         //DebugLogFormat(_T("HDD COMMAND {:02x} (WRITE MULT): C={}, H={}, SN={}, SC={}\r\n"),
         //        command, m_curcylinder, m_curhead, m_cursector, m_sectorcount);
 
+        m_timeoutcount = 0;
+        m_timeoutevent = TimeoutEvent::none;
+        m_status &= ~(IDE_STATUS_BUSY | IDE_STATUS_ERROR);
+        m_error = IDE_ERROR_NONE;
         m_bufferoffset = 0;
         m_status |= IDE_STATUS_BUFFER_READY;
         break;
@@ -375,8 +380,10 @@ void CHardDrive::HandleCommand(uint8_t command)
         //DebugLogFormat(_T("HDD COMMAND {:02x} (IDENTIFY)\r\n"), command);
 
         IdentifyDrive();  // Prepare the buffer
+        m_timeoutcount = 0;
+        m_timeoutevent = TimeoutEvent::none;
         m_bufferoffset = 0;
-        m_sectorcount = 1;
+        m_sectorcount = 0;  // IDENTIFY has no following disk sectors to read.
         m_status |= IDE_STATUS_BUFFER_READY | IDE_STATUS_SEEK_COMPLETE | IDE_STATUS_DRIVE_READY;
         m_status &= ~IDE_STATUS_BUSY;
         m_status &= ~IDE_STATUS_ERROR;
@@ -460,7 +467,7 @@ void CHardDrive::ReadSectorDone()
 
     // Read sector from HDD image to the buffer
     const auto fileOffset = CalculateOffset();
-    if (!fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
+    if (!m_fpFile || !fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
@@ -500,7 +507,7 @@ void CHardDrive::WriteSectorDone()
 
     //if (fileOffset) DebugLogFormat(_T("WriteSector {:x}\r\n"), *fileOffset);
 
-    if (m_okReadOnly || !fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
+    if (!m_fpFile || m_okReadOnly || !fileOffset || ::fseek(m_fpFile.get(), *fileOffset, SEEK_SET) != 0)
     {
         m_status &= ~IDE_STATUS_BUFFER_READY;
         m_status |= IDE_STATUS_ERROR;
