@@ -143,7 +143,7 @@ const TCHAR* REGISTER_NAME[] = { _T("R0"), _T("R1"), _T("R2"), _T("R3"), _T("R4"
 HFONT CreateMonospacedFont()
 {
     HFONT font;
-    LOGFONT logfont;  memset(&logfont, 0, sizeof(logfont));
+    LOGFONT logfont{};
     logfont.lfHeight = 12;
     logfont.lfWeight = FW_NORMAL;
     logfont.lfCharSet = DEFAULT_CHARSET;

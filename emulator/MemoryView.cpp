@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // MemoryView.cpp
 
 #include "stdafx.h"
+#include <array>
 #include "ViewCalculations.h"
 #include <CommCtrl.h>
 #include <windowsx.h>
@@ -124,13 +125,12 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndMemoryToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
     SendMessage(m_hwndMemoryToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
 
-    TBBUTTON buttons[9];
-    ZeroMemory(buttons, sizeof(buttons));
-    for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
+    std::array<TBBUTTON, 9> buttons{};
+    for (auto& button : buttons)
     {
-        buttons[i].fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
-        buttons[i].fsStyle = BTNS_BUTTON | TBSTYLE_GROUP;
-        buttons[i].iString = -1;
+        button.fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
+        button.fsStyle = BTNS_BUTTON | TBSTYLE_GROUP;
+        button.iString = -1;
     }
     buttons[0].idCommand = ID_DEBUG_MEMORY_GOTO;
     buttons[0].iBitmap = ToolbarImageGotoAddress;
@@ -149,7 +149,7 @@ void MemoryView_Create(HWND hwndParent, int x, int y, int width, int height)
     buttons[8].idCommand = ID_DEBUG_MEMORY_HEXMODE;
     buttons[8].iBitmap = ToolbarImageHexMode;
 
-    SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
+    SendMessage(m_hwndMemoryToolbar, TB_ADDBUTTONS, static_cast<WPARAM>(buttons.size()), reinterpret_cast<LPARAM>(buttons.data()));
 
     MemoryView_ScrollTo(Settings_GetDebugMemoryBase());
     MemoryView_GotoAddress(Settings_GetDebugMemoryAddress());
@@ -541,8 +541,7 @@ void MemoryView_SelectAddress()
 
 void MemoryView_UpdateScrollPos()
 {
-    SCROLLINFO si;
-    ZeroMemory(&si, sizeof(si));
+    SCROLLINFO si{};
     si.cbSize = sizeof(si);
     si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
     si.nPage = m_nPageSize;

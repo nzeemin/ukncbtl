@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #pragma once
 
 #include "res/Resource.h"
+#include <span>
 
 //////////////////////////////////////////////////////////////////////
 
@@ -186,14 +187,14 @@ void Settings_SetWindowMaximized(BOOL flag);
 BOOL Settings_GetWindowMaximized();
 void Settings_SetWindowFullscreen(BOOL flag);
 BOOL Settings_GetWindowFullscreen();
-void Settings_GetRender(LPTSTR buffer);
+void Settings_GetRender(std::span<TCHAR> buffer);
 void Settings_SetRender(LPCTSTR sValue);
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath);
-void Settings_GetFloppyFilePath(int slot, LPTSTR buffer);
+void Settings_GetFloppyFilePath(int slot, std::span<TCHAR> buffer);
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath);
-void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer);
+void Settings_GetCartridgeFilePath(int slot, std::span<TCHAR> buffer);
 void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath);
-void Settings_GetHardFilePath(int slot, LPTSTR buffer);
+void Settings_GetHardFilePath(int slot, std::span<TCHAR> buffer);
 void Settings_SetScreenViewMode(int mode);
 int  Settings_GetScreenViewMode();
 void Settings_SetScreenHeightMode(int mode);
@@ -202,7 +203,7 @@ void Settings_SetScreenshotMode(int mode);
 int  Settings_GetScreenshotMode();
 void Settings_SetDebug(BOOL flag);
 BOOL Settings_GetDebug();
-void Settings_GetDebugFontName(LPTSTR buffer);
+void Settings_GetDebugFontName(std::span<TCHAR> buffer);
 void Settings_SetDebugFontName(LPCTSTR sFontName);
 BOOL Settings_GetDebugCpuPpu();
 void Settings_SetDebugCpuPpu(BOOL flag);
@@ -248,7 +249,7 @@ WORD Settings_GetSpriteMode();
 void Settings_SetSpriteMode(WORD value);
 void Settings_SetSerial(BOOL flag);
 BOOL Settings_GetSerial();
-void Settings_GetSerialPort(LPTSTR buffer);
+void Settings_GetSerialPort(std::span<TCHAR> buffer);
 void Settings_SetSerialPort(LPCTSTR sValue);
 void Settings_GetSerialConfig(DCB * pDcb);
 void Settings_SetSerialConfig(const DCB * pDcb);
@@ -258,7 +259,7 @@ void Settings_SetNetwork(BOOL flag);
 BOOL Settings_GetNetwork();
 int  Settings_GetNetStation();
 void Settings_SetNetStation(int value);
-void Settings_GetNetComPort(LPTSTR buffer);
+void Settings_GetNetComPort(std::span<TCHAR> buffer);
 void Settings_SetNetComPort(LPCTSTR sValue);
 void Settings_GetNetComConfig(DCB * pDcb);
 void Settings_SetNetComConfig(const DCB * pDcb);

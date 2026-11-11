@@ -17,6 +17,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <string_view>
 #include <sys/stat.h>
 #include "Emubase.h"
+#include "util/LittleEndian.h"
 
 
 //////////////////////////////////////////////////////////////////////
@@ -133,26 +134,23 @@ bool CHardDrive::AttachImage(LPCTSTR sFileName)
         return false;
 
     // Detect hard disk type
-    std::array<uint16_t, 6> hardHeader{};
-    memcpy(hardHeader.data(), m_buffer.data(), sizeof(hardHeader));
-    const auto& pwHardBuffer = hardHeader;
-    if (pwHardBuffer[0] == 0x54A9 && pwHardBuffer[1] == 0xFFEF && pwHardBuffer[2] == 0xFEFF ||
-        pwHardBuffer[0] == 0xAB56 && pwHardBuffer[1] == 0x0010 && pwHardBuffer[2] == 0x0100)  // HD type
+    const auto sector = std::span{m_buffer};
+    const auto signature = little_endian::read<uint16_t>(sector.subspan<0, 2>());
+    const auto marker1 = little_endian::read<uint16_t>(sector.subspan<2, 2>());
+    const auto marker2 = little_endian::read<uint16_t>(sector.subspan<4, 2>());
+    const bool invertedHeader = signature == 0xAB56 && marker1 == 0x0010 && marker2 == 0x0100;
+    if ((signature == 0x54A9 && marker1 == 0xFFEF && marker2 == 0xFEFF) || invertedHeader)
     {
-        // Autodetect inverted image
-        m_okInverted = (pwHardBuffer[0] == 0xAB56);
-        // Invert the buffer if needed
+        m_okInverted = invertedHeader;
         if (m_okInverted)
-        {
             InvertBuffer(m_buffer);
-            memcpy(hardHeader.data(), m_buffer.data(), sizeof(hardHeader));
-        }
 
         // Calculate geometry
-        m_numsectors = pwHardBuffer[4];
+        m_numsectors = little_endian::read<uint16_t>(sector.subspan<8, 2>());
         if (m_numsectors == 0)
             return false;  // Geometry params are not defined
-        m_numheads = (uint8_t)(pwHardBuffer[5] / m_numsectors);
+        const auto sectorsPerCylinder = little_endian::read<uint16_t>(sector.subspan<10, 2>());
+        m_numheads = static_cast<uint8_t>(sectorsPerCylinder / m_numsectors);
         if (m_numheads == 0)
             return false;  // Geometry params are not defined
         m_numcylinders = dwFileSize / 512 / m_numsectors / m_numheads;

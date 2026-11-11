@@ -11,6 +11,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // MainWindow.cpp
 
 #include "stdafx.h"
+#include <array>
 #include <commdlg.h>
 #include <CommCtrl.h>
 
@@ -204,12 +205,11 @@ BOOL MainWindow_InitToolbar()
     addbitmap.nID = IDB_TOOLBAR;
     SendMessage(m_hwndToolbar, TB_ADDBITMAP, 2, (LPARAM) &addbitmap);
 
-    TBBUTTON buttons[19];
-    ZeroMemory(buttons, sizeof(buttons));
-    for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
+    std::array<TBBUTTON, 19> buttons{};
+    for (auto& button : buttons)
     {
-        buttons[i].fsState = TBSTATE_ENABLED;
-        buttons[i].iString = -1;
+        button.fsState = TBSTATE_ENABLED;
+        button.iString = -1;
     }
     buttons[0].idCommand = ID_EMULATOR_RUN;
     buttons[0].iBitmap = ToolbarImageRun;
@@ -270,7 +270,7 @@ BOOL MainWindow_InitToolbar()
     buttons[18].iBitmap = ToolbarImageScreenshot;
     buttons[18].fsStyle = BTNS_BUTTON;
 
-    SendMessage(m_hwndToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM) &buttons);
+    SendMessage(m_hwndToolbar, TB_ADDBUTTONS, static_cast<WPARAM>(buttons.size()), reinterpret_cast<LPARAM>(buttons.data()));
 
     if (Settings_GetToolbar())
         ShowWindow(m_hwndToolbar, SW_SHOW);
@@ -1528,8 +1528,7 @@ void MainWindow_DoFileScreenshotSaveAs()
 
 void MainWindow_DoFileScreenToClipboard()
 {
-    BYTE buffer[82 * 26 + 1];
-    memset(buffer, 0, sizeof(buffer));
+    BYTE buffer[82 * 26 + 1]{};
 
     if (!ScreenView_ScreenToText(buffer))
     {

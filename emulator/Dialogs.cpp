@@ -233,8 +233,7 @@ BOOL InputBoxValidate(HWND hDlg)
 BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, LPCTSTR strDefExt, TCHAR* bufFileName)
 {
     *bufFileName = 0;
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof(ofn));
+    OPENFILENAME ofn{};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwndOwner;
     ofn.hInstance = g_hInst;
@@ -252,8 +251,7 @@ BOOL ShowSaveDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, LPCTSTR
 BOOL ShowOpenDialog(HWND hwndOwner, LPCTSTR strTitle, LPCTSTR strFilter, TCHAR* bufFileName)
 {
     *bufFileName = 0;
-    OPENFILENAME ofn;
-    ZeroMemory(&ofn, sizeof(ofn));
+    OPENFILENAME ofn{};
     ofn.lStructSize = sizeof(ofn);
     ofn.hwndOwner = hwndOwner;
     ofn.hInstance = g_hInst;
@@ -329,7 +327,7 @@ void Dialogs_DoCreateDisk(int tracks)
 
 BOOL ShowColorDialog(COLORREF& color, HWND hWndOwner)
 {
-    CHOOSECOLOR cc;  memset(&cc, 0, sizeof(cc));
+    CHOOSECOLOR cc{};
     cc.lStructSize = sizeof(cc);
     cc.hwndOwner = hWndOwner;
     cc.lpCustColors = (LPDWORD)m_DialogSettings_acrCustClr;
@@ -515,7 +513,7 @@ int CALLBACK SettingsDialog_EnumFontProc(const LOGFONT* lpelfe, const TEXTMETRIC
 
 void SettingsDialog_FillDebugFontCombo(HWND hCombo)
 {
-    LOGFONT logfont;  ZeroMemory(&logfont, sizeof logfont);
+    LOGFONT logfont{};
     logfont.lfCharSet = DEFAULT_CHARSET;
     logfont.lfWeight = FW_NORMAL;
     logfont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;

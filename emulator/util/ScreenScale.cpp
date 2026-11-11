@@ -29,7 +29,7 @@ static void PrepareScreenCopy(std::span<const uint32_t> source, std::span<uint32
     {
         const uint32_t* pSrc = source.data() + UKNC_SCREEN_WIDTH * (UKNC_SCREEN_HEIGHT - 1 - line);
         uint32_t* pDest = destination.data() + UKNC_SCREEN_WIDTH * line;
-        ::memcpy(pDest, pSrc, UKNC_SCREEN_WIDTH * 4);
+        std::copy_n(pSrc, UKNC_SCREEN_WIDTH, pDest);
     }
 }
 
@@ -54,7 +54,7 @@ static void PrepareScreenUpscale(std::span<const uint32_t> source, std::span<uin
         else
         {
             const uint32_t* psrc = source.data() + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
-            memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+            std::copy_n(psrc, UKNC_SCREEN_WIDTH, pdest);
             ukncline++;
         }
     }
@@ -67,10 +67,10 @@ static void PrepareScreenUpscale2(std::span<const uint32_t> source, std::span<ui
     {
         const uint32_t* psrc = source.data() + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         uint32_t* pdest = destination.data() + (ukncline * 2) * UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+        std::copy_n(psrc, UKNC_SCREEN_WIDTH, pdest);
 
         pdest += UKNC_SCREEN_WIDTH;
-        memset(pdest, 0, UKNC_SCREEN_WIDTH * 4);
+        std::fill_n(pdest, UKNC_SCREEN_WIDTH, 0);
     }
 }
 
@@ -81,10 +81,10 @@ static void PrepareScreenUpscale2d(std::span<const uint32_t> source, std::span<u
     {
         const uint32_t* psrc = source.data() + (UKNC_SCREEN_HEIGHT - 1 - ukncline) * UKNC_SCREEN_WIDTH;
         uint32_t* pdest = destination.data() + (ukncline * 2) * UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+        std::copy_n(psrc, UKNC_SCREEN_WIDTH, pdest);
 
         pdest += UKNC_SCREEN_WIDTH;
-        memcpy(pdest, psrc, UKNC_SCREEN_WIDTH * 4);
+        std::copy_n(psrc, UKNC_SCREEN_WIDTH, pdest);
     }
 }
 

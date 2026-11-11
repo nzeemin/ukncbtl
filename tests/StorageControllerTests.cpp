@@ -47,6 +47,41 @@ public:
 };
 constexpr uint16_t Select0=02003|FLOPPY_CMD_ENGINESTART;
 }
+
+TEST(HardDriveHeaders, DetectsGeometryForBothImagePolarities)
+{
+    std::vector<uint8_t> image(64 * 512);
+    image[0] = 0xa9;
+    image[1] = 0x54;
+    image[2] = 0xef;
+    image[3] = 0xff;
+    image[4] = 0xff;
+    image[5] = 0xfe;
+    image[8] = 8;
+    image[10] = 16;
+
+    for (bool inverted : {false, true})
+    {
+        auto disk = image;
+        if (inverted)
+            for (auto& byte : disk) byte = static_cast<uint8_t>(~byte);
+        Image file;
+        file.Write(disk);
+        CHardDrive drive;
+        ASSERT_TRUE(drive.AttachImage(file.Path()));
+        drive.Reset();
+        drive.Periodic();
+        drive.Periodic();
+        drive.WritePort(Status, 0xec);
+        std::array<uint16_t, 256> words{};
+        for (auto& word : words) word = drive.ReadPort(Data);
+        // The drive's data port returns complemented words.
+        EXPECT_EQ(words[1], static_cast<uint16_t>(~4));
+        EXPECT_EQ(words[3], static_cast<uint16_t>(~2));
+        EXPECT_EQ(words[6], static_cast<uint16_t>(~8));
+    }
+}
+
 class HardSequences : public testing::Test {
 protected:
     Image file;

@@ -394,8 +394,7 @@ void SpriteView_UpdateScrollPos()
     int stepSizeBytes = ((m_nSprite_Mode == 0) ? 1 : 2);
     m_nSprite_PageSizeBytes = sprite::PageBytes(m_nSprite_width, m_nSprite_Mode);
 
-    SCROLLINFO si;
-    ZeroMemory(&si, sizeof(si));
+    SCROLLINFO si{};
     si.cbSize = sizeof(si);
     si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE;
     si.nPage = m_nSprite_PageSizeBytes;

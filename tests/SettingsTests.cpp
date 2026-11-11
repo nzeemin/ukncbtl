@@ -229,21 +229,36 @@ TEST_F(SettingsTests, WindowRectPersistsAndMalformedRectLeavesCallerUntouched)
 TEST_F(SettingsTests, RenderAndFontDefaultsAndCustomValues)
 {
     std::array<TCHAR, 32> text{};
-    Settings_GetRender(text.data());
+    Settings_GetRender(text);
     EXPECT_STREQ(text.data(), _T("RenderVfw.dll"));
-    Settings_GetDebugFontName(text.data());
+    Settings_GetDebugFontName(text);
     EXPECT_STREQ(text.data(), _T("Lucida Console"));
     Settings_SetRender(_T("Custom.dll"));
     Settings_SetDebugFontName(_T("Consolas"));
     Settings_Init(path.data());
-    Settings_GetRender(text.data());
+    Settings_GetRender(text);
     EXPECT_STREQ(text.data(), _T("Custom.dll"));
-    Settings_GetDebugFontName(text.data());
+    Settings_GetDebugFontName(text);
     EXPECT_STREQ(text.data(), _T("Consolas"));
     const std::basic_string<TCHAR> oversized(32, _T('x'));
     Raw(_T("Render"), oversized.c_str());
-    Settings_GetRender(text.data());
+    Settings_GetRender(text);
     EXPECT_STREQ(text.data(), _T("RenderVfw.dll"));
+}
+
+TEST_F(SettingsTests, GettersRespectSmallAndEmptyDestinations)
+{
+    std::array<TCHAR, 5> guarded{_T('a'), _T('b'), _T('c'), _T('d'), _T('e')};
+    Settings_GetRender(std::span{guarded}.subspan<1, 3>());
+    EXPECT_EQ(guarded[0], _T('a'));
+    EXPECT_EQ(guarded[1], _T('\0'));
+    EXPECT_EQ(guarded[4], _T('e'));
+
+    Settings_SetSerialPort(_T("COM12"));
+    Settings_GetSerialPort(std::span{guarded}.subspan<1, 3>());
+    EXPECT_EQ(guarded[1], _T('\0'));
+    EXPECT_EQ(guarded[4], _T('e'));
+    Settings_GetDebugFontName(std::span<TCHAR>{});
 }
 
 TEST_F(SettingsTests, DevicePathsAndPortNamesPersistIndependently)
@@ -259,15 +274,15 @@ TEST_F(SettingsTests, DevicePathsAndPortNamesPersistIndependently)
     Settings_SetNetComPort(_T("COM34"));
     Settings_Init(path.data());
     std::array<TCHAR, MAX_PATH> text{};
-    Settings_GetFloppyFilePath(0, text.data()); EXPECT_STREQ(text.data(), unicode);
-    Settings_GetFloppyFilePath(3, text.data()); EXPECT_STREQ(text.data(), _T("four.dsk"));
-    Settings_GetFloppyFilePath(1, text.data()); EXPECT_STREQ(text.data(), _T(""));
-    Settings_GetHardFilePath(1, text.data()); EXPECT_STREQ(text.data(), _T("one.hdi"));
-    Settings_GetHardFilePath(2, text.data()); EXPECT_STREQ(text.data(), _T("two.hdi"));
-    Settings_GetCartridgeFilePath(1, text.data()); EXPECT_STREQ(text.data(), _T("one.rom"));
-    Settings_GetCartridgeFilePath(2, text.data()); EXPECT_STREQ(text.data(), _T("two.rom"));
-    Settings_GetSerialPort(text.data()); EXPECT_STREQ(text.data(), _T("COM12"));
-    Settings_GetNetComPort(text.data()); EXPECT_STREQ(text.data(), _T("COM34"));
+    Settings_GetFloppyFilePath(0, text); EXPECT_STREQ(text.data(), unicode);
+    Settings_GetFloppyFilePath(3, text); EXPECT_STREQ(text.data(), _T("four.dsk"));
+    Settings_GetFloppyFilePath(1, text); EXPECT_STREQ(text.data(), _T(""));
+    Settings_GetHardFilePath(1, text); EXPECT_STREQ(text.data(), _T("one.hdi"));
+    Settings_GetHardFilePath(2, text); EXPECT_STREQ(text.data(), _T("two.hdi"));
+    Settings_GetCartridgeFilePath(1, text); EXPECT_STREQ(text.data(), _T("one.rom"));
+    Settings_GetCartridgeFilePath(2, text); EXPECT_STREQ(text.data(), _T("two.rom"));
+    Settings_GetSerialPort(text); EXPECT_STREQ(text.data(), _T("COM12"));
+    Settings_GetNetComPort(text); EXPECT_STREQ(text.data(), _T("COM34"));
 }
 
 TEST_F(SettingsTests, BreakpointSlotsAndProcessorsPersistIndependentlyAndDelete)

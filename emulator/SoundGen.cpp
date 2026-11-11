@@ -16,7 +16,9 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "SoundGen.h"
 #include "SoundBackend.h"
 #include "mmsystem.h"
+#include <algorithm>
 #include <atomic>
+#include <bit>
 #include <array>
 
 //////////////////////////////////////////////////////////////////////
@@ -42,7 +44,7 @@ bool sound::SetBackend(const Backend& replacement)
 HWAVEOUT hWaveOut;
 
 WAVEFORMATEX wfx;
-char buffer[BUFSIZE];
+static std::array<char, BUFSIZE> buffer{};
 
 int bufcurpos;
 
@@ -141,8 +143,9 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
     if (!m_SoundGenInitialized)
         return;
 
-    unsigned int word = ((unsigned int)R << 16) + L;
-    memcpy(&buffer[bufcurpos], &word, 4);
+    const uint32_t word = (static_cast<uint32_t>(R) << 16) | L;
+    const auto bytes = std::bit_cast<std::array<char, sizeof(word)>>(word);
+    std::ranges::copy(bytes, buffer.begin() + bufcurpos);
     bufcurpos += 4;
 
     if (bufcurpos >= BUFSIZE)
@@ -157,7 +160,7 @@ void CALLBACK SoundGen_FeedDAC(unsigned short L, unsigned short R)
             return; // Do not overwrite a buffer still owned by the backend.
         }
 
-        memcpy(current->lpData, buffer, BUFSIZE);
+        std::ranges::copy(buffer, current->lpData);
         current->dwBufferLength = BLOCK_SIZE;
 
         if (backend.prepare(hWaveOut, current, sizeof(WAVEHDR)) != MMSYSERR_NOERROR)

@@ -15,6 +15,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include <vector>
 #include <algorithm>
 #include <climits>
+#include <optional>
 #include "util/SettingsCodec.h"
 
 //////////////////////////////////////////////////////////////////////
@@ -52,7 +53,7 @@ void Settings_Init(LPCTSTR iniPath)
         m_Settings_IniPath += _T(".ini");
     }
     // Set m_Settings_SerialConfig defaults
-    ::memset(&m_Settings_SerialConfig, 0, sizeof(DCB));
+    m_Settings_SerialConfig = {};
     m_Settings_SerialConfig.DCBlength = sizeof(DCB);
     m_Settings_SerialConfig.BaudRate = 9600;
     m_Settings_SerialConfig.ByteSize = 8;
@@ -71,7 +72,7 @@ void Settings_Init(LPCTSTR iniPath)
     m_Settings_SerialConfig.StopBits = TWOSTOPBITS;
 
     // Set m_Settings_NetComConfig defaults
-    ::memset(&m_Settings_NetComConfig, 0, sizeof(DCB));
+    m_Settings_NetComConfig = {};
     m_Settings_NetComConfig.DCBlength = sizeof(DCB);
     m_Settings_NetComConfig.BaudRate = 57600;
     m_Settings_NetComConfig.ByteSize = 8;
@@ -171,31 +172,44 @@ BOOL Settings_LoadBinaryValue(LPCTSTR sName, void* pData, int size)
 //////////////////////////////////////////////////////////////////////
 
 
-#define SETTINGS_GETSET_DWORD(PARAMNAME, PARAMNAMESTR, OUTTYPE, DEFVALUE) \
-    OUTTYPE m_Settings_##PARAMNAME = DEFVALUE; \
-    BOOL m_Settings_##PARAMNAME##_Valid = FALSE; \
-    void Settings_Set##PARAMNAME(OUTTYPE newvalue) { \
-        m_Settings_##PARAMNAME = newvalue; \
-        m_Settings_##PARAMNAME##_Valid = TRUE; \
-        Settings_SaveDwordValue(PARAMNAMESTR, (DWORD) newvalue); \
-    } \
-    OUTTYPE Settings_Get##PARAMNAME() { \
-        if (!m_Settings_##PARAMNAME##_Valid) { \
-            DWORD dwValue = (DWORD) DEFVALUE; \
-            Settings_LoadDwordValue(PARAMNAMESTR, &dwValue); \
-            m_Settings_##PARAMNAME = (OUTTYPE) dwValue; \
-            m_Settings_##PARAMNAME##_Valid = TRUE; \
-        } \
-        return m_Settings_##PARAMNAME; \
+template <typename T>
+class CachedDwordSetting
+{
+public:
+    CachedDwordSetting(LPCTSTR name, T defaultValue)
+        : name_(name), defaultValue_(defaultValue) {}
+
+    T Get()
+    {
+        if (!value_)
+        {
+            DWORD stored = static_cast<DWORD>(defaultValue_);
+            Settings_LoadDwordValue(name_, &stored);
+            value_ = static_cast<T>(stored);
+        }
+        return *value_;
     }
 
+    void Set(T value)
+    {
+        value_ = value;
+        Settings_SaveDwordValue(name_, static_cast<DWORD>(value));
+    }
+
+    void Reset() { value_.reset(); }
+
+private:
+    LPCTSTR name_;
+    T defaultValue_;
+    std::optional<T> value_;
+};
 
 BOOL Settings_GetWindowRect(RECT * pRect)
 {
     RECT rc;
     if (Settings_LoadBinaryValue(_T("WindowRect"), &rc, sizeof(RECT)))
     {
-        ::memcpy(pRect, &rc, sizeof(RECT));
+        *pRect = rc;
         return TRUE;
     }
 
@@ -206,15 +220,22 @@ void Settings_SetWindowRect(const RECT * pRect)
     Settings_SaveBinaryValue(_T("WindowRect"), pRect, sizeof(RECT));
 }
 
-SETTINGS_GETSET_DWORD(WindowMaximized, _T("WindowMaximized"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingWindowMaximized{_T("WindowMaximized"), FALSE};
+void Settings_SetWindowMaximized(BOOL value) { settingWindowMaximized.Set(value); }
+BOOL Settings_GetWindowMaximized() { return settingWindowMaximized.Get(); }
 
-SETTINGS_GETSET_DWORD(WindowFullscreen, _T("WindowFullscreen"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingWindowFullscreen{_T("WindowFullscreen"), FALSE};
+void Settings_SetWindowFullscreen(BOOL value) { settingWindowFullscreen.Set(value); }
+BOOL Settings_GetWindowFullscreen() { return settingWindowFullscreen.Get(); }
 
-void Settings_GetRender(LPTSTR buffer)
+void Settings_GetRender(std::span<TCHAR> buffer)
 {
-    if (!Settings_LoadStringValue(_T("Render"), buffer, 32))
+    if (!Settings_LoadStringValue(_T("Render"), buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{32}))))
     {
-        _tcscpy(buffer, _T("RenderVfw.dll"));
+        constexpr auto fallback = _T("RenderVfw.dll");
+        const auto length = std::char_traits<TCHAR>::length(fallback);
+        if (buffer.size() > length)
+            std::copy_n(fallback, length + 1, buffer.begin());
     }
 }
 void Settings_SetRender(LPCTSTR sValue)
@@ -222,66 +243,73 @@ void Settings_SetRender(LPCTSTR sValue)
     Settings_SaveStringValue(_T("Render"), sValue);
 }
 
-void Settings_GetFloppyFilePath(int slot, LPTSTR buffer)
+void Settings_GetFloppyFilePath(int slot, std::span<TCHAR> buffer)
 {
-    TCHAR bufValueName[8];
-    lstrcpy(bufValueName, _T("Floppy0"));
+    TCHAR bufValueName[] = _T("Floppy0");
     bufValueName[6] = _T('0') + (TCHAR)slot;
-    Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
+    Settings_LoadStringValue(bufValueName, buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{MAX_PATH})));
 }
 void Settings_SetFloppyFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[8];
-    lstrcpy(bufValueName, _T("Floppy0"));
+    TCHAR bufValueName[] = _T("Floppy0");
     bufValueName[6] = _T('0') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
-void Settings_GetHardFilePath(int slot, LPTSTR buffer)
+void Settings_GetHardFilePath(int slot, std::span<TCHAR> buffer)
 {
-    TCHAR bufValueName[6];
-    lstrcpy(bufValueName, _T("Hard1"));
+    TCHAR bufValueName[] = _T("Hard1");
     bufValueName[4] = _T('1') + (TCHAR)slot;
-    Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
+    Settings_LoadStringValue(bufValueName, buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{MAX_PATH})));
 }
 void Settings_SetHardFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[6];
-    lstrcpy(bufValueName, _T("Hard1"));
+    TCHAR bufValueName[] = _T("Hard1");
     bufValueName[4] = _T('1') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
-void Settings_GetCartridgeFilePath(int slot, LPTSTR buffer)
+void Settings_GetCartridgeFilePath(int slot, std::span<TCHAR> buffer)
 {
-    TCHAR bufValueName[11];
-    lstrcpy(bufValueName, _T("Cartridge0"));
+    TCHAR bufValueName[] = _T("Cartridge0");
     bufValueName[9] = _T('0') + (TCHAR)slot;
-    Settings_LoadStringValue(bufValueName, buffer, MAX_PATH);
+    Settings_LoadStringValue(bufValueName, buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{MAX_PATH})));
 }
 void Settings_SetCartridgeFilePath(int slot, LPCTSTR sFilePath)
 {
-    TCHAR bufValueName[11];
-    lstrcpy(bufValueName, _T("Cartridge0"));
+    TCHAR bufValueName[] = _T("Cartridge0");
     bufValueName[9] = _T('0') + (TCHAR)slot;
     Settings_SaveStringValue(bufValueName, sFilePath);
 }
 
-SETTINGS_GETSET_DWORD(ScreenViewMode, _T("ScreenViewMode"), int, 0);
+static CachedDwordSetting<int> settingScreenViewMode{_T("ScreenViewMode"), 0};
+void Settings_SetScreenViewMode(int value) { settingScreenViewMode.Set(value); }
+int Settings_GetScreenViewMode() { return settingScreenViewMode.Get(); }
 
-SETTINGS_GETSET_DWORD(ScreenHeightMode, _T("ScreenHeightMode"), int, 0);
+static CachedDwordSetting<int> settingScreenHeightMode{_T("ScreenHeightMode"), 0};
+void Settings_SetScreenHeightMode(int value) { settingScreenHeightMode.Set(value); }
+int Settings_GetScreenHeightMode() { return settingScreenHeightMode.Get(); }
 
-SETTINGS_GETSET_DWORD(ScreenshotMode, _T("ScreenshotMode"), int, 1);
+static CachedDwordSetting<int> settingScreenshotMode{_T("ScreenshotMode"), 1};
+void Settings_SetScreenshotMode(int value) { settingScreenshotMode.Set(value); }
+int Settings_GetScreenshotMode() { return settingScreenshotMode.Get(); }
 
-SETTINGS_GETSET_DWORD(Toolbar, _T("Toolbar"), BOOL, TRUE);
+static CachedDwordSetting<BOOL> settingToolbar{_T("Toolbar"), TRUE};
+void Settings_SetToolbar(BOOL value) { settingToolbar.Set(value); }
+BOOL Settings_GetToolbar() { return settingToolbar.Get(); }
 
-SETTINGS_GETSET_DWORD(Debug, _T("Debug"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingDebug{_T("Debug"), FALSE};
+void Settings_SetDebug(BOOL value) { settingDebug.Set(value); }
+BOOL Settings_GetDebug() { return settingDebug.Get(); }
 
-void Settings_GetDebugFontName(LPTSTR buffer)
+void Settings_GetDebugFontName(std::span<TCHAR> buffer)
 {
-    if (!Settings_LoadStringValue(_T("DebugFontName"), buffer, 32))
+    if (!Settings_LoadStringValue(_T("DebugFontName"), buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{32}))))
     {
-        _tcscpy(buffer, _T("Lucida Console"));
+        constexpr auto fallback = _T("Lucida Console");
+        const auto length = std::char_traits<TCHAR>::length(fallback);
+        if (buffer.size() > length)
+            std::copy_n(fallback, length + 1, buffer.begin());
     }
 }
 void Settings_SetDebugFontName(LPCTSTR sFontName)
@@ -289,12 +317,13 @@ void Settings_SetDebugFontName(LPCTSTR sFontName)
     Settings_SaveStringValue(_T("DebugFontName"), sFontName);
 }
 
-SETTINGS_GETSET_DWORD(DebugCpuPpu, _T("DebugCpuPpu"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingDebugCpuPpu{_T("DebugCpuPpu"), FALSE};
+void Settings_SetDebugCpuPpu(BOOL value) { settingDebugCpuPpu.Set(value); }
+BOOL Settings_GetDebugCpuPpu() { return settingDebugCpuPpu.Get(); }
 
 void Settings_SetDebugBreakpoint(int bpno, BOOL okCpuPpu, WORD address)
 {
-    TCHAR bufValueName[17];
-    lstrcpy(bufValueName, _T("DebugBreakptCpu0"));
+    TCHAR bufValueName[] = _T("DebugBreakptCpu0");
     bufValueName[12] = okCpuPpu ? _T('C') : _T('P');
     bufValueName[15] = bpno < 10 ? _T('0') + (TCHAR)bpno : _T('A') + (TCHAR)(bpno - 10);
     if (address == 0177777)
@@ -304,8 +333,7 @@ void Settings_SetDebugBreakpoint(int bpno, BOOL okCpuPpu, WORD address)
 }
 WORD Settings_GetDebugBreakpoint(int bpno, BOOL okCpuPpu)
 {
-    TCHAR bufValueName[17];
-    lstrcpy(bufValueName, _T("DebugBreakptCpu0"));
+    TCHAR bufValueName[] = _T("DebugBreakptCpu0");
     bufValueName[12] = okCpuPpu ? _T('C') : _T('P');
     bufValueName[15] = bpno < 10 ? _T('0') + (TCHAR)bpno : _T('A') + (TCHAR)(bpno - 10);
     DWORD dwValue = 0xFFFFFFFF;
@@ -313,36 +341,70 @@ WORD Settings_GetDebugBreakpoint(int bpno, BOOL okCpuPpu)
     return (WORD)dwValue;
 }
 
-SETTINGS_GETSET_DWORD(DebugMemoryMode, _T("DebugMemoryMode"), WORD, 3);
-SETTINGS_GETSET_DWORD(DebugMemoryAddress, _T("DebugMemoryAddress"), WORD, 0);
-SETTINGS_GETSET_DWORD(DebugMemoryBase, _T("DebugMemoryBase"), WORD, 0);
-SETTINGS_GETSET_DWORD(DebugMemoryByte, _T("DebugMemoryByte"), BOOL, FALSE);
-SETTINGS_GETSET_DWORD(DebugMemoryNumeral, _T("DebugMemoryNumeral"), WORD, 0);
+static CachedDwordSetting<WORD> settingDebugMemoryMode{_T("DebugMemoryMode"), 3};
+void Settings_SetDebugMemoryMode(WORD value) { settingDebugMemoryMode.Set(value); }
+WORD Settings_GetDebugMemoryMode() { return settingDebugMemoryMode.Get(); }
+static CachedDwordSetting<WORD> settingDebugMemoryAddress{_T("DebugMemoryAddress"), 0};
+void Settings_SetDebugMemoryAddress(WORD value) { settingDebugMemoryAddress.Set(value); }
+WORD Settings_GetDebugMemoryAddress() { return settingDebugMemoryAddress.Get(); }
+static CachedDwordSetting<WORD> settingDebugMemoryBase{_T("DebugMemoryBase"), 0};
+void Settings_SetDebugMemoryBase(WORD value) { settingDebugMemoryBase.Set(value); }
+WORD Settings_GetDebugMemoryBase() { return settingDebugMemoryBase.Get(); }
+static CachedDwordSetting<BOOL> settingDebugMemoryByte{_T("DebugMemoryByte"), FALSE};
+void Settings_SetDebugMemoryByte(BOOL value) { settingDebugMemoryByte.Set(value); }
+BOOL Settings_GetDebugMemoryByte() { return settingDebugMemoryByte.Get(); }
+static CachedDwordSetting<WORD> settingDebugMemoryNumeral{_T("DebugMemoryNumeral"), 0};
+void Settings_SetDebugMemoryNumeral(WORD value) { settingDebugMemoryNumeral.Set(value); }
+WORD Settings_GetDebugMemoryNumeral() { return settingDebugMemoryNumeral.Get(); }
 
-SETTINGS_GETSET_DWORD(Autostart, _T("Autostart"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingAutostart{_T("Autostart"), FALSE};
+void Settings_SetAutostart(BOOL value) { settingAutostart.Set(value); }
+BOOL Settings_GetAutostart() { return settingAutostart.Get(); }
 
-SETTINGS_GETSET_DWORD(RealSpeed, _T("RealSpeed"), WORD, 1);
+static CachedDwordSetting<WORD> settingRealSpeed{_T("RealSpeed"), 1};
+void Settings_SetRealSpeed(WORD value) { settingRealSpeed.Set(value); }
+WORD Settings_GetRealSpeed() { return settingRealSpeed.Get(); }
 
-SETTINGS_GETSET_DWORD(Sound, _T("Sound"), BOOL, FALSE);
-SETTINGS_GETSET_DWORD(SoundVolume, _T("SoundVolume"), WORD, 0x3fff);
-SETTINGS_GETSET_DWORD(SoundAY, _T("SoundAY"), BOOL, FALSE);
-SETTINGS_GETSET_DWORD(SoundCovox, _T("SoundCovox"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingSound{_T("Sound"), FALSE};
+void Settings_SetSound(BOOL value) { settingSound.Set(value); }
+BOOL Settings_GetSound() { return settingSound.Get(); }
+static CachedDwordSetting<WORD> settingSoundVolume{_T("SoundVolume"), 0x3fff};
+void Settings_SetSoundVolume(WORD value) { settingSoundVolume.Set(value); }
+WORD Settings_GetSoundVolume() { return settingSoundVolume.Get(); }
+static CachedDwordSetting<BOOL> settingSoundAY{_T("SoundAY"), FALSE};
+void Settings_SetSoundAY(BOOL value) { settingSoundAY.Set(value); }
+BOOL Settings_GetSoundAY() { return settingSoundAY.Get(); }
+static CachedDwordSetting<BOOL> settingSoundCovox{_T("SoundCovox"), FALSE};
+void Settings_SetSoundCovox(BOOL value) { settingSoundCovox.Set(value); }
+BOOL Settings_GetSoundCovox() { return settingSoundCovox.Get(); }
 
-SETTINGS_GETSET_DWORD(Mouse, _T("Mouse"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingMouse{_T("Mouse"), FALSE};
+void Settings_SetMouse(BOOL value) { settingMouse.Set(value); }
+BOOL Settings_GetMouse() { return settingMouse.Get(); }
 
-SETTINGS_GETSET_DWORD(Keyboard, _T("Keyboard"), BOOL, TRUE);
+static CachedDwordSetting<BOOL> settingKeyboard{_T("Keyboard"), TRUE};
+void Settings_SetKeyboard(BOOL value) { settingKeyboard.Set(value); }
+BOOL Settings_GetKeyboard() { return settingKeyboard.Get(); }
 
-SETTINGS_GETSET_DWORD(Tape, _T("Tape"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingTape{_T("Tape"), FALSE};
+void Settings_SetTape(BOOL value) { settingTape.Set(value); }
+BOOL Settings_GetTape() { return settingTape.Get(); }
 
-SETTINGS_GETSET_DWORD(InstrHistory, _T("InstrHistory"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingInstrHistory{_T("InstrHistory"), FALSE};
+void Settings_SetInstrHistory(BOOL value) { settingInstrHistory.Set(value); }
+BOOL Settings_GetInstrHistory() { return settingInstrHistory.Get(); }
 
-SETTINGS_GETSET_DWORD(Serial, _T("Serial"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingSerial{_T("Serial"), FALSE};
+void Settings_SetSerial(BOOL value) { settingSerial.Set(value); }
+BOOL Settings_GetSerial() { return settingSerial.Get(); }
 
-SETTINGS_GETSET_DWORD(Parallel, _T("Parallel"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingParallel{_T("Parallel"), FALSE};
+void Settings_SetParallel(BOOL value) { settingParallel.Set(value); }
+BOOL Settings_GetParallel() { return settingParallel.Get(); }
 
-void Settings_GetSerialPort(LPTSTR buffer)
+void Settings_GetSerialPort(std::span<TCHAR> buffer)
 {
-    Settings_LoadStringValue(_T("SerialPort"), buffer, 10);
+    Settings_LoadStringValue(_T("SerialPort"), buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{10})));
 }
 void Settings_SetSerialPort(LPCTSTR sValue)
 {
@@ -357,29 +419,33 @@ void Settings_GetSerialConfig(DCB * pDcb)
         DCB dcb;
         if (Settings_LoadBinaryValue(_T("SerialConfig"), &dcb, sizeof(DCB)))
         {
-            ::memcpy(&m_Settings_SerialConfig, &dcb, sizeof(DCB));
+            m_Settings_SerialConfig = dcb;
         }
         //NOTE: else -- use defaults from m_Settings_SerialConfig
 
         m_Settings_SerialConfig_Valid = TRUE;
     }
 
-    ::memcpy(pDcb, &m_Settings_SerialConfig, sizeof(DCB));
+    *pDcb = m_Settings_SerialConfig;
 }
 void Settings_SetSerialConfig(const DCB * pDcb)
 {
-    ::memcpy(&m_Settings_SerialConfig, pDcb, sizeof(DCB));
+    m_Settings_SerialConfig = *pDcb;
     Settings_SaveBinaryValue(_T("SerialConfig"), pDcb, sizeof(DCB));
     m_Settings_SerialConfig_Valid = TRUE;
 }
 
-SETTINGS_GETSET_DWORD(Network, _T("Network"), BOOL, FALSE);
+static CachedDwordSetting<BOOL> settingNetwork{_T("Network"), FALSE};
+void Settings_SetNetwork(BOOL value) { settingNetwork.Set(value); }
+BOOL Settings_GetNetwork() { return settingNetwork.Get(); }
 
-SETTINGS_GETSET_DWORD(NetStation, _T("NetStation"), int, 0);
+static CachedDwordSetting<int> settingNetStation{_T("NetStation"), 0};
+void Settings_SetNetStation(int value) { settingNetStation.Set(value); }
+int Settings_GetNetStation() { return settingNetStation.Get(); }
 
-void Settings_GetNetComPort(LPTSTR buffer)
+void Settings_GetNetComPort(std::span<TCHAR> buffer)
 {
-    Settings_LoadStringValue(_T("NetComPort"), buffer, 10);
+    Settings_LoadStringValue(_T("NetComPort"), buffer.data(), static_cast<int>((std::min)(buffer.size(), size_t{10})));
 }
 void Settings_SetNetComPort(LPCTSTR sValue)
 {
@@ -394,27 +460,33 @@ void Settings_GetNetComConfig(DCB * pDcb)
         DCB dcb;
         if (Settings_LoadBinaryValue(_T("NetComConfig"), &dcb, sizeof(DCB)))
         {
-            ::memcpy(&m_Settings_NetComConfig, &dcb, sizeof(DCB));
+            m_Settings_NetComConfig = dcb;
         }
         //NOTE: else -- use defaults from m_Settings_NetComConfig
 
         m_Settings_NetComConfig_Valid = TRUE;
     }
 
-    ::memcpy(pDcb, &m_Settings_NetComConfig, sizeof(DCB));
+    *pDcb = m_Settings_NetComConfig;
 }
 void Settings_SetNetComConfig(const DCB * pDcb)
 {
-    ::memcpy(&m_Settings_NetComConfig, pDcb, sizeof(DCB));
+    m_Settings_NetComConfig = *pDcb;
     Settings_SaveBinaryValue(_T("NetComConfig"), pDcb, sizeof(DCB));
     m_Settings_NetComConfig_Valid = TRUE;
 }
 
-SETTINGS_GETSET_DWORD(SpriteAddress, _T("SpriteAddress"), WORD, 0);
+static CachedDwordSetting<WORD> settingSpriteAddress{_T("SpriteAddress"), 0};
+void Settings_SetSpriteAddress(WORD value) { settingSpriteAddress.Set(value); }
+WORD Settings_GetSpriteAddress() { return settingSpriteAddress.Get(); }
 
-SETTINGS_GETSET_DWORD(SpriteWidth, _T("SpriteWidth"), WORD, 2);
+static CachedDwordSetting<WORD> settingSpriteWidth{_T("SpriteWidth"), 2};
+void Settings_SetSpriteWidth(WORD value) { settingSpriteWidth.Set(value); }
+WORD Settings_GetSpriteWidth() { return settingSpriteWidth.Get(); }
 
-SETTINGS_GETSET_DWORD(SpriteMode, _T("SpriteMode"), WORD, 0);
+static CachedDwordSetting<WORD> settingSpriteMode{_T("SpriteMode"), 0};
+void Settings_SetSpriteMode(WORD value) { settingSpriteMode.Set(value); }
+WORD Settings_GetSpriteMode() { return settingSpriteMode.Get(); }
 
 
 //////////////////////////////////////////////////////////////////////
@@ -505,36 +577,36 @@ COLORREF Settings_GetDefaultColor(ColorIndices colorIndex)
 
 static void Settings_ResetCaches()
 {
-    m_Settings_WindowMaximized_Valid = FALSE;
-    m_Settings_WindowFullscreen_Valid = FALSE;
-    m_Settings_ScreenViewMode_Valid = FALSE;
-    m_Settings_ScreenHeightMode_Valid = FALSE;
-    m_Settings_ScreenshotMode_Valid = FALSE;
-    m_Settings_Toolbar_Valid = FALSE;
-    m_Settings_Debug_Valid = FALSE;
-    m_Settings_DebugCpuPpu_Valid = FALSE;
-    m_Settings_DebugMemoryMode_Valid = FALSE;
-    m_Settings_DebugMemoryAddress_Valid = FALSE;
-    m_Settings_DebugMemoryBase_Valid = FALSE;
-    m_Settings_DebugMemoryByte_Valid = FALSE;
-    m_Settings_DebugMemoryNumeral_Valid = FALSE;
-    m_Settings_Autostart_Valid = FALSE;
-    m_Settings_RealSpeed_Valid = FALSE;
-    m_Settings_Sound_Valid = FALSE;
-    m_Settings_SoundVolume_Valid = FALSE;
-    m_Settings_SoundAY_Valid = FALSE;
-    m_Settings_SoundCovox_Valid = FALSE;
-    m_Settings_Mouse_Valid = FALSE;
-    m_Settings_Keyboard_Valid = FALSE;
-    m_Settings_Tape_Valid = FALSE;
-    m_Settings_InstrHistory_Valid = FALSE;
-    m_Settings_Serial_Valid = FALSE;
-    m_Settings_Parallel_Valid = FALSE;
-    m_Settings_Network_Valid = FALSE;
-    m_Settings_NetStation_Valid = FALSE;
-    m_Settings_SpriteAddress_Valid = FALSE;
-    m_Settings_SpriteWidth_Valid = FALSE;
-    m_Settings_SpriteMode_Valid = FALSE;
+    settingWindowMaximized.Reset();
+    settingWindowFullscreen.Reset();
+    settingScreenViewMode.Reset();
+    settingScreenHeightMode.Reset();
+    settingScreenshotMode.Reset();
+    settingToolbar.Reset();
+    settingDebug.Reset();
+    settingDebugCpuPpu.Reset();
+    settingDebugMemoryMode.Reset();
+    settingDebugMemoryAddress.Reset();
+    settingDebugMemoryBase.Reset();
+    settingDebugMemoryByte.Reset();
+    settingDebugMemoryNumeral.Reset();
+    settingAutostart.Reset();
+    settingRealSpeed.Reset();
+    settingSound.Reset();
+    settingSoundVolume.Reset();
+    settingSoundAY.Reset();
+    settingSoundCovox.Reset();
+    settingMouse.Reset();
+    settingKeyboard.Reset();
+    settingTape.Reset();
+    settingInstrHistory.Reset();
+    settingSerial.Reset();
+    settingParallel.Reset();
+    settingNetwork.Reset();
+    settingNetStation.Reset();
+    settingSpriteAddress.Reset();
+    settingSpriteWidth.Reset();
+    settingSpriteMode.Reset();
     m_Settings_SerialConfig_Valid = FALSE;
     m_Settings_NetComConfig_Valid = FALSE;
     for (auto& color : ColorDescriptors) color.valid = FALSE;

@@ -308,27 +308,7 @@ void ConsoleView_PrintConsolePrompt()
 // Print register name, octal value and binary value
 void ConsoleView_PrintRegister(LPCTSTR strName, WORD value)
 {
-    TCHAR buffer[36];
-    TCHAR* p = buffer;
-    *p++ = _T(' ');
-    *p++ = _T(' ');
-    lstrcpy(p, strName);
-    if (lstrlen(strName) > 2)
-        p += 3;
-    else
-    {
-        p += 2;
-        *p++ = _T(' ');
-    }
-    PrintOctalValue(p, value);  p += 6;
-    *p++ = _T(' ');
-    PrintHexValue(p, value);  p += 4;
-    *p++ = _T(' ');
-    PrintBinaryValue(p, value);  p += 16;
-    *p++ = _T('\r');
-    *p++ = _T('\n');
-    *p++ = 0;
-    ConsoleView_Print(buffer);
+    ConsoleView_PrintFormat(_T("  {:<3}{:06o} {:04x} {:016b}\r\n"), strName, value, value, value);
 }
 
 void ConsoleView_SetCurrentProc(BOOL okCPU)

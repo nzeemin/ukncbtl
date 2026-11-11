@@ -14,6 +14,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "RamChanges.h"
 #include "util/Profiler.h"
 #include <cstdio>
+#include <algorithm>
 #include <array>
 #include <format>
 #include <memory>
@@ -109,7 +110,7 @@ bool Emulator_LoadUkncRom()
         {
             return false;
         }
-        ::memcpy(data.data(), pResData, 32256);
+        std::copy_n(static_cast<const uint8_t*>(pResData), 32256, data.begin());
     }
 
     g_pBoard->LoadROM(data);
@@ -124,8 +125,8 @@ bool Emulator_Init()
 {
     ASSERT(g_pBoard == nullptr);
 
-    ::memset(g_pEmulatorRam, 0, sizeof(g_pEmulatorRam));
-    ::memset(g_pEmulatorChangedRam, 0, sizeof(g_pEmulatorChangedRam));
+    std::ranges::fill(g_pEmulatorRam, nullptr);
+    std::ranges::fill(g_pEmulatorChangedRam, nullptr);
     CProcessor::Init();
 
     cpuBreakpoints.Clear();
@@ -514,8 +515,7 @@ bool Emulator_SetNetwork(bool networkOnOff, LPCTSTR networkPort)
             // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
             // and ReadTotalTimeoutMultiplier members, specifies that the read operation is to return immediately with the bytes
             // that have already been received, even if no bytes have been received.
-            COMMTIMEOUTS timeouts;
-            ::memset(&timeouts, 0, sizeof(timeouts));
+            COMMTIMEOUTS timeouts{};
             timeouts.ReadIntervalTimeout = MAXDWORD;
             timeouts.WriteTotalTimeoutConstant = 100;
             if (!::SetCommTimeouts(m_hEmulatorNetPort, &timeouts))
@@ -601,8 +601,7 @@ bool Emulator_SetSerial(bool serialOnOff, LPCTSTR serialPort)
             // Set timeouts: ReadIntervalTimeout value of MAXDWORD, combined with zero values for both the ReadTotalTimeoutConstant
             // and ReadTotalTimeoutMultiplier members, specifies that the read operation is to return immediately with the bytes
             // that have already been received, even if no bytes have been received.
-            COMMTIMEOUTS timeouts;
-            ::memset(&timeouts, 0, sizeof(timeouts));
+            COMMTIMEOUTS timeouts{};
             timeouts.ReadIntervalTimeout = MAXDWORD;
             timeouts.WriteTotalTimeoutConstant = 100;
             if (!::SetCommTimeouts(m_hEmulatorComPort, &timeouts))

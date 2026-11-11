@@ -11,6 +11,8 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 // DebugView.cpp
 
 #include "stdafx.h"
+#include <array>
+#include <span>
 #include "ViewCalculations.h"
 #include <windowsx.h>
 #include <CommCtrl.h>
@@ -34,10 +36,10 @@ HWND m_hwndDebugBreaksViewer = (HWND)INVALID_HANDLE_VALUE;
 HWND m_hwndDebugMemoryViewer = (HWND)INVALID_HANDLE_VALUE;
 
 BOOL m_okDebugProcessor = FALSE;  // TRUE - CPU, FALSE - PPU
-WORD m_wDebugCpuR[11];  // Saved register values - R0..R7, PSW, CPC, CPSW
-WORD m_wDebugPpuR[11];  // Saved register values - R0..R7, PSW, CPC, CPSW
-BOOL m_okDebugCpuRChanged[11];  // Register change flags
-BOOL m_okDebugPpuRChanged[11];  // Register change flags
+std::array<WORD, 11> m_wDebugCpuR{};  // Saved register values - R0..R7, PSW, CPC, CPSW
+std::array<WORD, 11> m_wDebugPpuR{};  // Saved register values - R0..R7, PSW, CPC, CPSW
+std::array<bool, 11> m_okDebugCpuRChanged{};  // Register change flags
+std::array<bool, 11> m_okDebugPpuRChanged{};  // Register change flags
 WORD m_wDebugCpuPswOld;  // PSW value on previous step
 WORD m_wDebugPpuPswOld;  // PSW value on previous step
 WORD m_wDebugCpuR6Old;  // SP value on previous step
@@ -54,7 +56,7 @@ BOOL DebugView_OnKeyDown(WPARAM vkey, LPARAM lParam);
 DebugCtrlHitTest DebugView_BaseHitTest(int x, int y);
 
 void DebugProcView_DoDraw(HDC hdc);
-void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged, WORD oldPsw);
+void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, std::span<const WORD, 11> arrR, std::span<const bool, 11> arrRChanged, WORD oldPsw);
 DebugCtrlHitTest DebugProcView_HitTest(int x, int y);
 void DebugProcView_OnRButtonDown(int mousex, int mousey);
 
@@ -116,10 +118,10 @@ void DebugView_RegisterClasses()
 
 void DebugView_Init()
 {
-    memset(m_wDebugCpuR, 255, sizeof(m_wDebugCpuR));
-    memset(m_okDebugCpuRChanged, 1, sizeof(m_okDebugCpuRChanged));
-    memset(m_wDebugPpuR, 255, sizeof(m_wDebugPpuR));
-    memset(m_okDebugPpuRChanged, 1, sizeof(m_okDebugPpuRChanged));
+    m_wDebugCpuR.fill(0xffff);
+    m_okDebugCpuRChanged.fill(true);
+    m_wDebugPpuR.fill(0xffff);
+    m_okDebugPpuRChanged.fill(true);
     m_wDebugCpuPswOld = m_wDebugPpuPswOld = 0;
     m_wDebugCpuR6Old = m_wDebugPpuR6Old = 0;
 
@@ -191,13 +193,12 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
     SendMessage(m_hwndDebugToolbar, TB_BUTTONSTRUCTSIZE, (WPARAM) sizeof(TBBUTTON), 0);
     SendMessage(m_hwndDebugToolbar, TB_SETBUTTONSIZE, 0, (LPARAM) MAKELONG (26, 26));
 
-    TBBUTTON buttons[6];
-    ZeroMemory(buttons, sizeof(buttons));
-    for (int i = 0; i < sizeof(buttons) / sizeof(TBBUTTON); i++)
+    std::array<TBBUTTON, 6> buttons{};
+    for (auto& button : buttons)
     {
-        buttons[i].fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
-        buttons[i].fsStyle = BTNS_BUTTON;
-        buttons[i].iString = -1;
+        button.fsState = TBSTATE_ENABLED | TBSTATE_WRAP;
+        button.fsStyle = BTNS_BUTTON;
+        button.iString = -1;
     }
     buttons[0].idCommand = ID_VIEW_DEBUG;
     buttons[0].iBitmap = ToolbarImageDebugger;
@@ -212,7 +213,7 @@ void DebugView_Create(HWND hwndParent, int x, int y, int width, int height)
     buttons[5].idCommand = ID_DEBUG_STEPOVER;
     buttons[5].iBitmap = ToolbarImageStepOver;
 
-    SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, (WPARAM) sizeof(buttons) / sizeof(TBBUTTON), (LPARAM)&buttons);
+    SendMessage(m_hwndDebugToolbar, TB_ADDBUTTONS, static_cast<WPARAM>(buttons.size()), reinterpret_cast<LPARAM>(buttons.data()));
 }
 
 void DebugView_Redraw()
@@ -502,8 +503,8 @@ void DebugProcView_DoDraw(HDC hdc)
 
     CProcessor* pDebugPU = (m_okDebugProcessor) ? g_pBoard->GetCPU() : g_pBoard->GetPPU();
     ASSERT(pDebugPU != nullptr);
-    WORD* arrR = (m_okDebugProcessor) ? m_wDebugCpuR : m_wDebugPpuR;
-    BOOL* arrRChanged = (m_okDebugProcessor) ? m_okDebugCpuRChanged : m_okDebugPpuRChanged;
+    const auto& arrR = (m_okDebugProcessor) ? m_wDebugCpuR : m_wDebugPpuR;
+    const auto& arrRChanged = (m_okDebugProcessor) ? m_okDebugCpuRChanged : m_okDebugPpuRChanged;
     WORD oldPsw = (m_okDebugProcessor) ? m_wDebugCpuPswOld : m_wDebugPpuPswOld;
 
     HGDIOBJ hOldBrush = ::SelectObject(hdc, ::GetSysColorBrush(COLOR_BTNFACE));
@@ -529,7 +530,7 @@ void DebugProcView_DoDraw(HDC hdc)
     }
 }
 
-void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, WORD* arrR, BOOL* arrRChanged, WORD oldPsw)
+void DebugView_DrawProcessor(HDC hdc, const CProcessor* pProc, int x, int y, std::span<const WORD, 11> arrR, std::span<const bool, 11> arrRChanged, WORD oldPsw)
 {
     int cxChar, cyLine;  GetFontWidthAndHeight(hdc, &cxChar, &cyLine);
     COLORREF colorText = Settings_GetColor(ColorDebugText);

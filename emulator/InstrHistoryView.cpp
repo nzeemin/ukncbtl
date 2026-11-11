@@ -199,8 +199,7 @@ void InstrHistoryView_UpdateScrollBar()
         return;
 
     int max = InstrHistoryView_GetMaxBottomLine();
-    SCROLLINFO si;
-    ZeroMemory(&si, sizeof(si));
+    SCROLLINFO si{};
     si.cbSize = sizeof(si);
     si.fMask = SIF_PAGE | SIF_POS | SIF_RANGE | SIF_DISABLENOSCROLL;
     si.nMin = 0;

@@ -16,6 +16,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 #include "Processor.h"
 #include "ImageSerialization.h"
 #include <algorithm>
+#include <span>
 
 
 //////////////////////////////////////////////////////////////////////
@@ -796,35 +797,37 @@ void CSecondMemoryController::UpdateMemoryMap()
 {
     CMemoryController::UpdateMemoryMap();
 
+    auto mapping = std::span{m_pMapping};
+
     // 000000-077777 - PPU RAM
-    memset(m_pMapping.data(), ADDRTYPE_RAM0, 0100000);
+    std::ranges::fill(mapping.first<0100000>(), ADDRTYPE_RAM0);
 
     // 100000-117777 - Window block 0
     uint8_t filler = ADDRTYPE_NONE;
     if ((m_Port177054 & 16) != 0)  // Port 177054 bit 4 set => RAM selected
-        memset(m_pMapping.data() + 0100000, ADDRTYPE_RAM0, 020000);
+        std::ranges::fill(mapping.subspan<0100000, 020000>(), ADDRTYPE_RAM0);
     else if ((m_Port177054 & 1) != 0)  // ROM selected
-        memset(m_pMapping.data() + 0100000, ADDRTYPE_ROM, 020000);
+        std::ranges::fill(mapping.subspan<0100000, 020000>(), ADDRTYPE_ROM);
     else if ((m_Port177054 & 14) != 0)  // ROM cartridge selected
     {
         int slot = ((m_Port177054 & 8) == 0) ? 1 : 2;
         filler = (slot == 1) ? ADDRTYPE_ROMCART1 : ADDRTYPE_ROMCART2;
-        memset(m_pMapping.data() + 0100000, filler, 010000);
+        std::ranges::fill(mapping.subspan<0100000, 010000>(), filler);
         if (!m_pBoard->IsHardImageAttached(slot))
-            memset(m_pMapping.data() + 0110000, filler, 010000);
+            std::ranges::fill(mapping.subspan<0110000, 010000>(), filler);
     }
 
     // 120000-137777 - Window block 1
     filler = ((m_Port177054 & 32) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 5 set => RAM selected
-    memset(m_pMapping.data() + 0120000, filler, 020000);
+    std::ranges::fill(mapping.subspan<0120000, 020000>(), filler);
 
     // 140000-157777 - Window block 2
     filler = ((m_Port177054 & 64) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 6 set => RAM selected
-    memset(m_pMapping.data() + 0140000, filler, 020000);
+    std::ranges::fill(mapping.subspan<0140000, 020000>(), filler);
 
     // 160000-176777 - Window block 3
     filler = ((m_Port177054 & 128) == 0 ? ADDRTYPE_ROM : ADDRTYPE_RAM0);  // Port 177054 bit 7 set => RAM selected
-    memset(m_pMapping.data() + 0160000, filler, 017000);
+    std::ranges::fill(mapping.subspan<0160000, 017000>(), filler);
 
     // 177000-177777 - I/O addresses
     for (uint16_t addr = 0177777; addr >= 0177000; addr--)

@@ -68,8 +68,7 @@ HBITMAP CreateHBITMAP(IWICBitmapSource * ipBitmap)
         return nullptr;
 
     // prepare structure giving bitmap information (negative height indicates a top-down DIB)
-    BITMAPINFO bminfo;
-    ZeroMemory(&bminfo, sizeof(bminfo));
+    BITMAPINFO bminfo{};
     bminfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
     bminfo.bmiHeader.biWidth = width;
     bminfo.bmiHeader.biHeight = -((LONG)height);

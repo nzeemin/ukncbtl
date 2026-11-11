@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "util/Profiler.h"
+#include <algorithm>
 #include <vector>
 #include <memory>
 #include <windowsx.h>
@@ -279,7 +280,7 @@ BOOL ScreenView_InitRender(LPCTSTR szRenderLibraryName)
     }
 
     // Enumerate render modes
-    memset(ScreenModeReference, 0, sizeof(ScreenModeReference));
+    std::ranges::fill(ScreenModeReference, ScreenModeStruct{});
     g_nScreenModeIndex = 0;
     RenderEnumModesProc(ScreenView_EnumModesProc);
     g_hScreenModeMenu = nullptr;
@@ -598,8 +599,7 @@ HGLOBAL ScreenView_GetScreenshotAsDIB(int screenshotMode)
     if (!screen_scale::Apply(screenshotMode, bits, scrBits))
         return nullptr;
 
-    BITMAPINFOHEADER bi;
-    ::ZeroMemory(&bi, sizeof(BITMAPINFOHEADER));
+    BITMAPINFOHEADER bi{};
     bi.biSize = sizeof(BITMAPINFOHEADER);
     bi.biWidth = scrwidth;
     bi.biHeight = scrheight;

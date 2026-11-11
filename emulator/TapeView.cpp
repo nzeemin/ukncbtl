@@ -12,6 +12,7 @@ UKNCBTL. If not, see <http://www.gnu.org/licenses/>. */
 
 #include "stdafx.h"
 #include "TapeTransport.h"
+#include <algorithm>
 #include <format>
 #include <optional>
 #include <commdlg.h>
@@ -209,7 +210,7 @@ LRESULT CALLBACK TapeViewWndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM 
 
 void TapeView_ClearGraph()
 {
-    memset(m_TapeBuffer, 0, sizeof(m_TapeBuffer));
+    std::ranges::fill(m_TapeBuffer, 0);
 
     if (m_hwndTapeGraph != INVALID_HANDLE_VALUE)
     {
